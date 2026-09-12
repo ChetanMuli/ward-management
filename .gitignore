@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+**/dist/
+**/build/
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Runtime
+.pids/
+*.pid
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Frontend cache
+.cache/
+.parcel-cache/
+
+# Temporary files
+tmp/
+temp/
+
+# Uploads / generated files
+uploads/
+**/uploads/
+
+# SSL/private keys
+*.key
+*.pem
+
+# Database dumps
+*.sql
+*.dump
+
+# npm
+.npm/

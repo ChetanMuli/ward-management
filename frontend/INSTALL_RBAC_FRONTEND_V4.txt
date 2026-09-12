@@ -1,0 +1,41 @@
+WARD MANAGEMENT FRONTEND v4
+
+Aligned with the installed /api/v2 RBAC backend.
+
+Changes:
+- Removed sidebar DATA SCOPE selector.
+- Added Ward filter to Dashboard, Wards, Staff, Houses, Families, Citizens, Voters, Birthdays, 18+ Follow-up, Complaints, Reports, Audit Logs and Recycle Bin.
+- Master Admin can select All 16 wards or one ward; selection persists across pages.
+- Nagarsevak/Employee is locked to the assigned ward.
+- Master Admin can create Nagarsevak or Employee.
+- Nagarsevak can create Employee for the Nagarsevak's ward.
+- Employee permissions use the backend's actual permission codes.
+- Staff uses /api/v2/corporators and /api/v2/employees instead of the old /api/staff route.
+- Ward creation is available to Master Admin.
+- Sidebar scrolling strengthened.
+
+IMPORTANT:
+The exact "Employee reports to a specific Nagarsevak" relationship needs the companion backend manager patch because the currently installed backend has ward_id and permissions but not manager_user_id.
+
+Deployment:
+cd /var/www/ward-management-system-v1
+sudo cp -a frontend frontend-backup-$(date +%Y%m%d-%H%M%S)
+
+Upload ZIP to /home/ubuntu/ward-management-frontend-16WARD-RBAC-v4.zip
+
+rm -rf /tmp/ward-frontend-v4
+mkdir -p /tmp/ward-frontend-v4
+unzip -q /home/ubuntu/ward-management-frontend-16WARD-RBAC-v4.zip -d /tmp/ward-frontend-v4
+
+sudo rsync -a --delete --exclude node_modules --exclude dist /tmp/ward-frontend-v4/frontend/ /var/www/ward-management-system-v1/frontend/
+
+sudo chown -R ubuntu:ubuntu /var/www/ward-management-system-v1/frontend
+
+cd /var/www/ward-management-system-v1/frontend
+npm install
+npm run build
+
+sudo nginx -t
+sudo systemctl reload nginx
+
+Then hard refresh with Ctrl + Shift + R.

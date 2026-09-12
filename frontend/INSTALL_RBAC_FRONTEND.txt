@@ -1,0 +1,31 @@
+Ward Management Frontend - 16 Ward RBAC Update
+===============================================
+
+Included:
+- Master Admin / Nagarsevak / Employee role-aware navigation.
+- Master Admin ward scope selector (All 16 wards or one ward).
+- Ward-scoped API query support for data modules.
+- Nagarsevak & Employee administration screen.
+- Employee permission matrix: module + View/Create/Edit/Delete.
+- Nagarsevak can manage employees in the assigned ward.
+- Master Admin can manage ward-scoped staff across wards.
+- Sidebar vertical scrolling fix.
+- Master Admin login field defaults to admin@gmail.com.
+
+Deployment:
+1. Back up the existing frontend.
+2. Extract the ZIP so its frontend/ directory replaces the source frontend.
+3. Keep/update frontend/.env as required.
+4. Run: npm install
+5. Run: npm run build
+6. Serve the generated dist directory using the existing nginx configuration.
+
+Important:
+- Backend RBAC remains the source of truth for authorization and ward isolation.
+- Staff endpoints expected by this frontend:
+  GET    /api/staff
+  GET    /api/staff/:id
+  POST   /api/staff
+  PATCH  /api/staff/:id
+  PUT    /api/staff/:id/permissions
+  DELETE /api/staff/:id

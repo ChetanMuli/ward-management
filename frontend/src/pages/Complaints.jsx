@@ -1,0 +1,137 @@
+import React,{useEffect,useMemo,useState} from 'react';
+import {useLocation} from 'react-router-dom';
+import {api,getUser} from '../services/api';
+import {Empty,ErrorBox,Field,ImageField,Loading,Modal,PageHeader,RowMenu,StatusPill,Toolbar,fmtDateTime,SearchableSelect,PaginationBar} from '../components/Ui';
+import WardFilter from '../components/WardFilter';
+import {useWardFilter} from '../wardFilter';
+import {can,isEmployee,isNagarsevak,isMaster,isSubMaster} from '../rbac';
+
+const statuses=['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED'];
+const blank={houseId:'',citizenPersonId:'',description:'',reportedImage:null};
+async function compressImage(file){
+ if(!file)return null;
+ if(!file.type.startsWith('image/'))throw new Error('Please select a JPG, PNG or WEBP image.');
+ const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error('Unable to read the selected image.'));i.src=URL.createObjectURL(file)});
+ const max=1400,scale=Math.min(1,max/Math.max(img.width,img.height));
+ const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));
+ const ctx=c.getContext('2d');if(!ctx)throw new Error('Image processing is unavailable in this browser.');
+ ctx.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);
+ return c.toDataURL('image/jpeg',0.78);
+}
+const wa=(mobile,message)=>{let n=String(mobile||'').replace(/\D/g,'');if(n.length===10)n='91'+n;if(n.length<11)throw new Error('Valid mobile number is not available for WhatsApp.');window.open(`https://wa.me/${n}?text=${encodeURIComponent(message)}`,'_blank','noopener,noreferrer')};
+
+export default function Complaints(){
+ const user=getUser();const location=useLocation();const {selectedWardId}=useWardFilter();
+ const [rows,setRows]=useState(null),[meta,setMeta]=useState({total:0,page:1,limit:25}),[page,setPage]=useState(1),[limit,setLimit]=useState(25),[filters,setFilters]=useState({search:'',status:'',assignedEmployeeId:''});
+ const [showFilters,setShowFilters]=useState(false);
+ const [people,setPeople]=useState([]),[houses,setHouses]=useState([]),[employees,setEmployees]=useState([]),[nagarsevaks,setNagarsevaks]=useState([]);
+ const [open,setOpen]=useState(false),[detail,setDetail]=useState(null),[editing,setEditing]=useState(null),[assigning,setAssigning]=useState(null);
+ const [form,setForm]=useState(blank),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+
+ async function load(nextFilters=filters,nextPage=page,nextLimit=limit){
+   try{
+    setError('');
+    const p={...nextFilters,page:nextPage,limit:nextLimit,wardId:selectedWardId||undefined};
+    const r=await api.complaints(p);
+    setRows(r.data||[]);setMeta(r.meta||{total:(r.data||[]).length,page:nextPage,limit:nextLimit});
+   }catch(e){setError(e.message);setRows([]);setMeta({total:0,page:1,limit:nextLimit})}
+ }
+ async function loadReferences(){
+   try{
+     const [p,h,e,n]=await Promise.all([
+       api.persons({limit:500,wardId:selectedWardId||undefined}),
+       api.houses({limit:500,wardId:selectedWardId||undefined}),
+       api.employees({limit:500,wardId:selectedWardId||undefined}),
+       api.corporators({limit:100,page:1,wardId:selectedWardId||undefined})
+     ]);
+     setPeople(p.data||[]);setHouses(h.data||[]);setEmployees(e.data||[]);setNagarsevaks(n.data||[]);
+   }catch(e){setError(e.message)}
+ }
+ useEffect(()=>{loadReferences()},[selectedWardId]);
+ useEffect(()=>{setPage(1)},[selectedWardId,filters.search,filters.status,filters.assignedEmployeeId]);
+ useEffect(()=>{const t=setTimeout(()=>load(filters,page,limit),300);return()=>clearTimeout(t)},[selectedWardId,filters.search,filters.status,filters.assignedEmployeeId,page,limit]);
+ const pages=Math.max(1,Math.ceil((meta.total||0)/(meta.limit||limit)));
+ const wardPeople=people,wardHouses=houses;
+ const assignable=employees.filter(e=>isMaster(user)||e.managerUserId===user?.id);
+ const visible=useMemo(()=>rows||[],[rows]);
+
+ function resetFilters(){const emptyFilters={search:'',status:'',assignedEmployeeId:''};setFilters(emptyFilters);setPage(1);setShowFilters(false);}
+ async function create(e){e.preventDefault();setBusy(true);try{await api.createComplaint({...form,category:'OTHER',priority:'MEDIUM'});setOpen(false);setForm({...blank});await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function update(e){e.preventDefault();setBusy(true);try{
+   await api.updateComplaintStatus(editing.id,{status:editing.status,comment:editing.comment,resolutionNote:editing.resolutionNote,resolutionImage:editing.resolutionImage});
+   setEditing(null);await load()
+ }catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function assign(){setBusy(true);try{
+   if(assigning.assignToSelf){await api.assignComplaint(assigning.id,{assignToSelf:true});}
+   else {if(!assigning.employeeId)throw new Error('Please select an employee or take the complaint yourself.');await api.assignComplaint(assigning.id,{employeeId:assigning.employeeId});}
+   setAssigning(null);await load()
+ }catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function openDetail(id){try{setDetail((await api.complaint(id)).data)}catch(e){setError(e.message)}}
+ useEffect(()=>{const params=new URLSearchParams(location.search);const id=params.get('open');const status=params.get('status');if(id)openDetail(id);if(status&&statuses.includes(status))setFilters(f=>({...f,status}))},[location.search]);
+
+ const selectedEmployee=employees.find(e=>e.id===assigning?.employeeId);
+ const selectedCitizen=people.find(p=>p.id===form.citizenPersonId);
+ return <div className="admin-data-page complaints-page">
+  <PageHeader kicker="Daily work" title="Complaints" subtitle="Complaint → ward → Nagarsevak → employee. Every assignment and status change is tracked." action={can('CREATE_COMPLAINTS')?<button className="primary-btn" onClick={()=>{setError('');setOpen(true)}}>+ New complaint</button>:null}/>
+  <ErrorBox error={error}/>
+  <section className="panel complaint-filters">
+   <div className="filter-panel-head"><div><span className="eyebrow">COMPLAINTS</span><h3>Find a complaint</h3><p>Use search first. Extra filters stay collapsed on mobile.</p></div><div className="filter-actions"><button type="button" className="small-btn filter-toggle" onClick={()=>setShowFilters(v=>!v)}>{showFilters?'Hide filters':'Filters'}{(filters.status||filters.assignedEmployeeId)?' · 1+':''}</button><button type="button" className="small-btn" onClick={resetFilters}>Reset</button></div></div>
+   <div className="complaint-filter-grid">
+    <WardFilter/>
+    <Field className="filter-search" label="Search"><input placeholder="Complaint ID, citizen or mobile…" value={filters.search} onChange={e=>setFilters({...filters,search:e.target.value})}/></Field>
+    <div className={`complaint-extra-filters ${showFilters?'is-open':''}`}>
+      <Field label="Status"><select value={filters.status} onChange={e=>setFilters({...filters,status:e.target.value})}><option value="">All status</option>{statuses.map(x=><option key={x} value={x}>{x.replaceAll('_',' ')}</option>)}</select></Field>
+      <SearchableSelect label="Employee" value={filters.assignedEmployeeId} onChange={v=>setFilters({...filters,assignedEmployeeId:v})} options={[{value:'',label:'All employees'},...assignable.map(e=>({value:e.id,label:`${e.User?.name||'Employee'}${e.designation?` · ${e.designation}`:''}`}))]} placeholder="Search employee…"/>
+    </div>
+   </div>
+  </section>
+  {!rows?<Loading/>:!visible.length?<Empty>No complaints match the selected filters.</Empty>:<div className="panel table-wrap"><table><thead><tr><th>ID</th><th>Citizen</th><th>Problem</th><th>Ward</th><th>Status</th><th>Assignment</th><th>Created</th><th/></tr></thead><tbody>{visible.map(c=><tr key={c.id}>
+   <td data-label="ID"><button className="table-link" onClick={()=>openDetail(c.id)}><strong>{c.complaintNumber}</strong></button></td>
+   <td data-label="Citizen">{c.citizen?.fullName||c.submittedBy?.name||'Registered user'}<div className="muted">{c.citizen?.mobile||c.submittedBy?.mobile||c.submittedBy?.email||''}</div></td>
+   <td data-label="Problem"><div>{c.description}</div>{c.reportedImage&&<a href={c.reportedImage} target="_blank" rel="noreferrer">Problem image</a>}{c.resolutionImage&&<><br/><a href={c.resolutionImage} target="_blank" rel="noreferrer">Completion image</a></>}</td>
+   <td data-label="Ward">{c.ward?.wardNumber||c.house?.area?.ward?.wardNumber||'—'}<div className="muted">{c.ward?.name||c.house?.area?.ward?.name||''}</div></td><td data-label="Status"><StatusPill>{c.status}</StatusPill></td>
+   <td data-label="Assignment"><div>Nagarsevak: <strong>{c.assignedNagarsevak?.name||c.assignedEmployee?.manager?.name||'Not assigned'}</strong></div><div className="muted">Employee: {c.assignedEmployee?.User?.name||'Not assigned'}</div></td>
+   <td data-label="Created">{fmtDateTime(c.createdAt)}</td>
+   <td data-label="Actions"><RowMenu items={[
+     {label:'View details',onClick:()=>openDetail(c.id)},
+     (isMaster(user)||isNagarsevak(user)||isSubMaster(user))&&{label:'Assign',onClick:()=>setAssigning({id:c.id,complaintNumber:c.complaintNumber,employeeId:c.assignedEmployeeId||'',assignToSelf:false})},
+     can('EDIT_COMPLAINTS')&&(isEmployee(user)?c.assignedEmployeeId===user?.employeeProfile?.id:true)&&{label:'Update',onClick:()=>setEditing({...c,comment:'',resolutionNote:c.resolutionNote||'',resolutionImage:c.resolutionImage||null})},
+     c.assignedEmployee?.User?.mobile&&{label:'WhatsApp employee',onClick:()=>{try{wa(c.assignedEmployee.User.mobile,`Complaint ${c.complaintNumber}: ${c.status}. Please coordinate the work.`)}catch(e){setError(e.message)}}},
+     c.assignedEmployee?.manager?.mobile&&{label:'WhatsApp Nagarsevak',onClick:()=>{try{wa(c.assignedEmployee.manager.mobile,`Complaint ${c.complaintNumber}: ${c.status}. Please review/coordinate this complaint.`)}catch(e){setError(e.message)}}},
+     can('DELETE_COMPLAINTS')&&{label:'Delete',danger:true,onClick:async()=>{if(!window.confirm(`Move complaint ${c.complaintNumber} to recycle bin?`))return;try{await api.deleteComplaint(c.id);await load()}catch(e){setError(e.message)}}}
+   ]}/></td>
+  </tr>)}</tbody></table></div>}
+  {rows&&visible.length>0&&<PaginationBar page={page} pages={pages} total={meta.total||0} limit={limit} onPage={setPage} onLimit={setLimit}/>}
+
+  {open&&<Modal wide title="New complaint" onClose={()=>setOpen(false)}><form className="form-grid" onSubmit={create}>
+   <SearchableSelect label="Citizen" required value={form.citizenPersonId} onChange={v=>{const p=people.find(x=>x.id===v);setForm({...form,citizenPersonId:v,houseId:p?.family?.house?.id||''})}} options={wardPeople.map(p=>({value:p.id,label:`${p.fullName} · ${p.mobile||'no mobile'}`}))} placeholder="Search citizen…"/>
+   <SearchableSelect label="House" required value={form.houseId} onChange={v=>setForm({...form,houseId:v})} options={wardHouses.map(h=>({value:h.id,label:`${h.houseNumber} · ${h.area?.name||''}`}))} placeholder="Search house…"/>
+   {selectedCitizen&&<div className="span-2 muted">Selected house: {selectedCitizen.family?.house?.houseNumber||'—'} · {selectedCitizen.family?.house?.address||'—'}</div>}
+   <Field className="span-2" label="Problem description"><textarea required minLength="5" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></Field>
+   <div className="span-2"><ImageField label="Problem image" value={form.reportedImage} onChange={v=>setForm({...form,reportedImage:v})} cameraLabel="Take problem photo"/></div>
+   <div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>setOpen(false)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Submitting…':'Submit complaint'}</button></div>
+  </form></Modal>}
+
+  {assigning&&<Modal title={`Assign ${assigning.complaintNumber}`} onClose={()=>setAssigning(null)}><p className="muted">{isNagarsevak(user)?'You can select an employee or take the complaint yourself.':'Select an available employee from this ward.'}</p>{isNagarsevak(user)&&<label className="self-assign-option"><input type="checkbox" checked={!!assigning.assignToSelf} onChange={e=>setAssigning({...assigning,assignToSelf:e.target.checked,employeeId:e.target.checked?'':assigning.employeeId})}/><span><strong>Take complaint yourself</strong><small>I will handle this complaint myself.</small></span></label>}{!assigning.assignToSelf&&<><SearchableSelect label="Employee" required value={assigning.employeeId} onChange={v=>setAssigning({...assigning,employeeId:v})} options={assignable.map(e=>({value:e.id,label:`${e.User?.name||'Employee'} · ${e.designation||'Field employee'}`}))} placeholder="Search employee…"/>{selectedEmployee?.User?.mobile&&<button type="button" className="small-btn" onClick={()=>{try{wa(selectedEmployee.User.mobile,`Complaint ${assigning.complaintNumber} assigned to you. Please start the work.`)}catch(e){setError(e.message)}}}>WhatsApp employee</button>}</>}<div className="modal-actions"><button type="button" className="ghost-btn" onClick={()=>setAssigning(null)}>Cancel</button><button type="button" className="primary-btn" disabled={(!assigning.assignToSelf&&!assigning.employeeId)||busy} onClick={assign}>{busy?'Assigning…':'Assign complaint'}</button></div></Modal>}
+
+  {editing&&<Modal wide title={`Update ${editing.complaintNumber}`} onClose={()=>setEditing(null)}><form className="form-grid" onSubmit={update}>
+   <Field label="Status"><select value={editing.status} onChange={e=>setEditing({...editing,status:e.target.value})}>
+    {(isEmployee(user)?['ASSIGNED','IN_PROGRESS','RESOLVED']:['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED']).map(x=><option key={x}>{x}</option>)}
+   </select></Field>
+   <Field className="span-2" label="Progress note"><textarea value={editing.comment||''} onChange={e=>setEditing({...editing,comment:e.target.value})}/></Field>
+   <Field className="span-2" label="Resolution note"><textarea required={editing.status==='RESOLVED'} value={editing.resolutionNote||''} onChange={e=>setEditing({...editing,resolutionNote:e.target.value})}/></Field>
+   {editing.status==='RESOLVED'&&<div className="span-2"><ImageField label="Work completed image" value={editing.resolutionImage} onChange={v=>setEditing({...editing,resolutionImage:v})} optional={true} cameraLabel="Take completion photo"/></div>}
+   <div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>setEditing(null)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Saving…':'Save update'}</button></div>
+  </form></Modal>}
+
+  {detail&&<Modal wide title={`${detail.complaintNumber} · Complete complaint details`} onClose={()=>setDetail(null)}>
+   <div className="detail-grid complaint-detail-grid">
+    <div className="detail-card"><h3>Who submitted this complaint?</h3><p><b>Citizen:</b> {detail.citizen?.fullName||detail.submittedBy?.name||'Registered resident'}</p><p><b>Registered account:</b> {detail.submittedBy?.name||'Not linked / legacy record'}</p><p><b>Mobile:</b> {detail.citizen?.mobile||detail.submittedBy?.mobile||'—'}</p><p><b>Email:</b> {detail.submittedBy?.email||detail.citizen?.email||'—'}</p></div>
+    <div className="detail-card"><h3>Complaint information</h3><p><b>Category:</b> {detail.category?.replaceAll('_',' ')||'—'}</p><p><b>Priority:</b> {detail.priority||'—'}</p><p><b>Status:</b> <StatusPill>{detail.status}</StatusPill></p><p><b>Created:</b> {fmtDateTime(detail.createdAt)}</p><p><b>Resolved:</b> {fmtDateTime(detail.resolvedAt)}</p><p><b>Location:</b> {detail.location||'—'}</p><p><b>Problem:</b> {detail.description||'—'}</p></div>
+    <div className="detail-card"><h3>Ward & assignment</h3><p><b>Ward:</b> {detail.ward?.wardNumber||detail.house?.area?.ward?.wardNumber||'—'}{detail.ward?.name||detail.house?.area?.ward?.name?` · ${detail.ward?.name||detail.house?.area?.ward?.name}`:''}</p><p><b>Nagarsevak:</b> {detail.assignedNagarsevak?.name||detail.assignedEmployee?.manager?.name||'Not assigned'}</p><p><b>Employee:</b> {detail.assignedEmployee?.User?.name||'Not assigned'}</p><p><b>Employee mobile:</b> {detail.assignedEmployee?.User?.mobile||'—'}</p><p><b>Resolution note:</b> {detail.resolutionNote||'—'}</p></div>
+   </div>
+   {(detail.reportedImage||detail.resolutionImage)&&<div className="detail-card"><h3>Complaint photos</h3><div className="image-grid">{detail.reportedImage&&<div><strong>Problem reported</strong><img src={detail.reportedImage} alt="Reported problem"/></div>}{detail.resolutionImage&&<div><strong>Work completed</strong><img src={detail.resolutionImage} alt="Completed work"/></div>}</div></div>}
+   <div className="detail-card"><h3>Activity timeline</h3><div className="complaint-timeline">{(detail.history||[]).length?(detail.history||[]).slice().sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).map((h,i)=><div className="timeline-item" key={h.id||i}><strong>{h.newStatus?.replaceAll('_',' ')||'Updated'}</strong><small>{fmtDateTime(h.createdAt)} · {h.changedBy?.name||'System'}</small><div>{h.comment||'Status updated'}</div></div>):<div className="muted">No activity recorded.</div>}</div></div>
+  </Modal>}
+ </div>
+}

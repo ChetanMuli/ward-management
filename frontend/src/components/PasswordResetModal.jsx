@@ -1,0 +1,8 @@
+import React,{useState} from 'react';
+import {api} from '../services/api';
+import {Field,Modal} from './Ui';
+export default function PasswordResetModal({user,onClose,onSaved}){
+ const [password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ async function save(e){e.preventDefault();if(password!==confirm){setError('Passwords do not match');return}setBusy(true);setError('');try{const r=await api.resetUserPassword(user.id,{password,confirmPassword:confirm});window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'success',message:r.message||'Password reset successfully.'}}));onSaved?.();onClose()}catch(e){setError(e.message)}finally{setBusy(false)}}
+ return <Modal title={`Reset password · ${user.name||'Account'}`} onClose={onClose}><p className="muted">This securely replaces the account password. The current password is not required because the Master Admin is authorising this reset.</p>{error&&<div className="error-inline">{error}</div>}<form className="form-grid" onSubmit={save}><Field label="New password"><input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/></Field><Field label="Confirm new password"><input type="password" minLength="8" required value={confirm} onChange={e=>setConfirm(e.target.value)} autoComplete="new-password"/></Field><div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={onClose}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Resetting…':'Reset password'}</button></div></form></Modal>;
+}

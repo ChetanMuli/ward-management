@@ -1,0 +1,122 @@
+import React,{useEffect,useMemo,useRef,useState} from 'react';
+import * as XLSX from 'xlsx';
+import {api,getUser} from '../services/api';
+import {can,isMaster,isNagarsevak} from '../rbac';
+import {Empty,ErrorBox,Field,Loading,Modal,PageHeader,PaginationBar,RowMenu,StatusPill,SearchableMultiSelect,SearchableSelect} from '../components/Ui';
+
+const formatBytes=n=>{const x=Number(n||0);if(x<1024)return `${x} B`;if(x<1024*1024)return `${(x/1024).toFixed(1)} KB`;return `${(x/1024/1024).toFixed(1)} MB`};
+const formatDate=v=>v?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'—';
+function downloadCsv(rows,name){
+ if(!rows.length)return;
+ const keys=[...new Set(rows.flatMap(r=>Object.keys(r||{})))];
+ const esc=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+ const csv=[keys.map(esc).join(','),...rows.map(r=>keys.map(k=>esc(r?.[k])).join(','))].join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name.endsWith('.csv')?name:`${name}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function downloadXlsx(rows,name){
+ if(!rows.length)return;
+ const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Voter List');XLSX.writeFile(wb,name.endsWith('.xlsx')?name:`${name}.xlsx`);
+}
+
+async function fetchDetails(id){ return (await api.governmentVoterList(id)).data; }
+async function downloadExtracted(id,name){
+ const d=await fetchDetails(id); const rows=Array.isArray(d?.extractedData)?d.extractedData:[];
+ if(!rows.length) throw new Error('No extracted records are available for this list.');
+ downloadXlsx(rows,`${String(name||'voter-list').replace(/\.(pdf|xlsx|csv)$/i,'')}-extracted`);
+}
+async function downloadCombined(listRows){
+ const all=[];
+ for(const r of listRows){const d=await fetchDetails(r.id);const rows=Array.isArray(d?.extractedData)?d.extractedData:[];rows.forEach(x=>all.push({sourceFile:r.originalFileName,...x}));}
+ if(!all.length) throw new Error('No extracted records are available to combine.');
+ downloadXlsx(all,'government-voter-lists-combined');
+}
+
+export default function GovernmentVoterLists(){
+ const user=getUser(),master=isMaster(user),nagarsevak=isNagarsevak(user),canUpload=master||nagarsevak||can('CREATE_GOVERNMENT_VOTER_LISTS',user);
+ const [rows,setRows]=useState(null),[error,setError]=useState(''),[file,setFile]=useState(null),[busy,setBusy]=useState(false),[detail,setDetail]=useState(null),inputRef=useRef(null);
+  const [wards,setWards]=useState([]),[nagarsevaks,setNagarsevaks]=useState([]);
+  const [scopeWardIds,setScopeWardIds]=useState(nagarsevak&&user?.wardId?[String(user.wardId)]:[]);
+  const [assignmentMode,setAssignmentMode]=useState(nagarsevak?'UPLOADER_ONLY':'ALL_NAGARSEVAKS');
+  const [assignedNagarsevakIds,setAssignedNagarsevakIds]=useState([]);
+ const [detailSearch,setDetailSearch]=useState(''),[detailPage,setDetailPage]=useState(1),[detailSize,setDetailSize]=useState(25);
+ async function load(){
+  try{
+    setError('');
+    const [lists,wardResponse]=await Promise.all([api.governmentVoterLists(),api.wards()]);
+    setRows(lists.data||[]);
+    setWards(wardResponse.data||[]);
+    if(master){
+      const n=(await api.corporators({page:1,limit:100})).data||[];
+      setNagarsevaks(n);
+    }
+  }catch(e){setError(e.message);setRows([])}
+}
+ useEffect(()=>{load()},[]);
+ async function upload(e){
+    e.preventDefault();
+    if(!file)return setError('Please select a PDF, XLSX or CSV voter list file.');
+    if(file.size>100*1024*1024)return setError('File must be 100 MB or smaller.');
+    if(master && !scopeWardIds.length)return setError('Select at least one ward.');
+    if(master && assignmentMode==='SPECIFIC_NAGARSEVAKS' && !assignedNagarsevakIds.length)return setError('Select at least one Nagarsevak.');
+    setBusy(true);setError('');
+    try{
+      await api.uploadGovernmentVoterList(file,{
+        wardIds:master?scopeWardIds:[String(user?.wardId)],
+        assignmentMode:master?assignmentMode:'UPLOADER_ONLY',
+        assignedNagarsevakIds:master&&assignmentMode==='SPECIFIC_NAGARSEVAKS'?assignedNagarsevakIds:[]
+      });
+      setFile(null);if(inputRef.current)inputRef.current.value='';
+      setAssignedNagarsevakIds([]);if(master){setScopeWardIds([]);setAssignmentMode('ALL_NAGARSEVAKS');}
+      await load()
+    }catch(e){setError(e.message)}finally{setBusy(false)}
+  }
+ async function extract(id){setBusy(true);setError('');try{await api.extractGovernmentVoterList(id);await load();const d=(await api.governmentVoterList(id)).data;setDetail(d);setDetailSearch('');setDetailPage(1)}catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function openDetails(id){try{setError('');const d=(await api.governmentVoterList(id)).data;setDetail(d);setDetailSearch('');setDetailPage(1)}catch(e){setError(e.message)}}
+ async function remove(id){if(!confirm('Move this government voter list to Recycle Bin? It will be permanently cleared after 30 days.'))return;setBusy(true);setError('');try{await api.deleteGovernmentVoterList(id);if(detail?.id===id)setDetail(null);await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
+ const preview=useMemo(()=>Array.isArray(detail?.extractedData)?detail.extractedData:[],[detail]);
+ const filtered=useMemo(()=>{const q=detailSearch.trim().toLowerCase();if(!q)return preview;return preview.filter(r=>Object.values(r||{}).some(v=>String(v??'').toLowerCase().includes(q)))},[preview,detailSearch]);
+ const totalPages=Math.max(1,Math.ceil(filtered.length/detailSize));const safePage=Math.min(detailPage,totalPages);const visible=filtered.slice((safePage-1)*detailSize,safePage*detailSize);
+ useEffect(()=>{if(detailPage!==safePage)setDetailPage(safePage)},[detailPage,safePage]);
+ return <div className="admin-data-page government-voter-page">
+  <PageHeader title="Government voter lists" subtitle="Keep Election Commission / government voter-list files as an independent source. Imported data never changes or appears in citizen, family or voter records."/>
+  <ErrorBox error={error}/>
+  {canUpload&&<section className="panel government-voter-upload-panel">
+   <div className="panel-title"><div><h3>Upload official voter list</h3><span>PDF, XLSX or CSV · maximum 100 MB · data remains independent</span></div></div>
+   {master&&<div className="government-voter-scope-grid">
+    <SearchableMultiSelect label="Visible in wards" value={scopeWardIds} onChange={setScopeWardIds} options={wards.map(w=>({value:String(w.id),label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}))} placeholder="Select wards…"/>
+    <Field label="Nagarsevak access"><select value={assignmentMode} onChange={e=>{setAssignmentMode(e.target.value);setAssignedNagarsevakIds([])}}>
+      <option value="ALL_NAGARSEVAKS">All Nagarsevaks in selected wards</option>
+      <option value="SPECIFIC_NAGARSEVAKS">Specific Nagarsevaks</option>
+    </select></Field>
+    {assignmentMode==='SPECIFIC_NAGARSEVAKS'&&<SearchableMultiSelect className="span-2" label="Specific Nagarsevaks" value={assignedNagarsevakIds} onChange={setAssignedNagarsevakIds} options={nagarsevaks.filter(n=>!scopeWardIds.length||scopeWardIds.includes(String(n.wardId))).map(n=>({value:String(n.id),label:`${n.name} · ${n.ward?.wardNumber||'Ward'}`}))} placeholder="Select Nagarsevaks…"/>}
+   </div>}
+   {nagarsevak&&<div className="info-note">This upload is automatically restricted to your own ward and your Nagarsevak account.</div>}
+   <form className="government-voter-upload" onSubmit={upload}>
+    <Field label="Voter list file"><input ref={inputRef} type="file" accept=".pdf,.xlsx,.csv,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={e=>setFile(e.target.files?.[0]||null)}/></Field>
+    <div className="government-voter-upload-info">{file?<><strong>{file.name}</strong><span>{formatBytes(file.size)}</span></>:<span>Select the government voter-list file you received.</span>}</div>
+    <button className="primary-btn" disabled={busy||!file}>{busy?'Processing…':'Upload & extract'}</button>
+   </form>
+  </section>}
+  <section className="panel">
+   <div className="panel-title"><div><h3>Imported government lists</h3><span>Read-only source records. Delete moves the source to Recycle Bin for 30 days.</span></div>{rows?.length>0&&<button className="small-btn" disabled={busy} onClick={async()=>{try{setBusy(true);await downloadCombined(rows)}catch(e){setError(e.message)}finally{setBusy(false)}}}>Download all extracted</button>}</div>
+   {rows===null?<Loading/>:!rows.length?<Empty>No government voter lists uploaded yet.</Empty>:<div className="table-wrap government-voter-table"><table><thead><tr><th>File</th><th>Type</th><th>Extracted</th><th>Uploaded by</th><th>Date</th><th>Actions</th></tr></thead><tbody>{rows.map(r=><tr key={r.id}>
+    <td data-label="File"><strong>{r.originalFileName}</strong><div className="muted">{formatBytes(r.fileSize)}</div></td><td data-label="Type"><StatusPill>{r.fileType}</StatusPill></td><td data-label="Extracted">{r.extractedCount||0} records</td><td data-label="Uploaded by">{r.uploader?.name||'—'}<div className="muted">{(r.wardIds||[]).length} ward(s) · {r.assignmentMode==='ALL_NAGARSEVAKS'?'All Nagarsevaks':r.assignmentMode==='SPECIFIC_NAGARSEVAKS'?'Selected Nagarsevaks':'Uploader only'}</div></td><td data-label="Date">{formatDate(r.createdAt||r.created_at)}</td>
+    <td data-label="Actions"><RowMenu items={[
+     {label:'View extracted data',onClick:()=>openDetails(r.id)},
+     {label:'Extract again',onClick:()=>extract(r.id)},
+     {label:'Original',onClick:()=>api.downloadGovernmentVoterList(r.id).catch(e=>setError(e.message))},
+     r.extractedCount>0&&{label:'Extracted Excel',onClick:()=>downloadExtracted(r.id,r.originalFileName).catch(e=>setError(e.message))},
+     {label:'Delete',danger:true,onClick:()=>remove(r.id)}
+    ]}/></td>
+   </tr>)}</tbody></table></div>}
+  </section>
+  {detail&&<Modal wide title={`${detail.originalFileName} · Extracted data`} onClose={()=>setDetail(null)}>
+   <div className="government-voter-summary"><div><span>File type</span><strong>{detail.fileType}</strong></div><div><span>Records extracted</span><strong>{detail.extractedCount||0}</strong></div><div><span>Uploaded</span><strong>{formatDate(detail.createdAt||detail.created_at)}</strong></div></div>
+   <div className="government-voter-detail-toolbar"><input className="grow" placeholder="Search name, EPIC, serial, house, age, gender…" value={detailSearch} onChange={e=>{setDetailSearch(e.target.value);setDetailPage(1)}}/><button className="small-btn" disabled={!filtered.length} onClick={()=>downloadCsv(filtered,`${detail.originalFileName.replace(/\.pdf$|\.xlsx$|\.csv$/i,'')}-extracted`)}>Export CSV</button><button className="small-btn" disabled={!filtered.length} onClick={()=>downloadXlsx(filtered,`${detail.originalFileName.replace(/\.pdf$|\.xlsx$|\.csv$/i,'')}-extracted`)}>Export Excel</button><button className="small-btn" onClick={()=>api.downloadGovernmentVoterList(detail.id).catch(e=>setError(e.message))}>Download original</button></div>
+   <p className="muted">Independent government-list dataset. It is read-only and is not merged into citizen/family/voter records.</p>
+   {!filtered.length?<Empty>No extracted rows match your search.</Empty>:<div className="table-wrap government-voter-preview"><table><thead><tr>{Object.keys(visible[0]||preview[0]||{}).map(k=><th key={k}>{k}</th>)}</tr></thead><tbody>{visible.map((row,i)=><tr key={i}>{Object.keys(visible[0]||row).map(k=><td key={k}>{String(row?.[k]??'')}</td>)}</tr>)}</tbody></table></div>}
+   {filtered.length>0&&<PaginationBar page={safePage} pages={totalPages} total={filtered.length} limit={detailSize} onPage={setDetailPage} onLimit={n=>{setDetailSize(n);setDetailPage(1)}}/>}
+   <div className="modal-actions"><button className="ghost-btn" onClick={()=>setDetail(null)}>Close</button><button className="small-btn danger" disabled={busy} onClick={()=>remove(detail.id)}>Move to Recycle Bin</button></div>
+  </Modal>}
+ </div>
+}

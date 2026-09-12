@@ -1,0 +1,48 @@
+WARD MANAGEMENT - BACKEND RBAC PATCH
+
+This ZIP contains ONLY the new/changed backend files. Keep the rest of your existing backend.
+
+ADD:
+- src/v2/**
+- src/migrations/20260901000004-add-ward-rbac.js
+- src/seeders/20260901000005-seed-16-ward-rbac.js
+
+REPLACE:
+- src/models/role.model.js
+- src/models/user.model.js
+- src/models/employee.model.js
+- src/models/index.js
+- src/app.js
+- package.json
+
+FEATURES:
+- SUPER_ADMIN = Master Admin, all wards/data.
+- NAGARSEVAK = ward-scoped representative.
+- 16 wards supported.
+- 4 Nagarsevak demo accounts per ward.
+- Employees are ward-scoped and permission-based.
+- Nagarsevak can create/edit employees and assign permissions.
+- Ward-safe v2 APIs for dashboard, houses, families, citizens, voters, complaints, 18+, birthdays.
+- Ward-safe recycle bin.
+- XLSX and PDF export.
+- Existing /api routes remain for backward compatibility. New frontend should use /api/v2.
+
+INSTALL ON SERVER:
+1. cd /var/www/ward-management-system-v1/backend
+2. Copy this ZIP's files into the existing backend. Replace ONLY the files listed above.
+3. npm install
+4. npx sequelize-cli db:migrate
+5. npx sequelize-cli db:seed --seed 20260901000005-seed-16-ward-rbac.js
+6. Verify:
+   mysql -h 127.0.0.1 -P 3306 -u ward_v1_admin -p ward_management_v1
+   SELECT COUNT(*) FROM wards;
+   SELECT COUNT(*) FROM users WHERE email LIKE 'nagarsevak%@ward.local';
+7. New frontend API base: /api/v2
+
+DEMO LOGINS:
+Master Admin: admin@gmail.com / admin
+Nagarsevak examples: nagarsevak011@ward.local, nagarsevak012@ward.local, ...
+Seeded Nagarsevak password: ChangeMe123!
+
+The seed creates 4 Nagarsevak users for each W-01 through W-16.
+Demo data is fictional/UAT data only.

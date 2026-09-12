@@ -1,0 +1,258 @@
+import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
+export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,limits=[10,25,50,100]}){
+ if(!total) return null;
+ const start=(page-1)*limit+1;
+ const end=Math.min(page*limit,total);
+ const window=[];
+ const last=Math.max(1,pages);
+ const from=Math.max(1,page-2);
+ const to=Math.min(last,page+2);
+ if(from>1) window.push(1);
+ if(from>2) window.push('…');
+ for(let n=from;n<=to;n+=1) window.push(n);
+ if(to<last-1) window.push('…');
+ if(to<last) window.push(last);
+ const go=n=>onPage(Math.max(1,Math.min(last,n)));
+ return (
+  <div className="global-pagination" aria-label="Pagination">
+   <div className="pagination-info">Showing {start}–{end} of {total}</div>
+   <div className="pagination-controls">
+    <label>Rows per page
+     <select value={limit} onChange={e=>{onLimit(Number(e.target.value));onPage(1)}}>
+      {limits.map(n=><option key={n} value={n}>{n}</option>)}
+     </select>
+    </label>
+    <button type="button" className="small-btn" disabled={page<=1} onClick={()=>go(1)}>First</button>
+    <button type="button" className="small-btn" disabled={page<=1} onClick={()=>go(page-1)}>Previous</button>
+    {window.map((n,i)=>n==='…'?<span key={`gap-${i}`} className="pagination-gap">…</span>:<button type="button" key={n} className={`small-btn pagination-page ${n===page?'is-current':''}`} onClick={()=>go(n)}>{n}</button>)}
+    <button type="button" className="small-btn" disabled={page>=last} onClick={()=>go(page+1)}>Next</button>
+    <button type="button" className="small-btn" disabled={page>=last} onClick={()=>go(last)}>Last</button>
+   </div>
+  </div>
+ );
+}
+
+export function PageHeader({kicker,title,subtitle,action}){
+ return <div className="page-header"><div>{kicker&&<span className="page-kicker">{kicker}</span>}<h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>;
+}
+export function StatCard({label,value,hint,tone='',onClick}){
+ const Tag=onClick?'button':'div';
+ return (
+  <Tag type={onClick?'button':undefined} className={`stat-card ${tone} ${onClick?'stat-card-link':''}`} onClick={onClick}>
+   <span>{label}</span>
+   <strong>{value??'—'}</strong>
+   {hint&&<small>{hint}</small>}
+  </Tag>
+ );
+}
+export function Empty({children='No records found.'}){return <div className="empty empty-pro"><div className="empty-mark" aria-hidden="true">◇</div><p>{children}</p></div>}
+export function Loading({label='Loading…'}){return <div className="loading loading-pro" role="status"><span className="spinner"/><span>{label}</span></div>}
+export function ErrorBox({error}){const [visible,setVisible]=useState(false);useEffect(()=>{if(!error)return;setVisible(true);const t=setTimeout(()=>setVisible(false),7000);return()=>clearTimeout(t)},[error]);if(!error||!visible)return null;return <div className="error-toast" role="alert"><div><strong>Action failed</strong><div>{error}</div></div><button onClick={()=>setVisible(false)} aria-label="Close">×</button></div>}
+export function SuccessBox({message,onClose}){if(!message)return null;return <div className="success-toast" role="status"><div><strong>Success</strong><div>{message}</div></div><button onClick={onClose} aria-label="Close">×</button></div>}
+export function StatusPill({children}){const k=String(children||'').toLowerCase().replaceAll('_','-');return <span className={`pill pill-${k}`}>{String(children||'—').replaceAll('_',' ')}</span>}
+export function Modal({title,onClose,children,wide=false,layer=1}){
+ useEffect(()=>{document.body.classList.add('modal-open');return()=>document.body.classList.remove('modal-open')},[]);
+ const node=<div className={`modal-backdrop ${layer>1?'modal-backdrop-stack':''}`} style={{zIndex:40+Number(layer)*25}} onPointerDown={onClose}><div className={`modal ${wide?'modal-wide':''}`} onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{title}</h2></div><button type="button" className="icon-btn" onClick={onClose}>×</button></div>{children}</div></div>;
+ return typeof document!=='undefined'?createPortal(node,document.body):node;
+}
+
+function optionSearchText(o){return [o.search,o.label,o.title,o.hint,o.badge].filter(Boolean).join(' ').toLowerCase()}
+export function SearchableSelect({label, value, onChange, options=[], placeholder='Search or select…', searchPlaceholder='Type to search…', disabled=false, required=false, className='', loading=false}){
+ const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[menuStyle,setMenuStyle]=useState({});
+ const controlRef=useRef(null), menuRef=useRef(null), searchRef=useRef(null), optionsRef=useRef(null);
+ const position=()=>{
+  const wrap=controlRef.current;if(!wrap)return;
+  const el=wrap.querySelector('.searchable-control')||wrap;
+  const r=el.getBoundingClientRect();
+  const mobile=window.innerWidth<=800;
+  const viewportH=window.innerHeight;
+  const width=Math.min(r.width,window.innerWidth-16);
+  const left=Math.max(8,Math.min(r.left,window.innerWidth-width-8));
+  const pad=10;
+  const spaceBelow=Math.max(0,viewportH-r.bottom-pad);
+  const spaceAbove=Math.max(0,r.top-pad);
+  const desired=Math.min(mobile?Math.floor(viewportH*0.58):380, mobile?480:380);
+  let above=spaceBelow<Math.min(220,desired)&&spaceAbove>spaceBelow;
+  let available=above?spaceAbove:spaceBelow;
+  if(available<200){above=false;available=viewportH-(pad*2);}
+  const maxHeight=Math.max(180,Math.min(desired,available));
+  let top=above?r.top-maxHeight-6:r.bottom+6;
+  if(top<pad)top=pad;
+  if(top+maxHeight>viewportH-pad)top=Math.max(pad,viewportH-pad-maxHeight);
+  setMenuStyle({position:'fixed',left,top,width,height:maxHeight,maxHeight,overflow:'hidden',display:'flex',flexDirection:'column',boxSizing:'border-box',touchAction:'auto','--picker-w':`${width}px`});
+ };
+ const selected=options.find(o=>String(o.value)===String(value));
+ const filtered=options.filter(o=>optionSearchText(o).includes(query.trim().toLowerCase()));
+ const choose=v=>{onChange(v);setQuery('');setOpen(false)};
+ useLayoutEffect(()=>{if(!open)return;position();requestAnimationFrame(()=>{if(window.innerWidth>800) searchRef.current?.focus(); if(optionsRef.current) optionsRef.current.scrollTop=0});const s=()=>position();window.addEventListener('scroll',s,true);window.addEventListener('resize',s);return()=>{window.removeEventListener('scroll',s,true);window.removeEventListener('resize',s)}},[open,filtered.length]);
+ useEffect(()=>{
+  if(!open)return;
+  const close=e=>{if(controlRef.current&&!controlRef.current.contains(e.target)&&menuRef.current&&!menuRef.current.contains(e.target)){setOpen(false);setQuery('')}};
+  const esc=e=>{if(e.key==='Escape'){setOpen(false);setQuery('')}};
+  const closeOverlay=()=>{setOpen(false);setQuery('')};
+  document.addEventListener('pointerdown',close,true);document.addEventListener('keydown',esc);window.addEventListener('ward:close-overlays',closeOverlay);
+  return()=>{document.removeEventListener('pointerdown',close,true);document.removeEventListener('keydown',esc);window.removeEventListener('ward:close-overlays',closeOverlay)};
+ },[open]);
+ const menu=open&&!disabled&&typeof document!=='undefined'?createPortal(
+  <div ref={menuRef} className="searchable-menu searchable-menu-portal" style={menuStyle} role="listbox" onPointerDown={e=>e.stopPropagation()} onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()}>
+   <div className="searchable-menu-search"><span>⌕</span><input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder={searchPlaceholder} autoComplete="off"/></div>
+   <div ref={optionsRef} className="searchable-options">
+    {loading?<div className="searchable-empty">Loading options…</div>:filtered.length?filtered.map(o=><button type="button" key={String(o.value)} className={`searchable-option ${o.badge?'has-badge':''} ${String(o.value)===String(value)?'selected':''}`} onClick={()=>choose(o.value)}>{o.badge&&<span className="option-badge">{o.badge}</span>}<span className="option-copy"><strong>{o.title||o.label}</strong>{o.hint&&<small>{o.hint}</small>}</span>{String(o.value)===String(value)&&<span className="option-check">✓</span>}</button>):<div className="searchable-empty">No matches found</div>}
+   </div>
+   {!loading&&<div className="searchable-menu-meta">{query?`${filtered.length} match${filtered.length===1?'':'es'}`:`${options.length} option${options.length===1?'':'s'}`}</div>}
+  </div>,document.body):null;
+ return <div className={`searchable-select ${className}`} ref={controlRef}>
+  {label&&<div className="section-label">{label}{required?' *':''}</div>}
+  <div className={`searchable-control ${open?'is-open':''} ${disabled?'is-disabled':''}`}>
+   <button type="button" className="searchable-display" disabled={disabled} onClick={()=>{setOpen(v=>!v);if(open)setQuery('')}} aria-expanded={open} aria-haspopup="listbox">
+    <span className={selected?'has-value':'placeholder'}>{loading&&!selected?'Loading…':(selected?.label||placeholder)}</span></button><button type="button" className={`searchable-chevron ${open?'open':''}`} onClick={()=>{if(!disabled){setOpen(v=>!v);if(open)setQuery('')}}} aria-label={open?'Close options':'Open options'}>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"/></svg>
+    </button>
+    {required&&<input className="searchable-required" type="text" required value={value||''} onChange={()=>{}} tabIndex={-1} aria-hidden="true"/>}
+    {value&&!disabled&&<button type="button" className="searchable-clear" onClick={()=>choose('')} aria-label="Clear selection">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8"/></svg>
+    </button>}
+  </div>{menu}
+ </div>;
+}
+export function Field({label,children,className=''}){return <label className={className}>{label}{children}</label>}
+export function fmtDate(v){if(!v)return '—';return new Intl.DateTimeFormat('en-IN',{dateStyle:'medium'}).format(new Date(v))}
+export function fmtDateTime(v){if(!v)return '—';return new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v))}
+export function Toolbar({children}){return <div className="toolbar filter-toolbar">{children}</div>}
+export function EmptyState(){return <div className="empty-state">Nothing to show for these filters.</div>}
+
+export function SearchableMultiSelect({label,value=[],onChange,options=[],placeholder='Search and select…',className=''}){
+ const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[menuStyle,setMenuStyle]=useState({});
+ const controlRef=useRef(null),menuRef=useRef(null),searchRef=useRef(null),optionsRef=useRef(null);
+ const selectedValues=Array.isArray(value)?value:[];
+ const selected=options.filter(o=>selectedValues.map(String).includes(String(o.value)));
+ const filtered=options.filter(o=>String(o.label||'').toLowerCase().includes(query.trim().toLowerCase()));
+ const position=()=>{
+  const wrap=controlRef.current;if(!wrap)return;
+  const el=wrap.querySelector('.searchable-control')||wrap;
+  const r=el.getBoundingClientRect();
+  const mobile=window.innerWidth<=800;
+  const viewportH=window.innerHeight;
+  const width=Math.min(r.width,window.innerWidth-16);
+  const left=Math.max(8,Math.min(r.left,window.innerWidth-width-8));
+  const pad=10;
+  const spaceBelow=Math.max(0,viewportH-r.bottom-pad);
+  const spaceAbove=Math.max(0,r.top-pad);
+  const desired=Math.min(mobile?Math.floor(viewportH*0.58):380,mobile?480:380);
+  let above=spaceBelow<Math.min(220,desired)&&spaceAbove>spaceBelow;
+  let available=above?spaceAbove:spaceBelow;
+  if(available<200){above=false;available=viewportH-(pad*2);}
+  const maxHeight=Math.max(180,Math.min(desired,available));
+  let top=above?r.top-maxHeight-6:r.bottom+6;
+  if(top<pad)top=pad;
+  if(top+maxHeight>viewportH-pad)top=Math.max(pad,viewportH-pad-maxHeight);
+  setMenuStyle({position:'fixed',left,top,width,height:maxHeight,maxHeight,overflow:'hidden',display:'flex',flexDirection:'column',boxSizing:'border-box',touchAction:'auto','--picker-w':`${width}px`});
+ };
+ useLayoutEffect(()=>{if(!open)return;position();requestAnimationFrame(()=>{if(window.innerWidth>800) searchRef.current?.focus(); if(optionsRef.current) optionsRef.current.scrollTop=0});const s=()=>position();window.addEventListener('scroll',s,true);window.addEventListener('resize',s);return()=>{window.removeEventListener('scroll',s,true);window.removeEventListener('resize',s)}},[open,filtered.length]);
+ useEffect(()=>{if(!open)return;const close=e=>{if(!controlRef.current?.contains(e.target)&&!menuRef.current?.contains(e.target)){setOpen(false);setQuery('')}};const esc=e=>{if(e.key==='Escape'){setOpen(false);setQuery('')}};const closeOverlay=()=>{setOpen(false);setQuery('')};document.addEventListener('pointerdown',close,true);document.addEventListener('mousedown',close,true);document.addEventListener('keydown',esc);window.addEventListener('ward:close-overlays',closeOverlay);return()=>{document.removeEventListener('pointerdown',close,true);document.removeEventListener('mousedown',close,true);document.removeEventListener('keydown',esc);window.removeEventListener('ward:close-overlays',closeOverlay)}},[open]);
+ const toggle=id=>{const key=String(id);const next=selectedValues.map(String).includes(key)?selectedValues.filter(x=>String(x)!==key):[...selectedValues,id];onChange(next)};
+ const selectAll=()=>onChange(filtered.map(o=>o.value));
+ const clearAll=()=>onChange([]);
+ const menu=open?createPortal(<div ref={menuRef} className="searchable-menu searchable-menu-portal multi-select-menu" style={menuStyle} onPointerDown={e=>e.stopPropagation()} onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()}><div className="searchable-menu-search"><span>⌕</span><input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Type to search…" autoComplete="off"/></div><div className="multi-select-actions"><button type="button" className="small-btn" onClick={selectAll}>Select all shown</button><button type="button" className="small-btn" onClick={clearAll}>Clear all</button></div><div ref={optionsRef} className="searchable-options">{filtered.length?filtered.map(o=>{const checked=selectedValues.map(String).includes(String(o.value));return <button type="button" key={o.value} className={`searchable-option ${checked?'selected':''}`} onClick={()=>toggle(o.value)}><span>{o.label}</span><span>{checked?'✓':''}</span></button>}):<div className="searchable-empty">No matches found</div>}</div></div>,document.body):null;
+ return <div className={`searchable-select ${className}`} ref={controlRef}><div className="section-label">{label}</div><div className={`searchable-control ${open?'is-open':''}`}><button type="button" className="searchable-display" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-haspopup="listbox"><span className={selected.length?'has-value':'placeholder'}>{selected.length?`${selected.length} selected`:placeholder}</span></button><button type="button" className={`searchable-chevron ${open?'open':''}`} onClick={()=>setOpen(v=>!v)} aria-label={open?'Close options':'Open options'}>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"/></svg>
+    </button>{selected.length>0&&<button type="button" className="searchable-clear" onClick={()=>onChange([])} aria-label="Clear selection">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8"/></svg>
+    </button>}</div>{menu}</div>;
+}
+
+export function ImageField({label,value,onChange,optional=true,cameraLabel='Take photo'}){
+ const cameraRef=useRef(null),deviceRef=useRef(null),cameraCaptureRef=useRef(null),videoRef=useRef(null),canvasRef=useRef(null);
+ const [cameraOpen,setCameraOpen]=useState(false),[cameraBusy,setCameraBusy]=useState(false),[cameraError,setCameraError]=useState('');
+ const stopCamera=()=>{const stream=videoRef.current?.srcObject;if(stream?.getTracks)stream.getTracks().forEach(t=>t.stop());if(videoRef.current)videoRef.current.srcObject=null;setCameraOpen(false);setCameraBusy(false)};
+ useEffect(()=>()=>{const stream=videoRef.current?.srcObject;if(stream?.getTracks)stream.getTracks().forEach(t=>t.stop())},[]);
+ const openCamera=async()=>{
+  setCameraError('');
+  // On phones/tablets, the native camera picker is much more reliable than
+  // getUserMedia when the browser has a previously denied permission state.
+  if(window.matchMedia?.('(max-width: 800px)').matches){cameraCaptureRef.current?.click();return;}
+  if(!navigator.mediaDevices?.getUserMedia){setCameraError('Camera is not supported in this browser. Use the device camera option below.');setCameraOpen(true);return;}
+  setCameraOpen(true);setCameraBusy(true);
+  try{
+   let stream;
+   try{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:false});}
+   catch(first){stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});}
+   if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play().catch(()=>{});}
+   setCameraBusy(false);
+  }catch(err){
+   const denied=err?.name==='NotAllowedError'||err?.name==='PermissionDeniedError';
+   setCameraError(denied?'Camera access is blocked for this site. Allow camera permission in browser/site settings, or use “Use phone camera” below.':err?.message||'Unable to open the camera.');
+   setCameraBusy(false);
+  }
+ };
+ const capture=async()=>{
+  const video=videoRef.current;if(!video||video.readyState<2)return;
+  const canvas=canvasRef.current||document.createElement('canvas');canvasRef.current=canvas;
+  const max=1280,scale=Math.min(1,max/Math.max(video.videoWidth||1280,video.videoHeight||720));canvas.width=Math.max(1,Math.round((video.videoWidth||1280)*scale));canvas.height=Math.max(1,Math.round((video.videoHeight||720)*scale));
+  const ctx=canvas.getContext('2d');if(!ctx){setCameraError('Camera capture is unavailable.');return;}ctx.drawImage(video,0,0,canvas.width,canvas.height);let data=canvas.toDataURL('image/jpeg',.72);if(data.length>1450000){data=canvas.toDataURL('image/jpeg',.58)}onChange(data);stopCamera();
+ };
+ const read=async e=>{
+  const input=e.currentTarget,file=input.files?.[0];if(!file)return;
+  if(!file.type.startsWith('image/')){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Please select an image file.'}}));input.value='';return;}
+  if(file.size>12*1024*1024){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Image must be smaller than 12 MB.'}}));input.value='';return;}
+  try{
+   const data=await new Promise((resolve,reject)=>{const img=new Image(),reader=new FileReader();reader.onload=()=>{img.onload=()=>{const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));ctx.drawImage(img,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.72);if(data.length>1450000)data=c.toDataURL('image/jpeg',.58);resolve(data);};img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');};reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file)});
+   onChange(data);if(cameraOpen)stopCamera();
+  }catch(err){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read this image.'}}));}
+  input.value='';
+ };
+ return <div className="image-field">
+  <div className="section-label">{label}{optional?' (optional)':''}</div>
+  <div className="image-input-actions">
+   <button type="button" className="upload-btn camera-upload" onClick={openCamera}>📷 {cameraLabel}</button><label className="upload-btn camera-native-upload">📷 {cameraLabel}<input ref={cameraCaptureRef} className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label>
+   <label className="upload-btn secondary-upload">📁 Choose from device<input ref={deviceRef} className="image-file-input-native" type="file" accept="image/*" onChange={read}/></label>
+  </div>
+  {value&&<div className="image-preview"><img src={value} alt={`${label} preview`}/><button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button></div>}
+  {cameraOpen&&<div className="camera-modal-backdrop" onPointerDown={e=>{if(e.target===e.currentTarget)stopCamera()}}><div className="camera-modal" onPointerDown={e=>e.stopPropagation()}><div className="camera-modal-head"><strong>{cameraLabel}</strong><button type="button" className="icon-btn" onClick={stopCamera}>×</button></div>{cameraError?<div className="camera-error">{cameraError}</div>:<div className="camera-preview-wrap"><video ref={videoRef} playsInline muted autoPlay/><span className="camera-frame"/></div>}<div className="camera-actions"><label className="camera-fallback-btn">📷 Use phone camera<input className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label><button type="button" className="ghost-btn" onClick={stopCamera}>Cancel</button><button type="button" className="primary-btn" disabled={cameraBusy||!!cameraError} onClick={capture}>{cameraBusy?'Opening camera…':'Capture photo'}</button></div></div></div>}
+ </div>;
+}
+
+export function initialsOf(name='User'){return String(name||'User').split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'U'}
+export function ProfileAvatar({name='User',size='md',className=''}){
+ return (
+  <span className={`user-profile-avatar ${size==='lg'?'large':size==='sm'?'small':''} ${className}`.trim()} role="img" aria-label={name}>
+   <svg className="user-profile-logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="24" cy="24" r="24" fill="#0c1422"/>
+    <circle cx="24" cy="18.2" r="7.4" fill="#e8eef6"/>
+    <path d="M10.2 40.8c2.2-8.2 7.9-12.6 13.8-12.6s11.6 4.4 13.8 12.6" fill="#e8eef6"/>
+   </svg>
+  </span>
+ );
+}
+
+export function RowMenu({items=[]}){
+ const [open,setOpen]=useState(false);
+ const ref=useRef(null);
+ const visible=(items||[]).filter(Boolean);
+ useEffect(()=>{
+  if(!open)return;
+  const close=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false)};
+  document.addEventListener('pointerdown',close,true);
+  return()=>document.removeEventListener('pointerdown',close,true);
+ },[open]);
+ if(!visible.length)return null;
+ const [primary,...rest]=visible;
+ return (
+  <div className="row-menu" ref={ref}>
+   <button type="button" className={primary.danger?'small-btn danger':'small-btn view-btn'} onClick={primary.onClick}>{primary.label}</button>
+   {rest.length>0&&(
+    <>
+     <button type="button" className="small-btn row-menu-toggle" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>More</button>
+     {open&&<div className="row-menu-pop" role="menu">
+      {rest.map((item,i)=>(
+       item.node
+        ? <div key={item.label||i} className={`row-menu-node ${item.danger?'danger':''}`}>{item.node}</div>
+        : <button type="button" key={item.label||i} className={item.danger?'danger':''} onClick={()=>{setOpen(false);item.onClick?.()}}>{item.label}</button>
+      ))}
+     </div>}
+    </>
+   )}
+  </div>
+ );
+}

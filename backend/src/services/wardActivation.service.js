@@ -1,0 +1,511 @@
+const crypto = require('crypto');
+const { Op } = require('sequelize');
+const {
+  Ward,
+  User,
+  Role,
+  WardChatGroup,
+  WardChatGroupMember,
+  WardNagarsevakSubscription,
+  NagarsevakUser,
+} = require('../models');
+const ApiError = require('../utils/ApiError');
+const { logAudit } = require('./audit.service');
+const { notifyUsers } = require('./notify.service');
+const { canResidentSeeNagarsevak } = require('./wardActivation.rules');
+
+const PUBLIC_NAGAR_ATTRS = ['id', 'name', 'email', 'mobile', 'wardId', 'status'];
+
+async function roleId(name) {
+  const role = await Role.findOne({ where: { name }, attributes: ['id'] });
+  return role?.id || null;
+}
+
+async function ensureMembershipRow(groupId, userId) {
+  let member = await WardChatGroupMember.findOne({ where: { groupId, userId } });
+  if (member) return member;
+  try {
+    return await WardChatGroupMember.create({
+      id: crypto.randomUUID(), groupId, userId, joinedAt: new Date(),
+    });
+  } catch (error) {
+    if (error?.name !== 'SequelizeUniqueConstraintError') throw error;
+    return WardChatGroupMember.findOne({ where: { groupId, userId } });
+  }
+}
+
+async function getWard(wardId) {
+  if (!wardId) return null;
+  return Ward.findByPk(wardId, {
+    attributes: ['id', 'wardNumber', 'name', 'status', 'activatedAt', 'activatedBy', 'deactivatedAt', 'deactivatedBy'],
+  });
+}
+
+function isWardActive(ward) {
+  return String(ward?.status || '').toUpperCase() === 'ACTIVE';
+}
+
+async function getVisibleNagarsevakIds(wardId) {
+  const ward = await getWard(wardId);
+  if (!ward || !isWardActive(ward)) return [];
+  const nagarRole = await roleId('NAGARSEVAK');
+  if (!nagarRole) return [];
+  const subs = await WardNagarsevakSubscription.findAll({
+    where: { wardId, status: 'ACTIVE' },
+    attributes: ['nagarsevakUserId'],
+  });
+  const subIds = subs.map((s) => s.nagarsevakUserId);
+  if (!subIds.length) return [];
+  const users = await User.findAll({
+    where: { id: { [Op.in]: subIds }, roleId: nagarRole, wardId, status: 'ACTIVE' },
+    attributes: ['id'],
+  });
+  return users.map((u) => u.id);
+}
+
+async function getVisibleNagarsevaks(wardId) {
+  const ids = await getVisibleNagarsevakIds(wardId);
+  if (!ids.length) return [];
+  return User.findAll({
+    where: { id: { [Op.in]: ids }, status: 'ACTIVE' },
+    attributes: PUBLIC_NAGAR_ATTRS,
+    order: [['name', 'ASC']],
+  });
+}
+
+async function isNagarsevakVisibleInWard(wardId, nagarsevakUserId) {
+  if (!wardId || !nagarsevakUserId) return false;
+  const ids = await getVisibleNagarsevakIds(wardId);
+  return ids.some((id) => String(id) === String(nagarsevakUserId));
+}
+
+async function assertResidentCanSeeNagarsevak(req, nagarsevakUserId) {
+  if (req.user?.roleName !== 'CITIZEN') return true;
+  const wardId = req.user.wardId;
+  if (!wardId) throw new ApiError(403, 'Your account is not assigned to a ward');
+  const ok = await isNagarsevakVisibleInWard(wardId, nagarsevakUserId);
+  if (!ok) throw new ApiError(404, 'Nagarsevak not found');
+  return true;
+}
+
+function publicNagarsevak(user) {
+  if (!user) return null;
+  const row = typeof user.toJSON === 'function' ? user.toJSON() : user;
+  return {
+    id: row.id,
+    name: row.name,
+    mobile: row.mobile || null,
+    email: row.email || null,
+    status: 'ACTIVE',
+  };
+}
+
+async function eligibleResidentIds(wardId) {
+  const citizenRole = await roleId('CITIZEN');
+  if (!citizenRole) return [];
+  const rows = await User.findAll({
+    where: { wardId, roleId: citizenRole, status: 'ACTIVE' },
+    attributes: ['id'],
+  });
+  return rows.map((u) => u.id);
+}
+
+async function eligibleCommunityUserIds(wardId, visibleNagarsevakIds) {
+  const [citizenRole, employeeRole] = await Promise.all([roleId('CITIZEN'), roleId('EMPLOYEE')]);
+  const roleIds = [citizenRole, employeeRole].filter(Boolean);
+  const where = { wardId, status: 'ACTIVE' };
+  if (roleIds.length) where.roleId = { [Op.in]: roleIds };
+  const users = await User.findAll({ where, attributes: ['id'] });
+  const ids = users.map((u) => u.id);
+  for (const id of visibleNagarsevakIds || []) ids.push(id);
+  return [...new Set(ids.map(String))];
+}
+
+async function ensureWardCommunityGroup(ward) {
+  if (!ward) return null;
+  const name = `Ward ${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''} Community`;
+  const [group] = await WardChatGroup.findOrCreate({
+    where: { wardId: ward.id, type: 'WARD' },
+    defaults: {
+      id: crypto.randomUUID(),
+      wardId: ward.id,
+      name,
+      type: 'WARD',
+      createdByUserId: null,
+      isActive: true,
+      mode: 'CHAT',
+    },
+  });
+  if (!group.isActive || group.name !== name) await group.update({ name, isActive: true, mode: 'CHAT' });
+  return group;
+}
+
+async function ensureNagarsevakChatGroup(user) {
+  if (!user?.id || !user.wardId) return null;
+  const name = `Nagarsevak · ${user.name}`;
+  const existing = await WardChatGroup.findOne({ where: { nagarsevakUserId: user.id, type: 'NAGARSEVAK' } });
+  if (existing) {
+    await existing.update({ wardId: user.wardId, isActive: true, name, mode: 'CHAT' });
+    return existing;
+  }
+  return WardChatGroup.create({
+    wardId: user.wardId,
+    name,
+    type: 'NAGARSEVAK',
+    nagarsevakUserId: user.id,
+    createdByUserId: null,
+    isActive: true,
+    mode: 'CHAT',
+  });
+}
+
+async function replaceGroupMembers(groupId, allowedUserIds) {
+  const allowed = [...new Set((allowedUserIds || []).filter(Boolean).map(String))];
+  if (allowed.length) {
+    await WardChatGroupMember.destroy({
+      where: { groupId, userId: { [Op.notIn]: allowed } },
+    });
+    for (const userId of allowed) await ensureMembershipRow(groupId, userId);
+  } else {
+    await WardChatGroupMember.destroy({ where: { groupId } });
+  }
+}
+
+async function syncWardCommunityMembership(wardId) {
+  const ward = await getWard(wardId);
+  if (!ward) return { wardId, communityId: null, visibleNagarsevakIds: [] };
+  const visibleIds = await getVisibleNagarsevakIds(wardId);
+  const community = await ensureWardCommunityGroup(ward);
+  const communityMembers = await eligibleCommunityUserIds(wardId, visibleIds);
+  if (community) await replaceGroupMembers(community.id, communityMembers);
+
+  const nagarRole = await roleId('NAGARSEVAK');
+  const allNagars = nagarRole
+    ? await User.findAll({ where: { wardId, roleId: nagarRole }, attributes: ['id', 'name', 'wardId', 'status'] })
+    : [];
+  const residentsAndStaff = await eligibleCommunityUserIds(wardId, []);
+  const visibleSet = new Set(visibleIds.map(String));
+
+  for (const nagar of allNagars) {
+    const group = await ensureNagarsevakChatGroup(nagar);
+    if (!group) continue;
+    if (visibleSet.has(String(nagar.id)) && nagar.status === 'ACTIVE') {
+      await replaceGroupMembers(group.id, [...residentsAndStaff, nagar.id]);
+    } else {
+      await replaceGroupMembers(group.id, nagar.status === 'ACTIVE' ? [nagar.id] : []);
+    }
+  }
+
+  return {
+    wardId,
+    wardStatus: ward.status,
+    communityId: community?.id || null,
+    visibleNagarsevakIds: visibleIds,
+  };
+}
+
+async function setWardActivation(wardId, nextStatus, actor, ipAddress) {
+  const ward = await Ward.findByPk(wardId);
+  if (!ward) throw new ApiError(404, 'Ward not found');
+  const status = String(nextStatus || '').toUpperCase();
+  if (!['ACTIVE', 'INACTIVE'].includes(status)) throw new ApiError(400, 'Ward status must be ACTIVE or INACTIVE');
+  const previous = ward.status;
+  const now = new Date();
+  const patch = { status };
+  if (status === 'ACTIVE') {
+    patch.activatedAt = now;
+    patch.activatedBy = actor?.id || null;
+  } else {
+    patch.deactivatedAt = now;
+    patch.deactivatedBy = actor?.id || null;
+  }
+  await ward.update(patch);
+  await syncWardCommunityMembership(ward.id);
+  await logAudit({
+    user: actor,
+    action: status === 'ACTIVE' ? 'ACTIVATE_WARD' : 'DEACTIVATE_WARD',
+    entity: 'Ward',
+    recordId: ward.id,
+    oldValue: { status: previous },
+    newValue: { status, wardNumber: ward.wardNumber },
+    ipAddress,
+  });
+  if (status === 'ACTIVE' && previous !== 'ACTIVE') {
+    const visible = await getVisibleNagarsevaks(ward.id);
+    if (visible.length) {
+      const residentIds = await eligibleResidentIds(ward.id);
+      await notifyUsers(residentIds, {
+        senderUserId: actor?.id || null,
+        type: 'WARD_ACTIVATED',
+        title: 'Your ward is now active',
+        message: `${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''} is now active. ${visible[0].name} is available in Ward Community.`,
+        actionUrl: '/groups',
+      });
+    }
+  }
+  return ward.reload();
+}
+
+async function ensureNagarsevakSubscription(wardId, nagarsevakUserId, status = 'PENDING') {
+  if (!wardId || !nagarsevakUserId) return null;
+  const [sub] = await WardNagarsevakSubscription.findOrCreate({
+    where: { wardId, nagarsevakUserId },
+    defaults: {
+      id: crypto.randomUUID(),
+      wardId,
+      nagarsevakUserId,
+      status: status || 'PENDING',
+    },
+  });
+  return sub;
+}
+
+async function isNagarsevakAccessActive(nagarsevakUserId, wardId = null) {
+  if (!nagarsevakUserId) return false;
+  const where = { nagarsevakUserId, status: 'ACTIVE' };
+  if (wardId) where.wardId = wardId;
+  const sub = await WardNagarsevakSubscription.findOne({ where, attributes: ['id'] });
+  return !!sub;
+}
+
+async function assertNagarsevakLoginAllowed(user) {
+  const ward = await getWard(user?.wardId);
+  if (!isWardActive(ward)) {
+    throw new ApiError(403, 'This ward has not been activated yet. Please contact Master Admin.');
+  }
+  const ok = await isNagarsevakAccessActive(user?.id, user?.wardId || null);
+  if (!ok) {
+    throw new ApiError(403, 'Your Nagarsevak access has not been activated yet. Please contact Master Admin.');
+  }
+}
+
+async function assertEmployeeLoginAllowed(employee) {
+  const managerId = employee?.managerUserId;
+  if (!managerId) return;
+  const manager = await User.findByPk(managerId, { attributes: ['id', 'status', 'wardId'] });
+  if (!manager || manager.status !== 'ACTIVE') {
+    throw new ApiError(403, 'Your Nagarsevak account is not active. Employee login is currently unavailable.');
+  }
+  const ok = await isNagarsevakAccessActive(manager.id, manager.wardId || employee.wardId || null);
+  if (!ok) {
+    throw new ApiError(403, 'Your Nagarsevak has not been activated yet. Employee login is currently unavailable.');
+  }
+}
+
+async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, ipAddress, notes }) {
+  const ward = await Ward.findByPk(wardId);
+  if (!ward) throw new ApiError(404, 'Ward not found');
+  if (!nagarsevakUserId) throw new ApiError(400, 'Nagarsevak is required');
+  const nagarRole = await roleId('NAGARSEVAK');
+  const user = await User.findOne({
+    where: { id: nagarsevakUserId, roleId: nagarRole },
+    attributes: ['id', 'name', 'email', 'mobile', 'wardId', 'status', 'roleId'],
+  });
+  if (!user) throw new ApiError(404, 'Nagarsevak not found');
+
+  const next = String(status || '').toUpperCase();
+  if (!['PENDING', 'ACTIVE', 'INACTIVE', 'DEACTIVATED'].includes(next)) {
+    throw new ApiError(400, 'Invalid Nagarsevak activation status');
+  }
+
+  if (next === 'ACTIVE' && !isWardActive(ward)) {
+    throw new ApiError(400, 'Activate this ward first, then activate the Nagarsevak.');
+  }
+
+  if (String(user.wardId) !== String(wardId)) {
+    await user.update({ wardId });
+  }
+
+  const [sub, created] = await WardNagarsevakSubscription.findOrCreate({
+    where: { wardId, nagarsevakUserId: user.id },
+    defaults: {
+      id: crypto.randomUUID(),
+      wardId,
+      nagarsevakUserId: user.id,
+      status: 'PENDING',
+    },
+  });
+  const previous = sub.status;
+  const now = new Date();
+  const patch = { status: next, notes: notes || sub.notes || null };
+  if (next === 'ACTIVE') {
+    patch.purchasedAt = sub.purchasedAt || now;
+    patch.activatedAt = now;
+    patch.activatedBy = actor?.id || null;
+  } else if (['INACTIVE', 'DEACTIVATED'].includes(next)) {
+    patch.deactivatedAt = now;
+    patch.deactivatedBy = actor?.id || null;
+  }
+  await sub.update(patch);
+  if (next === 'ACTIVE') {
+    if (user.status !== 'ACTIVE') await user.update({ status: 'ACTIVE' });
+  } else if (['INACTIVE', 'DEACTIVATED'].includes(next) && user.status === 'ACTIVE') {
+    await user.update({ status: 'INACTIVE' });
+  }
+  await syncWardCommunityMembership(wardId);
+
+  await logAudit({
+    user: actor,
+    action: next === 'ACTIVE' ? 'ACTIVATE_NAGARSEVAK_PURCHASE' : 'DEACTIVATE_NAGARSEVAK_PURCHASE',
+    entity: 'WardNagarsevakSubscription',
+    recordId: sub.id,
+    oldValue: { status: previous, wardId, nagarsevakUserId: user.id, created },
+    newValue: { status: next, wardNumber: ward.wardNumber, nagarsevak: user.name },
+    ipAddress,
+  });
+
+  if (next === 'ACTIVE' && previous !== 'ACTIVE') {
+    const residentIds = await eligibleResidentIds(wardId);
+    await notifyUsers(residentIds, {
+      senderUserId: actor?.id || null,
+      type: 'NAGARSEVAK_ACTIVATED',
+      title: `Your Nagarsevak is now available`,
+      message: `${user.name} is now available for ${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''}. Open Ward Community to connect.`,
+      actionUrl: '/groups',
+    });
+  }
+
+  return sub.reload();
+}
+
+async function getResidentWardSnapshot(user) {
+  const wardId = user?.wardId;
+  const ward = await getWard(wardId);
+  if (!ward) {
+    return { ward: null, nagarsevak: null, nagarsevaks: [], community: null };
+  }
+  const visible = isWardActive(ward) ? await getVisibleNagarsevaks(wardId) : [];
+  const community = await WardChatGroup.findOne({
+    where: { wardId, type: 'WARD', isActive: true },
+    attributes: ['id', 'name', 'isActive'],
+  });
+  return {
+    ward: {
+      id: ward.id,
+      number: ward.wardNumber,
+      name: ward.name,
+      status: ward.status,
+    },
+    nagarsevak: visible[0] ? publicNagarsevak(visible[0]) : null,
+    nagarsevaks: visible.map(publicNagarsevak),
+    community: community ? { id: community.id, name: community.name, active: !!community.isActive } : null,
+  };
+}
+
+async function listActivationBoard() {
+  const nagarRole = await roleId('NAGARSEVAK');
+  const citizenRole = await roleId('CITIZEN');
+  const wards = await Ward.findAll({
+    attributes: ['id', 'wardNumber', 'name', 'status', 'activatedAt', 'deactivatedAt'],
+    order: [['wardNumber', 'ASC']],
+  });
+  const wardIds = wards.map((w) => w.id);
+  const [subs, nagars, residentCounts, communities] = await Promise.all([
+    WardNagarsevakSubscription.findAll({
+      where: { wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
+    }),
+    nagarRole
+      ? User.findAll({
+        where: { roleId: nagarRole, wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
+        attributes: ['id', 'name', 'email', 'mobile', 'wardId', 'status'],
+        include: [{
+          model: NagarsevakUser,
+          as: 'nagarsevakAccount',
+          attributes: ['wardSeat', 'partyName', 'officialAddress'],
+          required: false,
+        }],
+        order: [['name', 'ASC']],
+      })
+      : [],
+    citizenRole
+      ? User.findAll({
+        where: { roleId: citizenRole, status: 'ACTIVE', wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
+        attributes: ['id', 'wardId'],
+      })
+      : [],
+    WardChatGroup.findAll({
+      where: { type: 'WARD', wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
+      attributes: ['id', 'wardId', 'name', 'isActive'],
+    }),
+  ]);
+
+  const subByWard = new Map();
+  for (const s of subs) {
+    const key = String(s.wardId);
+    if (!subByWard.has(key)) subByWard.set(key, []);
+    subByWard.get(key).push(s);
+  }
+  const nagarByWard = new Map();
+  for (const n of nagars) {
+    const key = String(n.wardId);
+    if (!nagarByWard.has(key)) nagarByWard.set(key, []);
+    nagarByWard.get(key).push(n);
+  }
+  const residentsByWard = new Map();
+  for (const r of residentCounts) {
+    const key = String(r.wardId);
+    residentsByWard.set(key, (residentsByWard.get(key) || 0) + 1);
+  }
+  const communityByWard = new Map(communities.map((c) => [String(c.wardId), c]));
+
+  return wards.map((ward) => {
+    const list = nagarByWard.get(String(ward.id)) || [];
+    const subscriptions = subByWard.get(String(ward.id)) || [];
+    const purchased = subscriptions.filter((s) => s.status === 'ACTIVE').map((s) => {
+      const n = list.find((u) => String(u.id) === String(s.nagarsevakUserId));
+      return n ? { ...publicNagarsevak(n), purchaseStatus: s.status, purchasedAt: s.purchasedAt, activatedAt: s.activatedAt } : null;
+    }).filter(Boolean);
+    const community = communityByWard.get(String(ward.id));
+    return {
+      id: ward.id,
+      wardNumber: ward.wardNumber,
+      name: ward.name,
+      status: ward.status,
+      activatedAt: ward.activatedAt,
+      deactivatedAt: ward.deactivatedAt,
+      purchasedNagarsevaks: purchased,
+      purchasedNagarsevak: purchased[0] || null,
+      nagarsevaks: list.map((n) => {
+        const sub = subscriptions.find((s) => String(s.nagarsevakUserId) === String(n.id));
+        const account = n.nagarsevakAccount || {};
+        return {
+          id: n.id,
+          name: n.name,
+          email: n.email,
+          mobile: n.mobile,
+          wardSeat: account.wardSeat || null,
+          partyName: account.partyName || null,
+          officialAddress: account.officialAddress || null,
+          accountStatus: n.status,
+          purchaseStatus: sub?.status || 'PENDING',
+          purchasedAt: sub?.purchasedAt || null,
+          activatedAt: sub?.activatedAt || null,
+        };
+      }),
+      activeNagarsevakCount: purchased.length,
+      community: community ? { id: community.id, name: community.name, active: !!community.isActive } : null,
+      residentCount: residentsByWard.get(String(ward.id)) || 0,
+    };
+  });
+}
+
+module.exports = {
+  canResidentSeeNagarsevak,
+  getWard,
+  isWardActive,
+  getVisibleNagarsevakIds,
+  getVisibleNagarsevaks,
+  isNagarsevakVisibleInWard,
+  assertResidentCanSeeNagarsevak,
+  publicNagarsevak,
+  syncWardCommunityMembership,
+  setWardActivation,
+  setNagarsevakPurchase,
+  getResidentWardSnapshot,
+  listActivationBoard,
+  ensureNagarsevakSubscription,
+  isNagarsevakAccessActive,
+  assertNagarsevakLoginAllowed,
+  assertEmployeeLoginAllowed,
+  PUBLIC_NAGAR_ATTRS,
+};

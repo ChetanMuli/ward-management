@@ -1,0 +1,3331 @@
+/* ================================================================
+   Mobile Chrome layout (phones + small tablets)
+   Loaded after styles.css so these rules win over earlier patches.
+   All admin / sub-admin / nagarsevak / employee panels use .app-shell.
+   ================================================================ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (max-width: 800px) {
+  html, body, #root {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  body {
+    overscroll-behavior-y: auto;
+  }
+
+  .app-shell,
+  .user-portal,
+  .login-page-v2,
+  .login-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .login-page-v2 {
+    display: flex !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    padding: 12px !important;
+    min-height: 100dvh !important;
+    box-sizing: border-box !important;
+  }
+
+  .login-v2-layout {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    border-radius: 16px !important;
+  }
+
+  .login-v2-panel,
+  .login-v2-card {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .main,
+  .content,
+  .user-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .content {
+    padding: 14px 12px calc(28px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .user-main {
+    padding: 16px 12px calc(28px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* ----- Top bar: keep controls on one line, no overflow ----- */
+  .topbar {
+    height: auto !important;
+    min-height: 64px !important;
+    padding: 8px max(10px, env(safe-area-inset-right, 0px)) 8px max(10px, env(safe-area-inset-left, 0px)) !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    overflow: visible !important;
+  }
+
+  .admin-mobile-brand {
+    display: grid !important;
+    place-items: center !important;
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px !important;
+    border-radius: 9px !important;
+    background: #111b2b !important;
+    color: #fff !important;
+    font-weight: 900 !important;
+    font-size: 16px !important;
+  }
+
+  .menu-btn {
+    display: grid !important;
+    place-items: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    flex: 0 0 38px !important;
+    border: 1px solid #e1e6ee !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    font-size: 18px !important;
+  }
+
+  .topbar-context {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .topbar-context .eyebrow {
+    display: none !important;
+  }
+
+  .topbar-title {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .topbar-workspace {
+    font-size: 9px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .topbar-spacer {
+    display: none !important;
+  }
+
+  .language-btn,
+  .notification-btn,
+  .user-chip-button {
+    flex: 0 0 auto !important;
+    min-height: 38px !important;
+    box-sizing: border-box !important;
+  }
+
+  .language-btn {
+    height: 38px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    border-radius: 9px !important;
+  }
+
+  .notification-wrap {
+    margin-right: 0 !important;
+  }
+
+  .notification-btn {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+
+  .user-chip-button {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 2px !important;
+    justify-content: center !important;
+  }
+
+  .user-chip-button .user-text,
+  .user-text {
+    display: none !important;
+  }
+
+  .user-chip-button .avatar,
+  .avatar {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 10px !important;
+  }
+
+  /* ----- Page headers & primary actions ----- */
+  .page-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-bottom: 14px !important;
+  }
+
+  .page-header > div,
+  .page-header > .card-actions {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .page-header h1 {
+    font-size: 22px !important;
+    line-height: 1.2 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .page-header p {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    max-width: 100% !important;
+  }
+
+  .page-header .primary-btn,
+  .page-header .ghost-btn,
+  .page-header .small-btn,
+  .page-header .primary-outline,
+  .page-header > button,
+  .page-header > a {
+    width: 100% !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+  }
+
+  .page-header .card-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* ----- Shared button size ----- */
+  .primary-btn,
+  .ghost-btn,
+  .small-btn,
+  .primary-outline,
+  .whatsapp-btn,
+  .view-btn,
+  .upload-btn,
+  .tab {
+    box-sizing: border-box !important;
+    min-height: 42px !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    text-align: center !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .tab {
+    flex: 1 1 auto !important;
+  }
+
+  .tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  /* Action groups: two equal columns, never overflow */
+  .card-actions,
+  .staff-actions,
+  .staff-action-grid,
+  .export-actions,
+  .recent-actions,
+  .filter-actions,
+  .image-input-actions,
+  .ward-info-hero-actions,
+  .panel-title > div:last-child:has(button),
+  .area-item > div:last-child:has(button) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-items: stretch !important;
+  }
+
+  .card-actions:has(> :only-child),
+  .staff-action-grid:has(> :only-child),
+  .export-actions:has(> :only-child),
+  .staff-actions:has(> :only-child) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .card-actions > button,
+  .card-actions > a,
+  .staff-actions > button,
+  .staff-actions > a,
+  .staff-action-grid > button,
+  .staff-action-grid > a,
+  .export-actions > button,
+  .export-actions > a,
+  .recent-actions > button,
+  .filter-actions > button,
+  .image-input-actions > button,
+  .image-input-actions > label,
+  .ward-info-hero-actions > *,
+  .area-item > div:last-child > .small-btn,
+  .area-item > div:last-child > button {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: none !important;
+    margin: 0 !important;
+    flex: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .staff-table-scroll .staff-data-table .staff-action-grid,
+  .staff-table-scroll .staff-data-table td.staff-actions .staff-action-grid,
+  html body .staff-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .staff-table-scroll .staff-data-table .staff-action-grid > button,
+  .staff-table-scroll .staff-data-table .staff-action-grid > a,
+  html body .staff-action-grid > button,
+  html body .staff-action-grid > a {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: none !important;
+    flex: none !important;
+  }
+
+  /* ----- Filters / toolbars: one column, full width ----- */
+  .toolbar,
+  .filter-toolbar,
+  .birthday-filter-toolbar,
+  .complaint-filter-grid,
+  .death-filter-grid,
+  .filter-grid,
+  .ward-updates-filter-bar,
+  .citizen-search-bar,
+  .citizen-advanced-filters,
+  .group-filters,
+  .dashboard-scope-panel,
+  .ward-info-selector,
+  .government-voter-upload,
+  .government-voter-detail-toolbar,
+  .recycle-filter-panel .filter-toolbar,
+  .report-panel {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .toolbar > *,
+  .filter-toolbar > *,
+  .birthday-filter-toolbar > *,
+  .complaint-filter-grid > *,
+  .death-filter-grid > *,
+  .filter-grid > *,
+  .ward-updates-filter-bar > *,
+  .citizen-search-bar > *,
+  .group-filters > *,
+  .government-voter-upload > *,
+  .government-voter-detail-toolbar > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    grid-column: auto !important;
+  }
+
+  .toolbar .grow,
+  .filter-toolbar > .grow,
+  .filter-grid .wide-filter,
+  .complaint-filter-grid .filter-search {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    flex: none !important;
+  }
+
+  .searchable-select,
+  .ward-filter,
+  .ward-filter .searchable-select,
+  .report-choice {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .searchable-control,
+  .searchable-display,
+  input,
+  select,
+  textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  input,
+  select,
+  textarea,
+  .searchable-display,
+  .searchable-menu-search input {
+    font-size: 16px !important; /* prevent Chrome zoom on focus */
+    min-height: 44px !important;
+  }
+
+  textarea {
+    min-height: 88px !important;
+  }
+
+  .searchable-control {
+    min-height: 44px !important;
+  }
+
+  .filter-actions {
+    width: 100% !important;
+  }
+
+  .filter-panel-head {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  /* ----- Grids / cards ----- */
+  .stat-grid,
+  .dashboard-glance-grid,
+  .users-summary-grid,
+  .government-voter-summary,
+  .election-facts,
+  .dashboard-ward-facts {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .two-col,
+  .ward-grid,
+  .family-grid,
+  .birthday-grid,
+  .member-grid,
+  .scheme-grid,
+  .detail-grid,
+  .complaint-detail-grid,
+  .recycle-detail-grid,
+  .ward-rep-grid,
+  .ward-info-area-list,
+  .election-source-grid,
+  .permission-grid-cards,
+  .image-grid,
+  .dashboard-ward-summary,
+  .user-content-grid,
+  .user-stat-grid,
+  .user-complaint-list,
+  .ward-team-user-grid,
+  .form-grid,
+  .profile-edit-grid,
+  .password-change-grid,
+  .inline-form-row {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+  }
+
+  .span-2,
+  .form-grid .span-2,
+  .form-grid > .span-3,
+  .profile-edit-grid .detail-card,
+  .profile-edit-grid .modal-actions {
+    grid-column: auto !important;
+  }
+
+  .stat-card,
+  .glance-card,
+  .family-card,
+  .birthday-card,
+  .scheme-card,
+  .detail-card,
+  .panel,
+  .ward-grid .panel,
+  .member-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .panel.table-wrap,
+  .table-wrap.panel {
+    overflow: visible !important;
+  }
+
+  .family-meta {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .panel-title {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .panel-title h3,
+  .panel-title span {
+    overflow-wrap: anywhere !important;
+  }
+
+  .family-hero,
+  .rich-member,
+  .area-item,
+  .status-row,
+  .ward-update-head,
+  .user-complaint-card-head,
+  .group-chat-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .status-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .status-row > div,
+  .recent-row > div {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .recent-actions {
+    width: 100% !important;
+  }
+
+  .dashboard-scope-copy p,
+  .scope-chip {
+    max-width: 100% !important;
+  }
+
+  .scope-chip {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  /* ----- TABLES: stacked labeled cards (not 900px-wide scroll) ----- */
+  .table-wrap,
+  .table-wrap.staff-table-scroll,
+  .government-voter-page .government-voter-table,
+  .government-voter-preview {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    touch-action: pan-y !important;
+  }
+
+  .table-wrap table,
+  .table-wrap.staff-table-scroll table,
+  .staff-data-table,
+  .responsive-table,
+  .government-voter-page .government-voter-table table,
+  .government-voter-preview table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    table-layout: auto !important;
+    touch-action: pan-y !important;
+  }
+
+  .table-wrap thead,
+  .staff-data-table thead,
+  .responsive-table thead,
+  .government-voter-page .government-voter-table thead,
+  .government-voter-preview thead {
+    display: none !important;
+  }
+
+  .table-wrap tbody,
+  .staff-data-table tbody,
+  .responsive-table tbody,
+  .government-voter-page .government-voter-table tbody,
+  .government-voter-preview tbody {
+    display: grid !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .table-wrap tbody tr,
+  .staff-data-table tbody tr,
+  .responsive-table tbody tr,
+  .government-voter-page .government-voter-table tbody tr,
+  .government-voter-preview tbody tr {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    border: 1px solid #e2e7ef !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: 0 2px 8px rgba(16, 29, 48, 0.04) !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  .table-wrap tbody td,
+  .staff-data-table tbody td,
+  .responsive-table tbody td,
+  .government-voter-page .government-voter-table tbody td,
+  .government-voter-preview tbody td,
+  .staff-table-scroll .staff-data-table th,
+  .staff-table-scroll .staff-data-table td {
+    display: grid !important;
+    grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 8px 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid #edf0f4 !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    vertical-align: top !important;
+    box-sizing: border-box !important;
+  }
+
+  .table-wrap tbody td:last-child,
+  .staff-data-table tbody td:last-child,
+  .responsive-table tbody td:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .table-wrap tbody td::before,
+  .staff-data-table tbody td::before,
+  .responsive-table tbody td::before,
+  .government-voter-page .government-voter-table tbody td::before,
+  .government-voter-preview tbody td::before,
+  .staff-table-scroll .staff-data-table td::before {
+    content: attr(data-label) !important;
+    display: block !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: #7b8799 !important;
+    line-height: 1.3 !important;
+    padding-top: 2px !important;
+    margin: 0 !important;
+  }
+
+  .table-wrap tbody td:not([data-label])::before,
+  .table-wrap tbody td[data-label=""]::before,
+  .staff-data-table tbody td:not([data-label])::before,
+  .staff-data-table tbody td[data-label=""]::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .table-wrap tbody td[data-label="Actions"],
+  .staff-data-table tbody td[data-label="Actions"],
+  .staff-data-table tbody td.staff-actions,
+  .responsive-table tbody td[data-label="Actions"] {
+    display: block !important;
+    padding-top: 10px !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .table-wrap tbody td[data-label="Actions"]::before,
+  .staff-data-table tbody td[data-label="Actions"]::before,
+  .staff-data-table tbody td.staff-actions::before {
+    display: block !important;
+    content: attr(data-label) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .staff-table-scroll .staff-data-table th:nth-child(n),
+  .staff-table-scroll .staff-data-table td:nth-child(n),
+  .staff-table-scroll .staff-data-table td.staff-actions,
+  .staff-table-scroll .staff-data-table td[data-label="Actions"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .table-wrap tbody td strong,
+  .staff-data-table tbody td strong,
+  .staff-table-scroll .staff-data-table td strong,
+  .staff-table-scroll .staff-data-table td .muted {
+    max-width: 100% !important;
+    display: block !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+  }
+
+  .table-wrap .pill,
+  .staff-data-table .pill,
+  .staff-table-scroll .staff-data-table .pill {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 28px !important;
+    justify-self: start !important;
+  }
+
+  .table-link {
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+    text-align: left !important;
+  }
+
+  .address-cell,
+  .family-member-stack {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* ----- Pagination ----- */
+  .global-pagination,
+  .people-pagination,
+  .houses-pagination {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  .pagination-info,
+  .people-pagination > div {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .pagination-controls,
+  .people-pagination {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    align-items: stretch !important;
+  }
+
+  .pagination-controls label,
+  .people-pagination label,
+  .pagination-info,
+  .people-pagination > div {
+    grid-column: 1 / -1 !important;
+  }
+
+  .pagination-controls .small-btn,
+  .people-pagination .small-btn,
+  .pagination-controls span,
+  .people-pagination span {
+    min-height: 42px !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* ----- Forms / modals ----- */
+  .modal-backdrop {
+    padding: 0 !important;
+    align-items: flex-end !important;
+    place-items: end center !important;
+  }
+
+  .modal,
+  .modal-wide,
+  .profile-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    max-height: 94dvh !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 16px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  .modal-header h2 {
+    font-size: 16px !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .modal-actions,
+  .permission-modal-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    position: sticky !important;
+    bottom: -4px !important;
+    background: #fff !important;
+    padding-top: 10px !important;
+  }
+
+  .modal-actions:has(> :only-child) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal-actions > * {
+    width: 100% !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+  }
+
+  .permission-grid,
+  .permission-head,
+  .permission-row {
+    min-width: 0 !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .permission-buttons {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .permission-btn {
+    width: 100% !important;
+    min-height: 40px !important;
+  }
+
+  .ward-access-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* ----- Chat / groups ----- */
+  .chat-layout,
+  .group-layout {
+    grid-template-columns: 1fr !important;
+    min-height: 0 !important;
+    width: 100% !important;
+  }
+
+  .group-list,
+  .chat-groups {
+    max-height: 32vh !important;
+    width: 100% !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #e5eaf1 !important;
+  }
+
+  .group-chat-header .card-actions {
+    width: 100% !important;
+  }
+
+  .group-compose-actions,
+  .chat-compose-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .group-compose-actions .primary-btn,
+  .chat-compose-actions .primary-btn,
+  .chat-image-picker {
+    width: 100% !important;
+    min-height: 44px !important;
+  }
+
+  .group-bubble,
+  .chat-bubble {
+    max-width: 90% !important;
+  }
+
+  .group-bubble img,
+  .chat-image {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* ----- Notifications / toasts ----- */
+  .notification-popover {
+    position: fixed !important;
+    left: 10px !important;
+    right: 10px !important;
+    top: 68px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 86px) !important;
+  }
+
+  .global-toast,
+  .error-toast,
+  .success-toast,
+  .user-welcome-toast {
+    left: 12px !important;
+    right: 12px !important;
+    top: 72px !important;
+    bottom: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+
+  /* ----- Sidebar overlay ----- */
+  .sidebar {
+    width: min(300px, 88vw) !important;
+    height: 100dvh !important;
+    padding-top: max(16px, env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .app-footer,
+  .user-footer {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+    display: grid !important;
+    gap: 4px !important;
+  }
+
+  .ward-grid .panel {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .ward-grid .area-list {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .camera-modal {
+    width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+
+  .time-select-pair {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .profile-quick {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+  }
+
+  .profile-quick > div {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .stat-grid,
+  .dashboard-glance-grid,
+  .users-summary-grid,
+  .dashboard-ward-facts,
+  .family-meta,
+  .profile-quick {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  html body .table-wrap:not(.government-voter-preview) tbody td,
+  html body .staff-table-scroll .staff-data-table td,
+  html body .responsive-table tbody td {
+    grid-template-columns: 88px minmax(0, 1fr) !important;
+  }
+
+  .page-header h1 {
+    font-size: 20px !important;
+  }
+
+  .content {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+/* Beat older V10 “wide table” rules that used :not() / nth-child specificity. */
+@media (max-width: 800px) {
+  html body .table-wrap,
+  html body .table-wrap:not(.government-voter-preview),
+  html body .table-wrap.staff-table-scroll,
+  html body .staff-table-scroll,
+  html body .government-voter-page .government-voter-table,
+  html body .government-voter-preview {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: hidden !important;
+    touch-action: pan-y !important;
+  }
+
+  html body .staff-table-scroll::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html body .table-wrap table,
+  html body .table-wrap:not(.government-voter-preview) table,
+  html body .table-wrap.staff-table-scroll table,
+  html body .staff-table-scroll .staff-data-table,
+  html body table.staff-data-table,
+  html body table.responsive-table,
+  html body .government-voter-page .government-voter-table table,
+  html body .government-voter-preview table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  html body .table-wrap thead,
+  html body .table-wrap:not(.government-voter-preview) thead,
+  html body .staff-table-scroll .staff-data-table thead,
+  html body table.responsive-table thead,
+  html body .government-voter-page .government-voter-table thead {
+    display: none !important;
+  }
+
+  html body .table-wrap tbody,
+  html body .table-wrap:not(.government-voter-preview) tbody,
+  html body .staff-table-scroll .staff-data-table tbody,
+  html body table.responsive-table tbody {
+    display: grid !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  html body .table-wrap tbody tr,
+  html body .table-wrap:not(.government-voter-preview) tbody tr,
+  html body .staff-table-scroll .staff-data-table tbody tr,
+  html body table.responsive-table tbody tr {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    border: 1px solid #e2e7ef !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: 0 2px 8px rgba(16, 29, 48, 0.04) !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  html body .table-wrap tbody td,
+  html body .table-wrap:not(.government-voter-preview) tbody td,
+  html body .table-wrap:not(.government-voter-preview) td,
+  html body .table-wrap:not(.government-voter-preview) th,
+  html body .staff-table-scroll .staff-data-table td,
+  html body .staff-table-scroll .staff-data-table th,
+  html body .staff-table-scroll .staff-data-table th:nth-child(n),
+  html body .staff-table-scroll .staff-data-table td:nth-child(n),
+  html body .table-wrap:not(.government-voter-preview) th:nth-child(n),
+  html body .table-wrap:not(.government-voter-preview) td:nth-child(n),
+  html body table.responsive-table tbody td {
+    display: grid !important;
+    grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 8px 0 !important;
+    position: static !important;
+    border: 0 !important;
+    border-bottom: 1px solid #edf0f4 !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .table-wrap tbody td:last-child,
+  html body .table-wrap:not(.government-voter-preview) tbody td:last-child,
+  html body .staff-table-scroll .staff-data-table td:last-child {
+    border-bottom: 0 !important;
+  }
+
+  html body .table-wrap tbody td::before,
+  html body .table-wrap:not(.government-voter-preview) tbody td::before,
+  html body .staff-table-scroll .staff-data-table td::before,
+  html body table.responsive-table tbody td::before,
+  html body .government-voter-page .government-voter-table tbody td::before {
+    content: attr(data-label) !important;
+    display: block !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: #7b8799 !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding-top: 2px !important;
+    width: auto !important;
+  }
+
+  html body .table-wrap tbody td:not([data-label])::before,
+  html body .table-wrap tbody td[data-label=""]::before,
+  html body .table-wrap:not(.government-voter-preview) tbody td:not([data-label])::before,
+  html body .staff-table-scroll .staff-data-table td:not([data-label])::before,
+  html body .staff-table-scroll .staff-data-table td[data-label=""]::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  html body .table-wrap tbody td[data-label="Actions"],
+  html body .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"],
+  html body .staff-table-scroll .staff-data-table td[data-label="Actions"],
+  html body .staff-table-scroll .staff-data-table td.staff-actions {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    padding-top: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html body .table-wrap tbody td[data-label="Actions"]::before,
+  html body .staff-table-scroll .staff-data-table td[data-label="Actions"]::before,
+  html body .staff-table-scroll .staff-data-table td.staff-actions::before {
+    content: attr(data-label) !important;
+    display: block !important;
+    margin-bottom: 8px !important;
+  }
+
+  html body .table-wrap tbody td strong,
+  html body .staff-table-scroll .staff-data-table td strong,
+  html body .staff-table-scroll .staff-data-table td .muted,
+  html body .table-wrap:not(.government-voter-preview) tbody td strong,
+  html body .table-wrap:not(.government-voter-preview) tbody td .muted {
+    display: block !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html body .card-actions,
+  html body .staff-actions,
+  html body .staff-action-grid,
+  html body .staff-table-scroll .staff-data-table .staff-action-grid,
+  html body .staff-table-scroll .staff-data-table td.staff-actions .staff-action-grid,
+  html body .table-wrap .card-actions,
+  html body .export-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  html body .card-actions,
+  html body .staff-actions,
+  html body .staff-action-grid,
+  html body .table-wrap tbody td.staff-actions > .staff-action-grid,
+  html body .table-wrap tbody td.staff-actions > .card-actions,
+  html body .table-wrap tbody td[data-label="Actions"] > .card-actions,
+  html body .table-wrap tbody td[data-label="Actions"] > .staff-action-grid,
+  html body .table-wrap:not(.government-voter-preview) tbody td.staff-actions > .staff-action-grid,
+  html body .table-wrap:not(.government-voter-preview) tbody td.staff-actions > .card-actions,
+  html body .table-wrap:not(.government-voter-preview) tbody td.staff-actions > *,
+  html body .staff-table-scroll .staff-data-table .staff-action-grid {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    grid-auto-rows: 42px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  html body .card-actions > button,
+  html body .card-actions > a,
+  html body .staff-actions > button,
+  html body .staff-actions > a,
+  html body .staff-action-grid > button,
+  html body .staff-action-grid > a,
+  html body .staff-table-scroll .staff-data-table .staff-action-grid > button,
+  html body .staff-table-scroll .staff-data-table .staff-action-grid > a,
+  html body .export-actions > button,
+  html body .export-actions > a {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: none !important;
+    flex: none !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .table-wrap .pill,
+  html body .staff-table-scroll .staff-data-table .pill {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 28px !important;
+  }
+
+  html body .card-actions > :last-child:nth-child(odd),
+  html body .staff-action-grid > :last-child:nth-child(odd),
+  html body .export-actions > :last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* ================================================================
+   Professional mobile cards, aligned info, compact auth screens
+   ================================================================ */
+@media (max-width: 800px) {
+  /* Keep every extra line (role, mobile, muted) under the VALUE, not the label. */
+  html body .table-wrap tbody td,
+  html body .table-wrap:not(.government-voter-preview) tbody td,
+  html body .staff-table-scroll .staff-data-table td,
+  html body table.responsive-table tbody td {
+    display: grid !important;
+    grid-template-columns: 102px minmax(0, 1fr) !important;
+    grid-auto-rows: min-content !important;
+    align-items: start !important;
+    column-gap: 12px !important;
+    row-gap: 3px !important;
+    padding: 10px 0 !important;
+  }
+
+  html body .table-wrap tbody td::before,
+  html body .table-wrap:not(.government-voter-preview) tbody td::before,
+  html body .staff-table-scroll .staff-data-table td::before,
+  html body table.responsive-table tbody td::before {
+    grid-column: 1 !important;
+    grid-row: 1 / -1 !important;
+    align-self: start !important;
+    padding-top: 3px !important;
+    margin: 0 !important;
+    line-height: 1.35 !important;
+  }
+
+  html body .table-wrap tbody td > *,
+  html body .table-wrap:not(.government-voter-preview) tbody td > *,
+  html body .staff-table-scroll .staff-data-table td > *,
+  html body table.responsive-table tbody td > * {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    justify-self: start !important;
+  }
+
+  html body .table-wrap tbody td > strong,
+  html body .staff-table-scroll .staff-data-table td > strong {
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+    color: #172033 !important;
+  }
+
+  html body .table-wrap tbody td > .muted,
+  html body .staff-table-scroll .staff-data-table td > .muted {
+    margin-top: 1px !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    color: #6d7a8d !important;
+  }
+
+  html body .table-wrap tbody td .pill,
+  html body .staff-table-scroll .staff-data-table .pill {
+    justify-self: start !important;
+    margin: 0 !important;
+  }
+
+  /* Action rows: equal 2-column professional buttons. */
+  html body .table-wrap tbody td[data-label="Actions"],
+  html body .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"],
+  html body .table-wrap tbody td.staff-actions,
+  html body .staff-table-scroll .staff-data-table td[data-label="Actions"],
+  html body .staff-table-scroll .staff-data-table td.staff-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    padding-top: 12px !important;
+    margin-top: 4px !important;
+    border-top: 1px solid #edf0f4 !important;
+  }
+
+  html body .table-wrap tbody td[data-label="Actions"]::before,
+  html body .table-wrap tbody td.staff-actions::before,
+  html body .staff-table-scroll .staff-data-table td[data-label="Actions"]::before,
+  html body .staff-table-scroll .staff-data-table td.staff-actions::before {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+    margin-bottom: 2px !important;
+  }
+
+  html body .table-wrap tbody td[data-label="Actions"] > button,
+  html body .table-wrap tbody td[data-label="Actions"] > a,
+  html body .table-wrap tbody td.staff-actions > button,
+  html body .table-wrap tbody td.staff-actions > a,
+  html body .table-wrap tbody td[data-label="Actions"] .card-actions > button,
+  html body .table-wrap tbody td[data-label="Actions"] .card-actions > a,
+  html body .table-wrap tbody td[data-label="Actions"] .staff-action-grid > button,
+  html body .table-wrap tbody td[data-label="Actions"] .staff-action-grid > a {
+    grid-column: auto !important;
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 8px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    border-radius: 10px !important;
+  }
+
+  html body .table-wrap tbody td[data-label="Actions"] > .card-actions,
+  html body .table-wrap tbody td[data-label="Actions"] > .staff-action-grid,
+  html body .table-wrap tbody td.staff-actions > .card-actions,
+  html body .table-wrap tbody td.staff-actions > .staff-action-grid {
+    grid-column: 1 / -1 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  html body .table-wrap tbody td[data-label="Actions"] .card-actions > :last-child:nth-child(odd),
+  html body .table-wrap tbody td[data-label="Actions"] .staff-action-grid > :last-child:nth-child(odd),
+  html body .table-wrap tbody td[data-label="Actions"] > button:last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Info / detail cards */
+  html body .detail-card,
+  html body .family-card,
+  html body .scheme-card,
+  html body .birthday-card,
+  html body .ward-rep-card,
+  html body .glance-card,
+  html body .stat-card,
+  html body .member-card,
+  html body .user-panel-card,
+  html body .user-complaint-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  html body .detail-card {
+    padding: 14px !important;
+    border-radius: 14px !important;
+    background: #fff !important;
+  }
+
+  html body .detail-card h3 {
+    margin: 0 0 10px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #edf0f4 !important;
+    font-size: 13px !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  html body .detail-card p {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin: 8px 0 !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    color: #243249 !important;
+  }
+
+  html body .detail-card p b {
+    flex: 0 0 38% !important;
+    max-width: 42% !important;
+    color: #7b8799 !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+  }
+
+  html body .family-card,
+  html body .scheme-card,
+  html body .birthday-card {
+    padding: 14px !important;
+    border-radius: 14px !important;
+  }
+
+  html body .family-card h3,
+  html body .scheme-card h2,
+  html body .birthday-card h3 {
+    overflow-wrap: anywhere !important;
+  }
+
+  html body .family-meta {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  html body .family-meta div,
+  html body .dashboard-ward-facts > div,
+  html body .glance-card,
+  html body .stat-card {
+    min-width: 0 !important;
+    padding: 12px !important;
+  }
+
+  html body .stat-card strong,
+  html body .glance-card strong {
+    overflow-wrap: anywhere !important;
+  }
+
+  html body .status-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+  }
+
+  html body .status-row .pill {
+    flex: 0 0 auto !important;
+  }
+
+  /* Auth screens: fit the phone without a tall scroll. */
+  html body .login-page-v2,
+  html body .login-page-v2.admin-login,
+  html body .login-page-v2.citizen-login {
+    min-height: 100dvh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding: 10px !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .login-v2-brand,
+  html body .login-v2-hero,
+  html body .login-v2-points,
+  html body .login-v2-role-card {
+    display: none !important;
+  }
+
+  html body .login-v2-layout,
+  html body .login-page-v2 .login-v2-layout {
+    width: 100% !important;
+    max-width: 420px !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 20px) !important;
+    margin: 0 !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+    display: block !important;
+    box-shadow: 0 12px 40px rgba(16, 29, 48, 0.08) !important;
+  }
+
+  html body .login-v2-panel,
+  html body .login-page-v2 .login-v2-panel {
+    width: 100% !important;
+    padding: 16px 16px 14px !important;
+    place-items: stretch !important;
+    display: block !important;
+  }
+
+  html body .login-v2-card,
+  html body .login-page-v2 .login-v2-card {
+    width: 100% !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  html body .login-v2-mobile-brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 0 2px !important;
+  }
+
+  html body .login-v2-mobile-brand .brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 15px !important;
+  }
+
+  html body .login-mode-badge {
+    margin: 0 !important;
+    padding: 7px 10px !important;
+  }
+
+  html body .login-v2-card .eyebrow {
+    margin: 0 !important;
+    font-size: 9px !important;
+  }
+
+  html body .login-v2-card h2 {
+    margin: 0 !important;
+    font-size: 20px !important;
+    line-height: 1.2 !important;
+  }
+
+  html body .login-v2-card > p {
+    margin: 0 0 2px !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+
+  html body .login-v2-card > label {
+    margin: 0 !important;
+    font-size: 10px !important;
+    gap: 4px !important;
+  }
+
+  html body .login-v2-card > label input,
+  html body .login-v2-card > label select,
+  html body .login-page-v2 .login-v2-card > label input,
+  html body .login-page-v2 .login-v2-card > label select {
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 8px 10px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
+    margin: 0 !important;
+  }
+
+  html body .login-v2-submit,
+  html body .login-v2-card > .primary-btn,
+  html body .login-page-v2 .login-v2-submit {
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    margin: 4px 0 0 !important;
+    font-size: 13px !important;
+  }
+
+  html body .login-v2-switch,
+  html body .register-prompt,
+  html body .login-v2-footer {
+    margin: 2px 0 0 !important;
+    font-size: 11px !important;
+  }
+
+  html body .login-language-btn {
+    top: 8px !important;
+    right: 8px !important;
+    min-width: 64px !important;
+    height: 32px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+  }
+
+  /* Register: two compact columns so the form fits. */
+  html body .register-page .login-v2-card {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px 10px !important;
+  }
+
+  html body .register-page .login-v2-mobile-brand,
+  html body .register-page .login-v2-card .eyebrow,
+  html body .register-page .login-v2-card h2,
+  html body .register-page .login-v2-card > p,
+  html body .register-page .login-v2-card > .error-box,
+  html body .register-page .login-v2-card > .primary-btn,
+  html body .register-page .register-prompt,
+  html body .register-page .login-mode-badge,
+  html body .register-page .login-v2-switch,
+  html body .register-page .login-v2-footer {
+    grid-column: 1 / -1 !important;
+  }
+
+  html body .register-page .login-v2-layout {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+@media (max-width: 380px) {
+  html body .register-page .login-v2-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body .login-v2-card h2 {
+    font-size: 18px !important;
+  }
+
+  html body .table-wrap tbody td,
+  html body .staff-table-scroll .staff-data-table td {
+    grid-template-columns: 88px minmax(0, 1fr) !important;
+  }
+}
+
+/* ================================================================
+   Professional record cards + compact auth (last-wins)
+   Label stays left. Every value (text, muted, pill) stays right.
+   ================================================================ */
+@media (max-width: 800px) {
+  html body :is(.app-shell, .user-portal) .panel.table-wrap,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll {
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody tr,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody tr,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table tbody tr {
+    padding: 14px 14px 12px !important;
+    border: 1px solid #e6ebf3 !important;
+    border-radius: 16px !important;
+    background: #fff !important;
+    box-shadow: 0 8px 22px rgba(16, 29, 48, 0.05) !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) td:nth-child(n),
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:nth-child(n) {
+    display: block !important;
+    position: relative !important;
+    grid-template-columns: none !important;
+    grid-column: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 8px 0 8px 108px !important;
+    border: 0 !important;
+    border-bottom: 1px solid #f0f3f8 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td::before,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td::before,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td::before {
+    content: attr(data-label) !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 10px !important;
+    width: 96px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    display: block !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: #7b8799 !important;
+    line-height: 1.35 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td > *,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td > *,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td > * {
+    grid-column: auto !important;
+    display: block !important;
+    max-width: 100% !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td > .cell-value,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td > .cell-value {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+    min-width: 0 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td .muted,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td .muted {
+    display: block !important;
+    margin: 1px 0 0 !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    color: #6d7a8d !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td .pill,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td .pill {
+    display: inline-flex !important;
+    width: auto !important;
+    margin: 0 !important;
+  }
+
+  /* First cell with a name becomes the card title. */
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child:has(strong),
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child:has(.table-link),
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:first-child:has(strong) {
+    padding: 0 0 12px !important;
+    margin: 0 0 4px !important;
+    border-bottom: 1px solid #e8edf5 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child:has(strong)::before,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child:has(.table-link)::before,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:first-child:has(strong)::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child strong,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:first-child strong {
+    display: block !important;
+    font-size: 16px !important;
+    line-height: 1.25 !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
+    color: #12203a !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child .table-link,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child .table-link strong {
+    color: #12203a !important;
+    text-align: left !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child .muted,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:first-child .muted {
+    margin-top: 3px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: #7b8799 !important;
+  }
+
+  /* Equal action buttons, two per row. */
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"],
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"],
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td.staff-actions,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td[data-label="Actions"],
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td.staff-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 12px 0 0 !important;
+    margin-top: 4px !important;
+    border-bottom: 0 !important;
+    border-top: 1px solid #e8edf5 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"]::before,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td.staff-actions::before,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td[data-label="Actions"]::before,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td.staff-actions::before {
+    position: static !important;
+    width: auto !important;
+    grid-column: 1 / -1 !important;
+    margin: 0 0 2px !important;
+    top: auto !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] > .card-actions,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] > .staff-action-grid,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td.staff-actions > .card-actions,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td.staff-actions > .staff-action-grid,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td.staff-actions > .staff-action-grid {
+    grid-column: 1 / -1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] > button,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] > a,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] .card-actions > button,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] .card-actions > a,
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] .staff-action-grid > button,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table .staff-action-grid > button {
+    grid-column: auto !important;
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 8px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] > button:last-child:nth-child(odd),
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] .card-actions > :last-child:nth-child(odd),
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td[data-label="Actions"] .staff-action-grid > :last-child:nth-child(odd),
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table .staff-action-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .detail-card,
+  html body :is(.app-shell, .user-portal) .glance-card,
+  html body :is(.app-shell, .user-portal) .stat-card,
+  html body :is(.app-shell, .user-portal) .family-card,
+  html body :is(.app-shell, .user-portal) .scheme-card,
+  html body :is(.app-shell, .user-portal) .member-card,
+  html body :is(.app-shell, .user-portal) .user-panel-card,
+  html body :is(.app-shell, .user-portal) .user-complaint-card {
+    border: 1px solid #e6ebf3 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 22px rgba(16, 29, 48, 0.04) !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .stat-card,
+  html body :is(.app-shell, .user-portal) .glance-card {
+    padding: 14px 14px 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .stat-card span,
+  html body :is(.app-shell, .user-portal) .glance-card span {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: #7b8799 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .stat-card strong,
+  html body :is(.app-shell, .user-portal) .glance-card strong {
+    font-size: 22px !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.04em !important;
+    color: #12203a !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .stat-card small,
+  html body :is(.app-shell, .user-portal) .glance-card small {
+    font-size: 11px !important;
+    color: #6d7a8d !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .detail-card {
+    padding: 14px !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .detail-card h3 {
+    margin: 0 0 10px !important;
+    font-size: 13px !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .detail-card p {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    margin: 0 !important;
+    padding: 8px 0 !important;
+    border-bottom: 1px solid #f0f3f8 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .detail-card p:last-child {
+    border-bottom: 0 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .detail-card p b {
+    flex: 0 0 38% !important;
+    color: #7b8799 !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+  }
+
+  /* Compact login / register / admin login: one card, no page scroll. */
+  html body .login-page-v2,
+  html body .login-page-v2.admin-login,
+  html body .login-page-v2.citizen-login {
+    min-height: 100dvh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+  }
+
+  html body .login-page-v2 .login-v2-brand,
+  html body .login-page-v2.admin-login .login-v2-hero,
+  html body .login-page-v2.citizen-login .login-v2-hero,
+  html body .login-page-v2 .login-v2-hero,
+  html body .login-page-v2 .login-v2-points,
+  html body .login-page-v2 .login-v2-role-card {
+    display: none !important;
+  }
+
+  html body .login-page-v2.admin-login .login-v2-layout,
+  html body .login-page-v2.citizen-login .login-v2-layout,
+  html body .login-page-v2 .login-v2-layout {
+    width: min(100%, 400px) !important;
+    max-width: 400px !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: calc(100dvh - 24px) !important;
+    margin: 0 auto !important;
+    display: block !important;
+    overflow: hidden !important;
+    border-radius: 18px !important;
+    box-shadow: 0 16px 40px rgba(16, 29, 48, 0.08) !important;
+  }
+
+  html body .login-page-v2.admin-login .login-v2-panel,
+  html body .login-page-v2.citizen-login .login-v2-panel,
+  html body .login-page-v2 .login-v2-panel {
+    padding: 16px 16px 14px !important;
+    display: block !important;
+  }
+
+  html body .login-page-v2 .login-v2-card h2 {
+    font-size: 20px !important;
+    margin: 0 !important;
+  }
+
+  html body .login-page-v2 .login-v2-card > p {
+    margin: 0 0 4px !important;
+    font-size: 11px !important;
+  }
+
+  html body .login-page-v2 .login-v2-card > label input,
+  html body .login-page-v2 .login-v2-card > label select {
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+
+  html body .login-page-v2 .login-v2-submit,
+  html body .login-page-v2 .login-v2-card > .primary-btn {
+    height: 42px !important;
+    min-height: 42px !important;
+  }
+
+  html body .register-page .login-v2-layout {
+    overflow-y: auto !important;
+  }
+}
+
+@media (max-width: 800px) and (max-height: 740px) {
+  html body .login-page-v2 .login-mode-badge,
+  html body .login-page-v2 .login-v2-card > p,
+  html body .login-page-v2 .login-v2-footer,
+  html body .login-page-v2 .eyebrow {
+    display: none !important;
+  }
+
+  html body .login-page-v2.admin-login .login-v2-panel,
+  html body .login-page-v2.citizen-login .login-v2-panel,
+  html body .login-page-v2 .login-v2-panel {
+    padding: 12px !important;
+  }
+
+  html body .login-page-v2 .login-v2-card h2 {
+    font-size: 18px !important;
+  }
+
+  html body .login-page-v2 .login-v2-card > label {
+    gap: 3px !important;
+  }
+
+  html body .login-page-v2 .login-v2-card > label input,
+  html body .login-page-v2 .login-v2-card > label select {
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+}
+
+@media (max-width: 800px) {
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview)::after,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td:first-child:has(strong),
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td:first-child:has(.table-link),
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) td:nth-child(1):has(strong) {
+    padding: 0 0 12px !important;
+    margin: 0 0 4px !important;
+    border-bottom: 1px solid #e8edf5 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td:first-child:has(strong)::before,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td:first-child:has(.table-link)::before,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) td:nth-child(1):has(strong)::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .card-actions,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .staff-action-grid,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td.staff-actions .staff-action-grid,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td.staff-actions .card-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    gap: 8px !important;
+    flex-wrap: unset !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] > button,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] > a,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .card-actions > *,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td.staff-actions .staff-action-grid > *,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td.staff-actions .card-actions > * {
+    flex: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    justify-self: stretch !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .card-actions > :last-child:nth-child(odd),
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td.staff-actions .staff-action-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .stat-card.accent,
+  html body :is(.app-shell, .user-portal) .stat-card.accent span,
+  html body :is(.app-shell, .user-portal) .stat-card.accent strong,
+  html body :is(.app-shell, .user-portal) .stat-card.accent small {
+    color: #fff !important;
+  }
+
+  html body .glance-card.glance-link,
+  html body .status-row.status-link {
+    width: 100% !important;
+    border: 1px solid #e6ebf3 !important;
+    background: #fff !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    font: inherit !important;
+    color: inherit !important;
+  }
+
+  html body .recent-problem,
+  html body .recent-assign {
+    display: block !important;
+    margin-top: 3px !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    color: #6d7a8d !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html body .dashboard-lower .panel-title {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+  }
+}
+
+.searchable-option.has-badge {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  text-align: left !important;
+}
+.searchable-option .option-badge {
+  flex: 0 0 auto;
+  min-width: 46px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: #eef2f7;
+  color: #1d2b44;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.searchable-option.selected .option-badge {
+  background: #172033;
+  color: #fff;
+}
+.searchable-option .option-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.searchable-option .option-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #172033;
+  line-height: 1.25;
+}
+.searchable-option .option-copy small {
+  font-size: 10px;
+  color: #7b8799;
+  line-height: 1.3;
+}
+.searchable-option .option-check {
+  flex: 0 0 auto;
+  color: #172033;
+  font-weight: 800;
+}
+.searchable-menu-meta {
+  flex: 0 0 auto;
+  padding: 6px 10px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #8a96a8;
+  letter-spacing: 0.02em;
+}
+.ward-picker .searchable-control {
+  min-height: 46px;
+}
+.glance-card.glance-link,
+.status-row.status-link {
+  appearance: none;
+}
+.recent-row {
+  align-items: flex-start;
+}
+.recent-row > div:first-child {
+  min-width: 0;
+}
+.recent-problem,
+.recent-assign {
+  display: block;
+  margin-top: 3px;
+  color: #6d7a8d;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ================================================================
+   Compact login/register on every screen + aligned ward picker
+   ================================================================ */
+@media (min-width: 801px) {
+  html body .login-page-v2,
+  html body .login-page-v2.admin-login,
+  html body .login-page-v2.citizen-login,
+  html body .login-page-v2.register-page {
+    min-height: 100dvh !important;
+    padding: 18px 20px 22px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .login-page-v2 .login-v2-brand,
+  html body .login-v2-brand {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 780px !important;
+    margin: 0 auto 12px !important;
+  }
+
+  html body .login-v2-brand .brand-mark {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  html body .login-page-v2 .login-v2-layout,
+  html body .login-page-v2.admin-login .login-v2-layout,
+  html body .login-page-v2.citizen-login .login-v2-layout,
+  html body .login-page-v2.register-page .login-v2-layout {
+    width: min(780px, calc(100vw - 40px)) !important;
+    max-width: 780px !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    grid-template-columns: 0.92fr 1.08fr !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+    box-shadow: 0 16px 44px rgba(16, 29, 48, 0.1) !important;
+  }
+
+  html body .login-page-v2 .login-v2-hero,
+  html body .login-page-v2.admin-login .login-v2-hero,
+  html body .login-page-v2.citizen-login .login-v2-hero {
+    display: flex !important;
+    padding: 26px 24px !important;
+  }
+
+  html body .login-v2-hero h1 {
+    font-size: 24px !important;
+    line-height: 1.18 !important;
+    max-width: none !important;
+    margin: 8px 0 10px !important;
+    letter-spacing: -0.03em !important;
+  }
+
+  html body .login-v2-hero p {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    max-width: none !important;
+  }
+
+  html body .login-v2-points {
+    margin-top: 12px !important;
+    gap: 6px !important;
+  }
+
+  html body .login-v2-role-card {
+    margin-top: 16px !important;
+    padding: 10px 12px !important;
+  }
+
+  html body .login-page-v2 .login-v2-panel,
+  html body .login-page-v2.admin-login .login-v2-panel,
+  html body .login-page-v2.citizen-login .login-v2-panel {
+    padding: 20px 20px 16px !important;
+    display: grid !important;
+    place-items: stretch !important;
+  }
+
+  html body .login-page-v2 .login-v2-card,
+  html body .login-page-v2.admin-login .login-v2-card,
+  html body .login-page-v2.citizen-login .login-v2-card {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  html body .login-v2-card h2 {
+    font-size: 21px !important;
+    line-height: 1.2 !important;
+    margin: 2px 0 6px !important;
+  }
+
+  html body .login-v2-card > p {
+    font-size: 12px !important;
+    margin: 0 0 10px !important;
+  }
+
+  html body .login-page-v2 .login-v2-card > label input,
+  html body .login-page-v2 .login-v2-card > label select {
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+
+  html body .login-page-v2 .login-v2-submit,
+  html body .login-page-v2 .login-v2-card > .primary-btn {
+    height: 42px !important;
+    min-height: 42px !important;
+  }
+
+  html body .register-page .login-v2-card {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px 12px !important;
+  }
+
+  html body .register-page .login-v2-mobile-brand,
+  html body .register-page .login-v2-card .eyebrow,
+  html body .register-page .login-v2-card h2,
+  html body .register-page .login-v2-card > p,
+  html body .register-page .login-v2-card > .error-box,
+  html body .register-page .login-v2-card > .primary-btn,
+  html body .register-page .register-prompt,
+  html body .register-page .login-mode-badge,
+  html body .register-page .login-v2-switch,
+  html body .register-page .login-v2-footer {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+html body .searchable-menu-portal,
+html body .searchable-menu.searchable-menu-portal {
+  width: var(--picker-w, 100%) !important;
+  min-width: 0 !important;
+  max-width: min(var(--picker-w, 100%), calc(100vw - 16px)) !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+html body .dashboard-scope-control,
+html body .dashboard-scope-control .ward-filter,
+html body .dashboard-scope-control .searchable-select,
+html body .toolbar > .ward-filter,
+html body .filter-toolbar > .ward-filter {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html body .searchable-option.has-badge {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 8px 10px !important;
+  text-align: left !important;
+}
+
+html body .searchable-option .option-badge {
+  flex: 0 0 52px !important;
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+}
+
+html body .searchable-option .option-copy {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  align-items: flex-start !important;
+}
+
+html body .searchable-option .option-check {
+  margin-left: auto !important;
+}
+
+html body .searchable-control {
+  overflow: visible !important;
+}
+
+html body .searchable-display::after,
+html body .ward-filter .searchable-display::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body .searchable-display {
+  padding-right: 42px !important;
+}
+
+html body .searchable-control:has(.searchable-clear) .searchable-display,
+html body .ward-filter .searchable-control:has(.searchable-clear) .searchable-display {
+  padding-right: 70px !important;
+}
+
+html body .searchable-chevron,
+html body .searchable-chevron.open,
+html body .ward-filter .searchable-chevron,
+html body .ward-filter .searchable-chevron.open,
+html body .searchable-control .searchable-chevron {
+  display: grid !important;
+  place-items: center !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #5d6b80 !important;
+  transform: translateY(-50%) !important;
+  rotate: 0deg !important;
+  transition: color 0.15s ease, background 0.15s ease !important;
+  pointer-events: auto !important;
+  z-index: 6 !important;
+}
+
+html body .searchable-control:has(.searchable-clear) .searchable-chevron,
+html body .ward-filter .searchable-control:has(.searchable-clear) .searchable-chevron {
+  right: 36px !important;
+}
+
+html body .searchable-control.is-open .searchable-chevron {
+  color: #172033 !important;
+  background: #eef2f7 !important;
+}
+
+html body .searchable-chevron svg,
+html body .ward-filter .searchable-chevron svg,
+html body .searchable-chevron.open svg {
+  width: 16px !important;
+  height: 16px !important;
+  display: block !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  transform: rotate(0deg) !important;
+  transform-origin: 50% 50% !important;
+  transition: transform 0.18s ease !important;
+}
+
+html body .searchable-control.is-open .searchable-chevron svg,
+html body .searchable-control.is-open .searchable-chevron.open svg,
+html body .ward-filter .searchable-control.is-open .searchable-chevron svg {
+  transform: rotate(180deg) !important;
+}
+
+html body .register-page .login-v2-card > label:has(select),
+html body .register-page .login-v2-card > label:has(input[inputmode="numeric"]) {
+  grid-column: 1 / -1 !important;
+}
+
+/* Professional UX polish — last-wins, all viewports */
+.skip-link{
+  position:absolute;
+  left:12px;
+  top:-48px;
+  z-index:200;
+  padding:8px 12px;
+  border-radius:8px;
+  background:#172033;
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+}
+.skip-link:focus{top:12px}
+
+.nav-section{display:grid;gap:2px;margin:0 0 8px}
+.nav-section-label{
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#7d8ba0;
+  padding:10px 12px 4px;
+}
+.nav-section:first-child .nav-section-label{padding-top:2px}
+.sidebar nav a.active{
+  background:#1c2739;
+  color:#fff;
+}
+.sidebar nav a:focus-visible,
+.nav-group-toggle:focus-visible,
+.logout-btn:focus-visible,
+.menu-btn:focus-visible,
+.language-btn:focus-visible,
+.notification-btn:focus-visible,
+.user-chip-button:focus-visible,
+.primary-btn:focus-visible,
+.ghost-btn:focus-visible,
+.small-btn:focus-visible,
+.jump-chip:focus-visible,
+.glance-card:focus-visible,
+.searchable-display:focus-visible{
+  outline:2px solid #3b82f6;
+  outline-offset:2px;
+}
+
+.page-kicker{
+  display:block;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#5b6b82;
+  margin-bottom:4px;
+}
+.page-header h1{letter-spacing:-.02em}
+.page-header p{color:#5b677a;line-height:1.5}
+
+.empty-pro{
+  display:grid;
+  place-items:center;
+  text-align:center;
+  gap:8px;
+  padding:28px 18px !important;
+  border:1px dashed #d7deea;
+  border-radius:14px;
+  background:#f8fafc;
+  color:#5b677a;
+}
+.empty-mark{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  display:grid;
+  place-items:center;
+  background:#eef2f7;
+  color:#172033;
+  font-size:16px;
+}
+.empty-pro p{margin:0;max-width:420px;line-height:1.5}
+.loading-pro{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:18px 4px;
+  color:#5b677a;
+  font-size:13px;
+}
+
+.dashboard-jump{margin:0 0 16px}
+.dashboard-jump .section-label{
+  display:block;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#6b778a;
+  margin-bottom:8px;
+}
+.dashboard-jump-row{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px;
+}
+.jump-chip{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:2px;
+  min-height:64px;
+  padding:10px 12px;
+  border:1px solid #dce3ee;
+  border-radius:12px;
+  background:#fff;
+  text-align:left;
+  color:#172033;
+  box-shadow:0 1px 0 rgba(23,32,51,.03);
+}
+.jump-chip:hover{
+  border-color:#b9c6d8;
+  background:#f7f9fc;
+}
+.jump-chip strong{font-size:13px}
+.jump-chip small{font-size:10px;color:#6b778a}
+.stat-card-link{
+  width:100%;
+  text-align:left;
+  cursor:pointer;
+  border:1px solid transparent;
+  font:inherit;
+  background:inherit;
+  color:inherit;
+}
+.stat-card-link:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(23,32,51,.08)}
+
+.topbar-workspace{max-width:520px;line-height:1.35}
+.user-hero-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.user-action-row{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin:0 0 16px;
+}
+.user-action-card{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  padding:14px 16px;
+  border:1px solid #dce3ee;
+  border-radius:14px;
+  background:#fff;
+  text-align:left;
+  color:#172033;
+}
+.user-action-card:hover{border-color:#b9c6d8;background:#f7f9fc}
+.user-action-card strong{font-size:14px}
+.user-action-card span{font-size:12px;color:#5b677a;line-height:1.45}
+
+@media (max-width:1100px){
+  .dashboard-jump-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:800px){
+  .dashboard-jump-row,
+  .user-action-row{grid-template-columns:1fr}
+  .jump-chip,.user-action-card{min-height:52px;width:100%}
+  .user-hero-actions .primary-btn,
+  .user-hero-actions .ghost-btn{flex:1;min-height:42px}
+  .nav-section-label{padding-left:10px}
+  .topbar-workspace{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+}
+
+.dashboard-jump{display:none !important}
+
+.dashboard-info-panel{margin:0 0 16px}
+.dashboard-info-panel .stat-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+}
+html body .stat-card,
+html body .stat-card-link{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  min-height:108px;
+  padding:16px 16px 14px;
+  border:1px solid #e2e8f0;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 8px 22px rgba(16,29,48,.05);
+  text-align:left;
+  color:#12203a;
+}
+html body .stat-card span{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#6d7a8d;
+}
+html body .stat-card strong{
+  font-size:28px;
+  line-height:1.05;
+  letter-spacing:-.04em;
+}
+html body .stat-card small{font-size:11px;color:#6d7a8d}
+
+.complaint-status-panel .panel-title{align-items:flex-start}
+.status-card-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.status-card{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:2px;
+  min-height:88px;
+  padding:12px 14px;
+  border:1px solid #e4eaf2;
+  border-radius:14px;
+  background:#fff;
+  text-align:left;
+  color:#12203a;
+}
+.status-card:hover{border-color:#c9d4e3;background:#f8fafc}
+.status-card-label{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:#5f6d82;
+}
+.status-card strong{font-size:24px;letter-spacing:-.04em;line-height:1.1}
+.status-card small{font-size:11px;color:#6d7a8d}
+.status-card.status-submitted{border-left:4px solid #94a3b8}
+.status-card.status-pending{border-left:4px solid #d4a017}
+.status-card.status-assigned{border-left:4px solid #3b82f6}
+.status-card.status-in-progress{border-left:4px solid #2563eb}
+.status-card.status-resolved{border-left:4px solid #16a34a}
+.status-card.status-reopened{border-left:4px solid #ea580c}
+.status-card.status-closed{border-left:4px solid #64748b}
+
+.profile-section-label{
+  display:block;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#6b778a;
+  margin-bottom:8px;
+}
+.profile-fields{gap:12px}
+.profile-access-card p{display:flex;justify-content:space-between;gap:12px;margin:8px 0}
+.profile-access-card p b{color:#6d7a8d;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.password-change-box>div:first-child span{display:block;margin-top:4px;font-size:12px;color:#6d7a8d}
+
+.notification-item{
+  display:grid;
+  gap:4px;
+  width:100%;
+  text-align:left;
+  padding:11px 10px;
+  border:0;
+  border-bottom:1px solid #edf1f5;
+  background:#fff;
+  border-radius:10px;
+}
+.notification-item strong{font-size:13px;color:#12203a}
+.notification-item span{font-size:12px;color:#3d4c63;line-height:1.4}
+.notification-item small{font-size:10px;color:#7a8799}
+.notification-item.read{opacity:.72}
+.notification-item:not(.read){background:#f4f8ff}
+.notification-popover,.user-notification-popover{width:min(380px,calc(100vw - 24px))}
+
+@media (max-width:1100px){
+  .dashboard-info-panel .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:800px){
+  .dashboard-info-panel .stat-grid{grid-template-columns:1fr 1fr;gap:8px}
+  html body .stat-card,html body .stat-card-link{min-height:96px;padding:12px}
+  html body .stat-card strong{font-size:22px}
+  .status-card-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .status-card{min-height:82px;padding:11px 12px}
+  .complaint-status-panel .panel-title{flex-direction:column;gap:8px}
+  .complaint-status-panel .small-btn{width:100%}
+  .profile-fields{grid-template-columns:1fr}
+  .notification-popover,.user-notification-popover{
+    position:fixed !important;
+    left:10px !important;
+    right:10px !important;
+    top:58px !important;
+    width:auto !important;
+    max-height:min(70dvh,520px);
+  }
+}
+@media (max-width:420px){
+  .status-card-grid,.dashboard-info-panel .stat-grid{grid-template-columns:1fr}
+}
+
+/* ===== Distinct resident vs staff login ===== */
+html body .citizen-login,
+html body .register-page{
+  background:linear-gradient(180deg,#eef7ff 0%,#f7fbff 48%,#ffffff 100%) !important;
+}
+html body .citizen-login .login-v2-hero,
+html body .register-page .login-v2-hero{
+  background:linear-gradient(145deg,#0f4c73 0%,#1a6ea0 55%,#2490b8 100%) !important;
+}
+html body .citizen-login .login-v2-panel,
+html body .register-page .login-v2-panel{background:#f8fbff !important}
+html body .citizen-login .login-v2-card,
+html body .register-page .login-v2-card{
+  background:#fff !important;
+  border:1px solid #d7e7f4 !important;
+  border-radius:18px !important;
+  box-shadow:0 18px 50px rgba(15,76,115,.10) !important;
+}
+html body .citizen-login .login-mode-badge,
+html body .register-page .login-mode-badge{
+  background:#e8f5ff !important;
+  border:1px solid #b9d8ef !important;
+  color:#0f4c73 !important;
+}
+html body .citizen-login .login-mode-badge b,
+html body .register-page .login-mode-badge b{color:#3d6f90 !important}
+html body .citizen-login .login-v2-card h2,
+html body .register-page .login-v2-card h2{color:#0d3552 !important}
+html body .citizen-login .login-v2-submit,
+html body .citizen-login .login-v2-card > .primary-btn,
+html body .register-page .login-v2-submit,
+html body .register-page .login-v2-card > .primary-btn{
+  background:#1574a8 !important;
+  border-color:#1574a8 !important;
+  color:#fff !important;
+  box-shadow:0 8px 16px rgba(21,116,168,.22) !important;
+}
+html body .citizen-login .login-v2-submit:hover,
+html body .register-page .login-v2-submit:hover{
+  background:#115f8a !important;
+}
+html body .citizen-login .login-v2-role-card,
+html body .register-page .login-v2-role-card{
+  background:#165a86 !important;
+  border-color:#3b86b0 !important;
+}
+html body .citizen-login .login-v2-role-icon,
+html body .register-page .login-v2-role-icon{color:#0f4c73 !important;background:#fff !important}
+html body .citizen-login .login-v2-points span,
+html body .register-page .login-v2-points span{
+  background:#0d3d5d !important;
+  border-color:#2d6a90 !important;
+}
+html body .citizen-login .login-v2-brand strong,
+html body .register-page .login-v2-brand strong{color:#0d3552 !important}
+html body .citizen-login .login-v2-brand span,
+html body .register-page .login-v2-brand span{color:#5b7a94 !important}
+
+html body .admin-login{
+  background:linear-gradient(180deg,#10151c 0%,#1b222c 42%,#12171e 100%) !important;
+  color:#e8edf4 !important;
+}
+html body .admin-login .login-v2-brand strong,
+html body .admin-login .login-v2-brand span{color:#f4f7fb !important}
+html body .admin-login .login-v2-hero{
+  background:linear-gradient(160deg,#0a0d12 0%,#171d27 58%,#1f2836 100%) !important;
+}
+html body .admin-login .login-v2-panel{background:#121821 !important}
+html body .admin-login .login-v2-card{
+  background:#1a222d !important;
+  border:1px solid #2d3a4c !important;
+  color:#e8edf4 !important;
+  box-shadow:0 22px 60px rgba(0,0,0,.35) !important;
+}
+html body .admin-login .login-staff-banner{
+  display:flex;flex-direction:column;gap:2px;
+  padding:10px 12px;margin-bottom:12px;
+  border-radius:12px;
+  background:linear-gradient(90deg,#c9a227,#e8c547);
+  color:#1a1404;
+}
+html body .admin-login .login-staff-banner strong{font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+html body .admin-login .login-staff-banner span{font-size:11px;font-weight:700}
+html body .admin-login .login-mode-badge{
+  background:#2a3340 !important;
+  border-color:#c9a227 !important;
+  color:#f4e3a8 !important;
+}
+html body .admin-login .login-mode-badge b{color:#d7c27a !important}
+html body .admin-login .login-v2-card h2,
+html body .admin-login .login-v2-card p,
+html body .admin-login .login-v2-card .eyebrow,
+html body .admin-login .login-v2-card label{color:#e8edf4 !important}
+html body .admin-login .login-v2-card input{
+  background:#0f141c !important;
+  border-color:#3a475a !important;
+  color:#f4f7fb !important;
+}
+html body .admin-login .login-v2-submit,
+html body .admin-login .login-v2-card > .primary-btn{
+  background:#c9a227 !important;
+  border-color:#c9a227 !important;
+  color:#1a1404 !important;
+  font-weight:800 !important;
+  box-shadow:0 8px 18px rgba(201,162,39,.28) !important;
+}
+html body .admin-login .login-v2-submit:hover{background:#b8911d !important}
+html body .admin-login .login-v2-role-card{
+  background:#10151c !important;
+  border-color:#c9a227 !important;
+}
+html body .admin-login .login-v2-role-icon{background:#c9a227 !important;color:#1a1404 !important}
+html body .admin-login .login-v2-points span{
+  background:#10151c !important;
+  border-color:#c9a227 !important;
+  color:#f4e3a8 !important;
+}
+html body .admin-login .login-v2-switch,
+html body .admin-login .login-v2-footer,
+html body .admin-login .link-btn{color:#c9d3e0 !important}
+html body .admin-login .login-v2-mobile-brand strong{color:#f4f7fb !important}
+
+@media (min-width:801px){
+  html body .register-page .login-v2-card{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:10px 12px !important;
+  }
+  html body .register-page .login-v2-mobile-brand,
+  html body .register-page .login-v2-card .eyebrow,
+  html body .register-page .login-v2-card h2,
+  html body .register-page .login-v2-card > p,
+  html body .register-page .login-v2-card > .error-box,
+  html body .register-page .login-v2-card > .login-v2-submit,
+  html body .register-page .login-v2-card > .primary-btn,
+  html body .register-page .login-v2-switch,
+  html body .register-page .login-v2-footer,
+  html body .register-page .login-mode-badge,
+  html body .register-page .register-ward-field{
+    grid-column:1 / -1 !important;
+  }
+}
+
+/* ===== Profile logo ===== */
+html body .user-profile-avatar{
+  position:relative;
+  display:grid !important;
+  place-items:center !important;
+  width:46px;height:46px;min-width:46px;
+  border-radius:50% !important;
+  overflow:hidden !important;
+  background:#0c1422 !important;
+  border:2px solid #fff !important;
+  box-shadow:0 0 0 1px #d5dee8;
+}
+html body .user-profile-avatar.small,
+html body .user-account .user-profile-avatar{
+  width:34px !important;height:34px !important;min-width:34px !important;
+}
+html body .user-profile-avatar.large{
+  width:64px !important;height:64px !important;min-width:64px !important;
+}
+html body .user-profile-logo{
+  width:100% !important;height:100% !important;
+  display:block !important;
+}
+html body .user-profile-avatar-initials{
+  position:absolute !important;
+  right:-1px;bottom:-1px;
+  min-width:18px !important;height:18px;
+  padding:0 4px !important;
+  display:grid !important;place-items:center;
+  border-radius:99px;
+  background:#fff;color:#172033;
+  border:1px solid #d9e1eb;
+  font-size:8px !important;font-weight:900;
+  line-height:1 !important;
+}
+html body .user-profile-avatar.large .user-profile-avatar-initials{
+  min-width:22px !important;height:22px;font-size:9px !important;
+}
+html body .user-profile-card{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+html body .user-profile-row{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+html body .user-profile-row > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  gap:2px;
+}
+html body .user-profile-row strong{font-size:16px;color:#12203a}
+html body .user-profile-row span,
+html body .user-profile-row small{font-size:12px;color:#5f6d82;word-break:break-word}
+
+@media (max-width:800px){
+  html body .user-profile-card{
+    width:100% !important;
+    padding:16px !important;
+  }
+  html body .user-profile-avatar.large{
+    width:72px !important;height:72px !important;min-width:72px !important;
+  }
+  html body .user-profile-card .user-secondary-btn{
+    width:100% !important;
+    height:44px !important;
+  }
+  html body .user-stat-grid{grid-template-columns:1fr 1fr !important;gap:8px !important}
+  html body .user-action-row{grid-template-columns:1fr !important}
+  html body .user-hero{padding:16px !important}
+  html body .user-hero h1{font-size:24px !important}
+  html body .user-hero-actions{display:grid !important;grid-template-columns:1fr !important;gap:8px !important}
+  html body .user-hero-actions .primary-btn,
+  html body .user-hero-actions .ghost-btn{width:100% !important;min-height:44px !important}
+}
+
+/* ===== WhatsApp-style ward chat ===== */
+html body .groups-page .wa-chat{
+  min-height:min(72vh,720px);
+  background:#efeae2;
+}
+html body .groups-page .group-list{
+  background:#fff;
+}
+html body .groups-page .wa-item{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px !important;
+}
+html body .groups-page .wa-item-copy{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  gap:2px;
+}
+html body .groups-page .wa-item-copy strong,
+html body .groups-page .wa-item-copy small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+html body .groups-page .wa-avatar{
+  flex:0 0 auto;
+  width:44px;height:44px;
+  border-radius:50%;
+  display:grid;place-items:center;
+  background:#d1d7de;
+  color:#1f2a37;
+  font-size:13px;font-weight:800;
+}
+html body .groups-page .wa-avatar.community{background:#0c1422;color:#fff}
+html body .groups-page .wa-avatar.nagar{background:#075e54;color:#fff}
+html body .groups-page .wa-messages{
+  background:#efeae2 url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 60L60 0H40L0 40M60 60V40L20 0H0v20z' fill='%23d9d0c4' fill-opacity='.25'/%3E%3C/svg%3E");
+}
+html body .groups-page .group-message.mine .group-bubble{
+  background:#d9fdd3 !important;
+  border-color:#c7f0c2 !important;
+}
+html body .groups-page .group-chat-header{
+  align-items:center;
+  background:#075e54;
+  color:#fff;
+  border-bottom:0 !important;
+}
+html body .groups-page .group-chat-header h2,
+html body .groups-page .group-chat-header .eyebrow,
+html body .groups-page .group-chat-header p{color:#fff !important}
+html body .groups-page .group-chat-header p{opacity:.82}
+html body .groups-page .group-chat-header .small-btn{
+  background:transparent;
+  color:#fff;
+  border-color:rgba(255,255,255,.28);
+}
+html body .groups-page .wa-back{
+  display:none;
+  width:36px;height:36px;
+  border:0;background:transparent;color:#fff;
+  font-size:28px;line-height:1;padding:0;
+}
+html body .groups-page .wa-head-copy{min-width:0;flex:1}
+html body .groups-page .wa-composer{background:#f0f2f5}
+html body .groups-page .wa-compose-row{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+}
+html body .groups-page .wa-compose-row textarea{
+  flex:1;
+  min-height:42px;
+  max-height:120px;
+  margin:0;
+  border-radius:22px;
+  padding:10px 14px;
+}
+html body .groups-page .wa-attach{
+  width:42px;height:42px;min-width:42px;
+  display:grid;place-items:center;
+  border-radius:50%;
+  background:#fff;
+  border:1px solid #d7e0ed;
+  overflow:hidden;
+  font-size:18px;
+}
+html body .groups-page .wa-attach input{position:absolute;inset:0;opacity:0;cursor:pointer}
+html body .groups-page .wa-send{
+  height:42px !important;
+  min-height:42px !important;
+  border-radius:22px !important;
+  padding:0 18px !important;
+  background:#075e54 !important;
+  border-color:#075e54 !important;
+}
+html body .groups-page .chat-video{
+  display:block;
+  max-width:min(320px,100%);
+  max-height:240px;
+  border-radius:10px;
+  background:#111;
+}
+html body .groups-page .chat-image-picker{position:relative}
+
+@media (max-width:800px){
+  html body .groups-page{gap:10px !important}
+  html body .groups-page.chat-open .page-header,
+  html body .groups-page.chat-open .group-filters,
+  html body .groups-page.chat-open .info-note,
+  html body .groups-page.chat-open .group-list{display:none !important}
+  html body .groups-page:not(.chat-open) .group-chat-panel{display:none !important}
+  html body .groups-page .group-layout{
+    display:block !important;
+    min-height:calc(100dvh - 150px) !important;
+    height:calc(100dvh - 150px) !important;
+    border-radius:12px !important;
+  }
+  html body .groups-page .group-list,
+  html body .groups-page .group-chat-panel{
+    height:100% !important;
+    min-height:0 !important;
+  }
+  html body .groups-page .wa-back{display:grid !important;place-items:center}
+  html body .groups-page .group-messages{
+    min-height:0 !important;
+    max-height:none !important;
+    flex:1 !important;
+  }
+  html body .groups-page .group-chat-header{
+    padding:10px 12px !important;
+    gap:8px !important;
+  }
+  html body .groups-page .group-chat-header .card-actions{display:none !important}
+  html body .groups-page .wa-compose-row .primary-btn{flex:0 0 auto}
+  html body .user-page-main .groups-page .group-layout{
+    height:calc(100dvh - 128px) !important;
+  }
+  html body .register-page .login-v2-card{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:8px !important;
+    grid-template-columns:none !important;
+  }
+  html body .register-page .login-v2-card > label,
+  html body .register-page .register-ward-field{
+    width:100% !important;
+    grid-column:auto !important;
+  }
+}
+
+.activation-confirm-copy{margin:0 0 16px;font-size:14px;line-height:1.5;color:#3d4c63}
+.user-nagar-empty{display:flex;flex-direction:column;gap:6px;padding:16px;text-align:left}
+.user-nagar-empty strong{font-size:14px;color:#12203a}
+.user-nagar-empty span{font-size:12px;color:#5f6d82;line-height:1.45}
+.ward-activation-page .card-actions{flex-wrap:wrap}
+html body .primary-btn.danger{background:#b42318;border-color:#b42318;color:#fff}
+html body .user-profile-avatar-initials{display:none !important;}
+html body .modal-backdrop-stack{z-index:90 !important;}
+html body .ward-card-meta{margin:6px 0 4px;}
+html body .pill-visible,html body .pill-active,html body .pill-account-active{background:#e7f6ed;color:#18734a;}
+html body .pill-hidden,html body .pill-inactive,html body .pill-deactivated,html body .pill-unpurchased,html body .pill-pending,html body .pill-account-inactive{background:#edf1f6;color:#586579;}
+
+html body .row-menu{position:relative;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap;}
+html body .row-menu > .small-btn{min-width:108px;height:34px;}
+html body .row-menu-toggle{min-width:78px !important;}
+html body .row-menu-pop{
+  position:absolute;top:calc(100% + 6px);right:0;z-index:24;
+  min-width:196px;padding:6px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;
+  box-shadow:0 16px 40px rgba(16,29,48,.16);display:flex;flex-direction:column;
+}
+html body .row-menu-pop button{
+  width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;
+  font-size:13px;font-weight:600;color:#1c2b42;cursor:pointer;
+}
+html body .row-menu-pop button:hover{background:#f4f7fb;}
+html body .row-menu-pop button.danger{color:#b42318;}
+
+html body .ward-grid .panel-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+html body .ward-card-toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;flex:0 0 auto;}
+html body .ward-card-toolbar .small-btn{min-width:92px;height:34px;}
+
+html body .activation-board-table td[data-label="Actions"]{width:210px;vertical-align:middle;}
+html body .activation-row-actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:176px;}
+html body .activation-row-actions .small-btn{width:100%;height:36px;justify-content:center;}
+html body .activation-count{display:flex;align-items:baseline;gap:6px;}
+html body .activation-count strong{font-size:20px;letter-spacing:-.03em;}
+html body .activation-count span{font-size:12px;color:#66758a;}
+html body .nagar-activation-list{display:flex;flex-direction:column;gap:10px;}
+html body .nagar-activation-card{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+  padding:14px 16px;border:1px solid #e1e7ef;border-radius:14px;background:#fbfcfe;
+}
+html body .nagar-activation-card.is-active{border-color:#c8ead6;background:#f6fbf8;}
+html body .nagar-activation-title{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:10px;}
+html body .nagar-activation-title strong{font-size:16px;}
+html body .nagar-activation-pills{display:flex;flex-wrap:wrap;gap:6px;}
+html body .nagar-activation-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:0;}
+html body .nagar-activation-facts dt{font-size:11px;color:#718199;font-weight:700;}
+html body .nagar-activation-facts dd{margin:2px 0 0;font-size:13px;color:#172033;word-break:break-word;}
+html body .nagar-activation-facts .span-2{grid-column:1 / -1;}
+html body .nagar-activation-action{flex:0 0 auto;}
+html body .nagar-activation-action .small-btn{min-width:112px;height:36px;}
+html body .activation-form-note{margin:0 0 12px;padding:11px 12px;background:#f4f7fb;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;line-height:1.45;color:#4b5b73;}
+
+html body .user-profile-card,html body .dashboard-account-card{display:flex;flex-direction:column;gap:14px;}
+html body .user-profile-identity,html body .dashboard-account-row{display:flex;align-items:flex-start;gap:14px;min-width:0;}
+html body .user-profile-facts,html body .dashboard-account-facts{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px;}
+html body .user-profile-facts strong,html body .dashboard-account-facts strong{display:block;font-size:17px;line-height:1.25;color:#12203a;overflow-wrap:anywhere;}
+html body .user-profile-facts p,html body .dashboard-account-facts p{display:flex;gap:8px;align-items:baseline;margin:0;font-size:13px;line-height:1.4;color:#172033;overflow-wrap:anywhere;word-break:break-word;}
+html body .user-profile-facts p span,html body .dashboard-account-facts p span{flex:0 0 64px;font-size:11px;font-weight:800;color:#718199;text-transform:uppercase;letter-spacing:.04em;}
+html body .user-profile-ward{display:flex;flex-direction:column;gap:4px;padding-top:4px;border-top:1px solid #e7edf4;}
+html body .user-profile-ward span{font-size:11px;font-weight:800;color:#718199;text-transform:uppercase;}
+html body .user-profile-ward strong{font-size:14px;color:#172033;overflow-wrap:anywhere;}
+html body .user-chip{display:flex;align-items:center;gap:10px;}
+html body .user-chip-button .user-profile-avatar{width:36px !important;height:36px !important;min-width:36px !important;}
+html body .dashboard-account-card{margin-top:16px;}
+
+@media (max-width:800px){
+  html body .row-menu{justify-content:stretch;}
+  html body .row-menu > .small-btn{flex:1;}
+  html body .activation-row-actions{min-width:0;width:100%;}
+  html body .nagar-activation-card{flex-direction:column;}
+  html body .nagar-activation-facts{grid-template-columns:1fr;}
+  html body .nagar-activation-action .small-btn{width:100%;}
+  html body .user-profile-identity,html body .dashboard-account-row{align-items:flex-start;}
+  html body .user-profile-facts p,html body .dashboard-account-facts p{flex-direction:column;gap:1px;}
+  html body .user-profile-facts p span,html body .dashboard-account-facts p span{flex:none;}
+  html body .user-profile-row strong,html body .user-profile-row span,html body .user-profile-row small{
+    white-space:normal !important;overflow:visible !important;text-overflow:unset !important;font-size:13px !important;
+  }
+}
+
+/* ===== Last-wins: account card, ward cards, pagination, notifications ===== */
+html body .user-profile-card,
+html body .user-panel-card.user-profile-card{
+  background:#fff !important;
+  color:#12203a !important;
+  border:1px solid #e2e8f0 !important;
+  border-radius:16px !important;
+  box-shadow:0 10px 28px rgba(16,29,48,.08) !important;
+  padding:18px !important;
+}
+html body .user-profile-card .user-kicker{
+  color:#5b6b82 !important;
+  letter-spacing:.08em !important;
+}
+html body .user-profile-identity{align-items:center !important}
+html body .user-profile-facts strong{color:#12203a !important}
+html body .user-profile-line{
+  display:flex;flex-direction:column;gap:1px;margin-top:6px;
+}
+html body .user-profile-line span{
+  font-size:10px !important;font-weight:800 !important;letter-spacing:.05em !important;
+  text-transform:uppercase !important;color:#718199 !important;
+}
+html body .user-profile-line b{
+  font-size:13px !important;font-weight:700 !important;color:#172033 !important;
+  overflow-wrap:anywhere !important;
+}
+html body .user-profile-ward{border-top:1px solid #e7edf4 !important;padding-top:10px !important}
+html body .user-profile-ward span{color:#718199 !important}
+html body .user-profile-ward strong{color:#172033 !important}
+html body .user-profile-card .user-secondary-btn{
+  background:#12203a !important;color:#fff !important;border:0 !important;
+  border-radius:11px !important;height:42px !important;font-weight:800 !important;
+}
+
+html body .ward-card{
+  background:#fff !important;
+  border:1px solid #e3eaf2 !important;
+  border-radius:18px !important;
+  padding:18px !important;
+  display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 10px 28px rgba(16,29,48,.06);
+  min-width:0;
+}
+html body .ward-card.is-open{border-color:#c8ead6 !important;background:linear-gradient(#fff,#f6fbf8) !important}
+html body .ward-card.is-closed{border-color:#ece3d4 !important;background:linear-gradient(#fff,#fbf8f2) !important}
+html body .ward-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+html body .ward-card-top h3{margin:4px 0 0;font-size:26px;letter-spacing:-.03em;color:#12203a}
+html body .ward-card-name{margin:4px 0 0;font-size:14px;font-weight:700;color:#31445d}
+html body .ward-card-copy{margin:0;font-size:13px;line-height:1.5;color:#5b6b82}
+html body .ward-card-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+html body .ward-card-stats > div{
+  background:#f4f7fb;border:1px solid #e7edf4;border-radius:12px;padding:10px 12px;
+  display:flex;flex-direction:column;gap:2px;
+}
+html body .ward-card-stats span{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#718199}
+html body .ward-card-stats strong{font-size:16px;color:#12203a}
+html body .ward-area-chips{display:flex;flex-wrap:wrap;gap:6px}
+html body .ward-area-chips span{
+  background:#eef4fb;color:#2b3f59;border-radius:99px;padding:4px 9px;font-size:11px;font-weight:700;
+}
+html body .ward-card-footer{display:flex;justify-content:flex-end}
+html body .ward-grid{align-items:stretch}
+
+html body .pagination-page.is-current{
+  background:#12203a !important;color:#fff !important;border-color:#12203a !important;
+}
+html body .pagination-controls{flex-wrap:wrap;gap:6px}
+html body .pagination-gap{padding:0 4px;color:#7a8799}
+
+html body .notification-popover,
+html body .user-notification-popover{
+  max-height:min(72vh,560px) !important;
+  overflow:hidden !important;
+  display:flex !important;
+  flex-direction:column !important;
+}
+html body .notification-popover-head,
+html body .user-notification-head{flex:0 0 auto}
+html body .notification-item,
+html body .user-notification-item{flex:0 0 auto}
+html body .notification-popover{
+  overflow-y:auto !important;
+}
+html body .user-notification-popover{
+  overflow-y:auto !important;
+}
+
+html body .row-menu-pop .row-menu-node,
+html body .row-menu-pop .death-action-btn{
+  width:100% !important;justify-content:flex-start !important;
+  border:0 !important;background:transparent !important;border-radius:0 !important;
+  min-height:38px !important;padding:10px 12px !important;color:inherit !important;
+}
+html body .row-menu-pop .row-menu-node.danger .death-action-btn,
+html body .row-menu-pop button.danger{color:#b42318 !important}
+
+@media (max-width:800px){
+  html body .admin-login,html body .citizen-login,html body .register-page{
+    padding:12px !important;align-items:stretch !important;
+  }
+  html body .login-staff-banner{margin-bottom:10px}
+  html body .user-profile-card{width:100% !important}
+  html body .user-profile-identity{flex-direction:column !important;align-items:flex-start !important}
+  html body .ward-card-top{flex-direction:column}
+  html body .ward-card-footer .row-menu{width:100%}
+  html body .pagination-controls{width:100%}
+  html body .pagination-controls .small-btn{min-height:40px}
+  html body .notification-popover,html body .user-notification-popover{
+    max-height:min(78dvh,640px) !important;
+  }
+}
+
+
+
+
