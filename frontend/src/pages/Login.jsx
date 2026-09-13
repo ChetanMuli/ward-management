@@ -3,6 +3,8 @@ import {useNavigate} from 'react-router-dom';
 import {api,setSession} from '../services/api';
 
 export const COMPANY_NAME='Kairo IT Solutions PVT LTD';
+export const COMPANY_EMAIL='chetan.a2zithub@gmail.com';
+export const COMPANY_MOBILE='8523697410';
 export const copyrightLine=`© ${new Date().getFullYear()} ${COMPANY_NAME}`;
 
 function IconUser(){
@@ -78,6 +80,17 @@ export default function Login({mode='user'}){
  const forgotValue=channel==='mobile'?mobileId:emailId;
 
  useEffect(()=>{if(sessionStorage.getItem('ward_session_expired')==='1'){sessionStorage.removeItem('ward_session_expired');setNotice('Your previous session expired. Please sign in again.');}},[]);
+
+ function goLogin(){
+  setError('');
+  setNotice('');
+  setDebugOtp('');
+  setSentTo('');
+  setOtp('');
+  setNewPassword('');
+  setConfirmPassword('');
+  setView('login');
+ }
 
  function openForgot(){
   setError('');
@@ -184,10 +197,11 @@ export default function Login({mode='user'}){
    <div className="login-v2-card auth-simple-card">
     <p className="auth-staff-copy">Nagarsevak, Employee, Sub Master Admin and Master Admin passwords cannot be reset from this screen.</p>
     <p className="auth-staff-copy">Please contact <strong>{COMPANY_NAME}</strong>. We will verify your account and issue a new password.</p>
-    <button type="button" className="primary-btn full login-v2-submit" onClick={()=>setView('login')}>Back to sign in</button>
-    <div className="auth-simple-links auth-flow-links">
-     <button type="button" className="link-btn" onClick={()=>navigate('/login')}>Resident login</button>
+    <div className="auth-company-contact">
+     <div><span>Demo email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
+     <div><span>Demo mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
     </div>
+    <button type="button" className="primary-btn full login-v2-submit" onClick={goLogin}>Back to sign in</button>
    </div>
   </AuthShell>;
  }
@@ -215,7 +229,7 @@ export default function Login({mode='user'}){
        </label>}
     <button type="submit" className="primary-btn full login-v2-submit" disabled={busy}>{busy?'Sending code…':'Send verification code'}</button>
     <div className="auth-simple-links auth-flow-links">
-     <button type="button" className="link-btn" onClick={()=>setView('login')}>Back to sign in</button>
+     <button type="button" className="link-btn" onClick={goLogin}>Back to sign in</button>
     </div>
    </form>
   </AuthShell>;
@@ -241,7 +255,7 @@ export default function Login({mode='user'}){
     <button type="submit" className="primary-btn full login-v2-submit" disabled={busy}>{busy?'Updating…':'Update password'}</button>
     <div className="auth-simple-links auth-login-links is-admin">
      <button type="button" className="link-btn" onClick={()=>setView('forgot')}>Resend code</button>
-     <button type="button" className="link-btn" onClick={()=>setView('login')}>Back to sign in</button>
+     <button type="button" className="link-btn" onClick={goLogin}>Back to sign in</button>
     </div>
    </form>
   </AuthShell>;

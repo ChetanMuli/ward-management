@@ -48,16 +48,26 @@ function asDate(value) {
 }
 
 async function loadChatState(groupId, userId) {
-  return ChatUserState.findOne({ where: { groupId, userId } });
+  try {
+    return await ChatUserState.findOne({ where: { groupId, userId } });
+  } catch (err) {
+    console.error('[CHAT STATE READ]', err.message);
+    return null;
+  }
 }
 
 async function saveChatState(groupId, userId, patch) {
-  const [row] = await ChatUserState.findOrCreate({
-    where: { groupId, userId },
-    defaults: { id: crypto.randomUUID(), ...patch },
-  });
-  await row.update(patch);
-  return row;
+  try {
+    const [row] = await ChatUserState.findOrCreate({
+      where: { groupId, userId },
+      defaults: { id: crypto.randomUUID(), ...patch },
+    });
+    await row.update(patch);
+    return row;
+  } catch (err) {
+    console.error('[CHAT STATE WRITE]', err.message);
+    return null;
+  }
 }
 
 async function clearedAtFor(groupId, userId, member) {
@@ -172,7 +182,7 @@ async function ensureNagarsevakGroup(nagarsevakUserId, options = {}) {
       });
 
   const [activeUsers, nagarRoleId, visibleIds] = await Promise.all([
-    User.findAll({ where: { wardId: ward, status: 'ACTIVE' }, attributes: ['id', 'roleId'] }),
+    User.findAll({ where: { wardId: ward, status: 'ACTIVE' }, attributes: ['id', 'roleId'], hooks: false }),
     nagarsevakRoleId(),
     getVisibleNagarsevakIds(ward)
   ]);
@@ -187,7 +197,8 @@ async function ensureAllNagarsevakGroups(wardId) {
   if (!nagarRoleId) return;
   const rows = await User.findAll({
     where: { wardId, roleId: nagarRoleId, status: 'ACTIVE' },
-    attributes: ['id']
+    attributes: ['id'],
+    hooks: false,
   });
   for (const row of rows) await ensureNagarsevakGroup(row.id, { wardId });
 }
@@ -230,7 +241,8 @@ async function syncActiveWardMembers(groupRows) {
   const [activeUsers, nagarRoleId, visibleMap] = await Promise.all([
     User.findAll({
       where: { wardId: { [Op.in]: wardIds }, status: 'ACTIVE' },
-      attributes: ['id','wardId','roleId']
+      attributes: ['id','wardId','roleId'],
+      hooks: false,
     }),
     nagarsevakRoleId(),
     visibleIdsByWard(wardIds)
@@ -254,7 +266,7 @@ async function reconcileWardGroupMembers(wardId) {
   });
   if (!groups.length) return;
   const [activeUsers, nagarRoleId, visibleIds] = await Promise.all([
-    User.findAll({ where: { wardId, status: 'ACTIVE' }, attributes: ['id', 'roleId'] }),
+    User.findAll({ where: { wardId, status: 'ACTIVE' }, attributes: ['id', 'roleId'], hooks: false }),
     nagarsevakRoleId(),
     getVisibleNagarsevakIds(wardId)
   ]);
@@ -273,21 +285,17 @@ async function ensureUserGroups(user) {
 }
 
 const listGroups = asyncHandler(async (req, res) => {
-  await cleanupOldMessages();
+  cleanupOldMessages().catch((err) => console.error('[CHAT CLEANUP]', err.message));
   await ensureUserGroups(req.user);
   const allowedForGroups = allowedWardIds(req);
-  const visibleWardIds = req.user.roleName === 'SUPER_ADMIN'
-    ? (await Ward.findAll({ where:{ status:'ACTIVE' }, attributes:['id'] })).map(w=>w.id)
-    : (allowedForGroups || []).filter(Boolean);
-  if (req.user.roleName === 'NAGARSEVAK' || req.user.roleName === 'EMPLOYEE' || req.user.roleName === 'CITIZEN') {
-    if (req.user.wardId) {
-      await ensureWardGroup(req.user.wardId);
-      await ensureAllNagarsevakGroups(req.user.wardId);
-    }
-  } else {
-    for (const wardId of visibleWardIds) {
-      await ensureWardGroup(wardId);
-      await ensureAllNagarsevakGroups(wardId);
+  const requestedWard = String(req.query.wardId || '').trim();
+  const focusWardId = requestedWard || req.user.wardId || '';
+  if (focusWardId && (req.user.roleName === 'SUPER_ADMIN' || isWardAllowed(req, focusWardId))) {
+    try {
+      await ensureWardGroup(focusWardId);
+      await ensureAllNagarsevakGroups(focusWardId);
+    } catch (err) {
+      console.error('[CHAT ENSURE]', err.message);
     }
   }
   const rows = await Chat.findAll({
@@ -317,7 +325,6 @@ const listGroups = asyncHandler(async (req, res) => {
     }
     return true;
   });
-  await syncActiveWardMembers(visibleRows);
   const memberships = await Chat.Member.findAll({ where: { userId: req.user.id }, attributes: ['groupId'] });
   const ids = new Set(memberships.map(x => x.groupId));
   if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN') {

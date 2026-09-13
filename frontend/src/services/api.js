@@ -128,7 +128,7 @@ export const api={
  createStakeholder:d=>v2Request('/stakeholders',{method:'POST',body:JSON.stringify(d)}),
  updateStakeholder:(id,d)=>v2Request(`/stakeholders/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
  deleteStakeholder:id=>v2Request(`/stakeholders/${id}`,{method:'DELETE'}),
- chatGroups:()=>v2('/chat/groups'),
+ chatGroups:(params={})=>v2('/chat/groups',params),
  createChatGroup:d=>v2Request('/chat/groups',{method:'POST',body:JSON.stringify(d)}),
  deleteChatGroup:id=>v2Request(`/chat/groups/${id}`,{method:'DELETE'}),
  joinChatGroup:id=>v2Request(`/chat/groups/${id}/join`,{method:'POST'}),

@@ -41,8 +41,8 @@ function GroupPage(){
  },[scopedWardId,canSelect,citizen,councillor,user?.wardId,user?.ward?.id]);
  useEffect(()=>{try{sessionStorage.setItem('ward_groups_filters',JSON.stringify({wardId,nagarsevakId,groupId,search}))}catch{}},[wardId,nagarsevakId,groupId,search]);
 
- const loadGroups=()=>api.chatGroups().then(r=>setGroups(r.data||[])).catch(e=>setError(e.message));
- useEffect(()=>{loadGroups()},[]);
+ const loadGroups=(id=wardId)=>api.chatGroups(id?{wardId:id}:{}).then(r=>setGroups(r.data||[])).catch(e=>{setError(e.message||'Unable to load chats.');setGroups([])});
+ useEffect(()=>{loadGroups(wardId)},[wardId]);
 
  const accessibleGroups=useMemo(()=>{
   if(!wardId) return [];
@@ -168,7 +168,8 @@ function GroupPage(){
  const nagOptions=nagarsevaks.map(n=>({value:String(n.id),label:`${n.name}${n.ward?.wardNumber?` · ${n.ward.wardNumber}`:''}`}));
  const canSend=active?.isMember&&((active.mode!=='BROADCAST')||active.canManage||master);
 
- if(!groups)return <Loading/>;
+ if(!groups)return <div className="groups-page"><PageHeader kicker="Chat" title="All chat & Groups"/><Loading/></div>;
+ if(error&&!groups.length)return <div className="groups-page"><PageHeader kicker="Chat" title="All chat & Groups"/><ErrorBox error={error}/><button type="button" className="small-btn" onClick={()=>{setError('');setGroups(null);loadGroups()}}>Try again</button></div>;
  return <div className={`groups-page ${chatOpen?'chat-open':''}`}>
   <PageHeader kicker="Chat" title="All chat & Groups" subtitle={citizen?(accessibleGroups.some(g=>g.type==='NAGARSEVAK')?'Ward All chat and your Nagarsevak group.':'All chat is available. Your Nagarsevak group will appear here when your ward representative is available.'):councillor?'Your ward All chat and your personal Nagarsevak group. Other Nagarsevak chats stay private to them.':'All chat includes everyone in the ward. Groups are Nagarsevak and custom chats.'} action={canCreate?<button className="primary-btn" onClick={()=>setCreate(true)}>+ Create group</button>:null}/>
   <ErrorBox error={error}/>

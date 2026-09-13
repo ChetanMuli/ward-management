@@ -4049,6 +4049,36 @@ html body .login-page-v2.auth-simple .auth-login-links.is-resident .link-btn:las
   }
 }
 
+html body .login-page-v2.auth-simple .auth-company-contact{
+  display:grid !important;
+  gap:10px !important;
+  width:100% !important;
+  margin:4px 0 16px !important;
+  padding:14px 14px 12px !important;
+  border:1px solid #dbe4f0 !important;
+  border-radius:14px !important;
+  background:#f8fbff !important;
+  text-align:left !important;
+}
+html body .login-page-v2.auth-simple .auth-company-contact div{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:2px !important;
+}
+html body .login-page-v2.auth-simple .auth-company-contact span{
+  font-size:11px !important;
+  font-weight:800 !important;
+  letter-spacing:.06em !important;
+  text-transform:uppercase !important;
+  color:#6b7280 !important;
+}
+html body .login-page-v2.auth-simple .auth-company-contact a{
+  color:#16324f !important;
+  font-size:15px !important;
+  font-weight:800 !important;
+  text-decoration:none !important;
+  word-break:break-all !important;
+}
 html body .login-page-v2.auth-simple .auth-demo-code{
   display:flex !important;
   flex-direction:column !important;
