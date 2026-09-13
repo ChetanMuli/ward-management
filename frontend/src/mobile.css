@@ -3671,7 +3671,7 @@ html body .groups-page .group-section-title:first-child{margin-top:0}
     padding-right:12px !important;
   }
   html body .table-wrap,
-  html body .data-table-wrap{overflow-x:auto !important;-webkit-overflow-scrolling:touch}
+  html body .data-table-wrap{overflow:visible !important}
   html body .modal,
   html body .modal-card{
     width:min(100%,calc(100vw - 20px)) !important;
@@ -3681,4 +3681,288 @@ html body .groups-page .group-section-title:first-child{margin-top:0}
 @media (max-width:420px){
   html body .login-page-v2.auth-simple h1{font-size:24px !important}
   html body .login-page-v2.auth-simple .auth-blob{opacity:.45 !important}
+}
+
+/* ===== Last-wins: mobile actions, chat, login, user portal ===== */
+html body .row-menu-scrim{display:none}
+
+@media (max-width:800px){
+  html body .table-wrap,
+  html body .data-table-wrap,
+  html body .table-wrap tbody,
+  html body .table-wrap tbody tr,
+  html body .table-wrap tbody td,
+  html body .table-wrap tbody td[data-label="Actions"],
+  html body .member-card,
+  html body .scheme-card,
+  html body .family-card,
+  html body .detail-card,
+  html body .user-complaint-card,
+  html body .user-panel-card{
+    overflow:visible !important;
+  }
+
+  html body .table-wrap tbody td[data-label="Actions"],
+  html body .table-wrap tbody td.staff-actions,
+  html body :is(.app-shell,.user-portal) .table-wrap tbody td[data-label="Actions"],
+  html body :is(.app-shell,.user-portal) .table-wrap tbody td.staff-actions{
+    display:block !important;
+    grid-template-columns:none !important;
+    padding-top:12px !important;
+  }
+  html body .table-wrap tbody td[data-label="Actions"]::before,
+  html body .table-wrap tbody td.staff-actions::before{
+    display:block !important;
+    position:static !important;
+    width:auto !important;
+    margin:0 0 8px !important;
+  }
+  html body .table-wrap tbody td[data-label="Actions"] > *,
+  html body .table-wrap tbody td.staff-actions > *,
+  html body .table-wrap tbody td[data-label="Actions"] > .row-menu,
+  html body .table-wrap tbody td[data-label="Actions"] > .card-actions,
+  html body .table-wrap tbody td[data-label="Actions"] > .staff-action-grid{
+    grid-column:auto !important;
+    display:flex !important;
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    height:auto !important;
+    max-height:none !important;
+  }
+
+  html body .row-menu,
+  html body .card-actions .row-menu,
+  html body .table-wrap tbody td[data-label="Actions"] .row-menu,
+  html body :is(.app-shell,.user-portal) .table-wrap tbody td[data-label="Actions"] .card-actions > .row-menu{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    align-items:stretch !important;
+    justify-content:stretch !important;
+    gap:8px !important;
+    width:100% !important;
+    min-width:0 !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    position:relative !important;
+    flex-wrap:nowrap !important;
+  }
+  html body .row-menu > .small-btn,
+  html body .row-menu > .view-btn,
+  html body .row-menu > .row-menu-toggle{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    height:44px !important;
+    min-height:44px !important;
+    max-height:none !important;
+    margin:0 !important;
+    flex:none !important;
+  }
+  html body .row-menu.is-open{z-index:30}
+
+  html body .card-actions,
+  html body .staff-action-grid{
+    height:auto !important;
+    max-height:none !important;
+    grid-auto-rows:auto !important;
+    overflow:visible !important;
+  }
+
+  html body .row-menu-scrim{
+    display:block !important;
+    position:fixed !important;
+    inset:0 !important;
+    z-index:90 !important;
+    background:rgba(15,23,42,.38) !important;
+  }
+  html body .row-menu-pop,
+  html body .row-menu.is-open .row-menu-pop{
+    position:fixed !important;
+    top:auto !important;
+    right:12px !important;
+    left:12px !important;
+    bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important;
+    z-index:91 !important;
+    width:auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+    max-height:min(70dvh,420px) !important;
+    overflow:auto !important;
+    padding:8px !important;
+    border-radius:16px !important;
+    box-shadow:0 18px 50px rgba(16,29,48,.28) !important;
+  }
+  html body .row-menu-pop button,
+  html body .row-menu-pop .death-action-btn,
+  html body .row-menu-pop .row-menu-node,
+  html body .row-menu-pop .row-menu-node > *{
+    width:100% !important;
+    min-height:46px !important;
+    height:auto !important;
+    max-height:none !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    text-align:left !important;
+    padding:12px 14px !important;
+    font-size:15px !important;
+    border-radius:10px !important;
+  }
+
+  /* Chat: usable composer, no footer overlap */
+  html body .app-shell:has(.groups-page.chat-open) .app-footer,
+  html body .user-portal:has(.groups-page.chat-open) .user-footer{
+    display:none !important;
+  }
+  html body .app-shell:has(.groups-page.chat-open) .content,
+  html body .user-portal:has(.groups-page.chat-open) .user-main{
+    padding-bottom:0 !important;
+    overflow:hidden !important;
+  }
+  html body .groups-page.chat-open{
+    height:calc(100dvh - 72px) !important;
+    max-height:calc(100dvh - 72px) !important;
+    margin:0 !important;
+    gap:0 !important;
+  }
+  html body .groups-page .group-layout,
+  html body .groups-page.chat-open .group-layout{
+    height:100% !important;
+    min-height:0 !important;
+    max-height:none !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+  }
+  html body .groups-page .group-chat-panel{
+    display:flex !important;
+    flex-direction:column !important;
+    min-height:0 !important;
+    height:100% !important;
+    background:#efeae2 !important;
+  }
+  html body .groups-page .group-chat-header{
+    flex:0 0 auto !important;
+    background:#075e54 !important;
+    color:#fff !important;
+    opacity:1 !important;
+    z-index:2 !important;
+  }
+  html body .groups-page .group-chat-header h2,
+  html body .groups-page .group-chat-header .eyebrow,
+  html body .groups-page .group-chat-header p{
+    color:#fff !important;
+    opacity:1 !important;
+  }
+  html body .groups-page .group-messages{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    overflow:auto !important;
+  }
+  html body .groups-page .group-composer,
+  html body .groups-page .wa-composer{
+    flex:0 0 auto !important;
+    position:relative !important;
+    z-index:3 !important;
+    width:100% !important;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px)) !important;
+    background:#f0f2f5 !important;
+    box-sizing:border-box !important;
+  }
+  html body .groups-page .wa-compose-row{
+    display:flex !important;
+    flex-direction:row !important;
+    flex-wrap:nowrap !important;
+    align-items:flex-end !important;
+    gap:8px !important;
+    width:100% !important;
+  }
+  html body .groups-page .wa-attach,
+  html body .groups-page .chat-image-picker.wa-attach{
+    flex:0 0 44px !important;
+    width:44px !important;
+    min-width:44px !important;
+    height:44px !important;
+    margin:0 !important;
+  }
+  html body .groups-page .wa-compose-row textarea{
+    flex:1 1 auto !important;
+    width:auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+    height:44px !important;
+    min-height:44px !important;
+    max-height:120px !important;
+    margin:0 !important;
+    padding:10px 14px !important;
+    font-size:16px !important;
+    line-height:1.3 !important;
+    border-radius:22px !important;
+    resize:none !important;
+  }
+  html body .groups-page .wa-compose-row .wa-send,
+  html body .groups-page .wa-compose-row .primary-btn{
+    flex:0 0 auto !important;
+    width:auto !important;
+    min-width:76px !important;
+    max-width:none !important;
+    height:44px !important;
+    min-height:44px !important;
+    margin:0 !important;
+    padding:0 16px !important;
+    border-radius:22px !important;
+  }
+
+  /* Login / register links on phones */
+  html body .login-page-v2.auth-simple,
+  html body .login-page-v2.auth-simple.citizen-login,
+  html body .login-page-v2.auth-simple.admin-login,
+  html body .login-page-v2.auth-simple.register-page{
+    height:auto !important;
+    max-height:none !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+  }
+  html body .login-page-v2.auth-simple .auth-forgot-row{
+    width:100% !important;
+    justify-content:flex-end !important;
+    margin:0 0 12px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-forgot-row .link-btn,
+  html body .login-page-v2.auth-simple .auth-simple-links .link-btn{
+    min-height:44px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    text-decoration:none !important;
+    padding:8px 10px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-simple-links,
+  html body .login-page-v2.auth-simple.admin-login .auth-simple-links{
+    flex-direction:column !important;
+    align-items:stretch !important;
+    justify-content:stretch !important;
+    gap:4px !important;
+    width:100% !important;
+  }
+  html body .login-page-v2.auth-simple .auth-simple-links .link-btn{
+    width:100% !important;
+  }
+
+  html body .user-portal .card-actions,
+  html body .user-complaint-card .card-actions{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:8px !important;
+    width:100% !important;
+    overflow:visible !important;
+  }
+  html body .user-portal .card-actions > button,
+  html body .user-portal .card-actions > a{
+    width:100% !important;
+    min-height:44px !important;
+    height:44px !important;
+  }
 }

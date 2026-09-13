@@ -239,18 +239,21 @@ export function RowMenu({items=[]}){
  if(!visible.length)return null;
  const [primary,...rest]=visible;
  return (
-  <div className="row-menu" ref={ref}>
+  <div className={`row-menu ${open?'is-open':''}`} ref={ref}>
    <button type="button" className={primary.danger?'small-btn danger':'small-btn view-btn'} onClick={primary.onClick}>{primary.label}</button>
    {rest.length>0&&(
     <>
      <button type="button" className="small-btn row-menu-toggle" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>More</button>
-     {open&&<div className="row-menu-pop" role="menu">
-      {rest.map((item,i)=>(
-       item.node
-        ? <div key={item.label||i} className={`row-menu-node ${item.danger?'danger':''}`}>{item.node}</div>
-        : <button type="button" key={item.label||i} className={item.danger?'danger':''} onClick={()=>{setOpen(false);item.onClick?.()}}>{item.label}</button>
-      ))}
-     </div>}
+     {open&&<>
+      <div className="row-menu-scrim" onPointerDown={()=>setOpen(false)}/>
+      <div className="row-menu-pop" role="menu">
+       {rest.map((item,i)=>(
+        item.node
+         ? <div key={item.label||i} className={`row-menu-node ${item.danger?'danger':''}`}>{item.node}</div>
+         : <button type="button" key={item.label||i} className={item.danger?'danger':''} onClick={()=>{setOpen(false);item.onClick?.()}}>{item.label}</button>
+       ))}
+      </div>
+     </>}
     </>
    )}
   </div>
