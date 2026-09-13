@@ -2,7 +2,8 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { WardChatGroup, WardChatGroupMember, WardChatMessage, User, Ward, Role } = require('../../models');
+const { User, Ward, Role } = require('../../models');
+const Chat = require('../../services/chat.store');
 const ApiError = require('../../utils/ApiError');
 const asyncHandler = require('../../utils/asyncHandler');
 const { success } = require('../../utils/apiResponse');
@@ -15,7 +16,7 @@ const RETENTION_DAYS = 40;
 
 async function cleanupOldMessages() {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  const old = await WardChatMessage.findAll({
+  const old = await Chat.Message.findAll({
     where: { createdAt: { [Op.lt]: cutoff } },
     attributes: ['id', 'imagePath'],
     limit: 1000,
@@ -27,7 +28,7 @@ async function cleanupOldMessages() {
       try { if (fs.existsSync(file)) fs.unlinkSync(file); } catch (_) {}
     }
   }
-  await WardChatMessage.destroy({ where: { id: { [Op.in]: old.map(x => x.id) } } });
+  await Chat.Message.destroy({ where: { id: { [Op.in]: old.map(x => x.id) } } });
   return old.length;
 }
 
@@ -35,17 +36,17 @@ async function cleanupOldMessages() {
 setInterval(() => cleanupOldMessages().catch(() => {}), 6 * 60 * 60 * 1000).unref();
 
 async function ensureMembershipRow(groupId, userId) {
-  let member = await WardChatGroupMember.findOne({ where: { groupId, userId } });
+  let member = await Chat.Member.findOne({ where: { groupId, userId } });
   if (member) return member;
   try {
-    return await WardChatGroupMember.create({
+    return await Chat.Member.create({
       id: crypto.randomUUID(), groupId, userId, joinedAt: new Date()
     });
   } catch (error) {
     // A concurrent request or an old duplicate-safe insert may have created the
     // row between findOne() and create(). The membership operation is idempotent.
     if (error?.name !== 'SequelizeUniqueConstraintError') throw error;
-    member = await WardChatGroupMember.findOne({ where: { groupId, userId } });
+    member = await Chat.Member.findOne({ where: { groupId, userId } });
     if (!member) throw error;
     return member;
   }
@@ -57,7 +58,7 @@ async function ensureWardGroup(wardId) {
   const ward = await Ward.findByPk(wardId);
   if (!ward || ward.status !== 'ACTIVE') return null;
   const name = `Ward ${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''} Community`;
-  const [group] = await WardChatGroup.findOrCreate({
+  const [group] = await Chat.findOrCreate({
     where: { wardId, type: 'WARD' },
     defaults: { id: crypto.randomUUID(), wardId, name, type:'WARD', createdByUserId:null, isActive:true, mode:'CHAT' }
   });
@@ -68,7 +69,7 @@ async function ensureWardGroup(wardId) {
 
 async function archiveWardGroups(wardId) {
   if (!wardId) return;
-  await WardChatGroup.update({ isActive:false }, { where:{ wardId } });
+  await Chat.update({ isActive:false }, { where:{ wardId } });
 }
 
 async function nagarsevakRoleId() {
@@ -106,26 +107,26 @@ async function visibleIdsByWard(wardIds) {
 async function syncGroupMembers(group, users, nagarRoleId, visibleNagarsevakIds) {
   const allowedUserIds = memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds);
   if (allowedUserIds.length) {
-    await WardChatGroupMember.destroy({
+    await Chat.Member.destroy({
       where: { groupId: group.id, userId: { [Op.notIn]: allowedUserIds } }
     });
     for (const userId of allowedUserIds) await ensureMembershipRow(group.id, userId);
   } else {
-    await WardChatGroupMember.destroy({ where: { groupId: group.id } });
+    await Chat.Member.destroy({ where: { groupId: group.id } });
   }
 }
 
 async function ensureNagarsevakGroup(nagarsevakUserId, options = {}) {
   const user = await User.findByPk(nagarsevakUserId);
   if (!user || user.status !== 'ACTIVE' || !user.wardId) return null;
-  const existing = await WardChatGroup.findOne({
+  const existing = await Chat.findOne({
     where: { nagarsevakUserId: user.id, type: 'NAGARSEVAK' }
   });
   const ward = options.wardId || user.wardId;
   const name = `Nagarsevak · ${user.name}`;
   const group = existing
     ? await existing.update({ wardId: ward, isActive: true, name, mode: 'CHAT' })
-    : await WardChatGroup.create({
+    : await Chat.create({
         wardId: ward,
         name,
         type: 'NAGARSEVAK',
@@ -157,7 +158,7 @@ async function ensureAllNagarsevakGroups(wardId) {
 }
 
 async function archiveNagarsevakGroup(nagarsevakUserId) {
-  await WardChatGroup.update(
+  await Chat.update(
     { isActive: false },
     { where: { nagarsevakUserId, type: 'NAGARSEVAK' } }
   );
@@ -165,7 +166,7 @@ async function archiveNagarsevakGroup(nagarsevakUserId) {
 
 async function ensureMembership(groupId, userId, roleName = null) {
   const [group, user] = await Promise.all([
-    WardChatGroup.findByPk(groupId),
+    Chat.findByPk(groupId),
     User.findByPk(userId),
   ]);
   if (!group || !user || user.status !== 'ACTIVE') throw new ApiError(404, 'Chat group or user not found');
@@ -209,7 +210,7 @@ async function syncActiveWardMembers(groupRows) {
 
 async function reconcileWardGroupMembers(wardId) {
   if (!wardId) return;
-  const groups = await WardChatGroup.findAll({
+  const groups = await Chat.findAll({
     where: { wardId, isActive: true, type: { [Op.in]: ['WARD', 'CUSTOM', 'NAGARSEVAK'] } },
     attributes: ['id', 'type', 'nagarsevakUserId', 'wardId']
   });
@@ -228,7 +229,7 @@ async function ensureUserGroups(user) {
     await syncWardCommunityMembership(user.wardId);
     return;
   }
-  const wardGroup = await WardChatGroup.findOne({ where: { wardId: user.wardId, type: 'WARD', isActive: true } });
+  const wardGroup = await Chat.findOne({ where: { wardId: user.wardId, type: 'WARD', isActive: true } });
   if (wardGroup) await ensureMembershipRow(wardGroup.id, user.id);
   if (user.roleName === 'NAGARSEVAK') await ensureNagarsevakGroup(user.id);
 }
@@ -251,7 +252,7 @@ const listGroups = asyncHandler(async (req, res) => {
       await ensureAllNagarsevakGroups(wardId);
     }
   }
-  const rows = await WardChatGroup.findAll({
+  const rows = await Chat.findAll({
     where: { isActive: true },
     include: [
       { model: Ward, as: 'ward', attributes: ['id', 'wardNumber', 'name'] },
@@ -279,7 +280,7 @@ const listGroups = asyncHandler(async (req, res) => {
     return true;
   });
   await syncActiveWardMembers(visibleRows);
-  const memberships = await WardChatGroupMember.findAll({ where: { userId: req.user.id }, attributes: ['groupId'] });
+  const memberships = await Chat.Member.findAll({ where: { userId: req.user.id }, attributes: ['groupId'] });
   const ids = new Set(memberships.map(x => x.groupId));
   if (req.user.roleName === 'SUPER_ADMIN') visibleRows.forEach(g => ids.add(g.id));
   const data = visibleRows.map(g => ({
@@ -301,7 +302,7 @@ const createGroup = asyncHandler(async (req, res) => {
   const ward = await Ward.findByPk(wardId);
   if (!ward) throw new ApiError(404, 'Ward not found');
 
-  const group = await WardChatGroup.create({
+  const group = await Chat.create({
     wardId,
     name,
     mode,
@@ -317,13 +318,13 @@ const createGroup = asyncHandler(async (req, res) => {
   });
   const members = activeUsers.map(u => ({ id: crypto.randomUUID(), groupId: group.id, userId: u.id, joinedAt: new Date() }));
   if (!members.some(m => m.userId === req.user.id)) members.push({ id: crypto.randomUUID(), groupId: group.id, userId: req.user.id, joinedAt: new Date() });
-  if (members.length) await WardChatGroupMember.bulkCreate(members, { ignoreDuplicates: true });
+  if (members.length) await Chat.Member.bulkCreate(members, { ignoreDuplicates: true });
 
   return success(res, { statusCode: 201, message: 'Group created and active ward users were added automatically.', data: { ...group.toJSON(), memberCount: members.length } });
 });
 
 const deleteGroup = asyncHandler(async (req, res) => {
-  const group = await WardChatGroup.findByPk(req.params.id);
+  const group = await Chat.findByPk(req.params.id);
   if (!group || !group.isActive) throw new ApiError(404, 'Chat group not found');
   if (group.type !== 'CUSTOM') throw new ApiError(400, 'System groups cannot be deleted');
   if (req.user.roleName !== 'SUPER_ADMIN' && group.createdByUserId !== req.user.id) throw new ApiError(403, 'Only the group creator or Master Admin can delete this group');
@@ -347,7 +348,7 @@ const listMessages = asyncHandler(async (req, res) => {
   } else if (effectiveAfter && !Number.isNaN(effectiveAfter.getTime())) {
     where.createdAt = { [Op.gt]: effectiveAfter };
   }
-  const rows = await WardChatMessage.findAll({
+  const rows = await Chat.Message.findAll({
     where,
     include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile'] }],
     order: [['createdAt', 'DESC']],
@@ -396,7 +397,7 @@ const sendMessage = asyncHandler(async (req, res) => {
         ? (imageMime || `video/${ext === 'mov' ? 'quicktime' : ext}`)
         : (imageMime || `image/${ext === 'jpg' ? 'jpeg' : ext}`);
   }
-  const row = await WardChatMessage.create({
+  const row = await Chat.Message.create({
     groupId: group.id,
     senderUserId: req.user.id,
     recipientUserId: null,
@@ -405,13 +406,13 @@ const sendMessage = asyncHandler(async (req, res) => {
     imageMime: imageMime || null,
     imagePath: imagePath || null
   });
-  const full = await WardChatMessage.findByPk(row.id, { include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile'] }] });
+  const full = await Chat.Message.findByPk(row.id, { include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile'] }] });
   return success(res, { statusCode: 201, data: full });
 });
 
 const image = asyncHandler(async (req, res) => {
   const { group } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
-  const row = await WardChatMessage.findOne({ where: { id: req.params.messageId, groupId: group.id, messageType: { [Op.in]: ['IMAGE', 'PDF', 'VIDEO'] } } });
+  const row = await Chat.Message.findOne({ where: { id: req.params.messageId, groupId: group.id, messageType: { [Op.in]: ['IMAGE', 'PDF', 'VIDEO'] } } });
   if (!row || !row.imagePath) throw new ApiError(404, 'Attachment not found');
   const file = path.join(uploadDir, path.basename(row.imagePath));
   if (!fs.existsSync(file)) throw new ApiError(404, 'Attachment file not found');
@@ -423,7 +424,7 @@ const image = asyncHandler(async (req, res) => {
 });
 
 const joinGroup = asyncHandler(async (req, res) => {
-  const group = await WardChatGroup.findByPk(req.params.id);
+  const group = await Chat.findByPk(req.params.id);
   if (!group || !group.isActive) throw new ApiError(404, 'Chat group not found');
   if (req.user.roleName !== 'SUPER_ADMIN' && group.wardId !== req.user.wardId) throw new ApiError(403, 'You can join only groups in your ward');
   if (group.type === 'NAGARSEVAK' && req.user.roleName === 'CITIZEN') {
@@ -433,16 +434,16 @@ const joinGroup = asyncHandler(async (req, res) => {
   if (group.type === 'NAGARSEVAK' && req.user.roleName === 'NAGARSEVAK' && String(group.nagarsevakUserId) !== String(req.user.id)) {
     throw new ApiError(403, 'You can access only your Nagarsevak group and the ward community.');
   }
-  await WardChatGroupMember.findOrCreate({ where: { groupId: group.id, userId: req.user.id }, defaults: { joinedAt: new Date() } });
+  await Chat.Member.findOrCreate({ where: { groupId: group.id, userId: req.user.id }, defaults: { joinedAt: new Date() } });
   return success(res, { message: 'Joined group' });
 });
 
 const leaveGroup = asyncHandler(async (req, res) => {
-  const group = await WardChatGroup.findByPk(req.params.id);
+  const group = await Chat.findByPk(req.params.id);
   if (!group) throw new ApiError(404, 'Chat group not found');
   if (group.type === 'WARD' || group.type === 'NAGARSEVAK') throw new ApiError(400, 'Ward community and Nagarsevak groups cannot be left');
   if (group.type === 'CUSTOM' && group.createdByUserId === req.user.id) throw new ApiError(400, 'Group creator cannot leave their own group. Archive it instead.');
-  await WardChatGroupMember.destroy({ where: { groupId: group.id, userId: req.user.id } });
+  await Chat.Member.destroy({ where: { groupId: group.id, userId: req.user.id } });
   return success(res, { message: 'Left group' });
 });
 

@@ -64,6 +64,8 @@ const v2Request=(path,options={})=>request(`/v2${path}`,options);
 
 export const api={
  login:(identifier,password)=>v2Request('/auth/login',{method:'POST',body:JSON.stringify({identifier,password})}),
+ forgotRequest:d=>v2Request('/auth/forgot/request',{method:'POST',body:JSON.stringify(d)}),
+ forgotReset:d=>v2Request('/auth/forgot/reset',{method:'POST',body:JSON.stringify(d)}),
  registrationWards:()=>v2('/auth/registration-wards'),
  registerCitizen:d=>v2Request('/auth/register',{method:'POST',body:JSON.stringify(d)}),
  me:()=>v2('/me'),

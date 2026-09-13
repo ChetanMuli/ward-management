@@ -78,7 +78,7 @@ export default function UserPanel(){
    <div className="notification-detail-body"><p>{selectedNotification.message||''}</p><small>{selectedNotification.sender?.name?`From ${selectedNotification.sender.name} · `:''}{selectedNotification.createdAt?new Date(selectedNotification.createdAt).toLocaleString('en-IN'):''}</small></div>
    <div className="modal-actions"><button type="button" className="primary-btn" onClick={()=>{const target=String(selectedNotification.actionUrl||'').trim();const type=String(selectedNotification.type||'');setSelectedNotification(null);if(target.startsWith('/'))go(target);else if(type.includes('COMPLAINT'))go('/my-complaints');else if(type.includes('SCHEME'))go('/schemes');else if(type.includes('WARD_UPDATE')||type.includes('WARD_EVENT'))go('/ward-updates');else go('/groups')}}>{language==='mr'?'संबंधित विभाग उघडा':'Open related section'}</button><button type="button" className="ghost-btn" onClick={()=>setSelectedNotification(null)}>{language==='mr'?'बंद करा':'Close'}</button></div>
   </Modal>}
-  <footer className="user-footer"><span>© {new Date().getFullYear()} WardDesk</span><span>{language==='mr'?'सुरक्षित वॉर्ड खाते':'Secure registered ward account'}</span></footer>
+  <footer className="user-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>{language==='mr'?'सुरक्षित वॉर्ड खाते':'Secure registered ward account'}</span></footer>
   {profile&&<UserProfileModal user={user} language={language} onClose={()=>setProfile(false)} onSaved={u=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setProfile(false);window.location.reload()}}/>}
  </div>;
 }

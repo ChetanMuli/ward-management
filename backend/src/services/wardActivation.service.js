@@ -4,11 +4,10 @@ const {
   Ward,
   User,
   Role,
-  WardChatGroup,
-  WardChatGroupMember,
   WardNagarsevakSubscription,
   NagarsevakUser,
 } = require('../models');
+const Chat = require('./chat.store');
 const ApiError = require('../utils/ApiError');
 const { logAudit } = require('./audit.service');
 const { notifyUsers } = require('./notify.service');
@@ -22,15 +21,15 @@ async function roleId(name) {
 }
 
 async function ensureMembershipRow(groupId, userId) {
-  let member = await WardChatGroupMember.findOne({ where: { groupId, userId } });
+  let member = await Chat.Member.findOne({ where: { groupId, userId } });
   if (member) return member;
   try {
-    return await WardChatGroupMember.create({
+    return await Chat.Member.create({
       id: crypto.randomUUID(), groupId, userId, joinedAt: new Date(),
     });
   } catch (error) {
     if (error?.name !== 'SequelizeUniqueConstraintError') throw error;
-    return WardChatGroupMember.findOne({ where: { groupId, userId } });
+    return Chat.Member.findOne({ where: { groupId, userId } });
   }
 }
 
@@ -124,7 +123,7 @@ async function eligibleCommunityUserIds(wardId, visibleNagarsevakIds) {
 async function ensureWardCommunityGroup(ward) {
   if (!ward) return null;
   const name = `Ward ${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''} Community`;
-  const [group] = await WardChatGroup.findOrCreate({
+  const [group] = await Chat.findOrCreate({
     where: { wardId: ward.id, type: 'WARD' },
     defaults: {
       id: crypto.randomUUID(),
@@ -143,12 +142,12 @@ async function ensureWardCommunityGroup(ward) {
 async function ensureNagarsevakChatGroup(user) {
   if (!user?.id || !user.wardId) return null;
   const name = `Nagarsevak · ${user.name}`;
-  const existing = await WardChatGroup.findOne({ where: { nagarsevakUserId: user.id, type: 'NAGARSEVAK' } });
+  const existing = await Chat.findOne({ where: { nagarsevakUserId: user.id, type: 'NAGARSEVAK' } });
   if (existing) {
     await existing.update({ wardId: user.wardId, isActive: true, name, mode: 'CHAT' });
     return existing;
   }
-  return WardChatGroup.create({
+  return Chat.create({
     wardId: user.wardId,
     name,
     type: 'NAGARSEVAK',
@@ -162,12 +161,12 @@ async function ensureNagarsevakChatGroup(user) {
 async function replaceGroupMembers(groupId, allowedUserIds) {
   const allowed = [...new Set((allowedUserIds || []).filter(Boolean).map(String))];
   if (allowed.length) {
-    await WardChatGroupMember.destroy({
+    await Chat.Member.destroy({
       where: { groupId, userId: { [Op.notIn]: allowed } },
     });
     for (const userId of allowed) await ensureMembershipRow(groupId, userId);
   } else {
-    await WardChatGroupMember.destroy({ where: { groupId } });
+    await Chat.Member.destroy({ where: { groupId } });
   }
 }
 
@@ -375,7 +374,7 @@ async function getResidentWardSnapshot(user) {
     return { ward: null, nagarsevak: null, nagarsevaks: [], community: null };
   }
   const visible = isWardActive(ward) ? await getVisibleNagarsevaks(wardId) : [];
-  const community = await WardChatGroup.findOne({
+  const community = await Chat.findOne({
     where: { wardId, type: 'WARD', isActive: true },
     attributes: ['id', 'name', 'isActive'],
   });
@@ -423,7 +422,7 @@ async function listActivationBoard() {
         attributes: ['id', 'wardId'],
       })
       : [],
-    WardChatGroup.findAll({
+    Chat.findAll({
       where: { type: 'WARD', wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
       attributes: ['id', 'wardId', 'name', 'isActive'],
     }),

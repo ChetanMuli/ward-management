@@ -21,6 +21,12 @@ const WardUpdate = require('./wardUpdate.model');
 const WardChatGroup = require('./wardChatGroup.model');
 const WardChatGroupMember = require('./wardChatGroupMember.model');
 const WardChatMessage = require('./wardChatMessage.model');
+const AllChat = require('./allChat.model');
+const AllChatMember = require('./allChatMember.model');
+const AllChatMessage = require('./allChatMessage.model');
+const GroupChat = require('./groupChat.model');
+const GroupChatMember = require('./groupChatMember.model');
+const GroupChatMessage = require('./groupChatMessage.model');
 const WardNagarsevakSubscription = require('./wardNagarsevakSubscription.model');
 const {
   AdminUser,
@@ -138,21 +144,51 @@ User.hasMany(Scheme, { foreignKey: 'createdByUserId', as: 'createdSchemes' });
 Scheme.belongsTo(User, { foreignKey: 'createdByUserId', as: 'createdBy' });
 
 
-// ---- Ward chat ----
+// ---- Legacy combined ward chat (kept for rollback / unread copies) ----
 Ward.hasMany(WardChatGroup, { foreignKey:'wardId', as:'chatGroups' });
 WardChatGroup.belongsTo(Ward, { foreignKey:'wardId', as:'ward' });
-User.hasMany(WardChatGroup, { foreignKey:'nagarsevakUserId', as:'nagarsevakGroups' });
+User.hasMany(WardChatGroup, { foreignKey:'nagarsevakUserId', as:'nagarsevakGroupsLegacy' });
 WardChatGroup.belongsTo(User, { foreignKey:'nagarsevakUserId', as:'nagarsevak' });
-User.hasMany(WardChatGroup, { foreignKey:'createdByUserId', as:'createdChatGroups' });
+User.hasMany(WardChatGroup, { foreignKey:'createdByUserId', as:'createdChatGroupsLegacy' });
 WardChatGroup.belongsTo(User, { foreignKey:'createdByUserId', as:'createdBy' });
 WardChatGroup.hasMany(WardChatGroupMember, { foreignKey:'groupId', as:'members' });
 WardChatGroupMember.belongsTo(WardChatGroup, { foreignKey:'groupId', as:'group' });
-User.hasMany(WardChatGroupMember, { foreignKey:'userId', as:'chatMemberships' });
+User.hasMany(WardChatGroupMember, { foreignKey:'userId', as:'chatMembershipsLegacy' });
 WardChatGroupMember.belongsTo(User, { foreignKey:'userId', as:'user' });
 WardChatGroup.hasMany(WardChatMessage, { foreignKey:'groupId', as:'messages' });
 WardChatMessage.belongsTo(WardChatGroup, { foreignKey:'groupId', as:'group' });
-User.hasMany(WardChatMessage, { foreignKey:'senderUserId', as:'chatMessages' });
+User.hasMany(WardChatMessage, { foreignKey:'senderUserId', as:'chatMessagesLegacy' });
 WardChatMessage.belongsTo(User, { foreignKey:'senderUserId', as:'sender' });
+
+// ---- All chat (ward community) ----
+Ward.hasMany(AllChat, { foreignKey:'wardId', as:'allChats' });
+AllChat.belongsTo(Ward, { foreignKey:'wardId', as:'ward' });
+User.hasMany(AllChat, { foreignKey:'createdByUserId', as:'createdAllChats' });
+AllChat.belongsTo(User, { foreignKey:'createdByUserId', as:'createdBy' });
+AllChat.hasMany(AllChatMember, { foreignKey:'groupId', as:'members' });
+AllChatMember.belongsTo(AllChat, { foreignKey:'groupId', as:'group' });
+User.hasMany(AllChatMember, { foreignKey:'userId', as:'allChatMemberships' });
+AllChatMember.belongsTo(User, { foreignKey:'userId', as:'user' });
+AllChat.hasMany(AllChatMessage, { foreignKey:'groupId', as:'messages' });
+AllChatMessage.belongsTo(AllChat, { foreignKey:'groupId', as:'group' });
+User.hasMany(AllChatMessage, { foreignKey:'senderUserId', as:'allChatMessages' });
+AllChatMessage.belongsTo(User, { foreignKey:'senderUserId', as:'sender' });
+
+// ---- Group chat (Nagarsevak + custom) ----
+Ward.hasMany(GroupChat, { foreignKey:'wardId', as:'groupChats' });
+GroupChat.belongsTo(Ward, { foreignKey:'wardId', as:'ward' });
+User.hasMany(GroupChat, { foreignKey:'nagarsevakUserId', as:'nagarsevakGroups' });
+GroupChat.belongsTo(User, { foreignKey:'nagarsevakUserId', as:'nagarsevak' });
+User.hasMany(GroupChat, { foreignKey:'createdByUserId', as:'createdChatGroups' });
+GroupChat.belongsTo(User, { foreignKey:'createdByUserId', as:'createdBy' });
+GroupChat.hasMany(GroupChatMember, { foreignKey:'groupId', as:'members' });
+GroupChatMember.belongsTo(GroupChat, { foreignKey:'groupId', as:'group' });
+User.hasMany(GroupChatMember, { foreignKey:'userId', as:'groupChatMemberships' });
+GroupChatMember.belongsTo(User, { foreignKey:'userId', as:'user' });
+GroupChat.hasMany(GroupChatMessage, { foreignKey:'groupId', as:'messages' });
+GroupChatMessage.belongsTo(GroupChat, { foreignKey:'groupId', as:'group' });
+User.hasMany(GroupChatMessage, { foreignKey:'senderUserId', as:'groupChatMessages' });
+GroupChatMessage.belongsTo(User, { foreignKey:'senderUserId', as:'sender' });
 
 Ward.hasMany(WardNagarsevakSubscription, { foreignKey: 'wardId', as: 'nagarsevakSubscriptions' });
 WardNagarsevakSubscription.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
@@ -203,5 +239,11 @@ module.exports = {
   WardChatGroup,
   WardChatGroupMember,
   WardChatMessage,
+  AllChat,
+  AllChatMember,
+  AllChatMessage,
+  GroupChat,
+  GroupChatMember,
+  GroupChatMessage,
   WardNagarsevakSubscription,
 };

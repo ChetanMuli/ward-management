@@ -1,11 +1,50 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
 const { User, Role, Ward, Employee } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions');
 const { syncWardCommunityMembership } = require('../../services/wardActivation.service');
+const otpStore = require('../../services/otp.service');
+
+const COMPANY = 'Kairo IT Solutions PVT LTD';
+const STAFF_ROLES = new Set(['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE', 'SOCIAL_WORKER', 'CANDIDATE']);
+const STAFF_RESET_MESSAGE = `Staff passwords are reset by ${COMPANY}. Nagarsevak, Employee, Sub Master Admin and Master Admin accounts cannot be recovered from this screen. Please contact our team.`;
+
+function echoOtpEnabled() {
+  return process.env.NODE_ENV !== 'production' || process.env.AUTH_OTP_ECHO === '1';
+}
+
+function maskDestination(value, channel) {
+  const raw = String(value || '');
+  if (channel === 'mobile') {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length < 4) return 'your registered mobile';
+    return `${digits.slice(0, 2)}******${digits.slice(-2)}`;
+  }
+  const [name, domain] = raw.split('@');
+  if (!name || !domain) return 'your registered email';
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
+async function findAccount(identifier) {
+  const raw = String(identifier || '').trim();
+  const email = raw.toLowerCase();
+  const mobile = raw.replace(/\D/g, '');
+  const clauses = [];
+  if (email.includes('@')) clauses.push({ email });
+  if (mobile.length === 10) clauses.push({ mobile });
+  if (!clauses.length) {
+    clauses.push({ email });
+    if (mobile) clauses.push({ mobile });
+  }
+  return User.findOne({
+    where: { [Op.or]: clauses },
+    include: [{ model: Role }],
+  });
+}
 
 function issueToken(user) {
   // The browser enforces the 30-minute inactivity policy. Keep the JWT long enough
@@ -161,4 +200,65 @@ const updateProfile = asyncHandler(async(req,res)=>{
   await user.update(patch);
   return success(res,{data:{id:user.id,name:user.name,email:user.email,mobile:user.mobile},message:'Profile updated'});
 });
-module.exports = { login, updateProfile, changePassword, registrationWards, registerCitizen };
+
+const forgotRequest = asyncHandler(async (req, res) => {
+  const identifier = String(req.body.identifier || '').trim();
+  const channel = String(req.body.channel || 'email').toLowerCase() === 'mobile' ? 'mobile' : 'email';
+  const audience = String(req.body.audience || 'citizen').toLowerCase() === 'staff' ? 'staff' : 'citizen';
+  if (!identifier) throw new ApiError(400, 'Email or mobile is required');
+
+  if (audience === 'staff') {
+    return success(res, {
+      message: STAFF_RESET_MESSAGE,
+      data: { requiresSupport: true, company: COMPANY },
+    });
+  }
+
+  const user = await findAccount(identifier);
+  const roleName = user?.Role?.name || '';
+  if (user && STAFF_ROLES.has(roleName)) {
+    return success(res, {
+      message: STAFF_RESET_MESSAGE,
+      data: { requiresSupport: true, company: COMPANY },
+    });
+  }
+
+  const generic = 'If an account exists for this email or mobile, we sent a verification code.';
+  if (!user || roleName !== 'CITIZEN' || user.status !== 'ACTIVE') {
+    return success(res, { message: generic, data: { sent: true, channel } });
+  }
+
+  const destination = channel === 'mobile' ? user.mobile : user.email;
+  const otp = await otpStore.issue(`${user.id}:${channel}`, { userId: user.id, channel });
+  console.info(`[auth] password reset ${channel} code for ${user.email || user.mobile}: ${otp}`);
+  return success(res, {
+    message: `${generic} Check ${maskDestination(destination, channel)}.`,
+    data: {
+      sent: true,
+      channel,
+      destination: maskDestination(destination, channel),
+      ...(echoOtpEnabled() ? { debugOtp: otp } : {}),
+    },
+  });
+});
+
+const forgotReset = asyncHandler(async (req, res) => {
+  const identifier = String(req.body.identifier || '').trim();
+  const otp = String(req.body.otp || '').trim();
+  const password = String(req.body.password || '');
+  const confirmPassword = String(req.body.confirmPassword || '');
+  const channel = String(req.body.channel || 'email').toLowerCase() === 'mobile' ? 'mobile' : 'email';
+  if (password.length < 8) throw new ApiError(400, 'New password must be at least 8 characters');
+  if (password !== confirmPassword) throw new ApiError(400, 'Password and confirm password do not match');
+
+  const user = await findAccount(identifier);
+  if (!user || user.Role?.name !== 'CITIZEN') {
+    throw new ApiError(400, 'Invalid verification code.');
+  }
+  const checked = await otpStore.consume(`${user.id}:${channel}`, otp);
+  if (!checked.ok) throw new ApiError(400, checked.reason);
+  await user.update({ passwordHash: await bcrypt.hash(password, 12) });
+  return success(res, { message: 'Password updated. You can now sign in.' });
+});
+
+module.exports = { login, updateProfile, changePassword, registrationWards, registerCitizen, forgotRequest, forgotReset };

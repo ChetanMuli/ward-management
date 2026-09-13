@@ -37,6 +37,19 @@ router.post('/auth/register',registrationLimiter,[
 ],validate,auth.registerCitizen);
 
 router.post('/auth/login',[body('identifier').trim().notEmpty().withMessage('Email or mobile is required'),body('password').notEmpty().withMessage('Password is required')],validate,auth.login);
+const forgotLimiter=rateLimit({windowMs:15*60*1000,max:8,standardHeaders:true,legacyHeaders:false});
+router.post('/auth/forgot/request',forgotLimiter,[
+  body('identifier').trim().notEmpty().withMessage('Email or mobile is required'),
+  body('channel').optional().isIn(['email','mobile']),
+  body('audience').optional().isIn(['citizen','staff'])
+],validate,auth.forgotRequest);
+router.post('/auth/forgot/reset',forgotLimiter,[
+  body('identifier').trim().notEmpty().withMessage('Email or mobile is required'),
+  body('otp').isLength({min:6,max:6}).withMessage('Enter the 6-digit code'),
+  body('password').isLength({min:8}).withMessage('Password must be at least 8 characters'),
+  body('confirmPassword').custom((v,{req})=>v===req.body.password).withMessage('Passwords do not match'),
+  body('channel').optional().isIn(['email','mobile'])
+],validate,auth.forgotReset);
 router.use(authenticateV2);
 router.get('/permissions',staff.permissions);
 // Community Members are an administration-only module. Keep its API explicit

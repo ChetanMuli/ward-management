@@ -5,13 +5,14 @@ import {ErrorBox,Loading,Modal,PageHeader,SearchableSelect,initialsOf} from '../
 import {can,isMaster,isSubMaster,isNagarsevak,roleOf} from '../rbac';
 import {useWardFilter} from '../wardFilter';
 
+function isAllChat(g){return g?.type==='WARD'||g?.channel==='ALL'}
 function groupTitle(g){
-  if(g.type==='WARD') return g.ward ? `${g.ward.wardNumber}${g.ward.name?` · ${g.ward.name}`:''}` : (g.name||'Ward Community');
+  if(isAllChat(g)) return g.ward ? `${g.ward.wardNumber}${g.ward.name?` · ${g.ward.name}`:''}` : (g.name||'All chat');
   if(g.type==='NAGARSEVAK') return g.nagarsevak?.name || g.name || 'Nagarsevak';
   return g.name;
 }
 function groupSubtitle(g){
-  if(g.type==='WARD') return 'Community · all members & Nagarsevaks';
+  if(isAllChat(g)) return 'All chat · everyone in this ward';
   if(g.type==='NAGARSEVAK') return 'Nagarsevak group · ward members';
   return g.mode==='BROADCAST'?'Broadcast group':'Community group';
 }
@@ -47,12 +48,12 @@ function GroupPage(){
   if(!wardId) return [];
   const base=(groups||[]).filter(g=>String(g.wardId)===String(wardId));
   return base.filter(g=>{
-   if(citizen) return g.type==='WARD'||g.type==='NAGARSEVAK';
-   if(!search.trim()) return true;
-   const q=search.trim().toLowerCase();
-   return [g.name,g.ward?.wardNumber,g.ward?.name,g.nagarsevak?.name].filter(Boolean).some(v=>String(v).toLowerCase().includes(q));
-  }).sort((a,b)=>{
-   const rank=g=>g.type==='WARD'?0:g.type==='NAGARSEVAK'?1:2;
+    if(citizen) return isAllChat(g)||g.type==='NAGARSEVAK';
+    if(!search.trim()) return true;
+    const q=search.trim().toLowerCase();
+    return [g.name,g.ward?.wardNumber,g.ward?.name,g.nagarsevak?.name].filter(Boolean).some(v=>String(v).toLowerCase().includes(q));
+   }).sort((a,b)=>{
+    const rank=g=>isAllChat(g)?0:g.type==='NAGARSEVAK'?1:2;
    return rank(a)-rank(b)||groupTitle(a).localeCompare(groupTitle(b));
   });
  },[groups,wardId,search,citizen]);
@@ -81,7 +82,7 @@ function GroupPage(){
   const source=nagarsevakId
     ? accessibleGroups.filter(g=>g.type==='NAGARSEVAK'&&String(g.nagarsevakUserId)===String(nagarsevakId))
     : accessibleGroups;
-  return source.map(g=>({value:String(g.id),label:`${groupTitle(g)} · ${g.type==='WARD'?'Community':g.type==='NAGARSEVAK'?'Nagarsevak group':'Group'}`}));
+  return source.map(g=>({value:String(g.id),label:`${groupTitle(g)} · ${isAllChat(g)?'All chat':g.type==='NAGARSEVAK'?'Nagarsevak group':'Group'}`}));
  },[accessibleGroups,nagarsevakId]);
 
  useEffect(()=>{
@@ -161,7 +162,7 @@ function GroupPage(){
 
  if(!groups)return <Loading/>;
  return <div className={`groups-page ${chatOpen?'chat-open':''}`}>
-  <PageHeader kicker="Chat" title="Groups & Chat" subtitle={citizen?(accessibleGroups.some(g=>g.type==='NAGARSEVAK')?'Ward Community and your Nagarsevak group.':'Ward Community is available. Your Nagarsevak chat will appear here when your ward representative is available.'):councillor?'Your ward community and your personal Nagarsevak group. Other Nagarsevak chats stay private to them.':'WhatsApp-style ward chats. Community includes everyone; each active Nagarsevak has one personal group.'} action={canCreate?<button className="primary-btn" onClick={()=>setCreate(true)}>+ Create group</button>:null}/>
+  <PageHeader kicker="Chat" title="All chat & Groups" subtitle={citizen?(accessibleGroups.some(g=>g.type==='NAGARSEVAK')?'Ward All chat and your Nagarsevak group.':'All chat is available. Your Nagarsevak group will appear here when your ward representative is available.'):councillor?'Your ward All chat and your personal Nagarsevak group. Other Nagarsevak chats stay private to them.':'All chat includes everyone in the ward. Groups are Nagarsevak and custom chats.'} action={canCreate?<button className="primary-btn" onClick={()=>setCreate(true)}>+ Create group</button>:null}/>
   <ErrorBox error={error}/>
 
  {!citizen&&!councillor&&<><div className="group-filters">
@@ -174,24 +175,35 @@ function GroupPage(){
 
   <div className="group-layout wa-chat">
    <aside className="group-list">
-    <div className="group-section-title">Chats <span>{filteredGroups.length}</span></div>
-    {!wardId?<div className="group-no-items">Select a ward to view its groups.</div>:!filteredGroups.length?<div className="group-no-items">No groups in this ward yet.</div>:filteredGroups.map(g=>{
-      const last=messages.length&&active?.id===g.id?messages[messages.length-1]:null;
-      return <button key={g.id} className={`group-item wa-item ${active?.id===g.id?'active':''}`} onClick={()=>openGroup(g)}>
-       <span className={`wa-avatar ${g.type==='WARD'?'community':g.type==='NAGARSEVAK'?'nagar':''}`}>{g.type==='WARD'?'W':initialsOf(groupTitle(g))}</span>
-       <span className="wa-item-copy">
-        <strong>{groupTitle(g)}</strong>
-        <small>{last?lastPreview(last):groupSubtitle(g)}</small>
-       </span>
-      </button>;
-    })}
+    {(() => {
+      const allChats=filteredGroups.filter(isAllChat);
+      const groupChats=filteredGroups.filter(g=>!isAllChat(g));
+      const item=(g)=>{
+        const last=messages.length&&active?.id===g.id?messages[messages.length-1]:null;
+        return <button key={g.id} className={`group-item wa-item ${active?.id===g.id?'active':''}`} onClick={()=>openGroup(g)}>
+         <span className={`wa-avatar ${isAllChat(g)?'community':g.type==='NAGARSEVAK'?'nagar':''}`}>{isAllChat(g)?'W':initialsOf(groupTitle(g))}</span>
+         <span className="wa-item-copy">
+          <strong>{groupTitle(g)}</strong>
+          <small>{last?lastPreview(last):groupSubtitle(g)}</small>
+         </span>
+        </button>;
+      };
+      if(!wardId) return <div className="group-no-items">Select a ward to view its chats.</div>;
+      if(!filteredGroups.length) return <div className="group-no-items">No chats in this ward yet.</div>;
+      return <>
+       <div className="group-section-title">All chat <span>{allChats.length}</span></div>
+       {allChats.length?allChats.map(item):<div className="group-no-items">No All chat for this ward yet.</div>}
+       <div className="group-section-title">Groups <span>{groupChats.length}</span></div>
+       {groupChats.length?groupChats.map(item):<div className="group-no-items">No groups in this ward yet.</div>}
+      </>;
+    })()}
    </aside>
    <section className="group-chat-panel">
     {!active?<div className="group-empty">Select a chat to start messaging.</div>:<>
       <header className="group-chat-header">
        <button type="button" className="wa-back" onClick={()=>setChatOpen(false)} aria-label="Back to chats">‹</button>
-       <div className={`wa-avatar ${active.type==='WARD'?'community':active.type==='NAGARSEVAK'?'nagar':''}`}>{active.type==='WARD'?'W':initialsOf(groupTitle(active))}</div>
-       <div className="wa-head-copy"><span className="eyebrow">{active.type==='WARD'?'COMMUNITY':active.type==='NAGARSEVAK'?'NAGARSEVAK GROUP':'GROUP'}</span><h2>{groupTitle(active)}</h2><p>{groupSubtitle(active)}{active.ward?.wardNumber?` · ${active.ward.wardNumber}`:''}</p></div>
+       <div className={`wa-avatar ${isAllChat(active)?'community':active.type==='NAGARSEVAK'?'nagar':''}`}>{isAllChat(active)?'W':initialsOf(groupTitle(active))}</div>
+       <div className="wa-head-copy"><span className="eyebrow">{isAllChat(active)?'ALL CHAT':active.type==='NAGARSEVAK'?'NAGARSEVAK GROUP':'GROUP'}</span><h2>{groupTitle(active)}</h2><p>{groupSubtitle(active)}{active.ward?.wardNumber?` · ${active.ward.wardNumber}`:''}</p></div>
        <div className="card-actions">{active.isMember&&<button className="small-btn" onClick={async()=>{if(!window.confirm('Clear this chat only for your account? Other users will keep their chat history.'))return;try{await api.clearChat(active.id);setMessages([])}catch(e){setError(e.message)}}}>Clear</button>}{active.type==='CUSTOM'&&active.isMember&&<button className="small-btn" onClick={()=>api.leaveChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Leave</button>}{active.type==='CUSTOM'&&!active.isMember&&<button className="small-btn" onClick={()=>api.joinChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Join</button>}{active.canManage&&active.type==='CUSTOM'&&<button className="small-btn danger" onClick={()=>removeGroup(active)}>Archive</button>}</div>
       </header>
       <div className="group-messages wa-messages">{!active.isMember?<div className="group-empty">Join this group to view and send messages.</div>:!messages.length?<div className="group-empty">No messages yet. Say hello to the group.</div>:messages.map(m=><div key={m.id} className={`group-message ${m.senderUserId===user?.id?'mine':''}`}><div className="group-bubble"><strong>{m.senderUserId===user?.id?'You':m.sender?.name||'User'}</strong>{m.messageType==='IMAGE'?<ChatAttachment groupId={active.id} messageId={m.id} type="IMAGE"/>:m.messageType==='VIDEO'?<ChatAttachment groupId={active.id} messageId={m.id} type="VIDEO"/>:m.messageType==='PDF'?<ChatAttachment groupId={active.id} messageId={m.id} type="PDF"/>:<p>{m.content}</p>}<small>{m.createdAt?new Date(m.createdAt).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}):''}</small></div></div>)}<div ref={bottom}/></div>
@@ -200,7 +212,7 @@ function GroupPage(){
    </section>
   </div>
 
-  {create&&<Modal title="Create community group" onClose={()=>setCreate(false)}><form className="form-grid" onSubmit={createGroup}><label className="span-2">Group name<input required maxLength="160" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Ward Development Team"/></label>{(master||sub)&&<div className="span-2"><SearchableSelect label="Ward" value={form.wardId} onChange={v=>setForm({...form,wardId:v})} options={wardOptions} placeholder="Select ward"/></div>}<label className="span-2">Group type<select value={form.mode} onChange={e=>setForm({...form,mode:e.target.value})}><option value="CHAT">Community chat — everyone can send</option><option value="BROADCAST">Broadcast — only group owner/admin can send</option></select></label><div className="info-note span-2">Ward members are added automatically. Each Nagarsevak already has a personal group, and one community chat includes every member and every Nagarsevak.</div><div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>setCreate(false)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Creating…':'Create group'}</button></div></form></Modal>}
+  {create&&<Modal title="Create group" onClose={()=>setCreate(false)}><form className="form-grid" onSubmit={createGroup}><label className="span-2">Group name<input required maxLength="160" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Ward Development Team"/></label>{(master||sub)&&<div className="span-2"><SearchableSelect label="Ward" value={form.wardId} onChange={v=>setForm({...form,wardId:v})} options={wardOptions} placeholder="Select ward"/></div>}<label className="span-2">Group type<select value={form.mode} onChange={e=>setForm({...form,mode:e.target.value})}><option value="CHAT">Group chat — everyone can send</option><option value="BROADCAST">Broadcast — only group owner/admin can send</option></select></label><div className="info-note span-2">Ward members are added automatically. All chat stays separate from these groups. Each Nagarsevak already has a personal group.</div><div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>setCreate(false)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Creating…':'Create group'}</button></div></form></Modal>}
  </div>
 }
 function ChatAttachment({groupId,messageId,type}){
