@@ -1,11 +1,44 @@
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { Notification, User, Role } = require('../models');
+const outbound = require('./outbound.service');
+
+function queueOutbound(userIds, payload) {
+  const ids = [...new Set((userIds || []).filter(Boolean).map(String))]
+    .filter((id) => id !== String(payload?.senderUserId || ''));
+  if (!ids.length || payload?.outbound === false) return;
+  if (!outbound.isConfigured()) return;
+  setImmediate(() => {
+    deliverOutbound(ids, payload).catch((err) => {
+      console.error('[OUTBOUND QUEUE FAILURE]', err.message);
+    });
+  });
+}
+
+async function deliverOutbound(userIds, payload) {
+  const users = await User.findAll({
+    where: { id: { [Op.in]: userIds } },
+    attributes: ['id', 'name', 'email', 'mobile'],
+  });
+  for (const user of users) {
+    try {
+      await outbound.deliverNotice({
+        email: user.email,
+        mobile: user.mobile,
+        title: payload.title,
+        message: payload.message,
+      });
+    } catch (err) {
+      console.error('[OUTBOUND USER FAILURE]', { userId: user.id, error: err.message });
+    }
+  }
+}
 
 async function notifyUser({ userId, type, title, message, senderUserId = null, actionUrl = null, channel = 'IN_APP' }) {
   if (!userId) return null;
+  if (senderUserId && String(userId) === String(senderUserId)) return null;
   try {
-    return await Notification.create({
+    const row = await Notification.create({
       userId,
       senderUserId,
       type,
@@ -16,6 +49,8 @@ async function notifyUser({ userId, type, title, message, senderUserId = null, a
       sentAt: new Date(),
       actionUrl,
     });
+    queueOutbound([userId], { title, message, senderUserId });
+    return row;
   } catch (err) {
     console.error('[NOTIFY FAILURE]', { userId, type, error: err.message });
     return null;
@@ -41,6 +76,7 @@ async function notifyUsers(userIds, payload) {
     for (let i = 0; i < rows.length; i += 200) {
       await Notification.bulkCreate(rows.slice(i, i + 200), { ignoreDuplicates: true });
     }
+    queueOutbound(ids, payload);
     return rows.length;
   } catch (err) {
     console.error('[NOTIFY BULK FAILURE]', { count: ids.length, type: payload.type, error: err.message });

@@ -3966,3 +3966,85 @@ html body .row-menu-scrim{display:none}
     height:44px !important;
   }
 }
+
+/* Clear chat stays visible for every role; login links stay on one aligned grid */
+html body .groups-page .wa-clear-btn{
+  flex:0 0 auto !important;
+  min-width:64px !important;
+  height:34px !important;
+  min-height:34px !important;
+  margin:0 !important;
+  padding:0 12px !important;
+  border:1px solid rgba(255,255,255,.38) !important;
+  border-radius:999px !important;
+  background:transparent !important;
+  color:#fff !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  letter-spacing:.02em !important;
+}
+html body .groups-page .wa-clear-btn:hover{background:rgba(255,255,255,.12) !important}
+html body .groups-page .group-chat-header .wa-head-copy h2{
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+html body .login-page-v2.auth-simple .auth-login-links{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  align-items:center !important;
+  justify-items:stretch !important;
+  gap:4px 12px !important;
+  width:100% !important;
+  margin-top:16px !important;
+}
+html body .login-page-v2.auth-simple .auth-login-links .link-btn{
+  width:100% !important;
+  min-height:40px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:8px 4px !important;
+  text-decoration:none !important;
+  text-align:center !important;
+}
+html body .login-page-v2.auth-simple .auth-login-links.is-resident .link-btn:last-child{
+  grid-column:1 / -1 !important;
+}
+
+@media (max-width:800px){
+  html body .groups-page .group-chat-header .wa-clear-btn{
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    height:36px !important;
+    min-height:36px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-forgot-row{display:none !important}
+  html body .login-page-v2.auth-simple .auth-simple-links,
+  html body .login-page-v2.auth-simple.admin-login .auth-simple-links{
+    flex-direction:row !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+  }
+  html body .login-page-v2.auth-simple .auth-login-links,
+  html body .login-page-v2.auth-simple.admin-login .auth-login-links{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    align-items:center !important;
+    gap:2px 8px !important;
+    width:100% !important;
+    margin-top:14px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-login-links .link-btn,
+  html body .login-page-v2.auth-simple.admin-login .auth-login-links .link-btn{
+    width:100% !important;
+    min-height:40px !important;
+    height:auto !important;
+    justify-content:center !important;
+    padding:8px 4px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-login-links.is-resident .link-btn:last-child{
+    grid-column:1 / -1 !important;
+  }
+}

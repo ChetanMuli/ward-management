@@ -177,10 +177,14 @@ const send = asyncHandler(async(req,res)=>{
 
   users=users.filter(u=>u.id!==req.user.id);
   if(!users.length) throw new ApiError(400,'No active recipients were found');
-  await Notification.bulkCreate(users.map(u=>({
-    userId:u.id,type:'DIRECT_MESSAGE',channel:'IN_APP',title,message,
-    senderUserId:req.user.id,sentAt:new Date(),actionUrl:'/groups'
-  })));
+  const { notifyUsers } = require('../../services/notify.service');
+  await notifyUsers(users.map(u=>u.id), {
+    senderUserId: req.user.id,
+    type: 'DIRECT_MESSAGE',
+    title,
+    message,
+    actionUrl: '/groups',
+  });
   return success(res,{message:`Message sent to ${users.length} recipient${users.length===1?'':'s'}`,data:{recipientCount:users.length}});
 });
 
@@ -227,9 +231,16 @@ const sendScheme = asyncHandler(async(req,res)=>{
   if(!title) throw new ApiError(400,'Notification title is required');
   if(!message) throw new ApiError(400,'Notification message is required');
 
-  const rows=eligible.filter(u=>u.id!==req.user.id).map(u=>({userId:u.id,type:'SCHEME_MESSAGE',channel:'IN_APP',title,message,senderUserId:req.user.id,sentAt:new Date(),actionUrl:'/schemes'}));
-  if(rows.length) await Notification.bulkCreate(rows);
+  const ids=eligible.filter(u=>u.id!==req.user.id).map(u=>u.id);
+  const { notifyUsers } = require('../../services/notify.service');
+  await notifyUsers(ids, {
+    senderUserId: req.user.id,
+    type: 'SCHEME_MESSAGE',
+    title,
+    message,
+    actionUrl: '/schemes',
+  });
 
-  return success(res,{message:`Scheme notification sent to ${rows.length} residents of ${scheme.ward?.wardNumber||'the publishing ward'}`,data:{recipientCount:rows.length,wardId:targetWardId,ward:scheme.ward}});
+  return success(res,{message:`Scheme notification sent to ${ids.length} residents of ${scheme.ward?.wardNumber||'the publishing ward'}`,data:{recipientCount:ids.length,wardId:targetWardId,ward:scheme.ward}});
 });
 module.exports={list,markRead,markAllRead,clearAll,send,recipients,sendScheme,schemeRecipients};

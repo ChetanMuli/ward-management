@@ -154,6 +154,14 @@ function GroupPage(){
   }catch(e){setError('Could not read the selected attachment.');}
  }
  async function removeGroup(g){if(!window.confirm(`Archive “${g.name}”?`))return;setBusy(true);try{await api.deleteChatGroup(g.id);await loadGroups()}catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function clearMyChat(){
+  if(!active) return;
+  if(!window.confirm('Clear this chat only on your account? Other people keep their messages. Chats older than 40 days are deleted for everyone.')) return;
+  try{
+   await api.clearChat(active.id);
+   setMessages([]);
+  }catch(e){setError(e.message)}
+ }
  function openGroup(g){setActive(g);setChatOpen(true)}
 
  const wardOptions=wards.map(w=>({value:String(w.id),label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}));
@@ -204,7 +212,8 @@ function GroupPage(){
        <button type="button" className="wa-back" onClick={()=>setChatOpen(false)} aria-label="Back to chats">‹</button>
        <div className={`wa-avatar ${isAllChat(active)?'community':active.type==='NAGARSEVAK'?'nagar':''}`}>{isAllChat(active)?'W':initialsOf(groupTitle(active))}</div>
        <div className="wa-head-copy"><span className="eyebrow">{isAllChat(active)?'ALL CHAT':active.type==='NAGARSEVAK'?'NAGARSEVAK GROUP':'GROUP'}</span><h2>{groupTitle(active)}</h2><p>{groupSubtitle(active)}{active.ward?.wardNumber?` · ${active.ward.wardNumber}`:''}</p></div>
-       <div className="card-actions">{active.isMember&&<button className="small-btn" onClick={async()=>{if(!window.confirm('Clear this chat only for your account? Other users will keep their chat history.'))return;try{await api.clearChat(active.id);setMessages([])}catch(e){setError(e.message)}}}>Clear</button>}{active.type==='CUSTOM'&&active.isMember&&<button className="small-btn" onClick={()=>api.leaveChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Leave</button>}{active.type==='CUSTOM'&&!active.isMember&&<button className="small-btn" onClick={()=>api.joinChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Join</button>}{active.canManage&&active.type==='CUSTOM'&&<button className="small-btn danger" onClick={()=>removeGroup(active)}>Archive</button>}</div>
+       {(active.isMember||master||sub||active.type!=='CUSTOM')&&<button type="button" className="wa-clear-btn" onClick={clearMyChat}>Clear</button>}
+       <div className="card-actions">{active.type==='CUSTOM'&&active.isMember&&<button className="small-btn" onClick={()=>api.leaveChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Leave</button>}{active.type==='CUSTOM'&&!active.isMember&&<button className="small-btn" onClick={()=>api.joinChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Join</button>}{active.canManage&&active.type==='CUSTOM'&&<button className="small-btn danger" onClick={()=>removeGroup(active)}>Archive</button>}</div>
       </header>
       <div className="group-messages wa-messages">{!active.isMember?<div className="group-empty">Join this group to view and send messages.</div>:!messages.length?<div className="group-empty">No messages yet. Say hello to the group.</div>:messages.map(m=><div key={m.id} className={`group-message ${m.senderUserId===user?.id?'mine':''}`}><div className="group-bubble"><strong>{m.senderUserId===user?.id?'You':m.sender?.name||'User'}</strong>{m.messageType==='IMAGE'?<ChatAttachment groupId={active.id} messageId={m.id} type="IMAGE"/>:m.messageType==='VIDEO'?<ChatAttachment groupId={active.id} messageId={m.id} type="VIDEO"/>:m.messageType==='PDF'?<ChatAttachment groupId={active.id} messageId={m.id} type="PDF"/>:<p>{m.content}</p>}<small>{m.createdAt?new Date(m.createdAt).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}):''}</small></div></div>)}<div ref={bottom}/></div>
       {canSend&&<div className="group-composer wa-composer">{pendingAttachment&&<div className="pending-chat-image"><span>{pendingAttachment.type==='PDF'?'📄':pendingAttachment.type==='VIDEO'?'🎬':'📷'} {pendingAttachment.name}</span><button type="button" className="small-btn danger" onClick={()=>{setPendingAttachment(null);if(fileRef.current)fileRef.current.value=''}}>Remove</button></div>}<div className="wa-compose-row"><label className="chat-image-picker wa-attach" title="Attach photo, video or PDF">📎<input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,application/pdf,.pdf,.mp4,.webm,.mov" onChange={e=>chooseAttachment(e.target.files?.[0])}/></label><textarea rows="1" value={compose} onChange={e=>setCompose(e.target.value)} placeholder="Type a message" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}/><button className="primary-btn wa-send" disabled={busy||(!compose.trim()&&!pendingAttachment)} onClick={send}>{busy?'…':'Send'}</button></div></div>}

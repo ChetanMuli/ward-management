@@ -10,7 +10,9 @@ function allowedWardIds(req) {
 function isWardAllowed(req, wardId) {
   if (!wardId) return false;
   const ids=allowedWardIds(req);
-  return ids===null || ids.includes(wardId);
+  if (ids===null) return true;
+  const id=String(wardId);
+  return ids.map(String).includes(id);
 }
 async function getScope(req) {
   const ids=allowedWardIds(req);

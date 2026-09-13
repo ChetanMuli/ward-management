@@ -8,6 +8,7 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions');
 const { syncWardCommunityMembership } = require('../../services/wardActivation.service');
 const otpStore = require('../../services/otp.service');
+const outbound = require('../../services/outbound.service');
 
 const COMPANY = 'Kairo IT Solutions PVT LTD';
 const STAFF_ROLES = new Set(['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE', 'SOCIAL_WORKER', 'CANDIDATE']);
@@ -230,7 +231,19 @@ const forgotRequest = asyncHandler(async (req, res) => {
 
   const destination = channel === 'mobile' ? user.mobile : user.email;
   const otp = await otpStore.issue(`${user.id}:${channel}`, { userId: user.id, channel });
-  console.info(`[auth] password reset ${channel} code for ${user.email || user.mobile}: ${otp}`);
+  const delivered = await outbound.deliverOtp({
+    channel,
+    email: user.email,
+    mobile: user.mobile,
+    otp,
+    name: user.name,
+  });
+  if (!delivered?.ok) {
+    console.warn(`[auth] password reset ${channel} code was not delivered by email/SMS`);
+  }
+  if (echoOtpEnabled()) {
+    console.info(`[auth] password reset ${channel} code for ${user.email || user.mobile}: ${otp}`);
+  }
   return success(res, {
     message: `${generic} Check ${maskDestination(destination, channel)}.`,
     data: {

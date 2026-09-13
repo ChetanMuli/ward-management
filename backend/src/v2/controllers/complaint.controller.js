@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
-const { Complaint, ComplaintHistory, House, Area, Ward, Employee, User, Role, Person, Family, Notification } = require('../../models');
+const { Complaint, ComplaintHistory, House, Area, Ward, Employee, User, Role, Person, Family } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -23,12 +23,8 @@ async function complaintWithContext(id){
   ]});
 }
 async function notify(userId,type,title,message,channel='IN_APP',senderUserId=null,actionUrl=null){
-  if(!userId || String(userId)===String(senderUserId||'')) return;
-  try{
-    await Notification.create({userId,type,channel,title,message,senderUserId,isRead:false,sentAt:new Date(),actionUrl});
-  }catch(err){
-    console.error('[NOTIFY]', err.message);
-  }
+  const { notifyUser } = require('../../services/notify.service');
+  await notifyUser({ userId, type, title, message, senderUserId, actionUrl, channel });
 }
 function prettyStatus(status){
   return String(status||'').replaceAll('_',' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());

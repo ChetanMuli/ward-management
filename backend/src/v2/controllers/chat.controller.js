@@ -16,20 +16,26 @@ const RETENTION_DAYS = 40;
 
 async function cleanupOldMessages() {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  const old = await Chat.Message.findAll({
-    where: { createdAt: { [Op.lt]: cutoff } },
-    attributes: ['id', 'imagePath'],
-    limit: 1000,
-  });
-  if (!old.length) return 0;
-  for (const row of old) {
-    if (row.imagePath) {
-      const file = path.join(uploadDir, path.basename(row.imagePath));
-      try { if (fs.existsSync(file)) fs.unlinkSync(file); } catch (_) {}
+  let removed = 0;
+  for (let batch = 0; batch < 20; batch += 1) {
+    const old = await Chat.Message.findAll({
+      where: { createdAt: { [Op.lt]: cutoff } },
+      attributes: ['id', 'imagePath'],
+      limit: 500,
+    });
+    if (!old.length) break;
+    for (const row of old) {
+      if (row.imagePath) {
+        const file = path.join(uploadDir, path.basename(row.imagePath));
+        try { if (fs.existsSync(file)) fs.unlinkSync(file); } catch (_) {}
+      }
     }
+    await Chat.Message.destroy({ where: { id: { [Op.in]: old.map((x) => x.id) } } });
+    removed += old.length;
+    if (old.length < 500) break;
   }
-  await Chat.Message.destroy({ where: { id: { [Op.in]: old.map(x => x.id) } } });
-  return old.length;
+  if (removed) console.info(`[CHAT] removed ${removed} messages older than ${RETENTION_DAYS} days`);
+  return removed;
 }
 
 // Opportunistic cleanup keeps both DB rows and uploaded images under control.
@@ -170,7 +176,10 @@ async function ensureMembership(groupId, userId, roleName = null) {
     User.findByPk(userId),
   ]);
   if (!group || !user || user.status !== 'ACTIVE') throw new ApiError(404, 'Chat group or user not found');
-  if (group.wardId !== user.wardId && roleName !== 'SUPER_ADMIN') throw new ApiError(403, 'This chat group is outside your ward');
+  const reqLike = { user: { id: user.id, wardId: user.wardId, wardIds: user.wardIds, roleName } };
+  if (group.wardId && !isWardAllowed(reqLike, group.wardId)) {
+    throw new ApiError(403, 'This chat group is outside your ward');
+  }
   if (roleName === 'CITIZEN' && group.wardId && String(group.wardId) !== String(user.wardId)) {
     throw new ApiError(403, 'You can only access chat groups in your registered ward');
   }
@@ -266,7 +275,7 @@ const listGroups = asyncHandler(async (req, res) => {
     : null;
   const allowed = allowedForGroups;
   const visibleRows = rows.filter(g => {
-    const inWard = req.user.roleName === 'SUPER_ADMIN' || g.wardId === req.user.wardId || (allowed && allowed.includes(g.wardId));
+    const inWard = req.user.roleName === 'SUPER_ADMIN' || String(g.wardId) === String(req.user.wardId || '') || (allowed && allowed.map(String).includes(String(g.wardId)));
     if (!inWard) return false;
     if (req.user.roleName === 'NAGARSEVAK') {
       return g.type === 'WARD' || (g.type === 'NAGARSEVAK' && String(g.nagarsevakUserId) === String(req.user.id));
@@ -282,10 +291,13 @@ const listGroups = asyncHandler(async (req, res) => {
   await syncActiveWardMembers(visibleRows);
   const memberships = await Chat.Member.findAll({ where: { userId: req.user.id }, attributes: ['groupId'] });
   const ids = new Set(memberships.map(x => x.groupId));
-  if (req.user.roleName === 'SUPER_ADMIN') visibleRows.forEach(g => ids.add(g.id));
+  if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN') {
+    visibleRows.forEach((g) => ids.add(g.id));
+  }
   const data = visibleRows.map(g => ({
       ...g.toJSON(),
       isMember: ids.has(g.id),
+      canClear: true,
       canManage: req.user.roleName === 'SUPER_ADMIN' || (g.type === 'CUSTOM' && g.createdByUserId === req.user.id),
     }));
   return success(res, { data });

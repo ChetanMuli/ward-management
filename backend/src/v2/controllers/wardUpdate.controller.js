@@ -175,22 +175,18 @@ const create = asyncHandler(async (req, res) => {
 });
 
 async function NotificationBulkCreate(recipients, update, senderUserId) {
-  const rows = recipients
+  const ids = recipients
     .filter(u => u.id !== senderUserId)
-    .map(u => ({
-      userId: u.id,
-      type: update.type === 'EVENT' ? 'WARD_EVENT' : 'WARD_UPDATE',
-      channel: 'IN_APP',
-      title: update.title,
-      message: update.message,
-      senderUserId,
-      sentAt: new Date(),
-       actionUrl: `/ward-updates?open=${update.id}`
-    }));
-  if (rows.length) {
-    const { Notification } = require('../../models');
-    await Notification.bulkCreate(rows);
-  }
+    .map(u => u.id);
+  if (!ids.length) return;
+  const { notifyUsers } = require('../../services/notify.service');
+  await notifyUsers(ids, {
+    senderUserId,
+    type: update.type === 'EVENT' ? 'WARD_EVENT' : 'WARD_UPDATE',
+    title: update.title,
+    message: update.message,
+    actionUrl: `/ward-updates?open=${update.id}`,
+  });
 }
 
 const archive = asyncHandler(async (req, res) => {

@@ -215,18 +215,15 @@ export default function Login({mode='user'}){
     </span>
    </label>
    <PasswordField label="Your password" value={password} onChange={setPassword} placeholder="Enter your password" show={showPassword} onToggle={()=>setShowPassword(v=>!v)}/>
-   <div className="auth-forgot-row">
-    <button type="button" className="link-btn" onClick={openForgot}>Forgot password?</button>
-   </div>
    <button type="submit" className="primary-btn full login-v2-submit" disabled={busy}>
     {busy?'Signing in…':'Sign in'}
    </button>
-   <div className="auth-simple-links">
-    {!admin&&<>
-     <button type="button" className="link-btn" onClick={()=>navigate('/register')}>Create account</button>
-     <button type="button" className="link-btn" onClick={()=>navigate('/admin')}>Staff login</button>
-    </>}
-    {admin&&<button type="button" className="link-btn" onClick={()=>navigate('/login')}>Resident login</button>}
+   <div className={`auth-simple-links auth-login-links ${admin?'is-admin':'is-resident'}`}>
+    {!admin&&<button type="button" className="link-btn" onClick={()=>navigate('/register')}>Create account</button>}
+    <button type="button" className="link-btn" onClick={openForgot}>Forgot password?</button>
+    {admin
+     ? <button type="button" className="link-btn" onClick={()=>navigate('/login')}>Resident login</button>
+     : <button type="button" className="link-btn" onClick={()=>navigate('/admin')}>Staff login</button>}
    </div>
   </form>
  </AuthShell>;
