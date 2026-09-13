@@ -4048,3 +4048,109 @@ html body .login-page-v2.auth-simple .auth-login-links.is-resident .link-btn:las
     grid-column:1 / -1 !important;
   }
 }
+
+html body .login-page-v2.auth-simple .auth-demo-code{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  gap:2px !important;
+  width:100% !important;
+  margin:0 0 14px !important;
+  padding:14px 12px 12px !important;
+  border:1px dashed #86efac !important;
+  border-radius:16px !important;
+  background:#f0fdf4 !important;
+  color:#166534 !important;
+  box-shadow:none !important;
+  text-decoration:none !important;
+}
+html body .login-page-v2.auth-simple .auth-demo-code span{
+  font-size:11px !important;
+  font-weight:800 !important;
+  letter-spacing:.08em !important;
+  text-transform:uppercase !important;
+  color:#15803d !important;
+}
+html body .login-page-v2.auth-simple .auth-demo-code strong{
+  font-size:28px !important;
+  letter-spacing:.32em !important;
+  font-weight:800 !important;
+  line-height:1.2 !important;
+  padding-left:.32em !important;
+}
+html body .login-page-v2.auth-simple .auth-demo-code small{
+  font-size:12px !important;
+  color:#4ade80 !important;
+  font-weight:700 !important;
+}
+html body .login-page-v2.auth-simple .auth-otp-input{
+  justify-content:center !important;
+}
+html body .login-page-v2.auth-simple .auth-otp-input input,
+html body .login-page-v2.auth-simple .auth-otp-input input:focus{
+  text-align:center !important;
+  letter-spacing:.42em !important;
+  font-size:22px !important;
+  font-weight:800 !important;
+  padding-left:18px !important;
+}
+html body .login-page-v2.auth-simple .auth-flow-links{
+  display:flex !important;
+  justify-content:center !important;
+  width:100% !important;
+  margin-top:14px !important;
+}
+html body .login-page-v2.auth-simple .login-v2-card > label{
+  text-align:left !important;
+  width:100% !important;
+}
+html body .login-page-v2.auth-simple input[type="tel"]{
+  font-size:16px !important;
+  letter-spacing:.06em !important;
+}
+
+@media (max-width:800px){
+  html body .login-page-v2.auth-simple,
+  html body .login-page-v2.auth-simple.citizen-login,
+  html body .login-page-v2.auth-simple.admin-login,
+  html body .login-page-v2.auth-simple.register-page{
+    align-items:center !important;
+    justify-content:flex-start !important;
+    padding:28px 16px calc(28px + env(safe-area-inset-bottom,0px)) !important;
+  }
+  html body .login-page-v2.auth-simple h1{
+    font-size:26px !important;
+    line-height:1.15 !important;
+    max-width:20ch !important;
+  }
+  html body .login-page-v2.auth-simple .auth-simple-lead{
+    font-size:14px !important;
+    max-width:32ch !important;
+    margin-bottom:18px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-simple-card,
+  html body .login-page-v2.auth-simple.citizen-login .login-v2-card,
+  html body .login-page-v2.auth-simple.admin-login .login-v2-card{
+    width:100% !important;
+    padding:20px 16px 16px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-channel button{
+    min-height:44px !important;
+    font-size:13px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-demo-code strong{
+    font-size:24px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-otp-input input{
+    min-height:52px !important;
+    font-size:20px !important;
+  }
+  html body .login-page-v2.auth-simple .auth-simple-links,
+  html body .login-page-v2.auth-simple.admin-login .auth-simple-links,
+  html body .login-page-v2.auth-simple .auth-flow-links{
+    flex-direction:row !important;
+    justify-content:center !important;
+    align-items:center !important;
+    gap:8px !important;
+  }
+}

@@ -27,6 +27,7 @@ const AllChatMessage = require('./allChatMessage.model');
 const GroupChat = require('./groupChat.model');
 const GroupChatMember = require('./groupChatMember.model');
 const GroupChatMessage = require('./groupChatMessage.model');
+const ChatUserState = require('./chatUserState.model');
 const WardNagarsevakSubscription = require('./wardNagarsevakSubscription.model');
 const {
   AdminUser,
@@ -245,5 +246,6 @@ module.exports = {
   GroupChat,
   GroupChatMember,
   GroupChatMessage,
+  ChatUserState,
   WardNagarsevakSubscription,
 };

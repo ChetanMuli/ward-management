@@ -159,15 +159,7 @@ async function ensureNagarsevakChatGroup(user) {
 }
 
 async function replaceGroupMembers(groupId, allowedUserIds) {
-  const allowed = [...new Set((allowedUserIds || []).filter(Boolean).map(String))];
-  if (allowed.length) {
-    await Chat.Member.destroy({
-      where: { groupId, userId: { [Op.notIn]: allowed } },
-    });
-    for (const userId of allowed) await ensureMembershipRow(groupId, userId);
-  } else {
-    await Chat.Member.destroy({ where: { groupId } });
-  }
+  await Chat.Member.reconcile(groupId, allowedUserIds);
 }
 
 async function syncWardCommunityMembership(wardId) {

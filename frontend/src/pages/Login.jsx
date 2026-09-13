@@ -8,6 +8,9 @@ export const copyrightLine=`© ${new Date().getFullYear()} ${COMPANY_NAME}`;
 function IconUser(){
  return <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Zm0 2.25c-3.6 0-8.25 1.8-8.25 5.25V21h16.5v-1.5c0-3.45-4.65-5.25-8.25-5.25Z"/></svg>;
 }
+function IconPhone(){
+ return <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7.2 3.75h2.1c.5 0 .93.33 1.08.81l.9 2.85a1.13 1.13 0 0 1-.27 1.14l-1.32 1.32a12.3 12.3 0 0 0 5.52 5.52l1.32-1.32a1.13 1.13 0 0 1 1.14-.27l2.85.9c.48.15.81.58.81 1.08v2.1c0 .62-.5 1.12-1.12 1.12C10.86 20 4 13.14 4 4.87 4 4.25 4.5 3.75 5.12 3.75Z"/></svg>;
+}
 function IconLock(){
  return <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M17.25 10.5h-.75V8.25a4.5 4.5 0 0 0-9 0V10.5h-.75A1.5 1.5 0 0 0 5.25 12v7.5A1.5 1.5 0 0 0 6.75 21h10.5a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5Zm-6 0h1.5V8.25a.75.75 0 0 0-1.5 0Z"/></svg>;
 }
@@ -55,6 +58,8 @@ function AuthShell({admin,title,lead,children}){
 export default function Login({mode='user'}){
  const admin=mode==='admin';
  const [identifier,setIdentifier]=useState('');
+ const [emailId,setEmailId]=useState('');
+ const [mobileId,setMobileId]=useState('');
  const [password,setPassword]=useState('');
  const [showPassword,setShowPassword]=useState(false);
  const [error,setError]=useState('');
@@ -68,7 +73,9 @@ export default function Login({mode='user'}){
  const [showNew,setShowNew]=useState(false);
  const [showConfirm,setShowConfirm]=useState(false);
  const [debugOtp,setDebugOtp]=useState('');
+ const [sentTo,setSentTo]=useState('');
  const navigate=useNavigate();
+ const forgotValue=channel==='mobile'?mobileId:emailId;
 
  useEffect(()=>{if(sessionStorage.getItem('ward_session_expired')==='1'){sessionStorage.removeItem('ward_session_expired');setNotice('Your previous session expired. Please sign in again.');}},[]);
 
@@ -79,7 +86,23 @@ export default function Login({mode='user'}){
   setNewPassword('');
   setConfirmPassword('');
   setDebugOtp('');
+  setSentTo('');
+  const raw=identifier.trim();
+  const digits=raw.replace(/\D/g,'');
+  if(digits.length===10 && !raw.includes('@')){
+   setChannel('mobile');
+   setMobileId(digits);
+  }else{
+   setChannel('email');
+   setEmailId(raw);
+   if(digits.length===10) setMobileId(digits);
+  }
   setView(admin?'staff-help':'forgot');
+ }
+
+ function switchChannel(next){
+  setChannel(next);
+  setError('');
  }
 
  async function submit(e){
@@ -105,16 +128,28 @@ export default function Login({mode='user'}){
  async function requestCode(e){
   e.preventDefault();
   setError('');
+  const value=String(forgotValue||'').trim();
+  if(channel==='mobile' && !/^\d{10}$/.test(value)){
+   setError('Enter your registered 10-digit mobile number.');
+   return;
+  }
+  if(channel==='email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){
+   setError('Enter your registered email address.');
+   return;
+  }
   setBusy(true);
   try{
-   const result=await api.forgotRequest({identifier:identifier.trim(),channel,audience:'citizen'});
+   const result=await api.forgotRequest({identifier:value,channel,audience:'citizen'});
    if(result.data?.requiresSupport){
-    setView('staff-help');
-    setNotice(result.message||'');
+    setError('Enter the email or mobile of your resident account.');
     return;
    }
-   setNotice(result.message||'If an account exists, we sent a verification code.');
+   setNotice(result.data?.destination
+    ? `We sent a 6-digit code to ${result.data.destination}.`
+    : (result.message||'If an account exists, we sent a verification code.'));
+   setSentTo(result.data?.destination||'');
    setDebugOtp(result.data?.debugOtp||'');
+   setOtp(result.data?.debugOtp||'');
    setView('reset');
   }catch(e){
    setError(e.message||'Unable to send a verification code.');
@@ -129,7 +164,7 @@ export default function Login({mode='user'}){
   if(newPassword!==confirmPassword) return setError('Password and confirm password do not match.');
   setBusy(true);
   try{
-   await api.forgotReset({identifier:identifier.trim(),otp:otp.trim(),password:newPassword,confirmPassword,channel});
+   await api.forgotReset({identifier:String(forgotValue||'').trim(),otp:otp.trim(),password:newPassword,confirmPassword,channel});
    setPassword('');
    setOtp('');
    setNewPassword('');
@@ -145,58 +180,66 @@ export default function Login({mode='user'}){
  }
 
  if(view==='staff-help'){
-  return <AuthShell admin={admin} title="Forgot password" lead="Staff accounts are restored by our team">
+  return <AuthShell admin={true} title="Forgot password" lead="Staff passwords are restored by our team">
    <div className="login-v2-card auth-simple-card">
-    <p className="auth-staff-copy">Nagarsevak, Employee, Sub Master Admin and Master Admin passwords cannot be reset from this page.</p>
-    <p className="auth-staff-copy">Please contact <strong>{COMPANY_NAME}</strong> and we will verify your account and issue a new password.</p>
+    <p className="auth-staff-copy">Nagarsevak, Employee, Sub Master Admin and Master Admin passwords cannot be reset from this screen.</p>
+    <p className="auth-staff-copy">Please contact <strong>{COMPANY_NAME}</strong>. We will verify your account and issue a new password.</p>
     <button type="button" className="primary-btn full login-v2-submit" onClick={()=>setView('login')}>Back to sign in</button>
-    <div className="auth-simple-links">
-     {admin
-      ? <button type="button" className="link-btn" onClick={()=>navigate('/login')}>Resident login</button>
-      : <button type="button" className="link-btn" onClick={()=>navigate('/admin')}>Staff login</button>}
+    <div className="auth-simple-links auth-flow-links">
+     <button type="button" className="link-btn" onClick={()=>navigate('/login')}>Resident login</button>
     </div>
    </div>
   </AuthShell>;
  }
 
  if(view==='forgot'){
-  return <AuthShell admin={false} title="Forgot password" lead="Verify with a code sent to your email or mobile">
+  return <AuthShell admin={false} title="Forgot password" lead="Choose email or mobile OTP for your resident account">
    <form onSubmit={requestCode} className="login-v2-card auth-simple-card">
     {error&&<div className="error-box">{error}</div>}
     <div className="auth-channel" role="group" aria-label="Verification method">
-     <button type="button" className={channel==='email'?'on':''} onClick={()=>setChannel('email')}>Email</button>
-     <button type="button" className={channel==='mobile'?'on':''} onClick={()=>setChannel('mobile')}>Mobile OTP</button>
+     <button type="button" className={channel==='email'?'on':''} onClick={()=>switchChannel('email')}>Email</button>
+     <button type="button" className={channel==='mobile'?'on':''} onClick={()=>switchChannel('mobile')}>Mobile OTP</button>
     </div>
-    <label>{channel==='mobile'?'Registered mobile':'Registered email'}
-     <span className="auth-input">
-      <IconUser/>
-      <input type="text" inputMode={channel==='mobile'?'numeric':'email'} autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} required placeholder={channel==='mobile'?'10-digit mobile':'you@example.com'}/>
-     </span>
-    </label>
+    {channel==='mobile'
+     ? <label>Registered mobile
+        <span className="auth-input">
+         <IconPhone/>
+         <input type="tel" inputMode="numeric" autoComplete="tel" value={mobileId} onChange={e=>setMobileId(e.target.value.replace(/\D/g,'').slice(0,10))} required placeholder="10-digit mobile number" maxLength="10" pattern="\d{10}"/>
+        </span>
+       </label>
+     : <label>Registered email
+        <span className="auth-input">
+         <IconUser/>
+         <input type="email" inputMode="email" autoComplete="email" value={emailId} onChange={e=>setEmailId(e.target.value)} required placeholder="you@example.com"/>
+        </span>
+       </label>}
     <button type="submit" className="primary-btn full login-v2-submit" disabled={busy}>{busy?'Sending code…':'Send verification code'}</button>
-    <div className="auth-simple-links">
+    <div className="auth-simple-links auth-flow-links">
      <button type="button" className="link-btn" onClick={()=>setView('login')}>Back to sign in</button>
-     <button type="button" className="link-btn" onClick={()=>setView('staff-help')}>Staff account?</button>
     </div>
    </form>
   </AuthShell>;
  }
 
  if(view==='reset'){
-  return <AuthShell admin={false} title="Verify and reset" lead="Enter the 6-digit code and choose a new password">
+  return <AuthShell admin={false} title="Verify and reset" lead={sentTo?`Enter the 6-digit code sent to ${sentTo}`:'Enter the 6-digit code and choose a new password'}>
    <form onSubmit={resetPassword} className="login-v2-card auth-simple-card">
     {notice&&<div className="info-note login-session-notice">{notice}</div>}
-    {debugOtp&&<div className="info-note">Demo code: {debugOtp}</div>}
+    {debugOtp&&<button type="button" className="auth-demo-code" onClick={()=>setOtp(debugOtp)}>
+     <span>Demo code</span>
+     <strong>{debugOtp}</strong>
+     <small>Tap to fill</small>
+    </button>}
     {error&&<div className="error-box">{error}</div>}
     <label>Verification code
-     <span className="auth-input">
-      <input type="text" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,'').slice(0,6))} required placeholder="6-digit code" maxLength="6"/>
+     <span className="auth-input auth-otp-input">
+      <input type="text" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,'').slice(0,6))} required placeholder="••••••" maxLength="6"/>
      </span>
     </label>
     <PasswordField label="New password" value={newPassword} onChange={setNewPassword} placeholder="At least 8 characters" autoComplete="new-password" show={showNew} onToggle={()=>setShowNew(v=>!v)}/>
     <PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Re-enter password" autoComplete="new-password" show={showConfirm} onToggle={()=>setShowConfirm(v=>!v)}/>
     <button type="submit" className="primary-btn full login-v2-submit" disabled={busy}>{busy?'Updating…':'Update password'}</button>
-    <div className="auth-simple-links">
+    <div className="auth-simple-links auth-login-links is-admin">
      <button type="button" className="link-btn" onClick={()=>setView('forgot')}>Resend code</button>
      <button type="button" className="link-btn" onClick={()=>setView('login')}>Back to sign in</button>
     </div>

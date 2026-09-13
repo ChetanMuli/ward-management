@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { User, Ward, Role } = require('../../models');
+const { User, Ward, Role, ChatUserState } = require('../../models');
 const Chat = require('../../services/chat.store');
 const ApiError = require('../../utils/ApiError');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -41,21 +41,57 @@ async function cleanupOldMessages() {
 // Opportunistic cleanup keeps both DB rows and uploaded images under control.
 setInterval(() => cleanupOldMessages().catch(() => {}), 6 * 60 * 60 * 1000).unref();
 
+function asDate(value) {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+async function loadChatState(groupId, userId) {
+  return ChatUserState.findOne({ where: { groupId, userId } });
+}
+
+async function saveChatState(groupId, userId, patch) {
+  const [row] = await ChatUserState.findOrCreate({
+    where: { groupId, userId },
+    defaults: { id: crypto.randomUUID(), ...patch },
+  });
+  await row.update(patch);
+  return row;
+}
+
+async function clearedAtFor(groupId, userId, member) {
+  const state = await loadChatState(groupId, userId);
+  const dates = [asDate(state?.lastClearedAt), asDate(member?.lastClearedAt)].filter(Boolean);
+  if (!dates.length) return null;
+  return dates.sort((a, b) => a.getTime() - b.getTime()).pop();
+}
+
 async function ensureMembershipRow(groupId, userId) {
   let member = await Chat.Member.findOne({ where: { groupId, userId } });
-  if (member) return member;
-  try {
-    return await Chat.Member.create({
-      id: crypto.randomUUID(), groupId, userId, joinedAt: new Date()
-    });
-  } catch (error) {
-    // A concurrent request or an old duplicate-safe insert may have created the
-    // row between findOne() and create(). The membership operation is idempotent.
-    if (error?.name !== 'SequelizeUniqueConstraintError') throw error;
-    member = await Chat.Member.findOne({ where: { groupId, userId } });
-    if (!member) throw error;
-    return member;
+  if (!member) {
+    try {
+      member = await Chat.Member.create({
+        id: crypto.randomUUID(), groupId, userId, joinedAt: new Date()
+      });
+    } catch (error) {
+      // A concurrent request or an old duplicate-safe insert may have created the
+      // row between findOne() and create(). The membership operation is idempotent.
+      if (error?.name !== 'SequelizeUniqueConstraintError') throw error;
+      member = await Chat.Member.findOne({ where: { groupId, userId } });
+      if (!member) throw error;
+    }
   }
+  if (member && !member.lastClearedAt) {
+    const state = await loadChatState(groupId, userId);
+    if (state?.lastClearedAt) {
+      await member.update({
+        lastClearedAt: state.lastClearedAt,
+        lastReadAt: state.lastReadAt || member.lastReadAt,
+      });
+    }
+  }
+  return member;
 }
 
 
@@ -112,14 +148,7 @@ async function visibleIdsByWard(wardIds) {
 
 async function syncGroupMembers(group, users, nagarRoleId, visibleNagarsevakIds) {
   const allowedUserIds = memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds);
-  if (allowedUserIds.length) {
-    await Chat.Member.destroy({
-      where: { groupId: group.id, userId: { [Op.notIn]: allowedUserIds } }
-    });
-    for (const userId of allowedUserIds) await ensureMembershipRow(group.id, userId);
-  } else {
-    await Chat.Member.destroy({ where: { groupId: group.id } });
-  }
+  await Chat.Member.reconcile(group.id, allowedUserIds);
 }
 
 async function ensureNagarsevakGroup(nagarsevakUserId, options = {}) {
@@ -351,7 +380,8 @@ const listMessages = asyncHandler(async (req, res) => {
   const before = req.query.before ? new Date(req.query.before) : null;
   const after = req.query.after ? new Date(req.query.after) : null;
   const where = { groupId: group.id };
-  const effectiveAfter = [after, member.lastClearedAt].filter(Boolean)
+  const clearedAt = await clearedAtFor(group.id, req.user.id, member);
+  const effectiveAfter = [asDate(after), clearedAt].filter(Boolean)
     .sort((a, b) => a.getTime() - b.getTime()).pop() || null;
   if (before && !Number.isNaN(before.getTime()) && effectiveAfter && !Number.isNaN(effectiveAfter.getTime())) {
     where.createdAt = { [Op.gt]: effectiveAfter, [Op.lt]: before };
@@ -460,14 +490,22 @@ const leaveGroup = asyncHandler(async (req, res) => {
 });
 
 const clearChat = asyncHandler(async (req, res) => {
-  const { member } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
-  await member.update({ lastClearedAt: new Date(), lastReadAt: new Date() });
+  const { group, member } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
+  const now = new Date();
+  await member.update({ lastClearedAt: now, lastReadAt: now });
+  await Chat.Member.update(
+    { lastClearedAt: now, lastReadAt: now },
+    { where: { groupId: group.id, userId: req.user.id } }
+  );
+  await saveChatState(group.id, req.user.id, { lastClearedAt: now, lastReadAt: now });
   return success(res, { message: 'Chat cleared for your account.' });
 });
 
 const markRead = asyncHandler(async (req, res) => {
-  const { member } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
-  await member.update({ lastReadAt: new Date() });
+  const { group, member } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
+  const now = new Date();
+  await member.update({ lastReadAt: now });
+  await saveChatState(group.id, req.user.id, { lastReadAt: now });
   return success(res, { message: 'Chat marked as read' });
 });
 

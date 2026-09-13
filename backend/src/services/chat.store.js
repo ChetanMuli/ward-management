@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const crypto = require('crypto');
 const {
   AllChat,
   AllChatMember,
@@ -210,10 +211,42 @@ const Member = {
     const b = await GroupChatMember.destroy(options);
     return a + b;
   },
+  async update(values, options = {}) {
+    const groupId = options.where?.groupId;
+    const kind = groupId ? await resolveKind(groupId) : null;
+    if (kind === 'all') return AllChatMember.update(values, options);
+    if (kind === 'group') return GroupChatMember.update(values, options);
+    const a = await AllChatMember.update(values, options);
+    const b = await GroupChatMember.update(values, options);
+    return [a[0] + b[0]];
+  },
   async findOrCreate(options = {}) {
     const groupId = options.where?.groupId;
     const kind = await resolveKind(groupId);
     return modelsFor(kind || 'group').Member.findOrCreate(options);
+  },
+  async reconcile(groupId, allowedUserIds) {
+    const allowed = [...new Set((allowedUserIds || []).filter(Boolean).map(String))];
+    const existing = await Member.findAll({ where: { groupId }, attributes: ['id', 'userId'] });
+    const existingIds = new Set(existing.map((row) => String(row.userId)));
+    const allowedSet = new Set(allowed);
+    const removed = existing.filter((row) => !allowedSet.has(String(row.userId)));
+    if (removed.length) {
+      await Member.destroy({
+        where: { groupId, userId: { [Op.in]: removed.map((row) => row.userId) } },
+      });
+    }
+    for (const userId of allowed) {
+      if (!existingIds.has(userId)) {
+        const kind = await resolveKind(groupId);
+        const Model = modelsFor(kind || 'group').Member;
+        try {
+          await Model.create({ id: crypto.randomUUID(), groupId, userId, joinedAt: new Date() });
+        } catch (error) {
+          if (error?.name !== 'SequelizeUniqueConstraintError') throw error;
+        }
+      }
+    }
   },
 };
 

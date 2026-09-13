@@ -224,6 +224,13 @@ const forgotRequest = asyncHandler(async (req, res) => {
     });
   }
 
+  if (channel === 'mobile' && identifier.replace(/\D/g, '').length !== 10) {
+    throw new ApiError(400, 'Enter your registered 10-digit mobile number');
+  }
+  if (channel === 'email' && !identifier.includes('@')) {
+    throw new ApiError(400, 'Enter your registered email');
+  }
+
   const generic = 'If an account exists for this email or mobile, we sent a verification code.';
   if (!user || roleName !== 'CITIZEN' || user.status !== 'ACTIVE') {
     return success(res, { message: generic, data: { sent: true, channel } });
@@ -241,7 +248,8 @@ const forgotRequest = asyncHandler(async (req, res) => {
   if (!delivered?.ok) {
     console.warn(`[auth] password reset ${channel} code was not delivered by email/SMS`);
   }
-  if (echoOtpEnabled()) {
+  const showDemo = echoOtpEnabled() || !delivered?.ok;
+  if (showDemo) {
     console.info(`[auth] password reset ${channel} code for ${user.email || user.mobile}: ${otp}`);
   }
   return success(res, {
@@ -250,7 +258,7 @@ const forgotRequest = asyncHandler(async (req, res) => {
       sent: true,
       channel,
       destination: maskDestination(destination, channel),
-      ...(echoOtpEnabled() ? { debugOtp: otp } : {}),
+      ...(showDemo ? { debugOtp: otp } : {}),
     },
   });
 });
