@@ -103,18 +103,21 @@ export default function Complaints(){
   </tr>)}</tbody></table></div>}
   {rows&&visible.length>0&&<PaginationBar page={page} pages={pages} total={meta.total||0} limit={limit} onPage={setPage} onLimit={setLimit}/>}
 
-  {open&&<Modal wide title="New complaint" onClose={()=>setOpen(false)}><form className="form-grid" onSubmit={create}>
+  {open&&<Modal wide title="New complaint" onClose={()=>setOpen(false)}><form className="form-grid admin-form" onSubmit={create}>
+   <div className="form-section-title span-2"><strong>Who and where</strong><span>Select the citizen and the house this complaint belongs to.</span></div>
    <SearchableSelect label="Citizen" required value={form.citizenPersonId} onChange={v=>{const p=people.find(x=>x.id===v);setForm({...form,citizenPersonId:v,houseId:p?.family?.house?.id||''})}} options={wardPeople.map(p=>({value:p.id,label:`${p.fullName} · ${p.mobile||'no mobile'}`}))} placeholder="Search citizen…"/>
    <SearchableSelect label="House" required value={form.houseId} onChange={v=>setForm({...form,houseId:v})} options={wardHouses.map(h=>({value:h.id,label:`${h.houseNumber} · ${h.area?.name||''}`}))} placeholder="Search house…"/>
    {selectedCitizen&&<div className="span-2 muted">Selected house: {selectedCitizen.family?.house?.houseNumber||'—'} · {selectedCitizen.family?.house?.address||'—'}</div>}
-   <Field className="span-2" label="Problem description"><textarea required minLength="5" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></Field>
+   <div className="form-section-title span-2"><strong>Problem</strong><span>Describe the issue clearly so the ward team can act.</span></div>
+   <Field className="span-2" label="Problem description"><textarea required minLength="5" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="What is the problem, and where exactly?"/></Field>
    <div className="span-2"><ImageField label="Problem image" value={form.reportedImage} onChange={v=>setForm({...form,reportedImage:v})} cameraLabel="Take problem photo"/></div>
    <div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>setOpen(false)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Submitting…':'Submit complaint'}</button></div>
   </form></Modal>}
 
   {assigning&&<Modal title={`Assign ${assigning.complaintNumber}`} onClose={()=>setAssigning(null)}><p className="muted">{isNagarsevak(user)?'You can select an employee or take the complaint yourself.':'Select an available employee from this ward.'}</p>{isNagarsevak(user)&&<label className="self-assign-option"><input type="checkbox" checked={!!assigning.assignToSelf} onChange={e=>setAssigning({...assigning,assignToSelf:e.target.checked,employeeId:e.target.checked?'':assigning.employeeId})}/><span><strong>Take complaint yourself</strong><small>I will handle this complaint myself.</small></span></label>}{!assigning.assignToSelf&&<><SearchableSelect label="Employee" required value={assigning.employeeId} onChange={v=>setAssigning({...assigning,employeeId:v})} options={assignable.map(e=>({value:e.id,label:`${e.User?.name||'Employee'} · ${e.designation||'Field employee'}`}))} placeholder="Search employee…"/>{selectedEmployee?.User?.mobile&&<button type="button" className="small-btn" onClick={()=>{try{wa(selectedEmployee.User.mobile,`Complaint ${assigning.complaintNumber} assigned to you. Please start the work.`)}catch(e){setError(e.message)}}}>WhatsApp employee</button>}</>}<div className="modal-actions"><button type="button" className="ghost-btn" onClick={()=>setAssigning(null)}>Cancel</button><button type="button" className="primary-btn" disabled={(!assigning.assignToSelf&&!assigning.employeeId)||busy} onClick={assign}>{busy?'Assigning…':'Assign complaint'}</button></div></Modal>}
 
-  {editing&&<Modal wide title={`Update ${editing.complaintNumber}`} onClose={()=>setEditing(null)}><form className="form-grid" onSubmit={update}>
+  {editing&&<Modal wide title={`Update ${editing.complaintNumber}`} onClose={()=>setEditing(null)}><form className="form-grid admin-form" onSubmit={update}>
+   <div className="form-section-title span-2"><strong>Status update</strong><span>Add a progress note, and a completion photo when the work is done.</span></div>
    <Field label="Status"><select value={editing.status} onChange={e=>setEditing({...editing,status:e.target.value})}>
     {(isEmployee(user)?['ASSIGNED','IN_PROGRESS','RESOLVED']:['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED']).map(x=><option key={x}>{x}</option>)}
    </select></Field>

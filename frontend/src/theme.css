@@ -1,0 +1,532 @@
+/* WardDesk ledger theme — last import wins over styles.css + mobile.css */
+:root{
+  --wd-ink:#1c1917;
+  --wd-muted:#6f6458;
+  --wd-line:#e4d9cc;
+  --wd-paper:#f3eee6;
+  --wd-card:#fffcf7;
+  --wd-accent:#7a2e3a;
+  --wd-accent-2:#5f232d;
+  --wd-sidebar:#161311;
+  --wd-ok:#2f6b4f;
+  --wd-danger:#b42318;
+  --wd-focus:#7a2e3a;
+  --wd-tap:44px;
+  --wd-shadow:0 10px 28px rgba(28,25,23,.07);
+  --wd-shadow-lg:0 22px 48px rgba(28,25,23,.12);
+  --font:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,sans-serif;
+  --display:'Fraunces',Georgia,'Times New Roman',serif;
+  font-family:var(--font);
+  color:var(--wd-ink);
+  background:var(--wd-paper);
+}
+
+html,body,#root{
+  min-height:100%;
+  background:var(--wd-paper);
+  font-family:var(--font);
+}
+body{margin:0;color:var(--wd-ink);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+
+html body .primary-btn{
+  background:var(--wd-accent) !important;
+  border-color:var(--wd-accent) !important;
+  color:#fff !important;
+  border-radius:8px !important;
+  min-height:40px;
+  font-weight:600 !important;
+  letter-spacing:.01em;
+}
+html body .primary-btn:hover{background:var(--wd-accent-2) !important;border-color:var(--wd-accent-2) !important}
+html body .primary-btn.danger,
+html body .primary-btn.danger:hover{background:var(--wd-danger) !important;border-color:var(--wd-danger) !important}
+html body .ghost-btn,html body .small-btn{border-radius:8px !important;border-color:var(--wd-line) !important}
+html body .panel,.stat-card,.family-card,.birthday-card,.user-panel-card,.user-action-card,.user-stat-card,.ward-card{
+  border-color:var(--wd-line) !important;
+  background:var(--wd-card);
+  box-shadow:var(--wd-shadow);
+}
+html body .page-header h1,html body .app-shell .page-header h1{
+  font-family:var(--display);
+  font-weight:650;
+  letter-spacing:-.03em;
+  color:var(--wd-ink);
+}
+
+/* ---- Auth: same quiet ledger for resident + staff ---- */
+html body .login-page-v2.auth-simple,
+html body .login-page-v2.auth-simple.citizen-login,
+html body .login-page-v2.auth-simple.admin-login,
+html body .login-page-v2.auth-simple.register-page{
+  background:
+    linear-gradient(180deg,#f7f3ec 0%, #efe8dc 100%) !important;
+  color:var(--wd-ink) !important;
+  padding:32px 16px 28px !important;
+}
+html body .login-page-v2.auth-simple .auth-blob,
+html body .login-page-v2.auth-simple .auth-simple-apps{display:none !important}
+html body .login-page-v2.auth-simple .auth-simple-logo .brand-mark,
+html body .login-page-v2.auth-simple.admin-login .auth-simple-logo .brand-mark{
+  width:38px !important;height:38px !important;border-radius:10px !important;
+  background:var(--wd-sidebar) !important;color:#f7f3ec !important;font-size:16px !important;
+}
+html body .login-page-v2.auth-simple .auth-simple-logo strong{
+  color:var(--wd-ink) !important;font-family:var(--display);font-size:22px !important;font-weight:650 !important;
+}
+html body .login-page-v2.auth-simple .auth-panel-pill{
+  display:inline-flex !important;margin:0 0 12px !important;padding:4px 10px !important;
+  border-radius:999px !important;background:#ebe4d8 !important;color:var(--wd-accent) !important;
+  font-size:11px !important;font-weight:700 !important;letter-spacing:.06em !important;text-transform:uppercase !important;
+}
+html body .login-page-v2.auth-simple h1{
+  font-family:var(--display) !important;font-size:34px !important;font-weight:650 !important;
+  color:var(--wd-ink) !important;letter-spacing:-.03em !important;
+}
+html body .login-page-v2.auth-simple .auth-simple-lead{color:var(--wd-muted) !important}
+html body .login-page-v2.auth-simple .auth-simple-card,
+html body .login-page-v2.auth-simple.citizen-login .login-v2-card,
+html body .login-page-v2.auth-simple.admin-login .login-v2-card,
+html body .login-page-v2.auth-simple.register-page .login-v2-card{
+  background:var(--wd-card) !important;border:1px solid #e8ddd0 !important;border-radius:16px !important;
+  box-shadow:var(--wd-shadow-lg) !important;padding:26px 24px 20px !important;
+}
+html body .login-page-v2.auth-simple .login-v2-submit,
+html body .login-page-v2.auth-simple .login-v2-card > .primary-btn,
+html body .login-page-v2.auth-simple.citizen-login .login-v2-submit,
+html body .login-page-v2.auth-simple.admin-login .login-v2-submit,
+html body .login-page-v2.auth-simple.register-page .login-v2-submit,
+html body .login-page-v2.auth-simple.citizen-login .login-v2-card > .primary-btn,
+html body .login-page-v2.auth-simple.admin-login .login-v2-card > .primary-btn,
+html body .login-page-v2.auth-simple.register-page .login-v2-card > .primary-btn{
+  background:var(--wd-accent) !important;border-radius:10px !important;min-height:48px !important;
+  box-shadow:0 10px 18px rgba(122,46,58,.22) !important;
+}
+html body .login-page-v2.auth-simple .login-v2-submit:hover,
+html body .login-page-v2.auth-simple.citizen-login .login-v2-submit:hover,
+html body .login-page-v2.auth-simple.admin-login .login-v2-submit:hover,
+html body .login-page-v2.auth-simple.register-page .login-v2-submit:hover,
+html body .login-page-v2.auth-simple.citizen-login .login-v2-card > .primary-btn:hover,
+html body .login-page-v2.auth-simple.admin-login .login-v2-card > .primary-btn:hover,
+html body .login-page-v2.auth-simple.register-page .login-v2-card > .primary-btn:hover,
+html body .citizen-login .login-v2-submit,
+html body .citizen-login .login-v2-card > .primary-btn,
+html body .register-page .login-v2-submit,
+html body .register-page .login-v2-card > .primary-btn,
+html body .admin-login .login-v2-submit,
+html body .admin-login .login-v2-card > .primary-btn{
+  background:var(--wd-accent) !important;
+  background-image:none !important;
+  border-color:var(--wd-accent) !important;
+  border-radius:10px !important;
+  color:#fff !important;
+  box-shadow:0 10px 18px rgba(122,46,58,.22) !important;
+}
+html body .citizen-login .login-v2-submit:hover,
+html body .register-page .login-v2-submit:hover,
+html body .admin-login .login-v2-submit:hover,
+html body .citizen-login .login-v2-card > .primary-btn:hover,
+html body .register-page .login-v2-card > .primary-btn:hover,
+html body .admin-login .login-v2-card > .primary-btn:hover{
+  background:var(--wd-accent-2) !important;
+  background-image:none !important;
+}
+html body .login-page-v2.auth-simple .link-btn,
+html body .login-page-v2.auth-simple .auth-simple-links .link-btn,
+html body .admin-login .link-btn{
+  color:var(--wd-accent) !important;text-decoration:none !important;font-weight:700 !important;
+}
+html body .citizen-login .login-v2-card h2,
+html body .register-page .login-v2-card h2,
+html body .admin-login .login-v2-card h2,
+html body .login-page-v2.auth-simple h1{
+  color:var(--wd-ink) !important;
+}
+html body .login-page-v2.auth-simple .auth-input:focus-within,
+html body .login-page-v2.auth-simple.admin-login .auth-input:focus-within{
+  border-color:var(--wd-accent) !important;box-shadow:0 0 0 4px rgba(122,46,58,.12) !important;
+}
+html body .login-page-v2.auth-simple .auth-channel button.on,
+html body .login-page-v2.auth-simple.admin-login .auth-channel button.on{
+  background:var(--wd-sidebar) !important;border-color:var(--wd-sidebar) !important;color:#f7f3ec !important;
+}
+html body .login-page-v2.auth-simple .auth-company-contact{
+  background:#f7f1e8 !important;border-color:#e4d9cc !important;
+}
+html body .login-page-v2.auth-simple .auth-company-contact a{color:var(--wd-ink) !important}
+html body .login-page-v2.auth-simple .auth-demo-code{
+  background:#f4eee4 !important;border:1px dashed #cbbba6 !important;color:var(--wd-ink) !important;
+}
+html body .login-page-v2.auth-simple .auth-demo-code span,
+html body .login-page-v2.auth-simple .auth-demo-code small{color:var(--wd-muted) !important}
+
+/* ---- Admin chrome ---- */
+html body .app-shell .sidebar{
+  background:linear-gradient(180deg,#1c1815 0%, #12100e 100%) !important;
+  border-right:1px solid #2a241f;
+}
+html body .app-shell .brand-mark{background:#f7f3ec !important;color:var(--wd-sidebar) !important}
+html body .app-shell .sidebar nav a:hover,
+html body .app-shell .sidebar nav a.active{background:#2a241f !important;color:#fff !important}
+html body .app-shell .nav-section-label{color:#a89888 !important}
+html body .app-shell .topbar{
+  background:var(--wd-card) !important;border-bottom:1px solid var(--wd-line) !important;
+}
+html body .app-shell .content{background:transparent}
+html body .app-footer{color:var(--wd-muted)}
+html body .pin-ok{
+  display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;
+  background:#e7f3ea;color:var(--wd-ok);font-size:11px;font-weight:700;
+}
+
+/* ---- Resident: same paper card language as login ---- */
+html body .user-portal{background:var(--wd-paper) !important}
+html body .user-portal .user-topbar{background:var(--wd-card) !important;border-bottom:1px solid var(--wd-line) !important}
+html body .user-portal .user-brand-mark{background:var(--wd-sidebar) !important;color:#f7f3ec !important}
+html body .user-portal .user-nav-link.active{background:#efe8dc !important;color:var(--wd-ink) !important;border-radius:999px !important}
+html body .user-portal .user-hero{
+  background:var(--wd-card) !important;
+  color:var(--wd-ink) !important;
+  border:1px solid #e8ddd0 !important;
+  border-radius:20px !important;
+  box-shadow:var(--wd-shadow-lg) !important;
+}
+html body .user-portal .user-hero::after{display:none !important}
+html body .user-portal .user-hero h1{
+  color:var(--wd-ink) !important;
+  font-family:var(--display) !important;
+  font-weight:650 !important;
+  letter-spacing:-.03em !important;
+}
+html body .user-portal .user-hero p,
+html body .user-portal .user-kicker{color:var(--wd-muted) !important}
+html body .user-portal .user-kicker{color:var(--wd-accent) !important;letter-spacing:.08em !important}
+html body .user-portal .user-ward-chip{
+  background:#f7f1e8 !important;
+  border:1px solid var(--wd-line) !important;
+  color:var(--wd-ink) !important;
+  border-radius:14px !important;
+  max-width:420px;
+}
+html body .user-portal .user-ward-chip small{color:var(--wd-accent) !important}
+html body .user-portal .user-ward-chip strong{color:var(--wd-ink) !important}
+html body .user-portal .user-hero-card{
+  background:#f7f1e8 !important;
+  border:1px solid var(--wd-line) !important;
+  color:var(--wd-ink) !important;
+  border-radius:16px !important;
+  box-shadow:none !important;
+}
+html body .user-portal .user-hero-icon{
+  background:var(--wd-sidebar) !important;
+  color:#f7f3ec !important;
+  border-radius:12px !important;
+}
+html body .user-portal .user-hero-card strong{color:var(--wd-ink) !important}
+html body .user-portal .user-hero-card span{color:var(--wd-muted) !important}
+html body .user-portal .user-hero-actions .primary-btn{
+  background:var(--wd-accent) !important;
+  color:#fff !important;
+  border-color:var(--wd-accent) !important;
+  border-radius:10px !important;
+}
+html body .user-portal .user-hero-actions .ghost-btn{
+  background:transparent !important;
+  color:var(--wd-ink) !important;
+  border:1px solid var(--wd-line) !important;
+  border-radius:10px !important;
+}
+html body .user-portal .ward-team-user-card,
+html body .user-portal .user-panel-card.ward-team-user-card,
+html body .user-portal .ward-info-card,
+html body .user-complaints-page .ward-info-card{
+  background:var(--wd-card) !important;
+  color:var(--wd-ink) !important;
+  border:1px solid #e8ddd0 !important;
+  border-radius:18px !important;
+  box-shadow:var(--wd-shadow) !important;
+  padding:18px 20px !important;
+}
+html body .user-portal .complaint-user-team-card{
+  background:var(--wd-card) !important;
+  color:var(--wd-ink) !important;
+}
+html body .ward-info-card{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  gap:14px !important;
+  margin-bottom:16px;
+}
+html body .ward-info-main{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:6px 16px;
+}
+html body .ward-info-main h2{
+  margin:2px 0 0;
+  font-family:var(--display);
+  font-size:22px;
+  letter-spacing:-.03em;
+}
+html body .ward-info-main p{margin:0;color:var(--wd-muted);font-size:13px}
+html body .nagar-info-list{
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:10px !important;
+  width:100%;
+}
+html body .nagar-info-card,
+html body .user-portal .ward-team-person{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0 !important;
+  background:#f7f1e8 !important;
+  border:1px solid var(--wd-line) !important;
+  border-radius:14px !important;
+  padding:10px 12px !important;
+  color:var(--wd-ink) !important;
+}
+html body .nagar-info-card > div:last-child,
+html body .user-portal .ward-team-person > div:last-child{min-width:0;flex:1}
+html body .nagar-info-card strong,
+html body .user-portal .ward-team-person strong{
+  display:-webkit-box !important;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden !important;
+  font-size:13px !important;
+  line-height:1.3 !important;
+  color:var(--wd-ink) !important;
+  white-space:normal !important;
+}
+html body .nagar-info-card span,
+html body .user-portal .ward-team-person span{display:block;font-size:11px;color:var(--wd-muted) !important}
+html body .nagar-info-card a,
+html body .user-portal .ward-team-person a{
+  display:block;
+  color:var(--wd-accent) !important;
+  font-weight:700;
+  text-decoration:none;
+  font-size:12px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+html body .user-portal .user-avatar,
+html body .nagar-info-card .user-avatar{
+  background:var(--wd-sidebar) !important;
+  color:#f7f3ec !important;
+  width:36px !important;
+  height:36px !important;
+  min-width:36px !important;
+  border-radius:50% !important;
+  display:grid !important;
+  place-items:center !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+}
+html body .user-portal .ward-team-user-grid-four{
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:10px !important;
+}
+
+/* Directions chip */
+html body a.loc-go{
+  display:inline-flex;align-items:center;justify-content:center;
+  height:32px;padding:0 12px;border-radius:8px;
+  background:#f7f1e8;color:var(--wd-accent);font-size:12px;font-weight:700;
+  text-decoration:none;border:1px solid var(--wd-line);
+  white-space:nowrap;line-height:1;max-width:100%;box-sizing:border-box;
+}
+html body a.loc-go:hover{background:#efe8dc}
+html body a.loc-go-card{
+  display:grid;gap:4px;padding:16px 18px;border-radius:16px;text-decoration:none;
+  background:#f7f1e8;border:1px solid var(--wd-line);color:var(--wd-ink);
+}
+html body a.loc-go-card strong{font-family:var(--display);font-size:18px}
+html body a.loc-go-card span{color:var(--wd-muted);font-size:13px}
+html body a.loc-go-card em{font-style:normal;font-size:12px;color:var(--wd-accent);font-weight:700}
+html body .loc-cell{display:flex;align-items:center;min-width:0}
+html body table td[data-label="Location"]{width:1%;white-space:nowrap;vertical-align:middle}
+html body .family-loc-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:2px 0 8px}
+html body .loc-preview-stack,.loc-empty-box{display:grid;gap:10px}
+html body .loc-update-btn{justify-self:start;width:fit-content}
+html body .ward-card-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+html body .ward-nagar-chips{display:flex;flex-wrap:wrap;gap:6px}
+html body .ward-nagar-chips span{
+  background:#f3e6e8 !important;color:var(--wd-accent) !important;
+  border-radius:99px;padding:4px 9px;font-size:11px;font-weight:700;
+}
+
+@media (max-width:1100px){
+  html body .nagar-info-list,
+  html body .user-portal .ward-team-user-grid-four{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+}
+@media (max-width:800px){
+  html body .ward-info-card{grid-template-columns:1fr !important}
+}
+@media (max-width:560px){
+  html body .nagar-info-list,
+  html body .user-portal .ward-team-user-grid-four{grid-template-columns:1fr !important}
+}
+
+/* ---- Forms / maps ---- */
+html body .modal{border-radius:16px !important;box-shadow:var(--wd-shadow-lg) !important;background:var(--wd-card)}
+html body .form-grid input,html body .form-grid select,html body .form-grid textarea,
+html body .toolbar input,html body .toolbar select{
+  border-color:var(--wd-line) !important;border-radius:8px !important;background:#fff;
+}
+html body .form-grid input:focus,html body .form-grid select:focus,html body .form-grid textarea:focus{
+  border-color:var(--wd-accent) !important;box-shadow:0 0 0 3px rgba(122,46,58,.12) !important;
+}
+html body .form-grid .form-section-title strong{color:var(--wd-ink);font-family:var(--display)}
+html body .loc-picker,html body .loc-preview{display:grid;gap:8px;min-width:0}
+html body .loc-picker-bar{display:flex;gap:8px;flex-wrap:wrap}
+html body .loc-picker-bar input{flex:1;min-width:160px;min-height:42px;padding:0 12px;border:1px solid var(--wd-line);border-radius:8px}
+html body .loc-hits{display:grid;border:1px solid var(--wd-line);border-radius:10px;background:#fff;overflow:hidden}
+html body .loc-hits button{text-align:left;padding:10px 12px;border:0;border-bottom:1px solid var(--wd-line);background:#fff;font-size:13px;color:var(--wd-ink)}
+html body .loc-hits button:last-child{border-bottom:0}
+html body .loc-hits button:hover{background:#f7f1e8}
+html body .loc-map,html body .loc-preview iframe{
+  width:100%;height:240px;border:1px solid var(--wd-line);border-radius:12px;background:#efe8dc;
+  position:relative;isolation:isolate;overflow:hidden;
+}
+html body .loc-preview iframe{display:block}
+html body .loc-coord-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+html body .loc-coord-row label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--wd-muted)}
+html body .loc-hint,html body .loc-empty{margin:0;font-size:12px;color:var(--wd-muted);line-height:1.45}
+html body .loc-preview-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px}
+html body .loc-preview-meta a{color:var(--wd-accent);font-weight:700;text-decoration:none}
+html body .area-detail-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,.8fr);gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--wd-line)}
+html body .area-detail-row > div{display:flex;flex-direction:column;gap:4px}
+html body .detail-grid .span-2{grid-column:1 / -1}
+html body .leaflet-container{font-family:var(--font)}
+
+@media (max-width:900px){
+  html body .user-portal .user-hero{grid-template-columns:1fr !important;padding:22px 18px !important}
+  html body .user-portal .user-hero-card{display:none !important}
+  html body .user-portal .user-action-row,html body .user-portal .user-stat-grid{grid-template-columns:1fr 1fr !important}
+  html body .area-detail-row{grid-template-columns:1fr}
+}
+@media (max-width:800px){
+  html body .login-page-v2.auth-simple,
+  html body .login-page-v2.auth-simple.citizen-login,
+  html body .login-page-v2.auth-simple.admin-login,
+  html body .login-page-v2.auth-simple.register-page{
+    padding:20px 14px calc(20px + env(safe-area-inset-bottom,0px)) !important;
+    justify-content:flex-start !important;
+  }
+  html body .login-page-v2.auth-simple h1{font-size:26px !important}
+  html body .login-page-v2.auth-simple .auth-simple-card,
+  html body .login-page-v2.auth-simple .login-v2-card{padding:18px 14px !important}
+  html body .login-page-v2.auth-simple .auth-field-row{grid-template-columns:1fr !important}
+  html body .login-page-v2.auth-simple .auth-simple-links,
+  html body .login-page-v2.auth-simple .auth-login-links{
+    display:grid !important;grid-template-columns:1fr 1fr !important;gap:8px !important;justify-items:center !important;
+  }
+  html body .login-page-v2.auth-simple .auth-login-links .link-btn:last-child,
+  html body .login-page-v2.auth-simple .auth-flow-links .link-btn{grid-column:1 / -1 !important}
+  html body .login-page-v2.auth-simple .auth-input,
+  html body .login-page-v2.auth-simple .login-v2-submit,
+  html body .login-page-v2.auth-simple .login-v2-card input,
+  html body .login-page-v2.auth-simple .login-v2-card select{min-height:var(--wd-tap) !important}
+  html body .loc-map,html body .loc-preview iframe{height:200px}
+  html body .loc-coord-row,html body .loc-picker-bar{grid-template-columns:1fr;display:grid}
+  html body table td[data-label="Location"]{white-space:normal;width:auto}
+  html body td[data-label="Location"] .loc-cell,
+  html body .family-loc-row{width:100%}
+  html body td[data-label="Location"] a.loc-go,
+  html body .family-loc-row a.loc-go,
+  html body .family-loc-row .small-btn,
+  html body .loc-update-btn{
+    width:100%;min-height:var(--wd-tap);height:auto;padding:10px 12px;justify-content:center;
+  }
+  html body .user-portal .user-main,html body .app-shell .content{
+    padding-left:12px !important;padding-right:12px !important;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom,0px)) !important;
+  }
+  html body .form-grid,html body .modal .form-grid{grid-template-columns:1fr !important}
+  html body .form-grid .span-2,html body .modal .span-2{grid-column:auto !important}
+  html body .modal,html body .modal-wide{width:min(100%,calc(100vw - 16px)) !important;max-height:min(92dvh,920px) !important}
+  html body .ward-grid,html body .family-grid,html body .stat-grid,html body .two-col,html body .detail-grid{grid-template-columns:1fr !important}
+  html body .user-portal .user-action-row{grid-template-columns:1fr !important}
+  html body .user-portal .user-stat-grid{grid-template-columns:1fr 1fr !important}
+  html body .primary-btn,html body .ghost-btn,html body .menu-btn,html body .user-mobile-menu{min-height:var(--wd-tap)}
+  html body .table-wrap{overflow-x:auto !important;-webkit-overflow-scrolling:touch}
+  html body .inline-form-row{display:grid !important;grid-template-columns:1fr !important}
+}
+@media (max-width:480px){
+  html body .page-header h1{font-size:22px !important}
+  html body .user-portal .user-hero h1{font-size:24px !important}
+}
+
+/* Crush leftover civic navy/green from mobile.css */
+html body .ward-card{
+  background:var(--wd-card) !important;
+  border:1px solid var(--wd-line) !important;
+  border-radius:16px !important;
+  padding:18px !important;
+  box-shadow:var(--wd-shadow) !important;
+}
+html body .ward-card.is-open{
+  border-color:#d7cfc3 !important;
+  background:linear-gradient(#fffcf7,#f7f1e8) !important;
+}
+html body .ward-card.is-closed{
+  border-color:#e4d9cc !important;
+  background:linear-gradient(#fffcf7,#f3eee6) !important;
+  opacity:.96;
+}
+html body .ward-card-top h3{color:var(--wd-ink) !important;font-family:var(--display) !important}
+html body .ward-card-name{color:var(--wd-ink) !important}
+html body .ward-card-copy{color:var(--wd-muted) !important}
+html body .ward-card-stats > div{
+  background:#f7f1e8 !important;border:1px solid var(--wd-line) !important;border-radius:12px;
+}
+html body .ward-card-stats span{color:var(--wd-muted) !important}
+html body .ward-card-stats strong{color:var(--wd-ink) !important}
+html body .ward-area-chips span{
+  background:#ebe4d8 !important;color:var(--wd-ink) !important;
+}
+html body .area-item{align-items:flex-start;gap:10px}
+html body .area-item > div span{color:var(--wd-muted);font-size:12px}
+html body .pagination-page.is-current{
+  background:var(--wd-sidebar) !important;color:#fff !important;border-color:var(--wd-sidebar) !important;
+}
+html body table thead th{color:var(--wd-muted);background:#f7f1e8;border-color:var(--wd-line)}
+html body table td{border-color:var(--wd-line)}
+html body .tab.active{background:var(--wd-sidebar) !important;color:#fff !important;border-color:var(--wd-sidebar) !important}
+html body .toolbar,html body .dashboard-scope-panel,html body .panel{
+  background:var(--wd-card) !important;border-color:var(--wd-line) !important;
+}
+html body .page-kicker,html body .eyebrow{color:var(--wd-accent) !important}
+html body .user-profile-card,html body .user-panel-card.user-profile-card{
+  background:var(--wd-card) !important;color:var(--wd-ink) !important;border-color:var(--wd-line) !important;
+}
+html body .user-profile-card .user-secondary-btn{
+  background:var(--wd-sidebar) !important;color:#f7f3ec !important;
+}
+html body .user-profile-facts strong,html body .dashboard-account-facts strong,
+html body .ward-card-top h3,html body .user-profile-line b{color:var(--wd-ink) !important}
+html body .nagar-activation-card.is-active{border-color:#cbbba6 !important;background:#f7f1e8 !important}
+html body .activation-form-note{background:#f7f1e8 !important;border-color:var(--wd-line) !important;color:var(--wd-ink) !important}
+html body .empty-pro{background:#f7f1e8 !important;border-color:var(--wd-line) !important;color:var(--wd-muted) !important}
+html body .login-page-v2.auth-simple .auth-simple-apps,
+html body .login-page-v2.auth-simple .auth-blob,
+html body .login-page-v2.auth-simple .auth-blob-a,
+html body .login-page-v2.auth-simple .auth-blob-b{
+  display:none !important;visibility:hidden !important;height:0 !important;overflow:hidden !important;
+}
+html body .table-link{color:var(--wd-accent) !important;background:none;border:0;padding:0;font-weight:700;cursor:pointer}
+html body .muted{color:var(--wd-muted)}
+html body .stat-card h3,html body .glance-card strong{color:var(--wd-ink)}
+html body .sidebar,html body .app-shell .sidebar{color:#d7cdc2 !important}
+html body .app-shell .sidebar nav a{color:#c4b8ac !important}
+html body .app-shell .brand span{color:#a89888 !important}
+html body .searchable-control.is-open{border-color:var(--wd-accent) !important;box-shadow:0 0 0 3px rgba(122,46,58,.12) !important}
+html body .searchable-option:hover,html body .searchable-option.selected{background:#f7f1e8 !important;color:var(--wd-ink) !important}

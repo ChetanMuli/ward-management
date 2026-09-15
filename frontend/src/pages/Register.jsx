@@ -34,13 +34,12 @@ export default function Register(){
 
  const shell=(title,lead,card)=>(
   <div className="login-page-v2 auth-simple citizen-login register-page">
-   <div className="auth-blob auth-blob-a" aria-hidden="true"/>
-   <div className="auth-blob auth-blob-b" aria-hidden="true"/>
    <div className="auth-simple-wrap">
     <div className="auth-simple-logo">
      <span className="brand-mark">W</span>
      <strong>WardDesk</strong>
     </div>
+    <span className="auth-panel-pill">Resident workspace</span>
     <h1>{title}</h1>
     <p className="auth-simple-lead">{lead}</p>
     {card}

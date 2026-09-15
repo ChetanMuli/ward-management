@@ -10,7 +10,15 @@ function ageFromDob(dob){
  return Math.max(0,age);
 }
 
-export const emptyPerson={fullName:'',gender:'',dob:'',mobile:'',alternateMobile:'',email:'',occupationType:'',businessName:'',businessAddress:'',companyName:'',employmentType:'',officialVoterIdRef:'',voterIdImage:'',aadhaarImage:'',panCardImage:'',notes:'',isVoter:'',votingWard:'',constituency:''};
+export const emptyPerson={fullName:'',gender:'',dob:'',mobile:'',alternateMobile:'',email:'',occupationType:'',businessName:'',businessAddress:'',companyName:'',employmentType:'',officialVoterIdRef:'',voterIdImage:'',aadhaarImage:'',panCardImage:'',notes:'',isVoter:'',votingWard:'',constituency:'',presenceStatus:'',currentCity:'',livingWith:''};
+
+export function presenceLine(p){
+ const where=p?.presenceStatus==='OUT_OF_CITY'
+  ? `Out of city${p.currentCity?` · ${p.currentCity}`:''}`
+  : p?.presenceStatus==='AT_HOME'?'At this house':'';
+ const withWho=p?.livingWith==='SELF'?'Self':p?.livingWith==='FAMILY'?'With family':'';
+ return [where,withWho].filter(Boolean).join(' · ');
+}
 
 export default function PersonForm({value,onChange,families=[],wards=[],hideFamily=false,onSubmit,onCancel,busy=false}){
  const form=value||emptyPerson;
@@ -45,6 +53,11 @@ export default function PersonForm({value,onChange,families=[],wards=[],hideFami
   <Field className="span-2" label="Occupation type"><select value={occupation} onChange={e=>{const v=e.target.value;onChange({...form,occupationType:v,businessName:v==='BUSINESS'?form.businessName:'',businessAddress:v==='BUSINESS'?form.businessAddress:'',companyName:v==='SERVICE'?form.companyName:'',employmentType:v==='SERVICE'?form.employmentType:''})}}><option value="">Not specified / N/A</option><option value="BUSINESS">Business</option><option value="SERVICE">Service</option><option value="OTHER">Not specified / Student / Homemaker / Retired / Other</option></select></Field>
   {occupation==='BUSINESS'&&<><Field label="Business name"><input value={form.businessName||''} onChange={e=>set('businessName',e.target.value)} placeholder="Enter business name"/></Field><Field label="Business address"><textarea value={form.businessAddress||''} onChange={e=>set('businessAddress',e.target.value)} placeholder="Enter business address"/></Field></>}
   {occupation==='SERVICE'&&<><Field label="Company / organisation name"><input value={form.companyName||''} onChange={e=>set('companyName',e.target.value)} placeholder="Enter company / organisation"/></Field><Field label="Service type"><select value={form.employmentType||''} onChange={e=>set('employmentType',e.target.value)}><option value="">Not specified / N/A</option><option value="PRIVATE">Private</option><option value="GOVERNMENT">Government</option></select></Field></>}
+
+  <div className="form-section-title span-2"><strong>Where they are now</strong><span>Record if this member stays at the house, or is currently out of the city — with family or on their own.</span></div>
+  <Field label="Current place"><select value={form.presenceStatus||''} onChange={e=>onChange({...form,presenceStatus:e.target.value,currentCity:e.target.value==='OUT_OF_CITY'?form.currentCity:''})}><option value="">Not specified</option><option value="AT_HOME">At this house</option><option value="OUT_OF_CITY">Out of this city</option></select></Field>
+  <Field label="Staying with"><select value={form.livingWith||''} onChange={e=>set('livingWith',e.target.value)}><option value="">Not specified</option><option value="FAMILY">With family</option><option value="SELF">Self</option></select></Field>
+  {form.presenceStatus==='OUT_OF_CITY'&&<Field className="span-2" label="Current city *"><input required value={form.currentCity||''} onChange={e=>set('currentCity',e.target.value)} placeholder="City where this member is staying now"/></Field>}
 
   <div className="form-section-title span-2"><strong>Identity documents</strong><span>All documents are optional. Use camera on mobile or choose an existing image.</span></div>
   <ImageField label="Voter ID image" value={form.voterIdImage||''} onChange={v=>set('voterIdImage',v)} cameraLabel="Take voter ID photo"/>

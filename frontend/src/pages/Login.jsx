@@ -1,6 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {api,setSession} from '../services/api';
+import {api,getUser,setSession} from '../services/api';
 
 export const COMPANY_NAME='Kairo IT Solutions PVT LTD';
 export const COMPANY_EMAIL='chetan.a2zithub@gmail.com';
@@ -36,13 +36,12 @@ function PasswordField({label,value,onChange,placeholder,autoComplete='current-p
 
 function AuthShell({admin,title,lead,children}){
  return <div className={`login-page-v2 auth-simple ${admin?'admin-login':'citizen-login'}`}>
-  <div className="auth-blob auth-blob-a" aria-hidden="true"/>
-  <div className="auth-blob auth-blob-b" aria-hidden="true"/>
   <div className="auth-simple-wrap">
    <div className="auth-simple-logo">
     <span className="brand-mark">W</span>
     <strong>WardDesk</strong>
    </div>
+   <span className="auth-panel-pill">{admin?'Staff workspace':'Resident workspace'}</span>
    <h1>{title}</h1>
    <p className="auth-simple-lead">{lead}</p>
    {children}
@@ -78,6 +77,13 @@ export default function Login({mode='user'}){
  const [sentTo,setSentTo]=useState('');
  const navigate=useNavigate();
  const forgotValue=channel==='mobile'?mobileId:emailId;
+
+ useEffect(()=>{
+  const u=getUser();
+  if(!u) return;
+  const dest=String(u.role||'').toUpperCase()==='CITIZEN'?'/':'/admin';
+  window.location.replace(dest);
+ },[admin]);
 
  useEffect(()=>{if(sessionStorage.getItem('ward_session_expired')==='1'){sessionStorage.removeItem('ward_session_expired');setNotice('Your previous session expired. Please sign in again.');}},[]);
 
@@ -129,7 +135,9 @@ export default function Login({mode='user'}){
    if(!admin&&!citizen) throw new Error('This is an administration account. Please use the administration login.');
    if(admin&&citizen) throw new Error('This is a resident account. Please use the resident login.');
    setSession(result.data.token,result.data.user);
-   window.location.replace(admin?'/admin':'/');
+   const dest=admin?'/admin':'/';
+   try{window.history.replaceState({wardSignedIn:1},'',dest);}catch{}
+   window.location.replace(dest);
    return;
   }catch(e){
    setError(e.message||'Unable to sign in.');
@@ -261,7 +269,7 @@ export default function Login({mode='user'}){
   </AuthShell>;
  }
 
- return <AuthShell admin={admin} title={admin?'Staff sign in':'Good to see you again'} lead={admin?'For Master Admin, Nagarsevak and Employees':'Sign in to your registered ward account'}>
+ return <AuthShell admin={admin} title={admin?'Staff sign in':'Resident sign in'} lead={admin?'Master Admin, Nagarsevak and Employees':'Access your registered ward account'}>
   <form onSubmit={submit} className="login-v2-card auth-simple-card">
    {notice&&<div className="info-note login-session-notice">{notice}</div>}
    {error&&<div className="error-box">{error}</div>}

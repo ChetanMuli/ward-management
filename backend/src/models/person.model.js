@@ -43,6 +43,15 @@ const Person = sequelize.define('Person', {
     type: DataTypes.ENUM('OWN', 'RENT', 'OTHER'),
     allowNull: true,
   },
+  presenceStatus: {
+    type: DataTypes.ENUM('AT_HOME', 'OUT_OF_CITY'),
+    allowNull: true,
+  },
+  currentCity: { type: DataTypes.STRING(120), allowNull: true },
+  livingWith: {
+    type: DataTypes.ENUM('FAMILY', 'SELF'),
+    allowNull: true,
+  },
   status: {
     type: DataTypes.ENUM('ACTIVE', 'DECEASED', 'MOVED_OUT', 'DUPLICATE', 'VERIFICATION_PENDING'),
     defaultValue: 'ACTIVE',

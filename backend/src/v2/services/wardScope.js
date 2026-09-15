@@ -33,7 +33,7 @@ async function assertWard(wardId, req) {
 }
 
 async function assertHouse(houseId, req) {
-  const house = await House.findByPk(houseId, { include: [{ model: Area, as: 'area' }] });
+  const house = await House.findByPk(houseId, { include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }] });
   if (!house) throw new ApiError(404, 'House not found');
   if (!isWardAllowed(req, house.area?.wardId)) throw new ApiError(403, 'House belongs to another ward');
   return house;

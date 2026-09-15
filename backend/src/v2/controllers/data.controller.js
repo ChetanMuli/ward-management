@@ -23,6 +23,20 @@ const personInclude = [
   { model: VoterProfile, as: 'voterProfile' },
 ];
 
+function cleanCoord(v){
+  if(v===''||v==null) return null;
+  const n=Number(v);
+  if(!Number.isFinite(n)||Math.abs(n)<1e-4) return null;
+  return n;
+}
+
+function pairCoords(lat,lng){
+  const latitude=cleanCoord(lat);
+  const longitude=cleanCoord(lng);
+  if(latitude==null||longitude==null) return {latitude:null,longitude:null};
+  return {latitude,longitude};
+}
+
 function calculateAgeSafe(dob){
   if(!dob) return 0;
   const birth=new Date(dob);
@@ -31,6 +45,20 @@ function calculateAgeSafe(dob){
   const m=today.getMonth()-birth.getMonth();
   if(m<0 || (m===0 && today.getDate()<birth.getDate())) age--;
   return Math.max(age,0);
+}
+
+function applyPresence(target, body){
+  if(!('presenceStatus' in body) && !('livingWith' in body) && !('currentCity' in body)) return target;
+  const status=String(body.presenceStatus||'').toUpperCase();
+  const living=String(body.livingWith||'').toUpperCase();
+  target.presenceStatus=['AT_HOME','OUT_OF_CITY'].includes(status)?status:null;
+  target.livingWith=['FAMILY','SELF'].includes(living)?living:null;
+  const city=String(body.currentCity||'').trim();
+  target.currentCity=target.presenceStatus==='OUT_OF_CITY'?(city||null):null;
+  if(target.presenceStatus==='OUT_OF_CITY' && !target.currentCity){
+    throw new ApiError(400,'Enter the city where this family member is staying now.');
+  }
+  return target;
 }
 
 function pagination(q) {
@@ -101,6 +129,9 @@ const houses = asyncHandler(async (req, res) => {
       { address: { [Op.like]: `%${req.query.search}%` } },
       { ownerName: { [Op.like]: `%${req.query.search}%` } },
       { ownerMobile: { [Op.like]: `%${req.query.search}%` } },
+      { city: { [Op.like]: `%${req.query.search}%` } },
+      { pincode: { [Op.like]: `%${req.query.search}%` } },
+      { landmark: { [Op.like]: `%${req.query.search}%` } },
     ];
   }
   const r = await House.findAndCountAll({
@@ -154,7 +185,9 @@ const persons = asyncHandler(async (req, res) => {
       { companyName: { [Op.like]: `%${search}%` } },
       { employmentType: { [Op.like]: `%${search}%` } },
       { relationshipToHead: { [Op.like]: `%${search}%` } },
-      { residenceStatus: { [Op.like]: `%${search}%` } },
+      { presenceStatus: { [Op.like]: `%${search}%` } },
+      { currentCity: { [Op.like]: `%${search}%` } },
+      { livingWith: { [Op.like]: `%${search}%` } },
       { followupStatus: { [Op.like]: `%${search}%` } },
       { gender: { [Op.like]: `%${search}%` } },
       { notes: { [Op.like]: `%${search}%` } },
@@ -291,9 +324,10 @@ const birthdays = asyncHandler(async (req, res) => {
 
 const updatePerson = asyncHandler(async (req, res) => {
   const p = await assertPerson(req.params.id, req);
-  const allowed = ['fullName','gender','dob','mobile','alternateMobile','email','occupation','occupationType','businessName','businessAddress','companyName','employmentType','followupStatus','followupDate','followupNotes','status','notes','voterIdImage','aadhaarImage','panCardImage'];
+  const allowed = ['fullName','gender','dob','mobile','alternateMobile','email','occupation','occupationType','businessName','businessAddress','companyName','employmentType','followupStatus','followupDate','followupNotes','status','notes','voterIdImage','aadhaarImage','panCardImage','presenceStatus','currentCity','livingWith'];
   const patch = {};
   for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
+  applyPresence(patch, req.body);
 
   if ('fullName' in patch) patch.fullName = String(patch.fullName || '').trim() || 'N/A';
   if ('gender' in patch) patch.gender = patch.gender || 'NOT_SPECIFIED';
@@ -378,16 +412,9 @@ const createHouse = asyncHandler(async (req, res) => {
 
   const payload = { ...req.body };
 
-  // Optional fields must never send empty strings to DECIMAL columns
-  payload.latitude =
-    payload.latitude === '' || payload.latitude == null
-      ? null
-      : Number(payload.latitude);
-
-  payload.longitude =
-    payload.longitude === '' || payload.longitude == null
-      ? null
-      : Number(payload.longitude);
+  const geo=pairCoords(payload.latitude,payload.longitude);
+  payload.latitude=geo.latitude;
+  payload.longitude=geo.longitude;
 
   // Owner information is optional
   payload.ownerName =
@@ -395,6 +422,9 @@ const createHouse = asyncHandler(async (req, res) => {
 
   payload.ownerMobile =
     payload.ownerMobile === '' ? null : payload.ownerMobile;
+
+  payload.city = payload.city === '' ? null : payload.city;
+  payload.pincode = payload.pincode === '' ? null : payload.pincode;
 
   // Remove accidental undefined values
   Object.keys(payload).forEach((key) => {
@@ -421,16 +451,17 @@ const createHouse = asyncHandler(async (req, res) => {
   });
 });
 
-const updateHouse = asyncHandler(async (req,res) => { const row=await assertHouse(req.params.id,req); const patch={...req.body}; for(const k of ['latitude','longitude','ownerName','ownerMobile','landmark','notes']) if(patch[k]==='') patch[k]=null; if(patch.areaId){const area=await Area.findByPk(req.body.areaId);if(!area)throw new ApiError(400,'Area not found');if(req.user.roleName!=='SUPER_ADMIN'&&area.wardId!==req.user.wardId)throw new ApiError(403,'Area belongs to another ward');} const old=row.toJSON(); await row.update(patch); await logAudit({user:req.user,action:'UPDATE_HOUSE',entity:'House',recordId:row.id,oldValue:old,newValue:patch,ipAddress:req.ip}); return success(res,{data:row,message:'House updated'}); });
+const updateHouse = asyncHandler(async (req,res) => { const row=await assertHouse(req.params.id,req); const patch={...req.body}; for(const k of ['ownerName','ownerMobile','landmark','notes','city','pincode']) if(patch[k]==='') patch[k]=null; if('latitude' in patch || 'longitude' in patch){ const geo=pairCoords(patch.latitude ?? row.latitude, patch.longitude ?? row.longitude); patch.latitude=geo.latitude; patch.longitude=geo.longitude; } if(patch.areaId){const area=await Area.findByPk(req.body.areaId);if(!area)throw new ApiError(400,'Area not found');if(req.user.roleName!=='SUPER_ADMIN'&&area.wardId!==req.user.wardId)throw new ApiError(403,'Area belongs to another ward');} const old=row.toJSON(); await row.update(patch); await logAudit({user:req.user,action:'UPDATE_HOUSE',entity:'House',recordId:row.id,oldValue:old,newValue:patch,ipAddress:req.ip}); return success(res,{data:row,message:'House updated'}); });
 const deleteHouse = asyncHandler(async(req,res)=>{const row=await assertHouse(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_HOUSE',entity:'House',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'House moved to recycle bin'});});
 const createFamily = asyncHandler(async(req,res)=>{await assertHouse(req.body.houseId,req);const row=await Family.create(req.body);await logAudit({user:req.user,action:'CREATE_FAMILY',entity:'Family',recordId:row.id,newValue:req.body,ipAddress:req.ip});return success(res,{statusCode:201,data:row,message:'Family created'});});
 const updateFamily = asyncHandler(async(req,res)=>{const row=await assertFamily(req.params.id,req);if(req.body.houseId)await assertHouse(req.body.houseId,req);const old=row.toJSON();await row.update(req.body);await logAudit({user:req.user,action:'UPDATE_FAMILY',entity:'Family',recordId:row.id,oldValue:old,newValue:req.body,ipAddress:req.ip});return success(res,{data:row,message:'Family updated'});});
 const deleteFamily = asyncHandler(async(req,res)=>{const row=await assertFamily(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_FAMILY',entity:'Family',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Family moved to recycle bin'});});
 const createPerson = asyncHandler(async(req,res)=>{
   await assertFamily(req.body.familyId,req);
-  const allowed=['familyId','fullName','gender','dob','mobile','alternateMobile','email','occupation','occupationType','businessName','businessAddress','companyName','employmentType','notes','voterIdImage','aadhaarImage','panCardImage','followupStatus','followupDate','followupNotes'];
+  const allowed=['familyId','fullName','gender','dob','mobile','alternateMobile','email','occupation','occupationType','businessName','businessAddress','companyName','employmentType','notes','voterIdImage','aadhaarImage','panCardImage','followupStatus','followupDate','followupNotes','presenceStatus','currentCity','livingWith'];
   const payload={};
   for(const k of allowed) if(k in req.body) payload[k]=req.body[k];
+  applyPresence(payload, req.body);
 
   // Only the family link is structurally required. Unknown personal information
   // can be left blank or recorded as N/A without creating fake defaults.

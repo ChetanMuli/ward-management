@@ -1,4 +1,4 @@
-﻿/* ================================================================
+/* ================================================================
    Mobile Chrome layout (phones + small tablets)
    Loaded after styles.css so these rules win over earlier patches.
    All admin / sub-admin / nagarsevak / employee panels use .app-shell.
@@ -4182,5 +4182,130 @@ html body .login-page-v2.auth-simple input[type="tel"]{
     justify-content:center !important;
     align-items:center !important;
     gap:8px !important;
+  }
+}
+
+/* Resident dashboard alignment */
+html body .user-portal .user-main{
+  max-width:1180px;
+  padding:28px 24px 48px;
+}
+html body .user-portal .user-hero{
+  display:grid !important;
+  grid-template-columns:minmax(0,1.4fr) minmax(260px,300px);
+  align-items:center;
+  gap:28px;
+  min-height:0;
+  padding:28px 32px;
+}
+html body .user-portal .user-hero-copy{
+  max-width:none;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+html body .user-portal .user-hero h1{
+  margin:8px 0 8px;
+}
+html body .user-portal .user-hero p{
+  margin:0 0 16px;
+}
+html body .user-portal .user-hero-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:16px;
+}
+html body .user-portal .user-hero-actions .primary-btn,
+html body .user-portal .user-hero-actions .ghost-btn{
+  min-height:42px;
+  padding:10px 16px;
+}
+html body .user-portal .user-hero-card{
+  width:auto;
+  min-height:108px;
+  align-self:center;
+}
+html body .user-portal .user-action-row{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin:14px 0 16px;
+}
+html body .user-portal .user-action-card{
+  height:100%;
+  min-height:96px;
+  padding:16px 18px;
+  gap:6px;
+}
+html body .user-portal .user-action-card strong,
+html body .user-portal .user-action-card span{
+  display:block;
+}
+html body .user-portal .user-stat-grid{
+  margin:0 0 16px;
+}
+html body .user-portal .user-content-grid{
+  align-items:start;
+}
+html body .user-portal .user-footer{
+  max-width:1180px;
+}
+
+/* Shared admin / portal form polish */
+html body .form-grid{
+  align-items:start;
+}
+html body .form-grid .form-section-title{
+  margin-top:6px;
+  padding:10px 2px 6px;
+}
+html body .form-grid label,
+html body .form-grid .searchable-select{
+  min-width:0;
+}
+html body .form-grid input,
+html body .form-grid select,
+html body .form-grid textarea{
+  width:100%;
+  box-sizing:border-box;
+}
+html body .form-grid textarea{
+  min-height:84px;
+  resize:vertical;
+}
+html body .field-hint{
+  display:block;
+  margin-top:4px;
+  font-size:10px;
+  color:#6b7789;
+  font-weight:600;
+}
+html body .modal .form-grid{
+  gap:12px;
+}
+html body .person-form .form-section-title strong{
+  font-size:13px;
+}
+
+@media (max-width:900px){
+  html body .user-portal .user-hero{
+    grid-template-columns:1fr !important;
+    padding:22px 20px !important;
+  }
+  html body .user-portal .user-hero-card{
+    display:none !important;
+  }
+  html body .user-portal .user-action-row{
+    grid-template-columns:1fr !important;
+  }
+}
+@media (max-width:620px){
+  html body .user-portal .user-main{
+    padding:16px 12px 36px !important;
+  }
+  html body .user-portal .user-hero-actions{
+    display:grid !important;
+    grid-template-columns:1fr !important;
   }
 }

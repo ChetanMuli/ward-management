@@ -7,6 +7,8 @@ const House = sequelize.define('House', {
   areaId: { type: DataTypes.UUID, allowNull: false },
   address: { type: DataTypes.TEXT, allowNull: false },
   landmark: DataTypes.STRING,
+  city: DataTypes.STRING,
+  pincode: DataTypes.STRING,
   houseType: {
     type: DataTypes.ENUM('INDEPENDENT_HOUSE', 'FLAT', 'CHAWL', 'OTHER'),
     defaultValue: 'INDEPENDENT_HOUSE',

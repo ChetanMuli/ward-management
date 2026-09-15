@@ -6,7 +6,7 @@ import {initLanguage,setLanguage as applyLanguage} from './language';
 import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
 import Stakeholders from './pages/Stakeholders';
 import Groups from './pages/Groups'; import Deaths from './pages/Deaths'; import SubAdmins from './pages/SubAdmins'; import WardUpdates from './pages/WardUpdates'; import UserPanel from './pages/UserPanel'; import UserComplaints from './pages/UserComplaints'; import ElectionData from './pages/ElectionData'; import WardActivation from './pages/WardActivation';
-import {Modal,PaginationBar,ProfileAvatar} from './components/Ui';
+import {Modal,PaginationBar,ProfileAvatar,scrollMainToTop} from './components/Ui';
 
 const navSections=[
  {id:'overview',en:'Overview',mr:'आढावा',items:[
@@ -58,10 +58,10 @@ function workspaceLabel(user){if(isMaster(user))return 'Master administration';i
 const pageHelp={
  '/':'See ward numbers, people and complaint work at a glance.',
  '/admin':'See ward numbers, people and complaint work at a glance.',
- '/wards':'Create municipal wards and the areas inside each ward.',
+ '/wards':'Create wards and colonies. Exact home location is saved when a team member visits the house.',
+ '/houses':'When you visit a home, save GPS at the door. Tap the location later to open maps and get directions.',
+ '/families':'Each family lives at a house. Open directions from the house location.',
  '/ward-information':'Official ward facts, maps and published information.',
- '/houses':'Register houses under ward → colony → house number.',
- '/families':'Keep each household and its members together.',
  '/people':'Search every citizen by name, mobile, job or address.',
  '/voters':'See who is marked as a voter in the family register.',
  '/users':'Registered login accounts for this ward system.',
@@ -159,6 +159,12 @@ function CitizenShell({children}){
  useEffect(()=>{document.title=`${pageTitle(location.pathname)} · WardDesk`;const token=localStorage.getItem('ward_token');if(!token)return;let timer;try{const payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));const ms=Number(payload.exp)*1000-Date.now();if(ms<=0){sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login');return}timer=setTimeout(()=>{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')},ms+250)}catch{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')}return()=>clearTimeout(timer)},[location.pathname]);
  useEffect(()=>{if(!noteToast)return;const t=setTimeout(()=>setNoteToast(null),5000);return()=>clearTimeout(t)},[noteToast]);
  useEffect(()=>{if(location.state?.welcome){setWelcome(true);navigate(location.pathname,{replace:true,state:null});setTimeout(()=>setWelcome(false),4500);}},[location.pathname,location.state,navigate]);
+ useEffect(()=>{
+  setMobileNav(false);setMenu(false);setShowNotifications(false);
+  scrollMainToTop();
+  const t=setTimeout(scrollMainToTop,80);
+  return()=>clearTimeout(t);
+ },[location.pathname]);
  const logout=()=>{clearSession();window.location.replace('/login')}; const toggleLanguage=()=>{const n=language==='en'?'mr':'en';localStorage.setItem('ward_language',n);setLanguage(n);window.location.reload()};
  const go=p=>{setMenu(false);setMobileNav(false);setShowNotifications(false);navigate(p)};
  const markNotification=async(id)=>{try{await api.markNotificationRead(id);setNotifications(xs=>xs.map(n=>n.id===id?{...n,isRead:true}:n));}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}};
@@ -244,6 +250,7 @@ function GlobalPagination(){
 
  useEffect(()=>{
   setPage(1);
+  scrollMainToTop();
   let active=true;
   const scan=()=>{
    if(!active)return;
@@ -295,13 +302,14 @@ function Shell({children}){
  useEffect(()=>{
   setUpdatesOpen(location.pathname.startsWith('/ward-updates'));
   setOpen(false);setShowNotifications(false);setShowProfile(false);
+  scrollMainToTop();
   const restore=()=>{
    if(!navRef.current)return;
    let value=0; try{value=Number(sessionStorage.getItem(sidebarScrollKey)||0)}catch{}
    if(Number.isFinite(value)) navRef.current.scrollTop=Math.max(0,value);
   };
-  requestAnimationFrame(restore);
-  const t=setTimeout(restore,80);
+  requestAnimationFrame(()=>{scrollMainToTop();restore();});
+  const t=setTimeout(()=>{scrollMainToTop();restore();},80);
   return()=>clearTimeout(t);
  },[location.pathname]);
  useEffect(()=>{
@@ -441,7 +449,31 @@ class AppErrorBoundary extends React.Component {
  }
 }
 
+function signedInHome(){
+ const u=getUser();
+ if(!u) return '';
+ return String(u.role||'').toUpperCase()==='CITIZEN'?'/':'/admin';
+}
+function bounceAuthPagesIfSignedIn(){
+ const dest=signedInHome();
+ if(!dest) return;
+ const path=window.location.pathname;
+ const loginView=typeof document!=='undefined'&&document.querySelector('.login-page-v2');
+ if(path==='/login'||path==='/register'||path==='/admin/login'||(loginView&&(path==='/'||path==='/admin'))){
+  if(path===dest&&!loginView) return;
+  window.history.replaceState(null,'',dest);
+  window.location.replace(dest);
+ }
+}
+
 export default function App(){
+ useEffect(()=>{
+  bounceAuthPagesIfSignedIn();
+  const onShow=e=>{if(e.persisted) bounceAuthPagesIfSignedIn();};
+  window.addEventListener('pageshow',onShow);
+  window.addEventListener('popstate',bounceAuthPagesIfSignedIn);
+  return()=>{window.removeEventListener('pageshow',onShow);window.removeEventListener('popstate',bounceAuthPagesIfSignedIn);};
+ },[]);
  useEffect(()=>{
   const IDLE_MS=30*60*1000, KEY='ward_last_activity';
   const token=localStorage.getItem('ward_token');

@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Ward, Area, User, Role } = require('../../models');
+const { Ward, Area, User, Role, WardNagarsevakSubscription } = require('../../models');
 const ApiError=require('../../utils/ApiError');
 const {success}=require('../../utils/apiResponse');
 const asyncHandler=require('../../utils/asyncHandler');
@@ -15,23 +15,37 @@ const list=asyncHandler(async(req,res)=>{
   if(req.query.wardId && String(req.query.wardId)!==String(req.user.wardId)) throw new ApiError(403,'You can only view your registered ward');
   where.id=req.user.wardId;
  }
- const rows=await Ward.findAll({where,include:[{model:Area,as:'areas'},{model:User,as:'users',attributes:['id','name','mobile','status','roleId'],required:false,include:[{model:Role,attributes:['name'],required:false,where:{name:'NAGARSEVAK'}}]}],order:[['wardNumber','ASC']]});
+ const rows=await Ward.findAll({where,include:[{model:Area,as:'areas'},{model:User,as:'users',attributes:['id','name','mobile','status','roleId'],required:false,include:[{model:Role,attributes:['name'],required:false,where:{name:'NAGARSEVAK'}}]},{model:WardNagarsevakSubscription,as:'nagarsevakSubscriptions',attributes:['id','nagarsevakUserId','status'],required:false,include:[{model:User,as:'nagarsevak',attributes:['id','name','mobile','status'],required:false}]}],order:[['wardNumber','ASC']]});
  if(req.user.roleName==='CITIZEN'){
   const { getVisibleNagarsevakIds } = require('../../services/wardActivation.service');
   const visible=new Set((await getVisibleNagarsevakIds(req.user.wardId)).map(String));
   const sanitized=rows.map(row=>{
    const json=row.toJSON();
    json.users=(json.users||[]).filter(u=>visible.has(String(u.id)));
+   json.nagarsevakSubscriptions=(json.nagarsevakSubscriptions||[]).filter(s=>visible.has(String(s.nagarsevakUserId)));
    return json;
   });
   return success(res,{data:sanitized});
  }
  return success(res,{data:rows});
 });
-const create=asyncHandler(async(req,res)=>{if(req.user.roleName!=='SUPER_ADMIN')throw new ApiError(403,'Only Master Admin can create wards');const payload={...req.body,status:'INACTIVE'};const ward=await Ward.create(payload);await ensureWardGroup(ward.id);await syncWardCommunityMembership(ward.id).catch(()=>{});await logAudit({user:req.user,action:'CREATE_WARD',entity:'Ward',recordId:ward.id,newValue:payload,ipAddress:req.ip});return success(res,{statusCode:201,data:ward,message:'Ward created as inactive. Activate it from Ward activation before residents can register.'});});
-const createArea=asyncHandler(async(req,res)=>{if(!isWardAllowed(req,req.params.wardId))throw new ApiError(403,'You do not have access to this ward');const ward=await Ward.findByPk(req.params.wardId);if(!ward)throw new ApiError(404,'Ward not found');const area=await Area.create({name:req.body.name,description:req.body.description||'',status:req.body.status||'ACTIVE',wardId:ward.id});await logAudit({user:req.user,action:'CREATE_AREA',entity:'Area',recordId:area.id,newValue:req.body,ipAddress:req.ip});return success(res,{statusCode:201,data:area,message:'Area created'});});
+const create=asyncHandler(async(req,res)=>{if(req.user.roleName!=='SUPER_ADMIN')throw new ApiError(403,'Only Master Admin can create wards');const payload={...req.body,status:'INACTIVE'};delete payload.areas;['city','district','pincode','latitude','longitude'].forEach(k=>{if(payload[k]==='')payload[k]=null});const ward=await Ward.create(payload);await ensureWardGroup(ward.id);await syncWardCommunityMembership(ward.id).catch(()=>{});await logAudit({user:req.user,action:'CREATE_WARD',entity:'Ward',recordId:ward.id,newValue:payload,ipAddress:req.ip});return success(res,{statusCode:201,data:ward,message:'Ward created as inactive. Activate it from Ward activation before residents can register.'});});
+function emptyToNull(v){return v===''||v==null?null:v}
+function areaFields(body){
+ return {
+  name:body.name,
+  description:body.description||'',
+  status:body.status||'ACTIVE',
+  city:emptyToNull(body.city),
+  pincode:emptyToNull(body.pincode),
+  landmark:emptyToNull(body.landmark),
+  latitude:emptyToNull(body.latitude),
+  longitude:emptyToNull(body.longitude)
+ };
+}
+const createArea=asyncHandler(async(req,res)=>{if(!isWardAllowed(req,req.params.wardId))throw new ApiError(403,'You do not have access to this ward');const ward=await Ward.findByPk(req.params.wardId);if(!ward)throw new ApiError(404,'Ward not found');const area=await Area.create({...areaFields(req.body),wardId:ward.id});await logAudit({user:req.user,action:'CREATE_AREA',entity:'Area',recordId:area.id,newValue:req.body,ipAddress:req.ip});return success(res,{statusCode:201,data:area,message:'Area created'});});
 const updateArea=asyncHandler(async(req,res)=>{const area=await Area.findByPk(req.params.id);
- if(!isWardAllowed(req,area?.wardId))throw new ApiError(403,'You do not have access to this ward');if(!area)throw new ApiError(404,'Area not found');const old=area.toJSON();await area.update({name:req.body.name,description:req.body.description,status:req.body.status});await logAudit({user:req.user,action:'UPDATE_AREA',entity:'Area',recordId:area.id,oldValue:old,newValue:req.body,ipAddress:req.ip});return success(res,{data:area,message:'Area updated'});});
+ if(!isWardAllowed(req,area?.wardId))throw new ApiError(403,'You do not have access to this ward');if(!area)throw new ApiError(404,'Area not found');const old=area.toJSON();await area.update(areaFields({...old,...req.body}));await logAudit({user:req.user,action:'UPDATE_AREA',entity:'Area',recordId:area.id,oldValue:old,newValue:req.body,ipAddress:req.ip});return success(res,{data:area,message:'Area updated'});});
 const remove=asyncHandler(async(req,res)=>{const ward=await Ward.findByPk(req.params.id);if(!ward)throw new ApiError(404,'Ward not found');if(req.user.roleName!=='SUPER_ADMIN')throw new ApiError(403,'Only Super Admin can delete a ward');await archiveWardGroups(ward.id);await ward.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_WARD',entity:'Ward',recordId:ward.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Ward moved to recycle bin'});});
 const removeArea=asyncHandler(async(req,res)=>{const area=await Area.findByPk(req.params.id);
  if(!isWardAllowed(req,area?.wardId))throw new ApiError(403,'You do not have access to this ward');if(!area)throw new ApiError(404,'Area not found');await area.destroy();return success(res,{message:'Area moved to recycle bin'});});
@@ -40,9 +54,10 @@ const update=asyncHandler(async(req,res)=>{const ward=await Ward.findByPk(req.pa
   if(req.user.roleName!=='SUPER_ADMIN') throw new ApiError(403,'Only Master Admin can change ward activation status');
   const updated=await setWardActivation(ward.id, req.body.status, req.user, req.ip);
   const rest={...req.body}; delete rest.status;
+  ['city','district','pincode','latitude','longitude'].forEach(k=>{if(rest[k]==='')rest[k]=null});
   if(Object.keys(rest).length) await updated.update(rest);
   await ensureWardGroup(ward.id);
   return success(res,{data:await Ward.findByPk(ward.id),message:'Ward updated'});
  }
- const old=ward.toJSON();await ward.update(req.body);await ensureWardGroup(ward.id);await syncWardCommunityMembership(ward.id).catch(()=>{});await logAudit({user:req.user,action:'UPDATE_WARD',entity:'Ward',recordId:ward.id,oldValue:old,newValue:req.body,ipAddress:req.ip});return success(res,{data:ward,message:'Ward updated'});});
+ const old=ward.toJSON();const patch={...req.body};['city','district','pincode','latitude','longitude'].forEach(k=>{if(patch[k]==='')patch[k]=null});await ward.update(patch);await ensureWardGroup(ward.id);await syncWardCommunityMembership(ward.id).catch(()=>{});await logAudit({user:req.user,action:'UPDATE_WARD',entity:'Ward',recordId:ward.id,oldValue:old,newValue:req.body,ipAddress:req.ip});return success(res,{data:ward,message:'Ward updated'});});
 module.exports={list,create,update,remove,createArea,updateArea,removeArea};

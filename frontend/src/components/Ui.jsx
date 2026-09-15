@@ -1,5 +1,17 @@
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
+
+export function scrollMainToTop(){
+ const jump=()=>{
+  window.scrollTo(0,0);
+  if(document.documentElement) document.documentElement.scrollTop=0;
+  if(document.body) document.body.scrollTop=0;
+  document.querySelectorAll('.content,.user-main,.user-page-main').forEach(el=>{el.scrollTop=0});
+ };
+ jump();
+ requestAnimationFrame(jump);
+}
+
 export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,limits=[10,25,50,100]}){
  if(!total) return null;
  const start=(page-1)*limit+1;
@@ -13,13 +25,13 @@ export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,li
  for(let n=from;n<=to;n+=1) window.push(n);
  if(to<last-1) window.push('…');
  if(to<last) window.push(last);
- const go=n=>onPage(Math.max(1,Math.min(last,n)));
+ const go=n=>{onPage(Math.max(1,Math.min(last,n)));scrollMainToTop();};
  return (
   <div className="global-pagination" aria-label="Pagination">
    <div className="pagination-info">Showing {start}–{end} of {total}</div>
    <div className="pagination-controls">
     <label>Rows per page
-     <select value={limit} onChange={e=>{onLimit(Number(e.target.value));onPage(1)}}>
+     <select value={limit} onChange={e=>{onLimit(Number(e.target.value));onPage(1);scrollMainToTop();}}>
       {limits.map(n=><option key={n} value={n}>{n}</option>)}
      </select>
     </label>
@@ -116,7 +128,7 @@ export function SearchableSelect({label, value, onChange, options=[], placeholde
   </div>{menu}
  </div>;
 }
-export function Field({label,children,className=''}){return <label className={className}>{label}{children}</label>}
+export function Field({label,children,className='',hint}){return <label className={className}>{label}{children}{hint?<small className="field-hint">{hint}</small>:null}</label>}
 export function fmtDate(v){if(!v)return '—';return new Intl.DateTimeFormat('en-IN',{dateStyle:'medium'}).format(new Date(v))}
 export function fmtDateTime(v){if(!v)return '—';return new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v))}
 export function Toolbar({children}){return <div className="toolbar filter-toolbar">{children}</div>}
