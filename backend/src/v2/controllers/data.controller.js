@@ -6,6 +6,7 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { assertHouse, assertFamily, assertPerson, assertComplaint, getScope, allowedWardIds, isWardAllowed } = require('../services/wardScope');
 const { logAudit } = require('../../services/audit.service');
 const { daysTo18thBirthday, daysToNextBirthday, daysFromBirthday } = require('../../services/age.service');
+const { nagarsevakPublicByIds } = require('../../utils/photo');
 
 const familyInclude = [
   { model: Person, as: 'members', where: { status: 'ACTIVE' }, required: false, include: [{ model: VoterProfile, as: 'voterProfile' }] },
@@ -313,11 +314,13 @@ const birthdays = asyncHandler(async (req, res) => {
   const rows = await Person.findAll({ where, include });
   const nr=await Role.findOne({where:{name:'NAGARSEVAK'}});
   const councillorRows=nr?await User.findAll({where:{roleId:nr.id,status:'ACTIVE'},attributes:['id','name','mobile','wardId','roleId']}):[];
+  const nagarPhotos=await nagarsevakPublicByIds(councillorRows.map(u=>u.id));
   const councillorByWard=new Map(councillorRows.map(u=>[u.wardId,u]));
   const data = rows.filter(p => p.dob).map(p => {
     const wardId=p.family?.house?.area?.wardId || p.family?.house?.area?.ward?.id;
     const n=councillorByWard.get(wardId);
-    return { person:p, nagarsevak:n?{id:n.id,name:n.name,mobile:n.mobile,partyName:n.partyName||n.getDataValue?.('partyName')||null,wardSeat:n.wardSeat||n.getDataValue?.('wardSeat')||null,photo:n.getDataValue?.('photo')||n.photo||null}:null, daysToBirthday:daysFromBirthday(p.dob) };
+    const extra=n?nagarPhotos.get(String(n.id)):null;
+    return { person:p, nagarsevak:n?{id:n.id,name:n.name,mobile:n.mobile,partyName:extra?.partyName||n.partyName||n.getDataValue?.('partyName')||null,wardSeat:extra?.wardSeat||n.wardSeat||n.getDataValue?.('wardSeat')||null,photo:extra?.photo||n.getDataValue?.('photo')||n.photo||null}:null, daysToBirthday:daysFromBirthday(p.dob) };
   }).filter(x => x.daysToBirthday >= fromDays && x.daysToBirthday <= (fromDays + days - 1)).sort((a,b)=>a.daysToBirthday-b.daysToBirthday);
   return success(res, { data });
 });

@@ -6,6 +6,7 @@ const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { logAudit } = require('../../services/audit.service');
 const { assertComplaint, isWardAllowed } = require('../services/wardScope');
+const { nagarsevakPublicByIds } = require('../../utils/photo');
 
 const SLA_HOURS = { CRITICAL:24, HIGH:48, MEDIUM:72, LOW:168 };
 const STATUSES = ['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED'];
@@ -18,9 +19,21 @@ async function complaintWithContext(id){
     {model:Employee,as:'assignedEmployee',include:[{model:User,as:'User',attributes:['id','name','email','mobile','wardId']},{model:User,as:'manager',attributes:['id','name','email','mobile','wardId']}]},
     {model:User,as:'submittedBy',attributes:['id','name','email','mobile','wardId']},
     {model:Ward,as:'ward',attributes:['id','wardNumber','name']},
-    {model:User,as:'assignedNagarsevak',attributes:['id','name','email','mobile','wardId']},
+    {model:User,as:'assignedNagarsevak',attributes:['id','name','email','mobile','wardId','roleId']},
     {model:ComplaintHistory,as:'history',include:[{model:User,as:'changedBy',attributes:['id','name','mobile']}]},
   ]});
+}
+async function attachNagarPhotos(rows) {
+  const list = (Array.isArray(rows) ? rows : [rows]).filter(Boolean);
+  if (!list.length) return rows;
+  const jsons = list.map((r) => (typeof r.toJSON === 'function' ? r.toJSON() : r));
+  const photos = await nagarsevakPublicByIds(jsons.map((j) => j.assignedNagarsevak?.id || j.assignedNagarsevakUserId));
+  const mapped = jsons.map((j) => {
+    const extra = photos.get(String(j.assignedNagarsevak?.id || j.assignedNagarsevakUserId || ''));
+    if (j.assignedNagarsevak && extra?.photo) j.assignedNagarsevak.photo = extra.photo;
+    return j;
+  });
+  return Array.isArray(rows) ? mapped : mapped[0];
 }
 async function notify(userId,type,title,message,channel='IN_APP',senderUserId=null,actionUrl=null){
   const { notifyUser } = require('../../services/notify.service');
@@ -80,11 +93,11 @@ const list = asyncHandler(async(req,res)=>{
     {model:Person,as:'citizen',required:false,attributes:['id','fullName','mobile']},
     {model:User,as:'submittedBy',required:false,attributes:['id','name','email','mobile','wardId']},
     {model:Ward,as:'ward',required:false,attributes:['id','wardNumber','name']},
-    {model:User,as:'assignedNagarsevak',required:false,attributes:['id','name','email','mobile','wardId']},
+    {model:User,as:'assignedNagarsevak',required:false,attributes:['id','name','email','mobile','wardId','roleId']},
   ];
 
   const r=await Complaint.findAndCountAll({where,include,order:[['createdAt','DESC']],limit,offset,distinct:true,subQuery:false});
-  return success(res,{data:r.rows,meta:{total:r.count,page,limit,pages:Math.max(1,Math.ceil(r.count/limit))}});
+  return success(res,{data:await attachNagarPhotos(r.rows),meta:{total:r.count,page,limit,pages:Math.max(1,Math.ceil(r.count/limit))}});
 });
 
 const MANAGEMENT_ROLES=['SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK'];
@@ -145,7 +158,7 @@ const create = asyncHandler(async(req,res)=>{
       actionUrl: `/complaints?open=${complaint.id}`,
     });
     await logAudit({user:req.user,action:'CREATE_COMPLAINT',entity:'Complaint',recordId:complaint.id,newValue:{...req.body,submittedByUserId:req.user.id,wardId,reportedImage:reportedImage?'[image]':null},ipAddress:req.ip});
-    return success(res,{statusCode:201,data:await complaintWithContext(complaint.id),message:'Complaint submitted successfully'});
+    return success(res,{statusCode:201,data:await attachNagarPhotos(await complaintWithContext(complaint.id)),message:'Complaint submitted successfully'});
   }
 
   const house=await House.findByPk(houseId,{include:[{model:Area,as:'area'}]});
@@ -176,7 +189,7 @@ const create = asyncHandler(async(req,res)=>{
     actionUrl: `/complaints?open=${complaint.id}`,
   });
   await logAudit({user:req.user,action:'CREATE_COMPLAINT',entity:'Complaint',recordId:complaint.id,newValue:{...req.body,reportedImage:reportedImage?'[image]':null},ipAddress:req.ip});
-  return success(res,{statusCode:201,data:await complaintWithContext(complaint.id),message:'Complaint submitted'});
+  return success(res,{statusCode:201,data:await attachNagarPhotos(await complaintWithContext(complaint.id)),message:'Complaint submitted'});
 });
 
 const assign = asyncHandler(async(req,res)=>{
@@ -229,7 +242,7 @@ const assign = asyncHandler(async(req,res)=>{
     actionUrl: `/complaints?open=${complaint.id}`,
   });
   await logAudit({user:req.user,action:'ASSIGN_COMPLAINT',entity:'Complaint',recordId:complaint.id,oldValue:{status:oldStatus},newValue:{employeeId:employee?.id||null,nagarsevakUserId:nagarsevak?.id||null,status:'ASSIGNED'},ipAddress:req.ip});
-  return success(res,{data:await complaintWithContext(complaint.id),message:employee?'Complaint assigned to employee':'Complaint assigned to Nagarsevak'});
+  return success(res,{data:await attachNagarPhotos(await complaintWithContext(complaint.id)),message:employee?'Complaint assigned to employee':'Complaint assigned to Nagarsevak'});
 });
 const updateStatus = asyncHandler(async(req,res)=>{
   const {status,comment,resolutionNote,resolutionImage}=req.body;
@@ -296,12 +309,12 @@ const updateStatus = asyncHandler(async(req,res)=>{
   });
 
   await logAudit({user:req.user,action:'UPDATE_COMPLAINT_STATUS',entity:'Complaint',recordId:complaint.id,oldValue:{status:oldStatus},newValue:{status},ipAddress:req.ip});
-  return success(res,{data:await complaintWithContext(complaint.id),message:'Complaint updated'});
+  return success(res,{data:await attachNagarPhotos(await complaintWithContext(complaint.id)),message:'Complaint updated'});
 });
 
 const detail = asyncHandler(async(req,res)=>{
   await assertComplaint(req.params.id,req);
-  const data=await complaintWithContext(req.params.id);
+  const data=await attachNagarPhotos(await complaintWithContext(req.params.id));
   return success(res,{data});
 });
 

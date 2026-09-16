@@ -3,6 +3,7 @@ const { House, Family, Person, VoterProfile, Complaint, Area, Ward, User, Role, 
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { daysTo18thBirthday, daysToNextBirthday } = require('../../services/age.service');
+const { nagarsevakPublicByIds } = require('../../utils/photo');
 const { isWardAllowed, allowedWardIds } = require('../services/wardScope');
 
 const OPEN_STATUSES=['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','REOPENED'];
@@ -89,11 +90,18 @@ const summary = asyncHandler(async (req, res) => {
       { model:Person, as:'citizen', required:false, attributes:['id','fullName','mobile'] },
       { model:User, as:'submittedBy', required:false, attributes:['id','name','email','mobile'] },
       { model:Ward, as:'ward', required:false, attributes:['id','wardNumber','name'] },
-      { model:User, as:'assignedNagarsevak', required:false, attributes:['id','name','mobile'] },
+      { model:User, as:'assignedNagarsevak', required:false, attributes:['id','name','mobile','roleId'] },
       { model:Employee, as:'assignedEmployee', required:false, include:[{model:User,as:'User',attributes:['id','name','mobile']},{model:User,as:'manager',attributes:['id','name','mobile']}] },
       ...houseAreaInclude(),
     ],
     order:[['createdAt','DESC']], limit:8, subQuery:false,
+  });
+  const recentPhotos=await nagarsevakPublicByIds(recent.map(c=>c.assignedNagarsevakUserId||c.assignedNagarsevak?.id));
+  const recentData=recent.map(c=>{
+    const json=typeof c.toJSON==='function'?c.toJSON():c;
+    const extra=recentPhotos.get(String(json.assignedNagarsevak?.id||json.assignedNagarsevakUserId||''));
+    if(json.assignedNagarsevak&&extra?.photo) json.assignedNagarsevak.photo=extra.photo;
+    return json;
   });
 
   const birthdayCount=scopedPeople.map(p=>daysToNextBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=30).length;
@@ -111,9 +119,14 @@ const summary = asyncHandler(async (req, res) => {
   let teamEmployees=[];
   if(requestedWardId){
     [teamNagarsevaks,teamEmployees]=await Promise.all([
-      nagarRole?User.findAll({where:{roleId:nagarRole.id,wardId:requestedWardId,status:'ACTIVE'},attributes:['id','name','mobile'],order:[['name','ASC']]}):[],
+      nagarRole?User.findAll({where:{roleId:nagarRole.id,wardId:requestedWardId,status:'ACTIVE'},attributes:['id','name','mobile','roleId'],order:[['name','ASC']]}):[],
       empRole?User.findAll({where:{roleId:empRole.id,wardId:requestedWardId,status:'ACTIVE'},attributes:['id','name','mobile'],include:[{model:Employee,as:'employeeProfile',attributes:['designation']}],order:[['name','ASC']]}):[],
     ]);
+    const nagarPhotos=await nagarsevakPublicByIds(teamNagarsevaks.map(u=>u.id));
+    teamNagarsevaks=teamNagarsevaks.map(u=>{
+      const extra=nagarPhotos.get(String(u.id));
+      return {id:u.id,name:u.name,mobile:u.mobile,photo:extra?.photo||u.getDataValue?.('photo')||null};
+    });
   }
 
   return success(res,{data:{
@@ -122,7 +135,7 @@ const summary = asyncHandler(async (req, res) => {
     birthdaysNext30:birthdayCount,upcoming18Next90:upcomingCount,
     managedEmployees,corporatorCount,employeeCount,statusCounts,
     teamNagarsevaks,teamEmployees,
-    recentComplaints:recent,
+    recentComplaints:recentData,
     generatedAt:new Date().toISOString(),
   }});
 });

@@ -122,37 +122,45 @@ html body .login-page-v2.auth-simple .auth-blob{
   overflow:visible !important;
   filter:none !important;
 }
-html body .login-page-v2.auth-simple .auth-blob-a,
-html body .login-page-v2.auth-simple.admin-login .auth-blob-a{
+html body .login-page-v2.auth-simple .auth-blob-a{
   width:360px !important;height:280px !important;
   right:-170px !important;left:auto !important;top:18% !important;bottom:auto !important;
   border-radius:42% 58% 48% 52% / 46% 42% 58% 54% !important;
   background:linear-gradient(160deg,#ffb56b 0%,#ff7a59 55%,#ff5d8f 100%) !important;
   opacity:.95 !important;
 }
-html body .login-page-v2.auth-simple .auth-blob-b,
-html body .login-page-v2.auth-simple.admin-login .auth-blob-b{
+html body .login-page-v2.auth-simple .auth-blob-b{
   width:230px !important;height:186px !important;
   left:-120px !important;right:auto !important;top:52% !important;bottom:auto !important;
   border-radius:52% 48% 58% 42% / 48% 55% 45% 52% !important;
   background:linear-gradient(135deg,#ffc56d,#ff9f43) !important;
   opacity:.9 !important;
 }
-html body .login-page-v2.auth-simple .auth-blob-c,
-html body .login-page-v2.auth-simple.admin-login .auth-blob-c{
+html body .login-page-v2.auth-simple .auth-blob-c{
   width:min(460px,42vw) !important;height:min(380px,36vw) !important;
   left:-180px !important;right:auto !important;top:4% !important;bottom:auto !important;
   border-radius:58% 42% 60% 40% / 44% 56% 48% 52% !important;
   background:linear-gradient(145deg,#ffd27a 0%,#ff8a4a 55%,#ff5d6a 100%) !important;
   opacity:.55 !important;
 }
-html body .login-page-v2.auth-simple .auth-blob-d,
-html body .login-page-v2.auth-simple.admin-login .auth-blob-d{
+html body .login-page-v2.auth-simple .auth-blob-d{
   width:min(440px,40vw) !important;height:min(360px,34vw) !important;
   right:-170px !important;left:auto !important;bottom:2% !important;top:auto !important;
   border-radius:48% 52% 42% 58% / 55% 40% 60% 45% !important;
   background:linear-gradient(160deg,#ffb56b 0%,#ff5d8f 60%,#e11d48 100%) !important;
   opacity:.5 !important;
+}
+html body .login-page-v2.auth-simple.admin-login .auth-blob-a{
+  background:linear-gradient(160deg,#7dd3c7 0%,#3b82f6 55%,#1e4a73 100%) !important;
+}
+html body .login-page-v2.auth-simple.admin-login .auth-blob-b{
+  background:linear-gradient(135deg,#93c5fd,#2563eb) !important;
+}
+html body .login-page-v2.auth-simple.admin-login .auth-blob-c{
+  background:linear-gradient(145deg,#bfdbfe 0%,#60a5fa 55%,#1d4ed8 100%) !important;
+}
+html body .login-page-v2.auth-simple.admin-login .auth-blob-d{
+  background:linear-gradient(160deg,#7dd3c7 0%,#3b82f6 55%,#1e3a8a 100%) !important;
 }
 html body .login-page-v2.auth-simple .auth-simple-wrap{
   position:relative !important;z-index:1 !important;width:100% !important;max-width:420px !important;
@@ -576,7 +584,7 @@ html body .app-shell .page-header{
   display:flex !important;align-items:flex-start !important;justify-content:space-between !important;
   gap:16px !important;flex-wrap:wrap !important;margin:0 0 18px !important;
 }
-html body .app-shell .page-header > div{min-width:0;flex:1 1 280px}
+html body .app-shell .page-header > div{min-width:0;flex:1 1 auto}
 html body .app-shell .page-header h1{margin:2px 0 6px !important;line-height:1.15 !important;color:var(--admin-ink) !important;letter-spacing:-.03em !important}
 html body .app-shell .page-header p{margin:0 !important;max-width:640px;color:var(--admin-muted) !important}
 html body .app-shell .page-header .primary-btn,
@@ -826,7 +834,7 @@ html body .user-complaints-page .page-header{
   display:flex !important;align-items:flex-start !important;justify-content:space-between !important;
   gap:16px !important;flex-wrap:wrap !important;margin-bottom:16px !important;
 }
-html body .user-complaints-page .page-header > div{flex:1 1 280px;min-width:0}
+html body .user-complaints-page .page-header > div{flex:1 1 auto;min-width:0}
 html body .user-complaints-page .page-header .primary-btn{flex:0 0 auto;align-self:flex-start}
 html body .user-complaints-page .ward-info-card,
 html body .user-portal .ward-info-card,
@@ -1252,6 +1260,91 @@ html body .app-shell .staff-nagar-table td.staff-actions{width:120px !important;
 html body .app-shell .staff-table-scroll td.staff-actions .row-menu,
 html body .app-shell .staff-table-scroll .staff-actions{white-space:nowrap !important}
 html body .groups-page img.wa-avatar,
+html body .groups-page .wa-avatar.user-avatar-photo,
+html body .groups-page .wa-avatar{
+  width:44px !important;height:44px !important;min-width:44px !important;min-height:44px !important;
+  border-radius:50% !important;object-fit:cover !important;padding:0 !important;
+  overflow:hidden !important;flex:0 0 auto !important;
+}
+html body .groups-page img.wa-avatar,
 html body .groups-page .wa-avatar.user-avatar-photo{
-  object-fit:cover !important;padding:0 !important;border:0 !important;display:block !important;
+  display:block !important;border:0 !important;box-shadow:none !important;
+}
+html body .groups-page span.wa-avatar,
+html body .groups-page .wa-avatar:not(img){
+  display:grid !important;place-items:center !important;
+}
+html body .groups-page .group-item.wa-item{
+  display:flex !important;flex-direction:row !important;align-items:center !important;gap:12px !important;
+}
+html body .groups-page .group-chat-header{
+  display:flex !important;align-items:center !important;gap:10px !important;
+}
+html body .groups-page .group-bubble-head{
+  display:flex !important;align-items:center !important;gap:8px !important;margin-bottom:4px !important;
+}
+html body .groups-page .chat-sender-face,
+html body .groups-page img.chat-sender-face{
+  width:28px !important;height:28px !important;min-width:28px !important;min-height:28px !important;
+  border-radius:50% !important;object-fit:cover !important;padding:0 !important;
+  display:block !important;overflow:hidden !important;flex:0 0 auto !important;border:0 !important;box-shadow:none !important;
+}
+html body .groups-page .group-filters{
+  display:grid !important;align-items:end !important;
+}
+@media (max-width:800px){
+  html body .groups-page .group-filters{grid-template-columns:1fr 1fr !important}
+  html body .groups-page .group-filter-search{grid-column:span 2 !important}
+  html body .user-portal .ward-team-user-grid-four{grid-template-columns:1fr 1fr !important}
+  html body .user-portal .ward-team-person,
+  html body .nagar-info-card{min-width:0 !important}
+}
+@media (max-width:560px){
+  html body .groups-page .group-filters{grid-template-columns:1fr !important;gap:10px !important;padding:12px !important}
+  html body .groups-page .group-filter-search{grid-column:auto !important}
+  html body .user-portal .ward-team-user-grid-four{grid-template-columns:1fr !important}
+  html body .login-page-v2.auth-simple .auth-simple-foot{font-size:12px !important;margin-top:18px !important}
+}
+@media (max-width:800px){
+  html body .app-shell .content,
+  html body .user-portal .user-main,
+  html body .user-portal .user-page-main{
+    min-height:0 !important;
+    height:auto !important;
+    justify-content:flex-start !important;
+    padding-top:12px !important;
+  }
+  html body .page-header,
+  html body .app-shell .page-header,
+  html body .user-complaints-page .page-header,
+  html body .user-portal .page-header{
+    display:flex !important;
+    flex-direction:column !important;
+    flex-wrap:nowrap !important;
+    align-items:stretch !important;
+    justify-content:flex-start !important;
+    gap:10px !important;
+    margin:0 0 12px !important;
+    min-height:0 !important;
+    height:auto !important;
+  }
+  html body .page-header > div,
+  html body .app-shell .page-header > div,
+  html body .user-complaints-page .page-header > div,
+  html body .user-portal .page-header > div{
+    flex:0 0 auto !important;
+    flex-basis:auto !important;
+    width:100% !important;
+    min-height:0 !important;
+    height:auto !important;
+  }
+  html body .page-header .primary-btn,
+  html body .page-header .ghost-btn,
+  html body .app-shell .page-header .primary-btn,
+  html body .app-shell .page-header .ghost-btn,
+  html body .user-complaints-page .page-header .primary-btn{
+    width:100% !important;
+    margin-top:0 !important;
+    align-self:stretch !important;
+  }
 }

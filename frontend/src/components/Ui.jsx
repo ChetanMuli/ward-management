@@ -226,9 +226,10 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
 }
 
 export function initialsOf(name='User'){return String(name||'User').split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'U'}
-export function isDataImage(value){return typeof value==='string' && /^data:image\//.test(value)}
+export function isDataImage(value){return typeof value==='string' && /^data:image\//i.test(value.trim())}
 export function FaceAvatar({name='User',photo,className=''}){
- if(isDataImage(photo)) return <img className={`user-avatar user-avatar-photo ${className}`.trim()} src={photo} alt={name}/>;
+ const src=typeof photo==='string'?photo.trim():'';
+ if(isDataImage(src)) return <img className={`user-avatar user-avatar-photo ${className}`.trim()} src={src} alt={name}/>;
  return <div className={`user-avatar ${className}`.trim()} aria-hidden="true">{initialsOf(name)}</div>;
 }
 export function CirclePhotoField({label='Profile photo',value,onChange,optional=true}){

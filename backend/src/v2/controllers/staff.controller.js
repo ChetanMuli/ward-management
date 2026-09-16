@@ -10,7 +10,7 @@ const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions'
 const { allowedWardIds, isWardAllowed } = require('../services/wardScope');
 const { getVisibleNagarsevaks, isWardActive, syncWardCommunityMembership, ensureNagarsevakSubscription, publicNagarsevak } = require('../../services/wardActivation.service');
 const { syncLogin } = require('../../services/accountStore');
-const { sanitisePhoto } = require('../../utils/photo');
+const { sanitisePhoto, decorateNagarsevakPhotos } = require('../../utils/photo');
 
 async function role(name) {
   const r = await Role.findOne({ where: { name } });
@@ -466,11 +466,11 @@ const listWardTeam = asyncHandler(async(req,res)=>{
   const employees=residentFacing?[]:await User.findAll({where:{roleId:er.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId'],include:[{model:Employee,as:'employeeProfile',attributes:['designation','managerUserId']}] ,order:[['name','ASC']]});
   let nagarsevaks;
   if(residentFacing){
-    nagarsevaks = isWardActive(ward) ? (await getVisibleNagarsevaks(wardId)).map(publicNagarsevak) : [];
+    nagarsevaks = isWardActive(ward) ? await decorateNagarsevakPhotos((await getVisibleNagarsevaks(wardId)).map(publicNagarsevak)) : [];
   }else{
     const nr=await role('NAGARSEVAK');
     const rows=await User.findAll({where:{roleId:nr.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId','roleId'],order:[['name','ASC']]});
-    nagarsevaks=rows.map(publicNagarsevak);
+    nagarsevaks=await decorateNagarsevakPhotos(rows.map(publicNagarsevak));
   }
   return success(res,{data:{ward,nagarsevaks,employees,nagarsevakCount:nagarsevaks.length,employeeCount:employees.length,wardStatus:ward.status}});
 });

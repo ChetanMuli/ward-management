@@ -9,6 +9,7 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { success } = require('../../utils/apiResponse');
 const { allowedWardIds, isWardAllowed } = require('../services/wardScope');
 const { getVisibleNagarsevakIds, isNagarsevakVisibleInWard, syncWardCommunityMembership } = require('../../services/wardActivation.service');
+const { nagarsevakPublicByIds } = require('../../utils/photo');
 
 const uploadDir = path.resolve(process.env.CHAT_UPLOAD_DIR || path.join(__dirname, '..', '..', '..', 'uploads', 'chat'));
 try { fs.mkdirSync(uploadDir, { recursive: true }); } catch (_) {}
@@ -330,12 +331,17 @@ const listGroups = asyncHandler(async (req, res) => {
   if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN') {
     visibleRows.forEach((g) => ids.add(g.id));
   }
+  const nagarProfiles = await nagarsevakPublicByIds(visibleRows.map(g => g.nagarsevakUserId || g.nagarsevak?.id));
   const data = visibleRows.map(g => {
     const row = g.toJSON();
-    if (g.nagarsevak) {
+    const extra = nagarProfiles.get(String(g.nagarsevakUserId || row.nagarsevak?.id || ''));
+    if (row.nagarsevak || extra) {
       row.nagarsevak = {
-        ...row.nagarsevak,
-        photo: (typeof g.nagarsevak.getDataValue === 'function' ? g.nagarsevak.getDataValue('photo') : null) || row.nagarsevak.photo || null,
+        id: row.nagarsevak?.id || extra?.id,
+        name: row.nagarsevak?.name || extra?.name,
+        mobile: row.nagarsevak?.mobile || extra?.mobile || null,
+        partyName: extra?.partyName || row.nagarsevak?.partyName || null,
+        photo: extra?.photo || (typeof g.nagarsevak?.getDataValue === 'function' ? g.nagarsevak.getDataValue('photo') : null) || row.nagarsevak?.photo || null,
       };
     }
     return {
@@ -408,12 +414,19 @@ const listMessages = asyncHandler(async (req, res) => {
   }
   const rows = await Chat.Message.findAll({
     where,
-    include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile'] }],
+    include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile', 'roleId'] }],
     order: [['createdAt', 'DESC']],
     limit,
   });
   rows.reverse();
-  return success(res, { data: rows });
+  const senderPhotos = await nagarsevakPublicByIds(rows.map(m => m.senderUserId));
+  const data = rows.map(m => {
+    const json = typeof m.toJSON === 'function' ? m.toJSON() : m;
+    const extra = senderPhotos.get(String(m.senderUserId));
+    if (json.sender && extra?.photo) json.sender.photo = extra.photo;
+    return json;
+  });
+  return success(res, { data });
 });
 
 const sendMessage = asyncHandler(async (req, res) => {
@@ -464,8 +477,12 @@ const sendMessage = asyncHandler(async (req, res) => {
     imageMime: imageMime || null,
     imagePath: imagePath || null
   });
-  const full = await Chat.Message.findByPk(row.id, { include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile'] }] });
-  return success(res, { statusCode: 201, data: full });
+  const full = await Chat.Message.findByPk(row.id, { include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile', 'roleId'] }] });
+  const json = typeof full?.toJSON === 'function' ? full.toJSON() : full;
+  const senderPhotos = await nagarsevakPublicByIds([req.user.id]);
+  const extra = senderPhotos.get(String(req.user.id));
+  if (json?.sender) json.sender.photo = extra?.photo || req.user.photo || json.sender.photo || null;
+  return success(res, { statusCode: 201, data: json });
 });
 
 const image = asyncHandler(async (req, res) => {

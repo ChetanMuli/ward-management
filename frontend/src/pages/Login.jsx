@@ -96,7 +96,7 @@ export function AuthShell({admin,title,lead,pageLabel,register,children}){
     <AuthApps admin={admin}/>
    </div>
    <AuthAbout admin={admin}/>
-   <p className="auth-simple-foot">Secure session · 30-minute timeout<br/>{copyrightLine}</p>
+   <p className="auth-simple-foot">{copyrightLine}</p>
   </div>
  </div>;
 }

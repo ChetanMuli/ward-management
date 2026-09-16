@@ -2977,6 +2977,17 @@ html body .groups-page .wa-avatar{
   background:#d1d7de;
   color:#1f2a37;
   font-size:13px;font-weight:800;
+  overflow:hidden;
+}
+html body .groups-page img.wa-avatar,
+html body .groups-page .wa-avatar.user-avatar-photo{
+  display:block;object-fit:cover;padding:0;border:0;
+}
+html body .groups-page .group-bubble-head{
+  display:flex;align-items:center;gap:8px;margin-bottom:4px;
+}
+html body .groups-page .chat-sender-face{
+  width:28px;height:28px;min-width:28px;border-radius:50%;object-fit:cover;overflow:hidden;
 }
 html body .groups-page .wa-avatar.community{background:#0c1422;color:#fff}
 html body .groups-page .wa-avatar.nagar{background:#075e54;color:#fff}

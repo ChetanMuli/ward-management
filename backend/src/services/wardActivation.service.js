@@ -12,6 +12,7 @@ const ApiError = require('../utils/ApiError');
 const { logAudit } = require('./audit.service');
 const { notifyUsers } = require('./notify.service');
 const { canResidentSeeNagarsevak } = require('./wardActivation.rules');
+const { decorateNagarsevakPhotos } = require('../utils/photo');
 
 const PUBLIC_NAGAR_ATTRS = ['id', 'name', 'email', 'mobile', 'wardId', 'status', 'roleId'];
 
@@ -370,6 +371,7 @@ async function getResidentWardSnapshot(user) {
     return { ward: null, nagarsevak: null, nagarsevaks: [], community: null };
   }
   const visible = isWardActive(ward) ? await getVisibleNagarsevaks(wardId) : [];
+  const nagarsevaks = await decorateNagarsevakPhotos(visible.map(publicNagarsevak));
   const community = await Chat.findOne({
     where: { wardId, type: 'WARD', isActive: true },
     attributes: ['id', 'name', 'isActive'],
@@ -381,8 +383,8 @@ async function getResidentWardSnapshot(user) {
       name: ward.name,
       status: ward.status,
     },
-    nagarsevak: visible[0] ? publicNagarsevak(visible[0]) : null,
-    nagarsevaks: visible.map(publicNagarsevak),
+    nagarsevak: nagarsevaks[0] || null,
+    nagarsevaks,
     community: community ? { id: community.id, name: community.name, active: !!community.isActive } : null,
   };
 }
@@ -402,11 +404,11 @@ async function listActivationBoard() {
     nagarRole
       ? User.findAll({
         where: { roleId: nagarRole, wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
-        attributes: ['id', 'name', 'email', 'mobile', 'wardId', 'status'],
+        attributes: ['id', 'name', 'email', 'mobile', 'wardId', 'status', 'roleId'],
         include: [{
           model: NagarsevakUser,
           as: 'nagarsevakAccount',
-          attributes: ['wardSeat', 'partyName', 'officialAddress'],
+          attributes: ['wardSeat', 'partyName', 'officialAddress', 'photo'],
           required: false,
         }],
         order: [['name', 'ASC']],
@@ -471,6 +473,7 @@ async function listActivationBoard() {
           wardSeat: account.wardSeat || null,
           partyName: account.partyName || null,
           officialAddress: account.officialAddress || null,
+          photo: account.photo || (typeof n.getDataValue === 'function' ? n.getDataValue('photo') : null) || n.photo || null,
           accountStatus: n.status,
           purchaseStatus: sub?.status || 'PENDING',
           purchasedAt: sub?.purchasedAt || null,
