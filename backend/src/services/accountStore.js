@@ -62,6 +62,7 @@ function applyLoginFields(user, login, roleName) {
   user.setDataValue('wardSeat', login.wardSeat ?? null);
   user.setDataValue('partyName', login.partyName ?? null);
   user.setDataValue('officialAddress', login.officialAddress ?? null);
+  user.setDataValue('photo', login.photo ?? null);
   user.setDataValue('accountKind', roleName);
   user.loginAccount = login;
 }
@@ -91,6 +92,7 @@ function payloadFromUser(user, roleName, isCreate = false) {
     if (isCreate || user.getDataValue('wardSeat') !== undefined) payload.wardSeat = user.getDataValue('wardSeat') || null;
     if (isCreate || user.getDataValue('partyName') !== undefined) payload.partyName = user.getDataValue('partyName') || null;
     if (isCreate || user.getDataValue('officialAddress') !== undefined) payload.officialAddress = user.getDataValue('officialAddress') || null;
+    if (isCreate || user.getDataValue('photo') !== undefined) payload.photo = user.getDataValue('photo') || null;
   }
   if (roleName === 'CITIZEN') payload.personId = user.personId || null;
   if (roleName === 'SOCIAL_WORKER' || roleName === 'CANDIDATE') {

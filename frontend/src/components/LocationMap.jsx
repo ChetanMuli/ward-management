@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {centerOf,directionsUrl,fmtCoord,hasCoords} from '../location';
+import {centerOf,directionsUrl,fmtCoord,hasCoords,mapsViewUrl,osmTileUrl} from '../location';
 
 let leafletLoader;
 function loadLeaflet(){
@@ -51,23 +51,45 @@ function fillEmpty(cur,next){
 
 export function DirectionsLink({lat,lng,label='Directions',className=''}){
  if(!hasCoords(lat,lng)) return <span className="muted">Not saved</span>;
- return <a className={`loc-go ${className}`.trim()} href={directionsUrl(lat,lng)} target="_blank" rel="noreferrer">{label}</a>;
+ return (
+  <a
+   className={`loc-go ${className}`.trim()}
+   href={directionsUrl(lat,lng)}
+   target="_blank"
+   rel="noopener noreferrer"
+   title="Open driving directions in Google Maps"
+   aria-label={`${label} in Google Maps`}
+  >{label}</a>
+ );
 }
 
 export function MapPreview({lat,lng,label='This home',children}){
  if(!hasCoords(lat,lng)) return (
   <div className="loc-empty-box">
-   <p className="loc-empty">No exact location yet. When you are at this house, tap Update location and use GPS.</p>
+   <p className="loc-empty">No exact door pin yet. When you are standing at this house, tap Update location and use GPS.</p>
    {children}
   </div>
  );
+ const view=mapsViewUrl(lat,lng);
+ const dir=directionsUrl(lat,lng);
+ const tile=osmTileUrl(lat,lng,17);
  return (
   <div className="loc-preview-stack">
-   <a className="loc-go-card" href={directionsUrl(lat,lng)} target="_blank" rel="noreferrer">
-    <strong>{label}</strong>
-    <span>Tap to open maps and get driving directions</span>
-    <em>{fmtCoord(lat)}, {fmtCoord(lng)}</em>
-   </a>
+   <div className="loc-preview">
+    <a className="loc-thumb" href={dir} target="_blank" rel="noopener noreferrer" aria-label={`Get directions to ${label}`}>
+     {tile&&<img src={tile} alt="" />}
+     <span className="loc-thumb-pin" aria-hidden="true"/>
+    </a>
+    <div className="loc-preview-meta">
+     <strong>{label}</strong>
+     <span className="loc-coords">{fmtCoord(lat)}, {fmtCoord(lng)}</span>
+     <span className="loc-preview-hint">Opens Google Maps from your current location</span>
+     <div className="loc-actions">
+      <a className="loc-go" href={dir} target="_blank" rel="noopener noreferrer">Get directions</a>
+      <a className="loc-go loc-go-view" href={view} target="_blank" rel="noopener noreferrer">Open map</a>
+     </div>
+    </div>
+   </div>
    {children}
   </div>
  );
@@ -82,7 +104,9 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
  const [query,setQuery]=useState('');
  const [hits,setHits]=useState([]);
  const [note,setNote]=useState('');
+ const [gpsBusy,setGpsBusy]=useState(false);
  const centerKey=(centerFrom||[]).map(x=>`${x?.latitude||''},${x?.longitude||''}`).join('|');
+ const pinned=hasCoords(value?.latitude,value?.longitude);
 
  function emit(next){
   onChange({...valueRef.current,...next});
@@ -96,6 +120,20 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
   map.setView([la,lo],18);
  }
 
+ function applyPin(lat,lng,source=''){
+  if(!hasCoords(lat,lng)){
+   setNote('That pin is not valid. Stand at the house door and use GPS, or tap the map.');
+   return false;
+  }
+  const latitude=Number(lat).toFixed(7);
+  const longitude=Number(lng).toFixed(7);
+  emit({latitude,longitude});
+  if(window.L) putMarker(window.L,Number(latitude),Number(longitude));
+  reverse(latitude,longitude);
+  if(source) setNote(source);
+  return true;
+ }
+
  useEffect(()=>{
   let dead=false;
   let ro;
@@ -104,17 +142,17 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
    const start=hasCoords(valueRef.current?.latitude,valueRef.current?.longitude)
     ? {lat:Number(valueRef.current.latitude),lng:Number(valueRef.current.longitude),zoom:18}
     : centerOf(...centerFrom);
-   const map=L.map(boxRef.current,{scrollWheelZoom:true}).setView([start.lat,start.lng],start.zoom);
+   const map=L.map(boxRef.current,{scrollWheelZoom:true,tap:true,tapTolerance:18}).setView([start.lat,start.lng],start.zoom);
    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     maxZoom:19,
     attribution:'&copy; OpenStreetMap'
    }).addTo(map);
    map.on('click',e=>{
-    const latitude=e.latlng.lat.toFixed(7);
-    const longitude=e.latlng.lng.toFixed(7);
-    emit({latitude,longitude});
-    putMarker(L,e.latlng.lat,e.latlng.lng);
-    reverse(latitude,longitude);
+    if(!hasCoords(e.latlng.lat,e.latlng.lng)){
+     setNote('That map point is not valid. Tap closer to the house.');
+     return;
+    }
+    applyPin(e.latlng.lat,e.latlng.lng,'Map pin set. Drag or tap again if this is not the door.');
    });
    mapRef.current=map;
    if(hasCoords(valueRef.current?.latitude,valueRef.current?.longitude)){
@@ -128,7 +166,7 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
     ro=new ResizeObserver(bump);
     ro.observe(boxRef.current);
    }
-  }).catch(()=>setNote('Map could not load. You can still type coordinates.'));
+  }).catch(()=>setNote('Map could not load. You can still use GPS or type coordinates.'));
   return ()=>{
    dead=true;
    if(ro) ro.disconnect();
@@ -175,7 +213,7 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
    let rows=await lookup(`${base}&viewbox=${c.lng-pad},${c.lat+pad},${c.lng+pad},${c.lat-pad}&bounded=1`);
    if(!rows.length) rows=await lookup(base);
    setHits(rows);
-   setNote(rows.length?'Select a result, or tap the map for the exact door.':'No match. Try the colony name, or pin the map.');
+   setNote(rows.length?'Select a result, then tap the map for the exact door.':'No match. Try the colony name, or pin the map.');
   }catch{
    setHits([]);
    setNote('Search is unavailable. Pin the map or use GPS.');
@@ -183,6 +221,10 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
  }
 
  function pickHit(h){
+  if(!hasCoords(h.lat,h.lon)){
+   setNote('That search result has no valid pin. Tap the map instead.');
+   return;
+  }
   const latitude=Number(h.lat).toFixed(7);
   const longitude=Number(h.lon).toFixed(7);
   const cur=valueRef.current||{};
@@ -195,15 +237,26 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
 
  function useGps(){
   if(!navigator.geolocation) return setNote('GPS is not available on this device.');
-  setNote('Reading GPS…');
+  setGpsBusy(true);
+  setNote('Reading GPS at this door…');
   navigator.geolocation.getCurrentPosition(pos=>{
-   const latitude=pos.coords.latitude.toFixed(7);
-   const longitude=pos.coords.longitude.toFixed(7);
-   emit({latitude,longitude});
-   if(window.L) putMarker(window.L,pos.coords.latitude,pos.coords.longitude);
-   reverse(latitude,longitude);
-   setNote('GPS pin set. Adjust on the map if the marker is not on the house.');
-  },()=>setNote('Could not read GPS. Allow location and try again.'),{enableHighAccuracy:true,timeout:14000});
+   setGpsBusy(false);
+   const {latitude,longitude,accuracy}=pos.coords;
+   if(!hasCoords(latitude,longitude)){
+    setNote('GPS returned an invalid pin. Move to open sky and try again.');
+    return;
+   }
+   const meters=Math.round(Number(accuracy)||0);
+   const quality=meters>80
+    ? `Pin set, but GPS is about ${meters} m off. Stay at the door and tap Use GPS again, or tap the map.`
+    : `GPS pin set${meters?` (±${meters} m)`:''}. Tap the map if the marker is not on the house.`;
+   applyPin(latitude,longitude,quality);
+  },err=>{
+   setGpsBusy(false);
+   if(err?.code===1) setNote('Allow location permission, then tap Use GPS again.');
+   else if(err?.code===3) setNote('GPS timed out. Stand outside at the door and try again.');
+   else setNote('Could not read GPS. Allow location and try again.');
+  },{enableHighAccuracy:true,timeout:18000,maximumAge:0});
  }
 
  return (
@@ -211,7 +264,7 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
    <div className="loc-picker-bar">
     <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search colony, landmark or house address…" onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();search();}}}/>
     <button type="button" className="small-btn" onClick={search}>Search</button>
-    <button type="button" className="primary-btn" onClick={useGps}>Use GPS at this home</button>
+    <button type="button" className="primary-btn loc-gps-btn" onClick={useGps} disabled={gpsBusy}>{gpsBusy?'Reading GPS…':'Use GPS at this home'}</button>
    </div>
    {!!hits.length&&<div className="loc-hits">{hits.map(h=><button type="button" key={h.place_id} onClick={()=>pickHit(h)}>{h.display_name}</button>)}</div>}
    <div className="loc-map" ref={boxRef}/>
@@ -223,7 +276,11 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
      <input inputMode="decimal" value={value?.longitude??''} onChange={e=>emit({longitude:e.target.value})} placeholder="74.748000"/>
     </label>
    </div>
-   <p className="loc-hint">{hint||'Stand at the house door, tap Use GPS, or tap the map. Later, tap the location to get directions.'}{note?` ${note}`:''}{hasCoords(value?.latitude,value?.longitude)?` Pin: ${fmtCoord(value.latitude)}, ${fmtCoord(value.longitude)}`:''}</p>
+   <p className={`loc-hint ${pinned?'is-pinned':''}`}>
+    {hint||'Stand at the house door, tap Use GPS, or tap the map. Later, tap Directions to drive here.'}
+    {note?` ${note}`:''}
+    {pinned?` Saved pin: ${fmtCoord(value.latitude)}, ${fmtCoord(value.longitude)}`:''}
+   </p>
   </div>
  );
 }

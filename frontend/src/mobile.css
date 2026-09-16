@@ -3504,14 +3504,14 @@ html body .login-page-v2.auth-simple.register-page .login-v2-card > .primary-btn
   font-size:16px !important;
   font-weight:800 !important;
   color:#fff !important;
-  background:linear-gradient(90deg,#22c55e,#16a34a) !important;
-  box-shadow:0 8px 18px rgba(22,163,74,.28) !important;
+  background:#0f766e !important;
+  box-shadow:0 8px 18px rgba(15,118,110,.22) !important;
 }
 html body .login-page-v2.auth-simple.citizen-login .login-v2-submit:hover,
 html body .login-page-v2.auth-simple.register-page .login-v2-submit:hover,
 html body .login-page-v2.auth-simple.citizen-login .login-v2-card > .primary-btn:hover,
 html body .login-page-v2.auth-simple.register-page .login-v2-card > .primary-btn:hover{
-  background:linear-gradient(90deg,#16a34a,#15803d) !important;
+  background:#115e59 !important;
 }
 html body .login-page-v2.auth-simple.admin-login .login-v2-submit,
 html body .login-page-v2.auth-simple.admin-login .login-v2-card > .primary-btn{
@@ -4087,10 +4087,10 @@ html body .login-page-v2.auth-simple .auth-demo-code{
   width:100% !important;
   margin:0 0 14px !important;
   padding:14px 12px 12px !important;
-  border:1px dashed #86efac !important;
+  border:1px dashed #99f6e4 !important;
   border-radius:16px !important;
-  background:#f0fdf4 !important;
-  color:#166534 !important;
+  background:#f0fdfa !important;
+  color:#0f766e !important;
   box-shadow:none !important;
   text-decoration:none !important;
 }
@@ -4099,7 +4099,7 @@ html body .login-page-v2.auth-simple .auth-demo-code span{
   font-weight:800 !important;
   letter-spacing:.08em !important;
   text-transform:uppercase !important;
-  color:#15803d !important;
+  color:#0f766e !important;
 }
 html body .login-page-v2.auth-simple .auth-demo-code strong{
   font-size:28px !important;
@@ -4110,7 +4110,7 @@ html body .login-page-v2.auth-simple .auth-demo-code strong{
 }
 html body .login-page-v2.auth-simple .auth-demo-code small{
   font-size:12px !important;
-  color:#4ade80 !important;
+  color:#5eead4 !important;
   font-weight:700 !important;
 }
 html body .login-page-v2.auth-simple .auth-otp-input{

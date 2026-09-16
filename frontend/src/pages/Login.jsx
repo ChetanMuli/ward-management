@@ -7,25 +7,105 @@ export const COMPANY_EMAIL='chetan.a2zithub@gmail.com';
 export const COMPANY_MOBILE='8523697410';
 export const copyrightLine=`© ${new Date().getFullYear()} ${COMPANY_NAME}`;
 
-function IconUser(){
- return <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Zm0 2.25c-3.6 0-8.25 1.8-8.25 5.25V21h16.5v-1.5c0-3.45-4.65-5.25-8.25-5.25Z"/></svg>;
-}
-function IconPhone(){
- return <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7.2 3.75h2.1c.5 0 .93.33 1.08.81l.9 2.85a1.13 1.13 0 0 1-.27 1.14l-1.32 1.32a12.3 12.3 0 0 0 5.52 5.52l1.32-1.32a1.13 1.13 0 0 1 1.14-.27l2.85.9c.48.15.81.58.81 1.08v2.1c0 .62-.5 1.12-1.12 1.12C10.86 20 4 13.14 4 4.87 4 4.25 4.5 3.75 5.12 3.75Z"/></svg>;
+function IconMail(){
+ return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3.4" y="5.6" width="17.2" height="12.8" rx="2.2"/><path d="m4.2 7.4 7.8 5.4 7.8-5.4"/></svg>;
 }
 function IconLock(){
- return <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M17.25 10.5h-.75V8.25a4.5 4.5 0 0 0-9 0V10.5h-.75A1.5 1.5 0 0 0 5.25 12v7.5A1.5 1.5 0 0 0 6.75 21h10.5a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5Zm-6 0h1.5V8.25a.75.75 0 0 0-1.5 0Z"/></svg>;
+ return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5.2" y="10.4" width="13.6" height="9.2" rx="2"/><path d="M8.2 10.4V8.2a3.8 3.8 0 0 1 7.6 0v2.2"/></svg>;
 }
 function IconEye({off}){
  return off
-  ? <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 5.25c-5 0-9.2 3.08-10.7 7.5 1.5 4.42 5.7 7.5 10.7 7.5s9.2-3.08 10.7-7.5C21.2 8.33 17 5.25 12 5.25Zm0 12A4.5 4.5 0 1 1 16.5 13 4.5 4.5 0 0 1 12 17.25Z"/></svg>
-  : <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3.22 3.22a.75.75 0 0 0-1.06 1.06l2.1 2.1C2.5 8.05 1.1 10.3.3 12.75c1.5 4.42 5.7 7.5 10.7 7.5 2.12 0 4.1-.56 5.82-1.53l3.96 3.96a.75.75 0 0 0 1.06-1.06Zm8.53 13.28A4.5 4.5 0 0 1 7.5 12c0-.4.05-.78.16-1.15l4.09 4.1c-.37.1-.75.15-1.15.15Zm9.95-3.75c-.5 1.47-1.32 2.78-2.38 3.86l-2.2-2.2A4.47 4.47 0 0 0 16.5 12a4.5 4.5 0 0 0-5.4-4.41L8.72 5.2A10.8 10.8 0 0 1 12 4.75c5 0 9.2 3.08 10.7 7.5Z"/></svg>;
+  ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.2 12s3.4-6.2 8.8-6.2S20.8 12 20.8 12 17.4 18.2 12 18.2 3.2 12 3.2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+  : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m4 5 16 14"/><path d="M9.9 9.7A3 3 0 0 0 12 15a3 3 0 0 0 2.9-2.1"/><path d="M6.6 7.4C4.6 8.8 3.2 12 3.2 12s3.4 6.2 8.8 6.2c1.5 0 2.9-.4 4.1-1"/><path d="M17.5 14.8c1.8-1.3 3.3-3.4 3.3-2.8 0 0-3.4-6.2-8.8-6.2-.7 0-1.4.1-2 .2"/></svg>;
+}
+
+function strokeProps(){
+ return {viewBox:'0 0 24 24',width:'16',height:'16',fill:'none',stroke:'currentColor',strokeWidth:'1.8',strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'};
+}
+function AppGlyph({name}){
+ const p=strokeProps();
+ if(name==='complaints') return <svg {...p}><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4.4V3.6h6v.8M8.5 10h7M8.5 13.5h7M8.5 17h4.5"/></svg>;
+ if(name==='schemes') return <svg {...p}><path d="M4.5 10.2 12 5.5l7.5 4.7V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19Z"/><path d="M9.5 20.5v-6h5v6"/></svg>;
+ if(name==='messages') return <svg {...p}><path d="M4.5 6.5h11A1.5 1.5 0 0 1 17 8v6.2l-3.4-2H4.5A1.5 1.5 0 0 1 3 10.7V8a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M8.2 14.8h8.4L21 18.2V11.4A1.4 1.4 0 0 0 19.6 10H17"/></svg>;
+ if(name==='notices') return <svg {...p}><path d="M5 9.2h3.1L14.2 5v14l-6.1-4.2H5V9.2Z"/><path d="M17.4 9.3a3.4 3.4 0 0 1 0 5.4M19.6 7.4a6 6 0 0 1 0 9.2"/></svg>;
+ if(name==='wards') return <svg {...p}><path d="M12 21s-6.2-5.4-6.2-10.1a6.2 6.2 0 1 1 12.4 0C18.2 15.6 12 21 12 21Z"/><circle cx="12" cy="10.6" r="2.2"/></svg>;
+ if(name==='houses') return <svg {...p}><path d="M4.8 11.2 12 5.2l7.2 6V19.5A1.3 1.3 0 0 1 17.9 20.8H6.1A1.3 1.3 0 0 1 4.8 19.5Z"/><path d="M10 20.8v-6h4v6"/></svg>;
+ if(name==='families') return <svg {...p}><circle cx="9" cy="8" r="2.4"/><circle cx="16.2" cy="8.6" r="2"/><path d="M3.8 18.8v-.8c0-1.8 2.1-3.2 5.2-3.2 1 0 1.9.2 2.6.5"/><path d="M12.8 18.8v-.7c0-1.5 1.4-2.7 3.8-2.7s3.8 1.2 3.8 2.7v.7"/></svg>;
+ return <svg {...p}><path d="M7 4.5h8.2L20 9.3V19.5H7Z"/><path d="M15.2 4.5V9.3H20M9.4 12h7.2M9.4 15.2h7.2M9.4 18.4h4.6"/></svg>;
+}
+const RESIDENT_APPS=[
+ {cls:'auth-logo-complaints',label:'Complaints',icon:'complaints'},
+ {cls:'auth-logo-schemes',label:'Schemes',icon:'schemes'},
+ {cls:'auth-logo-messages',label:'Messages',icon:'messages'},
+ {cls:'auth-logo-notices',label:'Notices',icon:'notices'}
+];
+const ADMIN_APPS=[
+ {cls:'auth-logo-wards',label:'Wards',icon:'wards'},
+ {cls:'auth-logo-houses',label:'Houses',icon:'houses'},
+ {cls:'auth-logo-families',label:'Families',icon:'families'},
+ {cls:'auth-logo-reports',label:'Reports',icon:'reports'}
+];
+function AuthApps({admin}){
+ const items=admin?ADMIN_APPS:RESIDENT_APPS;
+ return <div className="auth-simple-apps" aria-hidden="true">
+  {items.map(item=>(
+   <span key={item.label} className="auth-app">
+    <span className={`auth-app-logo ${item.cls}`}><AppGlyph name={item.icon}/></span>
+    <em>{item.label}</em>
+   </span>
+  ))}
+ </div>;
+}
+
+function SupportNote(){
+ return <div className="auth-support-note">
+  <p>If you do not receive the code by email, contact support.</p>
+  <div className="auth-company-contact">
+   <div><span>Email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
+   <div><span>Mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
+  </div>
+ </div>;
+}
+
+function AuthAbout({admin}){
+ return <p className="auth-about">
+  {admin
+   ? <><span>The municipal workspace for ward records and field work.</span><span>Manage houses, families, complaints and reports from this desk.</span></>
+   : <><span>The digital ward desk for complaints, schemes and notices.</span><span>Stay connected to your local ward office from one account.</span></>}
+ </p>;
+}
+
+export function AuthShell({admin,title,lead,pageLabel,register,children}){
+ const label=pageLabel||(admin?'Admin login':'Resident login');
+ useEffect(()=>{document.title=`${label} · WardDesk`},[label]);
+ return <div className={`login-page-v2 auth-simple ${admin?'admin-login':'citizen-login'}${register?' register-page':''}`} data-auth={admin?'admin-login':(register?'user-register':'user-login')}>
+  <div className="auth-blob auth-blob-c" aria-hidden="true"/>
+  <div className="auth-blob auth-blob-d" aria-hidden="true"/>
+  <div className="auth-simple-wrap">
+   <div className="auth-blob auth-blob-a" aria-hidden="true"/>
+   <div className="auth-blob auth-blob-b" aria-hidden="true"/>
+   <div className="auth-simple-logo">
+    <span className="brand-mark">W</span>
+    <strong>WardDesk</strong>
+   </div>
+   <p className="auth-page-tag">{label}</p>
+   <h1>{title}</h1>
+   {lead?<p className="auth-simple-lead">{lead}</p>:null}
+   <div className="auth-card-stack">
+    {children}
+    <AuthApps admin={admin}/>
+   </div>
+   <AuthAbout admin={admin}/>
+   <p className="auth-simple-foot">Secure session · 30-minute timeout<br/>{copyrightLine}</p>
+  </div>
+ </div>;
 }
 
 function PasswordField({label,value,onChange,placeholder,autoComplete='current-password',show,onToggle,required=true}){
  return <label>{label}
   <span className="auth-input">
-   <IconLock/>
+   <span className="auth-ico"><IconLock/></span>
+   <span className="auth-split" aria-hidden="true"/>
    <input type={show?'text':'password'} autoComplete={autoComplete} value={value} onChange={e=>onChange(e.target.value)} required={required} placeholder={placeholder}/>
    <button type="button" className="auth-eye" onClick={onToggle} aria-label={show?'Hide password':'Show password'}>
     <IconEye off={show}/>
@@ -34,40 +114,16 @@ function PasswordField({label,value,onChange,placeholder,autoComplete='current-p
  </label>;
 }
 
-function AuthShell({admin,title,lead,children}){
- return <div className={`login-page-v2 auth-simple ${admin?'admin-login':'citizen-login'}`}>
-  <div className="auth-simple-wrap">
-   <div className="auth-simple-logo">
-    <span className="brand-mark">W</span>
-    <strong>WardDesk</strong>
-   </div>
-   <span className="auth-panel-pill">{admin?'Staff workspace':'Resident workspace'}</span>
-   <h1>{title}</h1>
-   <p className="auth-simple-lead">{lead}</p>
-   {children}
-   <p className="auth-simple-foot">Secure session · 30-minute timeout<br/>{copyrightLine}</p>
-   <div className="auth-simple-apps" aria-hidden="true">
-    <span>Complaints</span>
-    <span>Schemes</span>
-    <span>Messages</span>
-    <span>Notices</span>
-   </div>
-  </div>
- </div>;
-}
-
 export default function Login({mode='user'}){
  const admin=mode==='admin';
  const [identifier,setIdentifier]=useState('');
  const [emailId,setEmailId]=useState('');
- const [mobileId,setMobileId]=useState('');
  const [password,setPassword]=useState('');
  const [showPassword,setShowPassword]=useState(false);
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
  const [busy,setBusy]=useState(false);
  const [view,setView]=useState('login');
- const [channel,setChannel]=useState('email');
  const [otp,setOtp]=useState('');
  const [newPassword,setNewPassword]=useState('');
  const [confirmPassword,setConfirmPassword]=useState('');
@@ -75,8 +131,9 @@ export default function Login({mode='user'}){
  const [showConfirm,setShowConfirm]=useState(false);
  const [debugOtp,setDebugOtp]=useState('');
  const [sentTo,setSentTo]=useState('');
+ const [mailFailed,setMailFailed]=useState(false);
  const navigate=useNavigate();
- const forgotValue=channel==='mobile'?mobileId:emailId;
+ const forgotValue=emailId;
 
  useEffect(()=>{
   const u=getUser();
@@ -95,6 +152,7 @@ export default function Login({mode='user'}){
   setOtp('');
   setNewPassword('');
   setConfirmPassword('');
+  setMailFailed(false);
   setView('login');
  }
 
@@ -106,22 +164,10 @@ export default function Login({mode='user'}){
   setConfirmPassword('');
   setDebugOtp('');
   setSentTo('');
+  setMailFailed(false);
   const raw=identifier.trim();
-  const digits=raw.replace(/\D/g,'');
-  if(digits.length===10 && !raw.includes('@')){
-   setChannel('mobile');
-   setMobileId(digits);
-  }else{
-   setChannel('email');
-   setEmailId(raw);
-   if(digits.length===10) setMobileId(digits);
-  }
+  setEmailId(raw.includes('@')?raw:'');
   setView(admin?'staff-help':'forgot');
- }
-
- function switchChannel(next){
-  setChannel(next);
-  setError('');
  }
 
  async function submit(e){
@@ -132,8 +178,8 @@ export default function Login({mode='user'}){
    const result=await api.login(identifier.trim(),password);
    const role=String(result.data.user?.role||'').toUpperCase();
    const citizen=role==='CITIZEN';
-   if(!admin&&!citizen) throw new Error('This is an administration account. Please use the administration login.');
-   if(admin&&citizen) throw new Error('This is a resident account. Please use the resident login.');
+   if(!admin&&!citizen) throw new Error('This is an administration account. Sign in at /admin.');
+   if(admin&&citizen) throw new Error('This is a resident account. Sign in at /login.');
    setSession(result.data.token,result.data.user);
    const dest=admin?'/admin':'/';
    try{window.history.replaceState({wardSignedIn:1},'',dest);}catch{}
@@ -149,20 +195,18 @@ export default function Login({mode='user'}){
  async function requestCode(e){
   e.preventDefault();
   setError('');
+  setMailFailed(false);
   const value=String(forgotValue||'').trim();
-  if(channel==='mobile' && !/^\d{10}$/.test(value)){
-   setError('Enter your registered 10-digit mobile number.');
-   return;
-  }
-  if(channel==='email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){
    setError('Enter your registered email address.');
    return;
   }
   setBusy(true);
   try{
-   const result=await api.forgotRequest({identifier:value,channel,audience:'citizen'});
-   if(result.data?.requiresSupport){
-    setError('Enter the email or mobile of your resident account.');
+   const result=await api.forgotRequest({identifier:value,channel:'email',audience:'citizen'});
+   if(result.data?.mailFailed || result.data?.requiresSupport){
+    setMailFailed(true);
+    setError(result.message||'We could not send a verification code to your email.');
     return;
    }
    setNotice(result.data?.destination
@@ -173,7 +217,8 @@ export default function Login({mode='user'}){
    setOtp(result.data?.debugOtp||'');
    setView('reset');
   }catch(e){
-   setError(e.message||'Unable to send a verification code.');
+   setMailFailed(true);
+   setError(e.message||'Unable to send a verification code by email.');
   }finally{
    setBusy(false);
   }
@@ -185,7 +230,7 @@ export default function Login({mode='user'}){
   if(newPassword!==confirmPassword) return setError('Password and confirm password do not match.');
   setBusy(true);
   try{
-   await api.forgotReset({identifier:String(forgotValue||'').trim(),otp:otp.trim(),password:newPassword,confirmPassword,channel});
+   await api.forgotReset({identifier:String(forgotValue||'').trim(),otp:otp.trim(),password:newPassword,confirmPassword,channel:'email'});
    setPassword('');
    setOtp('');
    setNewPassword('');
@@ -215,28 +260,19 @@ export default function Login({mode='user'}){
  }
 
  if(view==='forgot'){
-  return <AuthShell admin={false} title="Forgot password" lead="Choose email or mobile OTP for your resident account">
+  return <AuthShell admin={false} title="Forgot password" lead="We will send a 6-digit code to your registered email">
    <form onSubmit={requestCode} className="login-v2-card auth-simple-card">
     {error&&<div className="error-box">{error}</div>}
-    <div className="auth-channel" role="group" aria-label="Verification method">
-     <button type="button" className={channel==='email'?'on':''} onClick={()=>switchChannel('email')}>Email</button>
-     <button type="button" className={channel==='mobile'?'on':''} onClick={()=>switchChannel('mobile')}>Mobile OTP</button>
-    </div>
-    {channel==='mobile'
-     ? <label>Registered mobile
-        <span className="auth-input">
-         <IconPhone/>
-         <input type="tel" inputMode="numeric" autoComplete="tel" value={mobileId} onChange={e=>setMobileId(e.target.value.replace(/\D/g,'').slice(0,10))} required placeholder="10-digit mobile number" maxLength="10" pattern="\d{10}"/>
-        </span>
-       </label>
-     : <label>Registered email
-        <span className="auth-input">
-         <IconUser/>
-         <input type="email" inputMode="email" autoComplete="email" value={emailId} onChange={e=>setEmailId(e.target.value)} required placeholder="you@example.com"/>
-        </span>
-       </label>}
+    <label>Registered email
+     <span className="auth-input">
+      <span className="auth-ico"><IconMail/></span>
+      <span className="auth-split" aria-hidden="true"/>
+      <input type="email" inputMode="email" autoComplete="email" value={emailId} onChange={e=>setEmailId(e.target.value)} required placeholder="you@example.com"/>
+     </span>
+    </label>
     <button type="submit" className="primary-btn full login-v2-submit" disabled={busy}>{busy?'Sending code…':'Send verification code'}</button>
-    <div className="auth-simple-links auth-flow-links">
+    <SupportNote/>
+    <div className="auth-simple-links auth-flow-links auth-link-center">
      <button type="button" className="link-btn" onClick={goLogin}>Back to sign in</button>
     </div>
    </form>
@@ -261,6 +297,7 @@ export default function Login({mode='user'}){
     <PasswordField label="New password" value={newPassword} onChange={setNewPassword} placeholder="At least 8 characters" autoComplete="new-password" show={showNew} onToggle={()=>setShowNew(v=>!v)}/>
     <PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Re-enter password" autoComplete="new-password" show={showConfirm} onToggle={()=>setShowConfirm(v=>!v)}/>
     <button type="submit" className="primary-btn full login-v2-submit" disabled={busy}>{busy?'Updating…':'Update password'}</button>
+    <SupportNote/>
     <div className="auth-simple-links auth-login-links is-admin">
      <button type="button" className="link-btn" onClick={()=>setView('forgot')}>Resend code</button>
      <button type="button" className="link-btn" onClick={goLogin}>Back to sign in</button>
@@ -269,13 +306,14 @@ export default function Login({mode='user'}){
   </AuthShell>;
  }
 
- return <AuthShell admin={admin} title={admin?'Staff sign in':'Resident sign in'} lead={admin?'Master Admin, Nagarsevak and Employees':'Access your registered ward account'}>
+ return <AuthShell admin={admin} title="Good to see you again" lead={admin?'Staff workspace for Master Admin, Nagarsevak and Employees':'Access your registered ward account'}>
   <form onSubmit={submit} className="login-v2-card auth-simple-card">
    {notice&&<div className="info-note login-session-notice">{notice}</div>}
    {error&&<div className="error-box">{error}</div>}
    <label>Your email or mobile
     <span className="auth-input">
-     <IconUser/>
+     <span className="auth-ico"><IconMail/></span>
+     <span className="auth-split" aria-hidden="true"/>
      <input type="text" inputMode="email" autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} required placeholder="e.g. you@example.com"/>
     </span>
    </label>
@@ -286,9 +324,6 @@ export default function Login({mode='user'}){
    <div className={`auth-simple-links auth-login-links ${admin?'is-admin':'is-resident'}`}>
     {!admin&&<button type="button" className="link-btn" onClick={()=>navigate('/register')}>Create account</button>}
     <button type="button" className="link-btn" onClick={openForgot}>Forgot password?</button>
-    {admin
-     ? <button type="button" className="link-btn" onClick={()=>navigate('/login')}>Resident login</button>
-     : <button type="button" className="link-btn" onClick={()=>navigate('/admin')}>Staff login</button>}
    </div>
   </form>
  </AuthShell>;

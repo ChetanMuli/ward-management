@@ -8,7 +8,9 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { logAudit } = require('../../services/audit.service');
 const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions');
 const { allowedWardIds, isWardAllowed } = require('../services/wardScope');
-const { getVisibleNagarsevaks, isWardActive, syncWardCommunityMembership, ensureNagarsevakSubscription } = require('../../services/wardActivation.service');
+const { getVisibleNagarsevaks, isWardActive, syncWardCommunityMembership, ensureNagarsevakSubscription, publicNagarsevak } = require('../../services/wardActivation.service');
+const { syncLogin } = require('../../services/accountStore');
+const { sanitisePhoto } = require('../../utils/photo');
 
 async function role(name) {
   const r = await Role.findOne({ where: { name } });
@@ -68,7 +70,7 @@ const listCorporators = asyncHandler(async (req, res) => {
       const wardActive = String(u.ward?.status || '').toUpperCase() === 'ACTIVE';
       const residentVisible = u.status === 'ACTIVE' && wardActive && activeSub.has(`${u.id}:${u.wardId}`);
       return {
-        id:u.id,name:u.name,email:u.email,mobile:u.mobile,status:u.status,wardId:u.wardId,ward:u.ward,wardSeat:u.wardSeat,partyName:u.partyName,officialAddress:u.officialAddress,permissions:normalisePermissions(u.permissions),
+        id:u.id,name:u.name,email:u.email,mobile:u.mobile,status:u.status,wardId:u.wardId,ward:u.ward,wardSeat:u.wardSeat,partyName:u.partyName,officialAddress:u.officialAddress,photo:u.photo||null,permissions:normalisePermissions(u.permissions),
         wardStatus: u.ward?.status || null,
         activationStatus: residentVisible ? 'ACTIVE' : 'INACTIVE',
         residentVisible,
@@ -169,6 +171,7 @@ const listUsers = asyncHandler(async (req, res) => {
 
 const createCorporator = asyncHandler(async (req, res) => {
   const { name, email, mobile, password, wardId, partyName, wardSeat, officialAddress } = req.body;
+  const photo = sanitisePhoto(req.body.photo);
   await checkWard(wardId, req);
   const r = await role('NAGARSEVAK');
   const existingEmail = await User.findOne({ where: { email } });
@@ -178,7 +181,7 @@ const createCorporator = asyncHandler(async (req, res) => {
   const permissions = Object.prototype.hasOwnProperty.call(req.body, 'permissions')
     ? [...new Set(['VIEW_DASHBOARD', ...normalisePermissions(req.body.permissions)])]
     : [...ALL_PERMISSIONS];
-  const user = await User.create({ name, email, mobile, partyName: partyName || null, wardSeat: wardSeat || null, officialAddress: officialAddress || null, passwordHash: await bcrypt.hash(password, 12), roleId:r.id, wardId, permissions, status:'INACTIVE' });
+  const user = await User.create({ name, email, mobile, partyName: partyName || null, wardSeat: wardSeat || null, officialAddress: officialAddress || null, photo: photo || null, passwordHash: await bcrypt.hash(password, 12), roleId:r.id, wardId, permissions, status:'INACTIVE' });
   await ensureNagarsevakSubscription(wardId, user.id, 'PENDING');
   await ensureNagarsevakGroup(user.id);
   await logAudit({ user:req.user, action:'CREATE_NAGARSEVAK', entity:'User', recordId:user.id, newValue:{name,email,mobile,wardId,status:'INACTIVE'}, ipAddress:req.ip });
@@ -195,7 +198,8 @@ const updateCorporator = asyncHandler(async (req,res)=>{
   const patch={...req.body};
   delete patch.password; delete patch.roleId;
   for (const key of ['name','email','mobile','wardId','partyName','wardSeat','officialAddress','status']) { if (Object.prototype.hasOwnProperty.call(req.body, key)) patch[key] = req.body[key]; }
-  Object.keys(patch).filter(k => !['name','email','mobile','wardId','partyName','wardSeat','officialAddress','status','permissions','passwordHash'].includes(k)).forEach(k => delete patch[k]);
+  if (Object.prototype.hasOwnProperty.call(req.body, 'photo')) patch.photo = sanitisePhoto(req.body.photo);
+  Object.keys(patch).filter(k => !['name','email','mobile','wardId','partyName','wardSeat','officialAddress','photo','status','permissions','passwordHash'].includes(k)).forEach(k => delete patch[k]);
   if(patch.passwordHash) delete patch.passwordHash;
   if(Object.prototype.hasOwnProperty.call(req.body, 'permissions')) {
     if(req.user.roleName !== 'SUPER_ADMIN') throw new ApiError(403, 'Only Master Admin can manage Nagarsevak permissions');
@@ -206,7 +210,9 @@ const updateCorporator = asyncHandler(async (req,res)=>{
     const nextStatus = String(patch.status || '').toUpperCase();
     if (!['SUSPENDED', 'INACTIVE'].includes(nextStatus)) delete patch.status;
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'photo')) user.setDataValue('photo', patch.photo);
   await user.update(patch);
+  if (Object.prototype.hasOwnProperty.call(req.body, 'photo')) await syncLogin(user, Role);
   if (String(oldWardId || '') !== String(user.wardId || '')) {
     if (oldWardId) {
       await WardNagarsevakSubscription.update(
@@ -253,7 +259,7 @@ const convertCorporator = asyncHandler(async (req, res) => {
   await archiveNagarsevakGroup(user.id);
   await reconcileWardGroupMembers(wardId);
   await logAudit({ user:req.user, action:'CONVERT_NAGARSEVAK_TO_COMMUNITY_MEMBER', entity:'User', recordId:user.id, oldValue:old, newValue:{targetRole:targetRoleName,replacementManagerUserId:replacementManagerId}, ipAddress:req.ip });
-  return success(res, { message:`${old.name} moved to Community Members as ${targetRoleName === 'CANDIDATE' ? 'Election Candidate' : 'Social Worker'}.`, data:{id:user.id,name:user.name,role:targetRoleName,wardId:user.wardId} });
+  return success(res, { message:`${old.name} moved to Community Members as ${targetRoleName === 'CANDIDATE' ? 'Former Nagarsevak / Candidate' : 'Social Worker (Samaj Sevak)'}.`, data:{id:user.id,name:user.name,role:targetRoleName,wardId:user.wardId} });
 });
 
 const listEmployees = asyncHandler(async(req,res)=>{
@@ -456,14 +462,15 @@ const listWardTeam = asyncHandler(async(req,res)=>{
   const er=await role('EMPLOYEE');
   const ward=await Ward.findByPk(wardId,{attributes:['id','wardNumber','name','status']});
   if(!ward)throw new ApiError(404,'Ward not found');
-  const employees=await User.findAll({where:{roleId:er.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId'],include:[{model:Employee,as:'employeeProfile',attributes:['designation','managerUserId']}] ,order:[['name','ASC']]});
   const residentFacing=req.user.roleName==='CITIZEN';
+  const employees=residentFacing?[]:await User.findAll({where:{roleId:er.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId'],include:[{model:Employee,as:'employeeProfile',attributes:['designation','managerUserId']}] ,order:[['name','ASC']]});
   let nagarsevaks;
   if(residentFacing){
-    nagarsevaks = isWardActive(ward) ? await getVisibleNagarsevaks(wardId) : [];
+    nagarsevaks = isWardActive(ward) ? (await getVisibleNagarsevaks(wardId)).map(publicNagarsevak) : [];
   }else{
     const nr=await role('NAGARSEVAK');
-    nagarsevaks=await User.findAll({where:{roleId:nr.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId'],order:[['name','ASC']]});
+    const rows=await User.findAll({where:{roleId:nr.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId','roleId'],order:[['name','ASC']]});
+    nagarsevaks=rows.map(publicNagarsevak);
   }
   return success(res,{data:{ward,nagarsevaks,employees,nagarsevakCount:nagarsevaks.length,employeeCount:employees.length,wardStatus:ward.status}});
 });

@@ -317,7 +317,7 @@ const birthdays = asyncHandler(async (req, res) => {
   const data = rows.filter(p => p.dob).map(p => {
     const wardId=p.family?.house?.area?.wardId || p.family?.house?.area?.ward?.id;
     const n=councillorByWard.get(wardId);
-    return { person:p, nagarsevak:n?{id:n.id,name:n.name,mobile:n.mobile,partyName:n.partyName,wardSeat:n.wardSeat}:null, daysToBirthday:daysFromBirthday(p.dob) };
+    return { person:p, nagarsevak:n?{id:n.id,name:n.name,mobile:n.mobile,partyName:n.partyName||n.getDataValue?.('partyName')||null,wardSeat:n.wardSeat||n.getDataValue?.('wardSeat')||null,photo:n.getDataValue?.('photo')||n.photo||null}:null, daysToBirthday:daysFromBirthday(p.dob) };
   }).filter(x => x.daysToBirthday >= fromDays && x.daysToBirthday <= (fromDays + days - 1)).sort((a,b)=>a.daysToBirthday-b.daysToBirthday);
   return success(res, { data });
 });

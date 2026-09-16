@@ -8,9 +8,13 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions');
 const { syncWardCommunityMembership } = require('../../services/wardActivation.service');
 const otpStore = require('../../services/otp.service');
-const outbound = require('../../services/outbound.service');
+const { sanitisePhoto } = require('../../utils/photo');
+const { syncLogin } = require('../../services/accountStore');
 
 const COMPANY = 'Kairo IT Solutions PVT LTD';
+const COMPANY_EMAIL = 'chetan.a2zithub@gmail.com';
+const COMPANY_MOBILE = '8523697410';
+const COMPANY_CONTACT = { name: COMPANY, email: COMPANY_EMAIL, mobile: COMPANY_MOBILE };
 const STAFF_ROLES = new Set(['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE', 'SOCIAL_WORKER', 'CANDIDATE']);
 const STAFF_RESET_MESSAGE = `Staff passwords are reset by ${COMPANY}. Nagarsevak, Employee, Sub Master Admin and Master Admin accounts cannot be recovered from this screen. Please contact our team.`;
 
@@ -76,9 +80,10 @@ const login = asyncHandler(async (req, res) => {
   const coreRolePermissions = roleName === 'NAGARSEVAK'
     ? ['VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS','VIEW_HOUSES','VIEW_FAMILIES','VIEW_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','ASSIGN_COMPLAINTS','VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_USERS','VIEW_WARDS','VIEW_STAFF']
     : roleName === 'EMPLOYEE'
-      ? ['VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS','VIEW_HOUSES','VIEW_FAMILIES','VIEW_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_USERS','VIEW_WARDS']
+      ? ['VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS','VIEW_HOUSES','VIEW_FAMILIES','VIEW_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_WARDS']
       : [];
   permissions = [...new Set([...permissions, ...coreRolePermissions])];
+  if (roleName === 'EMPLOYEE') permissions = permissions.filter(p => !['VIEW_USERS','EDIT_USERS','DELETE_USERS'].includes(p));
   const wardIds = roleName === 'SUB_MASTER_ADMIN' ? (Array.isArray(user.wardIds) ? user.wardIds : []) : [];
   if (roleName === 'CITIZEN') {
     const citizenPortalPermissions = [
@@ -99,7 +104,7 @@ const login = asyncHandler(async (req, res) => {
     message: 'Login successful',
     data: {
       token: issueToken(user),
-      user: { id: user.id, name: user.name, email: user.email, mobile: user.mobile, role: roleName, wardId, wardIds, ward: user.ward, employeeProfile: employee || null, permissions },
+      user: { id: user.id, name: user.name, email: user.email, mobile: user.mobile, role: roleName, wardId, wardIds, ward: user.ward, employeeProfile: employee || null, permissions, photo: roleName === 'NAGARSEVAK' ? (user.getDataValue('photo') || null) : null },
     },
   });
 });
@@ -198,20 +203,25 @@ const updateProfile = asyncHandler(async(req,res)=>{
   if(patch.mobile && !/^\d{10}$/.test(String(patch.mobile))) throw new ApiError(400,'Mobile must be exactly 10 digits');
   if(patch.email && patch.email!==user.email){const exists=await User.findOne({where:{email:patch.email}});if(exists)throw new ApiError(409,'This email / login ID is already in use');}
   if(patch.mobile && patch.mobile!==user.mobile){const exists=await User.findOne({where:{mobile:patch.mobile}});if(exists)throw new ApiError(409,'This mobile number is already in use');}
+  const canPhoto = req.user.roleName === 'NAGARSEVAK';
+  if (canPhoto && Object.prototype.hasOwnProperty.call(req.body, 'photo')) {
+    patch.photo = sanitisePhoto(req.body.photo);
+    user.setDataValue('photo', patch.photo);
+  }
   await user.update(patch);
-  return success(res,{data:{id:user.id,name:user.name,email:user.email,mobile:user.mobile},message:'Profile updated'});
+  if (canPhoto && Object.prototype.hasOwnProperty.call(req.body, 'photo')) await syncLogin(user, Role);
+  return success(res,{data:{id:user.id,name:user.name,email:user.email,mobile:user.mobile,photo:canPhoto?(user.getDataValue('photo')||null):null},message:'Profile updated'});
 });
 
 const forgotRequest = asyncHandler(async (req, res) => {
   const identifier = String(req.body.identifier || '').trim();
-  const channel = String(req.body.channel || 'email').toLowerCase() === 'mobile' ? 'mobile' : 'email';
   const audience = String(req.body.audience || 'citizen').toLowerCase() === 'staff' ? 'staff' : 'citizen';
-  if (!identifier) throw new ApiError(400, 'Email or mobile is required');
+  if (!identifier) throw new ApiError(400, 'Email is required');
 
   if (audience === 'staff') {
     return success(res, {
       message: STAFF_RESET_MESSAGE,
-      data: { requiresSupport: true, company: COMPANY },
+      data: { requiresSupport: true, company: COMPANY_CONTACT },
     });
   }
 
@@ -220,44 +230,48 @@ const forgotRequest = asyncHandler(async (req, res) => {
   if (user && STAFF_ROLES.has(roleName)) {
     return success(res, {
       message: STAFF_RESET_MESSAGE,
-      data: { requiresSupport: true, company: COMPANY },
+      data: { requiresSupport: true, company: COMPANY_CONTACT },
     });
   }
 
-  if (channel === 'mobile' && identifier.replace(/\D/g, '').length !== 10) {
-    throw new ApiError(400, 'Enter your registered 10-digit mobile number');
-  }
-  if (channel === 'email' && !identifier.includes('@')) {
+  if (!identifier.includes('@')) {
     throw new ApiError(400, 'Enter your registered email');
   }
 
-  const generic = 'If an account exists for this email or mobile, we sent a verification code.';
+  const generic = 'If an account exists for this email, we sent a verification code.';
   if (!user || roleName !== 'CITIZEN' || user.status !== 'ACTIVE') {
-    return success(res, { message: generic, data: { sent: true, channel } });
+    return success(res, { message: generic, data: { sent: true, channel: 'email' } });
   }
 
-  const destination = channel === 'mobile' ? user.mobile : user.email;
-  const otp = await otpStore.issue(`${user.id}:${channel}`, { userId: user.id, channel });
+  const otp = await otpStore.issue(`${user.id}:email`, { userId: user.id, channel: 'email' });
   const delivered = await outbound.deliverOtp({
-    channel,
+    channel: 'email',
     email: user.email,
-    mobile: user.mobile,
     otp,
     name: user.name,
   });
   if (!delivered?.ok) {
-    console.warn(`[auth] password reset ${channel} code was not delivered by email/SMS`);
+    console.warn(`[auth] password reset email code was not delivered for ${user.email}`);
+    return success(res, {
+      message: `We could not send a verification code to your email. Please contact ${COMPANY} at ${COMPANY_EMAIL} or ${COMPANY_MOBILE}.`,
+      data: {
+        sent: false,
+        mailFailed: true,
+        requiresSupport: true,
+        company: COMPANY_CONTACT,
+      },
+    });
   }
-  const showDemo = echoOtpEnabled() || !delivered?.ok;
+  const showDemo = echoOtpEnabled();
   if (showDemo) {
-    console.info(`[auth] password reset ${channel} code for ${user.email || user.mobile}: ${otp}`);
+    console.info(`[auth] password reset email code for ${user.email}: ${otp}`);
   }
   return success(res, {
-    message: `${generic} Check ${maskDestination(destination, channel)}.`,
+    message: `${generic} Check ${maskDestination(user.email, 'email')}.`,
     data: {
       sent: true,
-      channel,
-      destination: maskDestination(destination, channel),
+      channel: 'email',
+      destination: maskDestination(user.email, 'email'),
       ...(showDemo ? { debugOtp: otp } : {}),
     },
   });
@@ -268,15 +282,14 @@ const forgotReset = asyncHandler(async (req, res) => {
   const otp = String(req.body.otp || '').trim();
   const password = String(req.body.password || '');
   const confirmPassword = String(req.body.confirmPassword || '');
-  const channel = String(req.body.channel || 'email').toLowerCase() === 'mobile' ? 'mobile' : 'email';
   if (password.length < 8) throw new ApiError(400, 'New password must be at least 8 characters');
-  if (password !== confirmPassword) throw new ApiError(400, 'Password and confirm password do not match');
+  if (password !== confirmPassword) throw new ApiError(400, 'New password and confirm password do not match');
 
   const user = await findAccount(identifier);
   if (!user || user.Role?.name !== 'CITIZEN') {
     throw new ApiError(400, 'Invalid verification code.');
   }
-  const checked = await otpStore.consume(`${user.id}:${channel}`, otp);
+  const checked = await otpStore.consume(`${user.id}:email`, otp);
   if (!checked.ok) throw new ApiError(400, checked.reason);
   await user.update({ passwordHash: await bcrypt.hash(password, 12) });
   return success(res, { message: 'Password updated. You can now sign in.' });

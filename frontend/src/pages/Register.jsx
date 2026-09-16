@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {api} from '../services/api';
-import {copyrightLine} from './Login';
+import {AuthShell} from './Login';
 
 const KEY='ward_register_draft';
 const empty={name:'',email:'',mobile:'',wardId:'',password:'',confirmPassword:''};
@@ -33,25 +33,9 @@ export default function Register(){
  }
 
  const shell=(title,lead,card)=>(
-  <div className="login-page-v2 auth-simple citizen-login register-page">
-   <div className="auth-simple-wrap">
-    <div className="auth-simple-logo">
-     <span className="brand-mark">W</span>
-     <strong>WardDesk</strong>
-    </div>
-    <span className="auth-panel-pill">Resident workspace</span>
-    <h1>{title}</h1>
-    <p className="auth-simple-lead">{lead}</p>
-    {card}
-    <p className="auth-simple-foot">Secure session · 30-minute timeout<br/>{copyrightLine}</p>
-    <div className="auth-simple-apps" aria-hidden="true">
-     <span>Complaints</span>
-     <span>Schemes</span>
-     <span>Messages</span>
-     <span>Notices</span>
-    </div>
-  </div>
- </div>
+  <AuthShell admin={false} register pageLabel="Resident registration" title={title} lead={lead}>
+   {card}
+  </AuthShell>
  );
 
  if(done){
@@ -71,7 +55,10 @@ export default function Register(){
      <input value={form.name} onChange={e=>update('name',e.target.value)} maxLength="120" autoComplete="name" required placeholder="Your full name"/>
     </label>
     <label>Email
-     <input type="email" value={form.email} onChange={e=>update('email',e.target.value.toLowerCase())} autoComplete="email" required placeholder="you@example.com"/>
+     <span className="auth-input"><span className="auth-ico"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3.4" y="5.6" width="17.2" height="12.8" rx="2.2"/><path d="m4.2 7.4 7.8 5.4 7.8-5.4"/></svg></span>
+      <span className="auth-split" aria-hidden="true"/>
+      <input type="email" value={form.email} onChange={e=>update('email',e.target.value.toLowerCase())} autoComplete="email" required placeholder="you@example.com"/>
+     </span>
     </label>
    </div>
    <div className="auth-field-row">
@@ -87,16 +74,21 @@ export default function Register(){
    </div>
    <div className="auth-field-row">
     <label>Password
-     <input type="password" value={form.password} onChange={e=>update('password',e.target.value)} minLength="8" autoComplete="new-password" required placeholder="At least 8 characters"/>
+     <span className="auth-input"><span className="auth-ico"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5.2" y="10.4" width="13.6" height="9.2" rx="2"/><path d="M8.2 10.4V8.2a3.8 3.8 0 0 1 7.6 0v2.2"/></svg></span>
+      <span className="auth-split" aria-hidden="true"/>
+      <input type="password" value={form.password} onChange={e=>update('password',e.target.value)} minLength="8" autoComplete="new-password" required placeholder="At least 8 characters"/>
+     </span>
     </label>
     <label>Confirm password
-     <input type="password" value={form.confirmPassword} onChange={e=>update('confirmPassword',e.target.value)} minLength="8" autoComplete="new-password" required placeholder="Re-enter password"/>
+     <span className="auth-input"><span className="auth-ico"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5.2" y="10.4" width="13.6" height="9.2" rx="2"/><path d="M8.2 10.4V8.2a3.8 3.8 0 0 1 7.6 0v2.2"/></svg></span>
+      <span className="auth-split" aria-hidden="true"/>
+      <input type="password" value={form.confirmPassword} onChange={e=>update('confirmPassword',e.target.value)} minLength="8" autoComplete="new-password" required placeholder="Re-enter password"/>
+     </span>
     </label>
    </div>
    <button className="primary-btn full login-v2-submit" disabled={busy||loadingWards||!wards.length}>{busy?'Creating account…':'Create account'}</button>
-   <div className="auth-simple-links">
+   <div className="auth-simple-links auth-link-center">
     <button type="button" className="link-btn" onClick={()=>navigate('/login')}>Already registered?</button>
-    <button type="button" className="link-btn" onClick={()=>navigate('/admin')}>Staff login</button>
    </div>
   </form>
  );

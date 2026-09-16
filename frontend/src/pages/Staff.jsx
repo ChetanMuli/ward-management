@@ -8,6 +8,8 @@ import {
   ErrorBox,
   Empty,
   Field,
+  FaceAvatar,
+  CirclePhotoField,
   Loading,
   Modal,
   PageHeader,
@@ -41,6 +43,7 @@ const empty = {
   wardSeat: '',
   partyName: '',
   officialAddress: '',
+  photo: '',
   designation: 'Ward Employee',
   assignedAreaIds: [],
   permissions: [],
@@ -690,6 +693,7 @@ export default function Staff() {
           wardSeat: form.wardSeat || null,
           partyName: form.partyName || null,
           officialAddress: form.officialAddress || null,
+          photo: form.photo || null,
           permissions:
             Array.isArray(form.permissions) ? form.permissions : [],
           status: edit === 'create' ? 'INACTIVE' : (form.status || 'INACTIVE')
@@ -1238,7 +1242,7 @@ export default function Staff() {
 
             <div className="panel table-wrap staff-table-scroll">
 
-              <table className="staff-data-table">
+              <table className="staff-data-table staff-nagar-table">
 
                 <thead>
 
@@ -1265,15 +1269,13 @@ export default function Staff() {
                       <tr key={n.id}>
 
                         <td data-label="Nagarsevak">
-
-                          <strong>
-                            {n.name}
-                          </strong>
-
-                          <div className="muted">
-                            NAGARSEVAK
+                          <div className="staff-face-cell">
+                            <FaceAvatar name={n.name} photo={n.photo} className="staff-face"/>
+                            <div>
+                              <strong>{n.name}</strong>
+                              <div className="muted">NAGARSEVAK</div>
+                            </div>
                           </div>
-
                         </td>
 
 
@@ -1601,6 +1603,13 @@ export default function Staff() {
 
               {detail.kind === 'NAGARSEVAK' && (
                 <>
+                  <div className="staff-detail-photo">
+                    <FaceAvatar name={detail.data.name} photo={detail.data.photo} className="staff-face-lg"/>
+                    <div>
+                      <strong>{detail.data.name}</strong>
+                      <span>{detail.data.partyName || 'Nagarsevak'}</span>
+                    </div>
+                  </div>
                   <p><b>Ward seat:</b> {detail.data.wardSeat || '—'}</p>
                   <p><b>Party:</b> {detail.data.partyName || '—'}</p>
                   <p><b>Published address:</b> {detail.data.officialAddress || '—'}</p>
@@ -1899,6 +1908,13 @@ export default function Staff() {
                     placeholder="Office address / public contact address"
                   />
                 </Field>
+                <div className="span-2">
+                  <CirclePhotoField
+                    label="Nagarsevak photo"
+                    value={form.photo || ''}
+                    onChange={value => setForm({ ...form, photo: value })}
+                  />
+                </div>
               </>
 
             ) : (
@@ -2172,12 +2188,12 @@ export default function Staff() {
         >
           <form id="convert-nagarsevak-form" className="form-grid" onSubmit={convertNagarsevak}>
             <div className="info-note span-2">
-              This keeps the same login account and ward, archives the Nagarsevak chat group, and moves the person into Community Members. If this Nagarsevak manages employees, choose another active Nagarsevak in the same ward to receive those employees.
+              Use this when the Nagarsevak is no longer elected, or when they should continue as a Samaj Sevak (social worker). The same login and ward stay, the Nagarsevak chat group is archived, and you then set permissions on Community Members. If this person still manages employees, choose another active Nagarsevak in the same ward first.
             </div>
             <Field label="New community role">
               <select value={convertForm.targetRole} onChange={e => setConvertForm({ ...convertForm, targetRole: e.target.value })}>
-                <option value="SOCIAL_WORKER">Social Worker</option>
-                <option value="CANDIDATE">Election Candidate</option>
+                <option value="SOCIAL_WORKER">Social Worker (Samaj Sevak)</option>
+                <option value="CANDIDATE">Former Nagarsevak / Candidate</option>
               </select>
             </Field>
             <SearchableSelect

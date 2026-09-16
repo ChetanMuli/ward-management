@@ -98,14 +98,30 @@ const summary = asyncHandler(async (req, res) => {
 
   const birthdayCount=scopedPeople.map(p=>daysToNextBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=30).length;
   const upcomingCount=scopedPeople.map(p=>daysTo18thBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=90).length;
-  const userInfo={id:req.user.id,name:req.user.name,email:req.user.email,mobile:req.user.mobile,role:req.user.roleName,wardId:req.user.wardId,ward:req.user.ward};
+  const userInfo={id:req.user.id,name:req.user.name,email:req.user.email,mobile:req.user.mobile,role:req.user.roleName,wardId:req.user.wardId,ward:req.user.ward,photo:req.user.photo||null};
   const employeeInfo=req.user.employeeProfile?{id:req.user.employeeProfile.id,designation:req.user.employeeProfile.designation,status:req.user.employeeProfile.status,managerUserId:req.user.employeeProfile.managerUserId,manager:req.user.employeeProfile.manager,assignedAreaIds:req.user.employeeProfile.assignedAreaIds||[],permissions:req.user.employeeProfile.permissions||[]}:null;
+
+  const nagarRole=await Role.findOne({where:{name:'NAGARSEVAK'}});
+  const empRole=await Role.findOne({where:{name:'EMPLOYEE'}});
+  const staffWardWhere=requestedWardId
+    ? {wardId:requestedWardId}
+    : (accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}});
+  const employeeCount=empRole?await User.count({where:{roleId:empRole.id,status:'ACTIVE',...staffWardWhere}}):0;
+  let teamNagarsevaks=[];
+  let teamEmployees=[];
+  if(requestedWardId){
+    [teamNagarsevaks,teamEmployees]=await Promise.all([
+      nagarRole?User.findAll({where:{roleId:nagarRole.id,wardId:requestedWardId,status:'ACTIVE'},attributes:['id','name','mobile'],order:[['name','ASC']]}):[],
+      empRole?User.findAll({where:{roleId:empRole.id,wardId:requestedWardId,status:'ACTIVE'},attributes:['id','name','mobile'],include:[{model:Employee,as:'employeeProfile',attributes:['designation']}],order:[['name','ASC']]}):[],
+    ]);
+  }
 
   return success(res,{data:{
     wardId:requestedWardId, ward, user:userInfo, employee:employeeInfo,
     houses,families,persons,voters,nonVoters,complaints,openComplaints,
     birthdaysNext30:birthdayCount,upcoming18Next90:upcomingCount,
-    managedEmployees,corporatorCount,statusCounts,
+    managedEmployees,corporatorCount,employeeCount,statusCounts,
+    teamNagarsevaks,teamEmployees,
     recentComplaints:recent,
     generatedAt:new Date().toISOString(),
   }});

@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {api,getUser} from '../services/api';
-import {ErrorBox,Loading,Modal,PageHeader,SearchableSelect,initialsOf} from '../components/Ui';
+import {ErrorBox,FaceAvatar,Loading,Modal,PageHeader,SearchableSelect,initialsOf} from '../components/Ui';
 import {can,isMaster,isSubMaster,isNagarsevak,roleOf} from '../rbac';
 import {useWardFilter} from '../wardFilter';
 
@@ -22,6 +22,11 @@ function lastPreview(m){
   if(m.messageType==='VIDEO') return '🎬 Video';
   if(m.messageType==='PDF') return '📄 PDF';
   return m.content||'Message';
+}
+function GroupFace({g}){
+  if(isAllChat(g)) return <span className="wa-avatar community">W</span>;
+  if(g.type==='NAGARSEVAK') return <FaceAvatar name={g.nagarsevak?.name||groupTitle(g)} photo={g.nagarsevak?.photo} className="wa-avatar nagar"/>;
+  return <span className="wa-avatar">{initialsOf(groupTitle(g))}</span>;
 }
 
 function GroupPage(){
@@ -190,7 +195,7 @@ function GroupPage(){
       const item=(g)=>{
         const last=messages.length&&active?.id===g.id?messages[messages.length-1]:null;
         return <button key={g.id} className={`group-item wa-item ${active?.id===g.id?'active':''}`} onClick={()=>openGroup(g)}>
-         <span className={`wa-avatar ${isAllChat(g)?'community':g.type==='NAGARSEVAK'?'nagar':''}`}>{isAllChat(g)?'W':initialsOf(groupTitle(g))}</span>
+         <GroupFace g={g}/>
          <span className="wa-item-copy">
           <strong>{groupTitle(g)}</strong>
           <small>{last?lastPreview(last):groupSubtitle(g)}</small>
@@ -211,7 +216,7 @@ function GroupPage(){
     {!active?<div className="group-empty">Select a chat to start messaging.</div>:<>
       <header className="group-chat-header">
        <button type="button" className="wa-back" onClick={()=>setChatOpen(false)} aria-label="Back to chats">‹</button>
-       <div className={`wa-avatar ${isAllChat(active)?'community':active.type==='NAGARSEVAK'?'nagar':''}`}>{isAllChat(active)?'W':initialsOf(groupTitle(active))}</div>
+       <GroupFace g={active}/>
        <div className="wa-head-copy"><span className="eyebrow">{isAllChat(active)?'ALL CHAT':active.type==='NAGARSEVAK'?'NAGARSEVAK GROUP':'GROUP'}</span><h2>{groupTitle(active)}</h2><p>{groupSubtitle(active)}{active.ward?.wardNumber?` · ${active.ward.wardNumber}`:''}</p></div>
        {(active.isMember||master||sub||active.type!=='CUSTOM')&&<button type="button" className="wa-clear-btn" onClick={clearMyChat}>Clear</button>}
        <div className="card-actions">{active.type==='CUSTOM'&&active.isMember&&<button className="small-btn" onClick={()=>api.leaveChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Leave</button>}{active.type==='CUSTOM'&&!active.isMember&&<button className="small-btn" onClick={()=>api.joinChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Join</button>}{active.canManage&&active.type==='CUSTOM'&&<button className="small-btn danger" onClick={()=>removeGroup(active)}>Archive</button>}</div>

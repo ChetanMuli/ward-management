@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {api,getUser} from '../services/api';
-import {ErrorBox,Loading,Modal,PageHeader,StatCard,StatusPill} from '../components/Ui';
+import {ErrorBox,Loading,Modal,PageHeader,StatCard,StatusPill,FaceAvatar} from '../components/Ui';
 import WardFilter from '../components/WardFilter';
 import {isEmployee,isMaster,isNagarsevak} from '../rbac';
 import {useWardFilter} from '../wardFilter';
@@ -59,16 +59,7 @@ export default function Dashboard(){
    <div className="scope-chip"><span>SHOWING DATA FOR</span><strong>{scopeText}</strong><small>{refreshing?'Updating…':`Updated ${new Date(data.generatedAt||Date.now()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`}</small></div>
   </section>
   {data.ward&&<section className="panel dashboard-ward-summary"><div className="dashboard-ward-title"><span className="eyebrow">CURRENT WARD</span><h2>{data.ward.wardNumber}</h2><h3>{data.ward.name||'Ahilyanagar Municipal Corporation Ward'}</h3></div><div className="dashboard-ward-facts"><div><span>Population (2011)</span><strong>{Number(data.ward.population2011||0).toLocaleString('en-IN')}</strong></div><div><span>Key areas</span><strong>{Number(data.ward.areaCount||0)}</strong></div><div><span>Open complaints</span><strong>{data.openComplaints||0}</strong></div><div><span>Official map</span><a href={data.ward.officialMapUrl} target="_blank" rel="noreferrer">View AMC map ↗</a></div></div></section>}
-  {(nagar||employee)&&<section className="panel profile-banner"><div><span className="eyebrow">{nagar?'NAGARSEVAK':'EMPLOYEE'}</span><h2>{data.user?.name}</h2><p>{scopeText}{data.employee?.designation?` · ${data.employee.designation}`:''}</p></div><div className="profile-quick"><div><span>Open work</span><strong>{data.openComplaints}</strong></div>{nagar&&<div><span>Employees</span><strong>{data.managedEmployees}</strong></div>}{employee&&<div><span>Manager</span><strong>{data.employee?.manager?.name||'—'}</strong></div>}</div></section>}
-  <section className="dashboard-at-a-glance">
-   <div className="dashboard-glance-head"><div><span className="eyebrow">AT A GLANCE</span><h3>What needs attention</h3><p>Live complaint counts for {scopeText}. Tap a card to open that work list.</p></div><div className="dashboard-glance-scope">{scopeText}</div></div>
-   <div className="dashboard-glance-grid">
-    <button type="button" className="glance-card glance-link" onClick={()=>openTo('/complaints')}><span>Open complaints</span><strong>{data.openComplaints||0}</strong><small>Needs attention</small></button>
-    <button type="button" className="glance-card glance-link" onClick={()=>openTo('/complaints?status=ASSIGNED')}><span>Assigned</span><strong>{status.ASSIGNED||0}</strong><small>With a Nagarsevak / employee</small></button>
-    <button type="button" className="glance-card glance-link" onClick={()=>openTo('/complaints?status=IN_PROGRESS')}><span>In progress</span><strong>{status.IN_PROGRESS||0}</strong><small>Work currently underway</small></button>
-    <button type="button" className="glance-card glance-link" onClick={()=>openTo('/complaints?status=RESOLVED')}><span>Resolved</span><strong>{status.RESOLVED||0}</strong><small>Ready for closure</small></button>
-   </div>
-  </section>
+  {(nagar||employee)&&<section className="panel profile-banner"><FaceAvatar name={data.user?.name||getUser()?.name} photo={data.user?.photo||getUser()?.photo} className="staff-face-lg"/><div><span className="eyebrow">{nagar?'NAGARSEVAK':'EMPLOYEE'}</span><h2>{data.user?.name}</h2><p>{scopeText}{data.employee?.designation?` · ${data.employee.designation}`:''}</p></div><div className="profile-quick"><div><span>Open work</span><strong>{data.openComplaints}</strong></div>{nagar&&<div><span>Employees</span><strong>{data.managedEmployees}</strong></div>}{employee&&<div><span>Manager</span><strong>{data.employee?.manager?.name||'—'}</strong></div>}</div></section>}
   <section className="panel dashboard-info-panel">
    <div className="panel-title"><div><h3>Ward information</h3><span>Live counts for {scopeText}. Tap a card to open that section.</span></div></div>
    <div className="stat-grid">

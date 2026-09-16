@@ -52,8 +52,26 @@ export function osmOpenUrl(lat,lng){
  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
 }
 
+export function osmTileUrl(lat,lng,zoom=17){
+ const la=Number(lat),lo=Number(lng);
+ if(!hasCoords(la,lo)) return '';
+ const n=2**zoom;
+ const x=Math.floor((lo+180)/360*n);
+ const latRad=la*Math.PI/180;
+ const y=Math.floor((1-Math.log(Math.tan(latRad)+1/Math.cos(latRad))/Math.PI)/2*n);
+ return `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
+}
+
+function mapsQuery(lat,lng){
+ return `${Number(lat).toFixed(7)},${Number(lng).toFixed(7)}`;
+}
+
+export function mapsViewUrl(lat,lng){
+ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery(lat,lng))}`;
+}
+
 export function directionsUrl(lat,lng){
- return `https://www.google.com/maps/dir/?api=1&destination=${Number(lat)},${Number(lng)}&travelmode=driving`;
+ return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapsQuery(lat,lng))}&travelmode=driving`;
 }
 
 export function placeLine(parts){

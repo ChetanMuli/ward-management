@@ -42,6 +42,7 @@ const NagarsevakUser = defineLoginModel('NagarsevakUser', 'nagarsevak_users', {
   wardSeat: { type: DataTypes.STRING, allowNull: true, field: 'ward_seat' },
   partyName: { type: DataTypes.STRING, allowNull: true, field: 'party_name' },
   officialAddress: { type: DataTypes.TEXT, allowNull: true, field: 'official_address' },
+  photo: { type: DataTypes.TEXT('long'), allowNull: true },
 });
 const EmployeeUser = defineLoginModel('EmployeeUser', 'employee_users');
 const CitizenUser = defineLoginModel('CitizenUser', 'citizen_users', {

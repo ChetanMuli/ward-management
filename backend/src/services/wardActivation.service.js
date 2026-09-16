@@ -13,7 +13,7 @@ const { logAudit } = require('./audit.service');
 const { notifyUsers } = require('./notify.service');
 const { canResidentSeeNagarsevak } = require('./wardActivation.rules');
 
-const PUBLIC_NAGAR_ATTRS = ['id', 'name', 'email', 'mobile', 'wardId', 'status'];
+const PUBLIC_NAGAR_ATTRS = ['id', 'name', 'email', 'mobile', 'wardId', 'status', 'roleId'];
 
 async function roleId(name) {
   const role = await Role.findOne({ where: { name }, attributes: ['id'] });
@@ -90,11 +90,15 @@ async function assertResidentCanSeeNagarsevak(req, nagarsevakUserId) {
 function publicNagarsevak(user) {
   if (!user) return null;
   const row = typeof user.toJSON === 'function' ? user.toJSON() : user;
+  const photo = (typeof user.getDataValue === 'function' ? user.getDataValue('photo') : null) || row.photo || null;
   return {
     id: row.id,
     name: row.name,
     mobile: row.mobile || null,
     email: row.email || null,
+    partyName: (typeof user.getDataValue === 'function' ? user.getDataValue('partyName') : null) || row.partyName || null,
+    wardSeat: (typeof user.getDataValue === 'function' ? user.getDataValue('wardSeat') : null) || row.wardSeat || null,
+    photo,
     status: 'ACTIVE',
   };
 }

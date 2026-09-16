@@ -6,7 +6,7 @@ import {initLanguage,setLanguage as applyLanguage} from './language';
 import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
 import Stakeholders from './pages/Stakeholders';
 import Groups from './pages/Groups'; import Deaths from './pages/Deaths'; import SubAdmins from './pages/SubAdmins'; import WardUpdates from './pages/WardUpdates'; import UserPanel from './pages/UserPanel'; import UserComplaints from './pages/UserComplaints'; import ElectionData from './pages/ElectionData'; import WardActivation from './pages/WardActivation';
-import {Modal,PaginationBar,ProfileAvatar,scrollMainToTop} from './components/Ui';
+import {Modal,PaginationBar,ProfileAvatar,FaceAvatar,CirclePhotoField,scrollMainToTop} from './components/Ui';
 
 const navSections=[
  {id:'overview',en:'Overview',mr:'आढावा',items:[
@@ -49,7 +49,7 @@ const navSections=[
 ];
 const mrNav={'All chat & Groups':'ऑल चॅट व गट','Groups & Chat':'गट व चॅट',Dashboard:'डॅशबोर्ड','Wards & Areas':'वॉर्ड व परिसर','Ward Information':'वॉर्डची संपूर्ण माहिती','Nagarsevak & Employees':'नगरसेवक व कर्मचारी','Ward activation':'वॉर्ड सक्रियता','Community Members':'समुदाय सदस्य','Registered Users':'नोंदणीकृत वापरकर्ते','Sub Master Admins':'सब मास्टर अ‍ॅडमिन','Houses':'घरे','Families':'कुटुंबे','All Citizens':'सर्व नागरिक','Voter / Non-Voter':'मतदार / अमतदार','Government Voter Lists':'शासकीय मतदार यादी','Election Data':'निवडणूक माहिती','Birthdays':'वाढदिवस','18+ Follow-up':'१८+ फॉलो-अप','Death Records':'मृत्यू नोंद','Complaints':'तक्रारी','Schemes & Benefits':'योजना व लाभ','Reports & Export':'अहवाल व एक्सपोर्ट','Audit Logs':'ऑडिट लॉग','Ward Updates & Events':'वॉर्ड अपडेट्स व कार्यक्रम','All Ward Updates':'सर्व वॉर्ड अपडेट्स','New Update / Event':'नवीन अपडेट / कार्यक्रम','Recycle Bin':'रिसायकल बिन'};
 const pageTitles={
- '/':'Dashboard','/admin':'Dashboard','/wards':'Wards & Areas','/ward-information':'Ward Information','/staff':'Nagarsevak & Employees','/ward-activation':'Ward activation','/stakeholders':'Community Members','/users':'Registered Ward Users','/sub-admins':'Sub Master Admins','/houses':'Houses','/families':'Families','/people':'All Citizens','/voters':'Voter / Non-Voter','/government-voter-lists':'Government Voter Lists','/election-data':'Election Data','/ward-updates':'Ward Updates & Events','/ward-updates/new':'Create Ward Update / Event','/birthdays':'Birthdays','/follow-up-18':'18+ Follow-up','/deaths':'Death Records','/complaints':'Complaints','/schemes':'Schemes & Benefits','/reports':'Reports & Export','/groups':'All chat & Groups','/recycle-bin':'Recycle Bin'
+ '/':'Dashboard','/login':'Resident login','/register':'Resident registration','/admin':'Dashboard','/wards':'Wards & Areas','/ward-information':'Ward Information','/staff':'Nagarsevak & Employees','/ward-activation':'Ward activation','/stakeholders':'Community Members','/users':'Registered Ward Users','/sub-admins':'Sub Master Admins','/houses':'Houses','/families':'Families','/people':'All Citizens','/voters':'Voter / Non-Voter','/government-voter-lists':'Government Voter Lists','/election-data':'Election Data','/ward-updates':'Ward Updates & Events','/ward-updates/new':'Create Ward Update / Event','/birthdays':'Birthdays','/follow-up-18':'18+ Follow-up','/deaths':'Death Records','/complaints':'Complaints','/schemes':'Schemes & Benefits','/reports':'Reports & Export','/groups':'All chat & Groups','/recycle-bin':'Recycle Bin'
 };
 const pageTitle=path=>pageTitles[path]||'WardDesk';
 const ROLE_LABELS={SUPER_ADMIN:'Master Admin',SUB_MASTER_ADMIN:'Sub Master Admin',NAGARSEVAK:'Nagarsevak',EMPLOYEE:'Field Employee',CITIZEN:'Resident',SOCIAL_WORKER:'Social Worker',CANDIDATE:'Election Candidate'};
@@ -88,11 +88,12 @@ const rolePanelAccess=(key,u)=>{
  const r=roleName(u);
  if(r==='SUPER_ADMIN') return true;
  if(r==='NAGARSEVAK' && ['DASHBOARD','WARDS','WARD_INFORMATION','WARD_UPDATES','NOTIFICATIONS','HOUSES','FAMILIES','PEOPLE','VOTERS','BIRTHDAYS','FOLLOWUP','DEATH','COMPLAINTS','SCHEMES','CHAT','REPORTS','RECYCLE','USERS','STAFF'].includes(key)) return true;
- if(r==='EMPLOYEE' && ['DASHBOARD','WARDS','WARD_INFORMATION','WARD_UPDATES','NOTIFICATIONS','HOUSES','FAMILIES','PEOPLE','VOTERS','BIRTHDAYS','FOLLOWUP','DEATH','COMPLAINTS','SCHEMES','CHAT','REPORTS','RECYCLE','USERS'].includes(key)) return true;
+ if(r==='EMPLOYEE' && ['DASHBOARD','WARDS','WARD_INFORMATION','WARD_UPDATES','NOTIFICATIONS','HOUSES','FAMILIES','PEOPLE','VOTERS','BIRTHDAYS','FOLLOWUP','DEATH','COMPLAINTS','SCHEMES','CHAT','REPORTS','RECYCLE'].includes(key)) return true;
  return false;
 };
 const allowed=(key,u)=>{
  if(rolePanelAccess(key,u)) return true;
+ if(key==='USERS' && isEmployee(u)) return false;
  if(key==='NOTIFICATIONS') return can('VIEW_NOTIFICATIONS',u);
  if(key==='WARD_UPDATES'||key==='WARD_UPDATES_GROUP') return can('VIEW_WARD_UPDATES',u);
  if(key==='USERS') return can('VIEW_USERS',u);
@@ -123,6 +124,17 @@ function AdminNavItem({to,label,icon,itemKey,language,user,updatesOpen,setUpdate
 }
 function Protected({children}){return getUser()?children:<Navigate to="/" replace/>}
 function HomeEntry(){const u=getUser(); if(!u) return <Login mode="user"/>; if(String(u.role||'').toUpperCase()==='CITIZEN') return <UserPanel/>; return <Navigate to="/admin" replace/>}
+function sessionLoginPath(){
+ let role='';
+ try{role=String(JSON.parse(localStorage.getItem('ward_user')||'{}')?.role||'').toUpperCase()}catch{}
+ return role==='CITIZEN'?'/login':'/admin';
+}
+function expireSessionHard(){
+ const path=sessionLoginPath();
+ sessionStorage.setItem('ward_session_expired','1');
+ clearSession();
+ window.location.replace(path);
+}
 function AdminEntry(){const u=getUser(); if(!u) return <Login mode="admin"/>; if(String(u.role||'').toUpperCase()==='CITIZEN') return <Navigate to="/" replace/>; return <Shell><Dashboard/></Shell>}
 function CitizenShell({children}){
  const navigate=useNavigate(),location=useLocation(),user=getUser();
@@ -190,12 +202,21 @@ function CitizenShell({children}){
 }
 
 function ProfileEditor({user,role,onClose,onSaved}){
- const [form,setForm]=useState({name:String(user?.name||'').trim(),email:String(user?.email||'').trim(),mobile:String(user?.mobile||'').replace(/\D/g,'').slice(0,10),password:'',confirmPassword:''});
+ const isNagar=String(role||user?.role||'').toUpperCase()==='NAGARSEVAK';
+ const [form,setForm]=useState({name:String(user?.name||'').trim(),email:String(user?.email||'').trim(),mobile:String(user?.mobile||'').replace(/\D/g,'').slice(0,10),password:'',confirmPassword:'',photo:user?.photo||''});
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{
+  if(!isNagar)return;
+  api.me().then(r=>{
+   const photo=r?.data?.user?.photo;
+   if(photo) setForm(f=>f.photo?f:{...f,photo});
+  }).catch(()=>{});
+ },[isNagar]);
  async function save(e){
   e.preventDefault();setBusy(true);setError('');
   try{
    const payload={name:form.name.trim(),email:form.email.trim(),mobile:form.mobile.trim()};
+   if(isNagar) payload.photo=form.photo||null;
    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) throw new Error('Please enter a valid email address.');
    if(form.password&&form.password!==form.confirmPassword) throw new Error('New password and confirm password do not match.');
    const r=await api.updateProfile(payload);
@@ -211,6 +232,7 @@ function ProfileEditor({user,role,onClose,onSaved}){
   <div className="profile-editor">
    {error&&<div className="error-inline">{error}</div>}
    <form className="form-grid profile-edit-grid" onSubmit={save}>
+    {isNagar&&<div className="span-2"><CirclePhotoField label="Profile photo" value={form.photo} onChange={v=>setForm({...form,photo:v})}/></div>}
     <div className="profile-section span-2">
      <span className="profile-section-label">Personal details</span>
      <div className="form-grid profile-fields">
@@ -261,7 +283,7 @@ function GlobalPagination(){
     const found=candidates.find(el=>el.children.length>0);
     if(found){root=found;break;}
    }
-   const count=root?[...root.children].length:0;
+   const count=root?[...root.children].filter(el=>!(el.matches?.('tr') && el.querySelector('td[colspan], th[colspan]'))).length:0;
    setState(prev=>prev.root===root&&prev.count===count?prev:{root,count});
   };
   scan();
@@ -297,7 +319,7 @@ function Shell({children}){
   e.preventDefault();
   rememberSidebar();
   e.currentTarget.blur();
-  navigate(to);
+  navigate(to,{replace:true});
  };
  useEffect(()=>{
   setUpdatesOpen(location.pathname.startsWith('/ward-updates'));
@@ -403,15 +425,15 @@ function Shell({children}){
  const pretty=prettyRole(user);
  const help=pageHelp[location.pathname]||workspaceLabel(user);
  const sectionName=pageSection(location.pathname,language);
- return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className={`sidebar ${open?'open':''}`}><div className="brand"><div className="brand-mark">W</div><div><strong>WardDesk</strong><span>Municipal workspace</span></div></div><nav ref={navRef} aria-label="Main">{visibleSections.map(section=><div className="nav-section" key={section.id}><div className="nav-section-label">{language==='mr'?section.mr:section.en}</div>{section.items.map(([to,label,icon,key])=><AdminNavItem key={key} to={to} label={label} icon={icon} itemKey={key} language={language} user={user} updatesOpen={updatesOpen} setUpdatesOpen={setUpdatesOpen} navRef={navRef} sidebarScrollKey={sidebarScrollKey} sidebarGo={sidebarGo}/>)}</div>)}</nav><div className="sidebar-footer"><div className="security-note">● Secure session · {pretty}</div><button className="logout-btn" onClick={logout}>Sign out</button></div></aside>{open&&<button className="scrim" onClick={()=>setOpen(false)}/>}<main className="main"><header className="topbar"><div className="admin-mobile-brand" aria-hidden="true">W</div><button className="menu-btn" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-context"><div className="eyebrow">{sectionName}</div><div className="topbar-title">{pageTitle(location.pathname)}</div><div className="topbar-workspace">{help}</div></div><div className="topbar-spacer"/><button type="button" className="language-btn" onClick={()=>setLanguage(v=>{const n=v==='en'?'mr':'en';localStorage.setItem('ward_language',n);applyLanguage(n);return n})} title="Change language">{language==='en'?'मराठी':'English'}</button><div className="notification-wrap"><button className="notification-btn" onClick={()=>setShowNotifications(v=>!v)}>🔔{receivedNotifications.filter(n=>!n.isRead).length>0&&<span className="notification-count">{receivedNotifications.filter(n=>!n.isRead).length}</span>}</button>{showNotifications&&<div className="notification-popover"><div className="notification-popover-head"><strong>Notifications</strong>{notifications.length>0&&<div className="card-actions">{notifications.some(n=>!n.isRead)&&<button type="button" className="small-btn" onClick={async()=>{await api.markAllNotificationsRead();setNotifications(x=>x.map(a=>a.direction==='SENT'?a:{...a,isRead:true}))}}>Mark all read</button>}<button type="button" className="small-btn danger" onClick={async()=>{if(!window.confirm('Clear all notifications?'))return;await api.clearNotifications();setNotifications([])}}>Clear</button></div>}</div>{!notifications.length?<div className="muted notification-empty">No notifications</div>:notifications.map(n=><button key={n.id} className={`notification-item ${n.isRead?'read':''}`} onClick={async()=>{try{if(!n.isRead){await api.markNotificationRead(n.id);setNotifications(x=>x.map(a=>a.id===n.id?{...a,isRead:true}:a))}}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}setSelectedNotification(n);setShowNotifications(false)}}><strong>{n.title}</strong><span>{n.message}</span><small>From: {n.sender?.name||'System'} · {n.type?.replaceAll('_',' ')||'Notification'} · {n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}<button type="button" className="notification-view-all" onClick={()=>{setShowNotifications(false);navigate('/groups')}}>Open Groups & Chat</button></div>}</div><button className="user-chip user-chip-button" onClick={()=>setShowProfile(true)} aria-label="Open profile"><ProfileAvatar name={user?.name} size="sm"/><div className="user-text"><strong>{user?.name}</strong><span>{pretty}</span></div></button></header><div className="content" id="main-content">{children}<GlobalPagination/></div><footer className="app-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>Secure administration workspace · {pretty}</span></footer>{toast&&<div className={`global-toast ${toast.type==='error'?'global-toast-error':'global-toast-success'}`} role={toast.type==='error'?'alert':'status'}><div><strong>{toast.type==='error'?'Action failed':'Success'}</strong><div>{toast.message}</div></div><button type="button" onClick={()=>setToast(null)} aria-label="Close">×</button></div>}{selectedNotification&&<div className="modal-backdrop" onPointerDown={()=>setSelectedNotification(null)}><div className="modal notification-detail-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{selectedNotification.title}</h2><span>{selectedNotification.sender?.name?`From ${selectedNotification.sender.name}`:'WardDesk notification'}</span></div><button type="button" className="icon-btn" onClick={()=>setSelectedNotification(null)}>×</button></div><div className="notification-detail-body"><p>{selectedNotification.message}</p><small>{selectedNotification.createdAt?new Date(selectedNotification.createdAt).toLocaleString('en-IN'):''}</small></div><div className="modal-actions"><button type="button" className="primary-btn" onClick={()=>{const target=String(selectedNotification.actionUrl||'').trim();const t=String(selectedNotification.type||'');setSelectedNotification(null);if(target.startsWith('/'))navigate(target);else if(t.includes('COMPLAINT'))navigate('/complaints');else if(t.includes('SCHEME'))navigate('/schemes');else if(t.includes('WARD_UPDATE')||t.includes('WARD_EVENT'))navigate('/ward-updates');else if(t.includes('18PLUS'))navigate('/follow-up-18');else if(t.includes('CHAT')||t.includes('MESSAGE'))navigate('/groups')}}>Open related section</button><button type="button" className="ghost-btn" onClick={()=>setSelectedNotification(null)}>Close</button></div></div></div>}{showProfile&&<div className="modal-backdrop" onPointerDown={()=>setShowProfile(false)}><div className="modal profile-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header profile-modal-header"><div><h2>My profile</h2><span>Update your name, contact details and password</span></div><button type="button" className="icon-btn" onClick={()=>setShowProfile(false)}>×</button></div><div className="profile-summary"><ProfileAvatar name={user?.name} size="lg"/><div><h3>{user?.name}</h3><span>{pretty}</span></div></div><ProfileEditor user={user} role={role} onClose={()=>setShowProfile(false)} onSaved={(u)=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setShowProfile(false);window.location.reload()}}/></div></div>}</main></div>
+ return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className={`sidebar ${open?'open':''}`}><div className="brand"><div className="brand-mark">W</div><div><strong>WardDesk</strong><span>Municipal workspace</span></div></div><nav ref={navRef} aria-label="Main">{visibleSections.map(section=><div className="nav-section" key={section.id}><div className="nav-section-label">{language==='mr'?section.mr:section.en}</div>{section.items.map(([to,label,icon,key])=><AdminNavItem key={key} to={to} label={label} icon={icon} itemKey={key} language={language} user={user} updatesOpen={updatesOpen} setUpdatesOpen={setUpdatesOpen} navRef={navRef} sidebarScrollKey={sidebarScrollKey} sidebarGo={sidebarGo}/>)}</div>)}</nav><div className="sidebar-footer"><div className="security-note">● Secure session · {pretty}</div><button className="logout-btn" onClick={logout}>Sign out</button></div></aside>{open&&<button className="scrim" onClick={()=>setOpen(false)}/>}<main className="main"><header className="topbar"><div className="admin-mobile-brand" aria-hidden="true">W</div><button className="menu-btn" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-context"><div className="eyebrow">{sectionName}</div><div className="topbar-title">{pageTitle(location.pathname)}</div><div className="topbar-workspace">{help}</div></div><div className="topbar-spacer"/><button type="button" className="language-btn" onClick={()=>setLanguage(v=>{const n=v==='en'?'mr':'en';localStorage.setItem('ward_language',n);applyLanguage(n);return n})} title="Change language">{language==='en'?'मराठी':'English'}</button><div className="notification-wrap"><button className="notification-btn" onClick={()=>setShowNotifications(v=>!v)}>🔔{receivedNotifications.filter(n=>!n.isRead).length>0&&<span className="notification-count">{receivedNotifications.filter(n=>!n.isRead).length}</span>}</button>{showNotifications&&<div className="notification-popover"><div className="notification-popover-head"><strong>Notifications</strong>{notifications.length>0&&<div className="card-actions">{notifications.some(n=>!n.isRead)&&<button type="button" className="small-btn" onClick={async()=>{await api.markAllNotificationsRead();setNotifications(x=>x.map(a=>a.direction==='SENT'?a:{...a,isRead:true}))}}>Mark all read</button>}<button type="button" className="small-btn danger" onClick={async()=>{if(!window.confirm('Clear all notifications?'))return;await api.clearNotifications();setNotifications([])}}>Clear</button></div>}</div>{!notifications.length?<div className="muted notification-empty">No notifications</div>:notifications.map(n=><button key={n.id} className={`notification-item ${n.isRead?'read':''}`} onClick={async()=>{try{if(!n.isRead){await api.markNotificationRead(n.id);setNotifications(x=>x.map(a=>a.id===n.id?{...a,isRead:true}:a))}}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}setSelectedNotification(n);setShowNotifications(false)}}><strong>{n.title}</strong><span>{n.message}</span><small>From: {n.sender?.name||'System'} · {n.type?.replaceAll('_',' ')||'Notification'} · {n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}<button type="button" className="notification-view-all" onClick={()=>{setShowNotifications(false);navigate('/groups')}}>Open Groups & Chat</button></div>}</div><button className="user-chip user-chip-button" onClick={()=>setShowProfile(true)} aria-label="Open profile"><FaceAvatar name={user?.name} photo={user?.photo} className="user-chip-face"/><div className="user-text"><strong>{user?.name}</strong><span>{pretty}</span></div></button></header><div className="content" id="main-content">{children}<GlobalPagination/></div><footer className="app-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>Secure administration workspace · {pretty}</span></footer>{toast&&<div className={`global-toast ${toast.type==='error'?'global-toast-error':'global-toast-success'}`} role={toast.type==='error'?'alert':'status'}><div><strong>{toast.type==='error'?'Action failed':'Success'}</strong><div>{toast.message}</div></div><button type="button" onClick={()=>setToast(null)} aria-label="Close">×</button></div>}{selectedNotification&&<div className="modal-backdrop" onPointerDown={()=>setSelectedNotification(null)}><div className="modal notification-detail-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{selectedNotification.title}</h2><span>{selectedNotification.sender?.name?`From ${selectedNotification.sender.name}`:'WardDesk notification'}</span></div><button type="button" className="icon-btn" onClick={()=>setSelectedNotification(null)}>×</button></div><div className="notification-detail-body"><p>{selectedNotification.message}</p><small>{selectedNotification.createdAt?new Date(selectedNotification.createdAt).toLocaleString('en-IN'):''}</small></div><div className="modal-actions"><button type="button" className="primary-btn" onClick={()=>{const target=String(selectedNotification.actionUrl||'').trim();const t=String(selectedNotification.type||'');setSelectedNotification(null);if(target.startsWith('/'))navigate(target);else if(t.includes('COMPLAINT'))navigate('/complaints');else if(t.includes('SCHEME'))navigate('/schemes');else if(t.includes('WARD_UPDATE')||t.includes('WARD_EVENT'))navigate('/ward-updates');else if(t.includes('18PLUS'))navigate('/follow-up-18');else if(t.includes('CHAT')||t.includes('MESSAGE'))navigate('/groups')}}>Open related section</button><button type="button" className="ghost-btn" onClick={()=>setSelectedNotification(null)}>Close</button></div></div></div>}{showProfile&&<div className="modal-backdrop" onPointerDown={()=>setShowProfile(false)}><div className="modal profile-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header profile-modal-header"><div><h2>My profile</h2><span>Update your name, contact details and password</span></div><button type="button" className="icon-btn" onClick={()=>setShowProfile(false)}>×</button></div><div className="profile-summary"><FaceAvatar name={user?.name} photo={user?.photo} className="staff-face-lg"/><div><h3>{user?.name}</h3><span>{pretty}</span></div></div><ProfileEditor user={user} role={role} onClose={()=>setShowProfile(false)} onSaved={(u)=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setShowProfile(false);window.location.reload()}}/></div></div>}</main></div>
 }
-function CitizenOnly({children}){const u=getUser();if(!u)return <Login mode="user"/>;if(String(u.role||'').toUpperCase()!=='CITIZEN')return <Navigate to="/admin" replace/>;return <CitizenShell>{children}</CitizenShell>}
+function CitizenOnly({children}){const u=getUser();if(!u)return <Navigate to="/login" replace/>;if(String(u.role||'').toUpperCase()!=='CITIZEN')return <Navigate to="/admin" replace/>;return <CitizenShell>{children}</CitizenShell>}
 function Guard({permission,children}){
  const u=getUser();
  let ok=rolePanelAccess(permission,u);
  if(!ok){
   if(permission==='WARD_UPDATES') ok=isMaster(u)||isSubMaster(u)||isNagarsevak(u)||isEmployee(u)||roleName(u)==='CITIZEN';
-  else if(permission==='USERS') ok=isMaster(u)||isSubMaster(u)||isNagarsevak(u)||isEmployee(u);
+  else if(permission==='USERS') ok=isMaster(u)||isSubMaster(u)||isNagarsevak(u);
   else if(permission==='WARDS') ok=isMaster(u)||isNagarsevak(u)||isEmployee(u)||canModule('WARDS','VIEW',u);
   else if(permission==='STAFF') ok=isMaster(u)||isNagarsevak(u)||(isSubMaster(u)&&canModule('STAFF','VIEW',u));
   else if(permission==='STAKEHOLDERS') ok=isMaster(u);
@@ -422,14 +444,14 @@ function Guard({permission,children}){
 }
 function AdminOnly({children}){
  const u=getUser();
- if(!u)return <Login mode="admin"/>;
+ if(!u)return <Navigate to="/admin" replace/>;
  if(String(u.role||'').toUpperCase()==='CITIZEN')return <Navigate to="/" replace/>;
 
  return <Shell>{children}</Shell>;
 }
 function RolePage({citizen,admin}){
  const u=getUser();
- if(!u)return <Login mode={admin?'admin':'user'}/>;
+ if(!u)return <Navigate to={admin?'/admin':'/login'} replace/>;
  if(String(u.role||'').toUpperCase()==='CITIZEN')return citizen;
  return admin;
 }
@@ -483,7 +505,7 @@ export default function App(){
   let last=Number(localStorage.getItem(KEY)||0);
   if(!Number.isFinite(last)||last<=0) last=tokenIssuedAt||Date.now();
   if(!localStorage.getItem(KEY)) localStorage.setItem(KEY,String(last));
-  const expire=()=>{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login');};
+  const expire=()=>expireSessionHard();
   const activity=()=>{const now=Date.now();if(now-last>1000){last=now;localStorage.setItem(KEY,String(now));}};
   const events=['pointerdown','pointermove','mousemove','keydown','touchstart','scroll','click'];
   events.forEach(e=>window.addEventListener(e,activity,{passive:true}));

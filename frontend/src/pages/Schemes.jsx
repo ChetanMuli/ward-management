@@ -11,11 +11,12 @@ const blank={title:'',description:'',benefits:'',eligibility:'',minAge:'',maxAge
 
 export default function Schemes(){
  const user=getUser(),location=useLocation(),master=isMaster(user),sub=isSubMaster(user),councillor=isNagarsevak(user);
+ const isCitizen=String(user?.role||'').toUpperCase()==='CITIZEN';
  const {selectedWardId}=useWardFilter();
  const [rows,setRows]=useState(null),[wards,setWards]=useState([]),[search,setSearch]=useState(''),[status,setStatus]=useState(''),[edit,setEdit]=useState(null),[form,setForm]=useState(blank),[error,setError]=useState(''),[detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[schemeNotify,setSchemeNotify]=useState(null),[schemeNotifyForm,setSchemeNotifyForm]=useState({title:'',message:''});
 
- async function load(){try{setError('');const r=await api.schemes({search,status,wardId:selectedWardId||undefined});setRows(r.data||[])}catch(e){setError(e.message)}}
- useEffect(()=>{const t=setTimeout(load,220);return()=>clearTimeout(t)},[search,status,selectedWardId]);
+ async function load(){try{setError('');const r=await api.schemes({search,status:isCitizen?'PUBLISHED':status,wardId:selectedWardId||undefined});setRows(r.data||[])}catch(e){setError(e.message)}}
+ useEffect(()=>{const t=setTimeout(load,220);return()=>clearTimeout(t)},[search,status,selectedWardId,isCitizen]);
  useEffect(()=>{const id=new URLSearchParams(location.search).get('open');if(!id||!rows?.length)return;const found=rows.find(r=>String(r.id)===String(id));if(found)setDetail(found)},[location.search,rows]);
  useEffect(()=>{
   if(!(master||sub)) return;
@@ -68,10 +69,19 @@ export default function Schemes(){
  const wardLabel=(r)=>r.ward?.wardNumber||'Ward not assigned';
  const creatorLabel=(r)=>`${r.createdByName||r.createdBy?.name||'System'}${(r.createdByRole||r.createdBy?.Role?.name)?` · ${prettyRole(r.createdByRole||r.createdBy.Role.name)}`:''}`;
 
- return <div>
-  <PageHeader kicker="Daily work" title="Schemes & benefits" subtitle="Publish government and local schemes with clear eligibility so residents can discover what applies to them." action={canEdit?<button className="primary-btn" onClick={openCreate}>+ Add scheme</button>:null}/>
+ return <div className={isCitizen?'user-schemes-page':'admin-schemes-page'}>
+  <PageHeader
+   kicker={isCitizen?'Your ward':'Daily work'}
+   title={isCitizen?'Schemes for you':'Schemes & benefits'}
+   subtitle={isCitizen?'Government and local benefits published for residents of your registered ward.':'Publish government and local schemes with clear eligibility so residents can discover what applies to them.'}
+   action={canEdit?<button className="primary-btn" onClick={openCreate}>+ Add scheme</button>:null}
+  />
   <ErrorBox error={error}/>
-  <Toolbar><WardFilter/><input className="grow" placeholder="Search schemes…" value={search} onChange={e=>setSearch(e.target.value)}/><select value={status} onChange={e=>setStatus(e.target.value)}><option value="">All status</option><option value="PUBLISHED">Published</option><option value="DRAFT">Draft</option><option value="CLOSED">Closed</option></select></Toolbar>
+  <Toolbar className={isCitizen?'toolbar-schemes toolbar-schemes-citizen':'toolbar-schemes'}>
+   {!isCitizen&&<WardFilter/>}
+   <label className="filter-field"><span className="section-label">Search</span><input className="grow" placeholder="Search schemes…" value={search} onChange={e=>setSearch(e.target.value)}/></label>
+   {!isCitizen&&<label className="filter-field"><span className="section-label">Status</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="">All status</option><option value="PUBLISHED">Published</option><option value="DRAFT">Draft</option><option value="CLOSED">Closed</option></select></label>}
+  </Toolbar>
   {rows===null?<Loading/>:!rows.length?<Empty>No schemes match your filters.</Empty>:<div className="scheme-grid">{rows.map(r=><article className="scheme-card" key={r.id}>
     <div className="scheme-card-head"><span className="eyebrow">SCHEME</span><StatusPill>{r.status}</StatusPill></div>
     <h2>{r.title}</h2><p>{r.description}</p>

@@ -330,12 +330,21 @@ const listGroups = asyncHandler(async (req, res) => {
   if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN') {
     visibleRows.forEach((g) => ids.add(g.id));
   }
-  const data = visibleRows.map(g => ({
-      ...g.toJSON(),
+  const data = visibleRows.map(g => {
+    const row = g.toJSON();
+    if (g.nagarsevak) {
+      row.nagarsevak = {
+        ...row.nagarsevak,
+        photo: (typeof g.nagarsevak.getDataValue === 'function' ? g.nagarsevak.getDataValue('photo') : null) || row.nagarsevak.photo || null,
+      };
+    }
+    return {
+      ...row,
       isMember: ids.has(g.id),
       canClear: true,
       canManage: req.user.roleName === 'SUPER_ADMIN' || (g.type === 'CUSTOM' && g.createdByUserId === req.user.id),
-    }));
+    };
+  });
   return success(res, { data });
 });
 

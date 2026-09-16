@@ -146,19 +146,10 @@ async function sendSms({ to, text }) {
   return { ok: false, skipped: 'sms-not-configured' };
 }
 
-async function deliverOtp({ channel = 'email', email, mobile, otp, name }) {
+async function deliverOtp({ email, otp, name }) {
   const greeting = name ? `Hello ${name},` : 'Hello,';
   const mailText = `${greeting}\n\nYour ${APP_NAME} verification code is ${otp}. It expires in 10 minutes.\n\nIf you did not request this, you can ignore this message.\n`;
-  const smsText = `${APP_NAME} code: ${otp}. Valid for 10 minutes.`;
-  const preferMobile = String(channel).toLowerCase() === 'mobile';
-  if (preferMobile) {
-    const sms = await sendSms({ to: mobile, text: smsText });
-    if (!sms.ok) await sendEmail({ to: email, subject: `Your ${APP_NAME} verification code`, text: mailText });
-    return sms;
-  }
-  const mail = await sendEmail({ to: email, subject: `Your ${APP_NAME} verification code`, text: mailText });
-  if (!mail.ok) await sendSms({ to: mobile, text: smsText });
-  return mail;
+  return sendEmail({ to: email, subject: `Your ${APP_NAME} verification code`, text: mailText });
 }
 
 async function deliverNotice({ email, mobile, title, message }) {
