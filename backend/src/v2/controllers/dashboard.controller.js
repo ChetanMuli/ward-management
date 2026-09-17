@@ -3,6 +3,7 @@ const { House, Family, Person, VoterProfile, Complaint, Area, Ward, User, Role, 
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { daysTo18thBirthday, daysToNextBirthday } = require('../../services/age.service');
+const { loadTodayWardEvents } = require('../../services/wardDay.service');
 const { nagarsevakPublicByIds } = require('../../utils/photo');
 const { isWardAllowed, allowedWardIds } = require('../services/wardScope');
 
@@ -106,6 +107,17 @@ const summary = asyncHandler(async (req, res) => {
 
   const birthdayCount=scopedPeople.map(p=>daysToNextBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=30).length;
   const upcomingCount=scopedPeople.map(p=>daysTo18thBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=90).length;
+  let todayEvents=[];
+  if(['NAGARSEVAK','EMPLOYEE'].includes(req.user.roleName)){
+    const deathWardIds=requestedWardId
+      ? [requestedWardId]
+      : (accessibleWardIds===null?null:accessibleWardIds);
+    try{
+      todayEvents=await loadTodayWardEvents(deathWardIds);
+    }catch(err){
+      console.error('[DASHBOARD TODAY EVENTS]', err.message);
+    }
+  }
   const userInfo={id:req.user.id,name:req.user.name,email:req.user.email,mobile:req.user.mobile,role:req.user.roleName,wardId:req.user.wardId,ward:req.user.ward,photo:req.user.photo||null};
   const employeeInfo=req.user.employeeProfile?{id:req.user.employeeProfile.id,designation:req.user.employeeProfile.designation,status:req.user.employeeProfile.status,managerUserId:req.user.employeeProfile.managerUserId,manager:req.user.employeeProfile.manager,assignedAreaIds:req.user.employeeProfile.assignedAreaIds||[],permissions:req.user.employeeProfile.permissions||[]}:null;
 
@@ -133,6 +145,7 @@ const summary = asyncHandler(async (req, res) => {
     wardId:requestedWardId, ward, user:userInfo, employee:employeeInfo,
     houses,families,persons,voters,nonVoters,complaints,openComplaints,
     birthdaysNext30:birthdayCount,upcoming18Next90:upcomingCount,
+    todayEvents,
     managedEmployees,corporatorCount,employeeCount,statusCounts,
     teamNagarsevaks,teamEmployees,
     recentComplaints:recentData,

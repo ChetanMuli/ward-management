@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { House, Family, Person, VoterProfile, Complaint, Area, Ward, User, Role } = require('../../models');
+const { House, Family, Person, PersonDocument, VoterProfile, Complaint, Area, Ward, User, Role } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -22,6 +22,10 @@ const personInclude = [
     ],
   },
   { model: VoterProfile, as: 'voterProfile' },
+];
+const personDetailInclude = [
+  ...personInclude,
+  { model: PersonDocument, as: 'documents' },
 ];
 
 function cleanCoord(v){
@@ -209,7 +213,7 @@ const persons = asyncHandler(async (req, res) => {
 });
 const person = asyncHandler(async (req, res) => {
   const p = await assertPerson(req.params.id, req);
-  const full = await Person.findByPk(p.id, { include: personInclude });
+  const full = await Person.findByPk(p.id, { include: personDetailInclude });
   return success(res, { data: full });
 });
 
@@ -370,7 +374,7 @@ const updatePerson = asyncHandler(async (req, res) => {
     await voter.update({officialVoterIdRef:req.body.officialVoterIdRef||null,votingWard:req.body.votingWard||null,constituency:req.body.constituency||null});
   }
   await logAudit({user:req.user,action:'UPDATE_CITIZEN',entity:'Person',recordId:p.id,oldValue:p.toJSON(),newValue:req.body,ipAddress:req.ip});
-  const full=await Person.findByPk(p.id,{include:personInclude});
+  const full=await Person.findByPk(p.id,{include:personDetailInclude});
   return success(res, { data: full, message: 'Citizen updated' });
 });
 const updateVoter = asyncHandler(async (req, res) => {
@@ -507,7 +511,7 @@ const createPerson = asyncHandler(async(req,res)=>{
     constituency:voterStatus==='VOTER'?(req.body.constituency||null):null
   });
   await logAudit({user:req.user,action:'CREATE_CITIZEN',entity:'Person',recordId:row.id,newValue:req.body,ipAddress:req.ip});
-  const full=await Person.findByPk(row.id,{include:personInclude});
+  const full=await Person.findByPk(row.id,{include:personDetailInclude});
   return success(res,{statusCode:201,data:full,message:'Citizen created and added to family registers'});
 });
 const deletePerson = asyncHandler(async(req,res)=>{const row=await assertPerson(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_CITIZEN',entity:'Person',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Citizen moved to recycle bin'});});

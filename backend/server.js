@@ -6,6 +6,8 @@ require('./src/models'); // ensures all associations are registered before first
 const PORT = process.env.PORT || 4000;
 const { cleanupAuditLogs, cleanupRecycleBin } = require('./src/v2/controllers/maintenance.controller');
 const { cleanupOldMessages } = require('./src/v2/controllers/chat.controller');
+const { notifyExpiredNagarsevakSubscriptions } = require('./src/services/wardActivation.service');
+const { notifyTodayDeathReminders } = require('./src/services/wardDay.service');
 
 async function start() {
   try {
@@ -20,7 +22,9 @@ async function start() {
           const a=await cleanupAuditLogs(2);
           const r=await cleanupRecycleBin(30);
           const c=await cleanupOldMessages();
-          if(a||r||c) console.log(`[MAINTENANCE] removed audit=${a}, recycle=${r}, chat=${c||0}`);
+          const s=await notifyExpiredNagarsevakSubscriptions().catch(()=>0);
+          const d=await notifyTodayDeathReminders().catch(()=>0);
+          if(a||r||c||s||d) console.log(`[MAINTENANCE] removed audit=${a}, recycle=${r}, chat=${c||0}, subscriptions-notified=${s||0}, death-reminders=${d||0}`);
         } catch(e) { console.error('[MAINTENANCE FAILURE]',e.message); }
       };
       runMaintenance();

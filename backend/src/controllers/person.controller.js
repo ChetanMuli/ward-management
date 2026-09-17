@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { Person, Family, House, VoterProfile, DeathRecord, Area, Ward } = require('../models');
+const { Person, Family, House, VoterProfile, DeathRecord, PersonDocument, Area, Ward } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { success } = require('../utils/apiResponse');
 const asyncHandler = require('../utils/asyncHandler');
@@ -12,7 +12,7 @@ const familyInclude = { model: Family, as: 'family', include: [
   { model: Person, as: 'members', attributes: ['id','fullName','gender','dob','mobile','alternateMobile','occupationType','businessName','companyName'] },
   { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }] }
 ] };
-const fullInclude = [familyInclude, { model: VoterProfile, as: 'voterProfile' }, { model: DeathRecord, as: 'deathRecord' }];
+const fullInclude = [familyInclude, { model: VoterProfile, as: 'voterProfile' }, { model: DeathRecord, as: 'deathRecord' }, { model: PersonDocument, as: 'documents' }];
 
 const list = asyncHandler(async (req,res)=>{
   const {page=1,limit=200,search,status,voterStatus,areaId,familyId,ageMin,ageMax,wardId}=req.query;

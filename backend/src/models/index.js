@@ -29,6 +29,12 @@ const GroupChatMember = require('./groupChatMember.model');
 const GroupChatMessage = require('./groupChatMessage.model');
 const ChatUserState = require('./chatUserState.model');
 const WardNagarsevakSubscription = require('./wardNagarsevakSubscription.model');
+const PersonDocument = require('./personDocument.model');
+const PersonBirthday = require('./personBirthday.model');
+const DeathObservance = require('./deathObservance.model');
+const WardSubscriptionEvent = require('./wardSubscriptionEvent.model');
+const EmployeeAreaAssignment = require('./employeeAreaAssignment.model');
+const ComplaintAttachment = require('./complaintAttachment.model');
 const {
   AdminUser,
   SubAdminUser,
@@ -38,6 +44,7 @@ const {
   CommunityUser,
 } = require('./roleLogins.model');
 const { bindUserHooks } = require('../services/accountStore');
+const { registerNormalizedHooks } = require('./hooks');
 
 // ---- Role <-> User ----
 Role.hasMany(User, { foreignKey: 'roleId' });
@@ -72,6 +79,21 @@ VoterProfile.belongsTo(Person, { foreignKey: 'personId' });
 // ---- Person <-> DeathRecord (1:1) ----
 Person.hasOne(DeathRecord, { foreignKey: 'personId', as: 'deathRecord' });
 DeathRecord.belongsTo(Person, { foreignKey: 'personId' });
+Person.hasOne(DeathObservance, { foreignKey: 'personId', as: 'deathObservance' });
+DeathObservance.belongsTo(Person, { foreignKey: 'personId', as: 'person' });
+DeathRecord.hasOne(DeathObservance, { foreignKey: 'deathRecordId', as: 'observance' });
+DeathObservance.belongsTo(DeathRecord, { foreignKey: 'deathRecordId', as: 'deathRecord' });
+DeathObservance.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+DeathObservance.belongsTo(House, { foreignKey: 'houseId', as: 'house' });
+DeathObservance.belongsTo(Family, { foreignKey: 'familyId', as: 'family' });
+
+Person.hasMany(PersonDocument, { foreignKey: 'personId', as: 'documents' });
+PersonDocument.belongsTo(Person, { foreignKey: 'personId', as: 'person' });
+Person.hasOne(PersonBirthday, { foreignKey: 'personId', as: 'birthday' });
+PersonBirthday.belongsTo(Person, { foreignKey: 'personId', as: 'person' });
+PersonBirthday.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+PersonBirthday.belongsTo(House, { foreignKey: 'houseId', as: 'house' });
+PersonBirthday.belongsTo(Family, { foreignKey: 'familyId', as: 'family' });
 
 // ---- Employee <-> User (1:1) ----
 User.hasOne(Employee, { foreignKey: 'userId', as: 'employeeProfile' });
@@ -80,6 +102,10 @@ Employee.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
 Employee.belongsTo(User, { foreignKey: 'userId' });
 Employee.belongsTo(User, { foreignKey: 'managerUserId', as: 'manager' });
 User.hasMany(Employee, { foreignKey: 'managerUserId', as: 'managedEmployees' });
+Employee.hasMany(EmployeeAreaAssignment, { foreignKey: 'employeeId', as: 'areaAssignments' });
+EmployeeAreaAssignment.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
+EmployeeAreaAssignment.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
+Area.hasMany(EmployeeAreaAssignment, { foreignKey: 'areaId', as: 'employeeAssignments' });
 
 // ---- House <-> Employee (assigned employee) ----
 Employee.hasMany(House, { foreignKey: 'assignedEmployeeId', as: 'assignedHouses' });
@@ -102,6 +128,8 @@ Complaint.belongsTo(Employee, { foreignKey: 'assignedEmployeeId', as: 'assignedE
 
 Complaint.hasMany(ComplaintHistory, { foreignKey: 'complaintId', as: 'history' });
 ComplaintHistory.belongsTo(Complaint, { foreignKey: 'complaintId' });
+Complaint.hasMany(ComplaintAttachment, { foreignKey: 'complaintId', as: 'attachments' });
+ComplaintAttachment.belongsTo(Complaint, { foreignKey: 'complaintId', as: 'complaint' });
 
 User.hasMany(ComplaintHistory, { foreignKey: 'changedByUserId' });
 ComplaintHistory.belongsTo(User, { foreignKey: 'changedByUserId', as: 'changedBy' });
@@ -195,6 +223,11 @@ Ward.hasMany(WardNagarsevakSubscription, { foreignKey: 'wardId', as: 'nagarsevak
 WardNagarsevakSubscription.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
 User.hasMany(WardNagarsevakSubscription, { foreignKey: 'nagarsevakUserId', as: 'nagarsevakSubscriptions' });
 WardNagarsevakSubscription.belongsTo(User, { foreignKey: 'nagarsevakUserId', as: 'nagarsevak' });
+WardNagarsevakSubscription.hasMany(WardSubscriptionEvent, { foreignKey: 'subscriptionId', as: 'events' });
+WardSubscriptionEvent.belongsTo(WardNagarsevakSubscription, { foreignKey: 'subscriptionId', as: 'subscription' });
+WardSubscriptionEvent.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+WardSubscriptionEvent.belongsTo(User, { foreignKey: 'nagarsevakUserId', as: 'nagarsevak' });
+WardSubscriptionEvent.belongsTo(User, { foreignKey: 'actedBy', as: 'actor' });
 
 User.hasOne(AdminUser, { foreignKey: 'id', as: 'adminAccount' });
 AdminUser.belongsTo(User, { foreignKey: 'id', as: 'user' });
@@ -210,6 +243,17 @@ User.hasOne(CommunityUser, { foreignKey: 'id', as: 'communityAccount' });
 CommunityUser.belongsTo(User, { foreignKey: 'id', as: 'user' });
 
 bindUserHooks(User, Role);
+registerNormalizedHooks({
+  Person,
+  PersonDocument,
+  Employee,
+  EmployeeAreaAssignment,
+  Complaint,
+  ComplaintAttachment,
+  Family,
+  House,
+  DeathRecord,
+});
 
 module.exports = {
   sequelize,
@@ -248,4 +292,10 @@ module.exports = {
   GroupChatMessage,
   ChatUserState,
   WardNagarsevakSubscription,
+  PersonDocument,
+  PersonBirthday,
+  DeathObservance,
+  WardSubscriptionEvent,
+  EmployeeAreaAssignment,
+  ComplaintAttachment,
 };

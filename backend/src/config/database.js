@@ -10,8 +10,15 @@ const sequelize = new Sequelize(
     port: config.port,
     dialect: config.dialect,
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
-    define: config.define,
-    dialectOptions: config.dialectOptions || {},
+    define: {
+      ...(config.define || {}),
+      charset: 'utf8mb4',
+      collate: 'utf8mb4_unicode_ci',
+    },
+    dialectOptions: {
+      ...(config.dialectOptions || {}),
+      charset: 'utf8mb4',
+    },
     pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
   }
 );

@@ -5,12 +5,12 @@ import {can,isMaster,isSubMaster,isNagarsevak,isEmployee,roleOf,canModule} from 
 import {initLanguage,setLanguage as applyLanguage} from './language';
 import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
 import Stakeholders from './pages/Stakeholders';
-import Groups from './pages/Groups'; import Deaths from './pages/Deaths'; import SubAdmins from './pages/SubAdmins'; import WardUpdates from './pages/WardUpdates'; import UserPanel from './pages/UserPanel'; import UserComplaints from './pages/UserComplaints'; import ElectionData from './pages/ElectionData'; import WardActivation from './pages/WardActivation';
+import Groups from './pages/Groups'; import Deaths from './pages/Deaths'; import SubAdmins from './pages/SubAdmins'; import WardUpdates from './pages/WardUpdates'; import UserPanel from './pages/UserPanel'; import UserComplaints from './pages/UserComplaints'; import ElectionData from './pages/ElectionData'; import WardActivation from './pages/WardActivation'; import NagarsevakSubscriptions from './pages/NagarsevakSubscriptions';
 import {Modal,PaginationBar,ProfileAvatar,FaceAvatar,CirclePhotoField,scrollMainToTop} from './components/Ui';
 
 const navSections=[
  {id:'overview',en:'Overview',mr:'आढावा',items:[
-  ['/admin','Dashboard','⌂','DASHBOARD']
+  ['/dashboard','Dashboard','⌂','DASHBOARD']
  ]},
  {id:'setup',en:'Ward setup',mr:'वॉर्ड मांडणी',items:[
   ['/wards','Wards & Areas','▦','WARDS'],
@@ -38,6 +38,7 @@ const navSections=[
  {id:'team',en:'Team & access',mr:'टीम व प्रवेश',items:[
   ['/staff','Nagarsevak & Employees','♙','STAFF'],
   ['/ward-activation','Ward activation','●','WARD_ACTIVATION'],
+  ['/nagarsevak-subscriptions','Nagarsevak subscriptions','◷','NAGARSEVAK_SUBSCRIPTIONS'],
   ['/stakeholders','Community Members','◈','STAKEHOLDERS'],
   ['/sub-admins','Sub Master Admins','♙','SUBADMINS']
  ]},
@@ -47,9 +48,9 @@ const navSections=[
   ['/recycle-bin','Recycle Bin','♻','RECYCLE']
  ]}
 ];
-const mrNav={'All chat & Groups':'ऑल चॅट व गट','Groups & Chat':'गट व चॅट',Dashboard:'डॅशबोर्ड','Wards & Areas':'वॉर्ड व परिसर','Ward Information':'वॉर्डची संपूर्ण माहिती','Nagarsevak & Employees':'नगरसेवक व कर्मचारी','Ward activation':'वॉर्ड सक्रियता','Community Members':'समुदाय सदस्य','Registered Users':'नोंदणीकृत वापरकर्ते','Sub Master Admins':'सब मास्टर अ‍ॅडमिन','Houses':'घरे','Families':'कुटुंबे','All Citizens':'सर्व नागरिक','Voter / Non-Voter':'मतदार / अमतदार','Government Voter Lists':'शासकीय मतदार यादी','Election Data':'निवडणूक माहिती','Birthdays':'वाढदिवस','18+ Follow-up':'१८+ फॉलो-अप','Death Records':'मृत्यू नोंद','Complaints':'तक्रारी','Schemes & Benefits':'योजना व लाभ','Reports & Export':'अहवाल व एक्सपोर्ट','Audit Logs':'ऑडिट लॉग','Ward Updates & Events':'वॉर्ड अपडेट्स व कार्यक्रम','All Ward Updates':'सर्व वॉर्ड अपडेट्स','New Update / Event':'नवीन अपडेट / कार्यक्रम','Recycle Bin':'रिसायकल बिन'};
+const mrNav={'All chat & Groups':'ऑल चॅट व गट','Groups & Chat':'गट व चॅट',Dashboard:'डॅशबोर्ड','Wards & Areas':'वॉर्ड व परिसर','Ward Information':'वॉर्डची संपूर्ण माहिती','Nagarsevak & Employees':'नगरसेवक व कर्मचारी','Ward activation':'वॉर्ड सक्रियता','Nagarsevak subscriptions':'नगरसेवक सदस्यता','Community Members':'समुदाय सदस्य','Registered Users':'नोंदणीकृत वापरकर्ते','Sub Master Admins':'सब मास्टर अ‍ॅडमिन','Houses':'घरे','Families':'कुटुंबे','All Citizens':'सर्व नागरिक','Voter / Non-Voter':'मतदार / अमतदार','Government Voter Lists':'शासकीय मतदार यादी','Election Data':'निवडणूक माहिती','Birthdays':'वाढदिवस','18+ Follow-up':'१८+ फॉलो-अप','Death Records':'मृत्यू नोंद','Complaints':'तक्रारी','Schemes & Benefits':'योजना व लाभ','Reports & Export':'अहवाल व एक्सपोर्ट','Audit Logs':'ऑडिट लॉग','Ward Updates & Events':'वॉर्ड अपडेट्स व कार्यक्रम','All Ward Updates':'सर्व वॉर्ड अपडेट्स','New Update / Event':'नवीन अपडेट / कार्यक्रम','Recycle Bin':'रिसायकल बिन'};
 const pageTitles={
- '/':'Dashboard','/login':'Resident login','/register':'Resident registration','/admin':'Dashboard','/wards':'Wards & Areas','/ward-information':'Ward Information','/staff':'Nagarsevak & Employees','/ward-activation':'Ward activation','/stakeholders':'Community Members','/users':'Registered Ward Users','/sub-admins':'Sub Master Admins','/houses':'Houses','/families':'Families','/people':'All Citizens','/voters':'Voter / Non-Voter','/government-voter-lists':'Government Voter Lists','/election-data':'Election Data','/ward-updates':'Ward Updates & Events','/ward-updates/new':'Create Ward Update / Event','/birthdays':'Birthdays','/follow-up-18':'18+ Follow-up','/deaths':'Death Records','/complaints':'Complaints','/schemes':'Schemes & Benefits','/reports':'Reports & Export','/groups':'All chat & Groups','/recycle-bin':'Recycle Bin'
+ '/':'Dashboard','/login':'Resident login','/register':'Resident registration','/admin':'Admin login','/dashboard':'Dashboard','/wards':'Wards & Areas','/ward-information':'Ward Information','/staff':'Nagarsevak & Employees','/ward-activation':'Ward activation','/nagarsevak-subscriptions':'Nagarsevak subscriptions','/stakeholders':'Community Members','/users':'Registered Ward Users','/sub-admins':'Sub Master Admins','/houses':'Houses','/families':'Families','/people':'All Citizens','/voters':'Voter / Non-Voter','/government-voter-lists':'Government Voter Lists','/election-data':'Election Data','/ward-updates':'Ward Updates & Events','/ward-updates/new':'Create Ward Update / Event','/birthdays':'Birthdays','/follow-up-18':'18+ Follow-up','/deaths':'Death Records','/complaints':'Complaints','/schemes':'Schemes & Benefits','/reports':'Reports & Export','/groups':'All chat & Groups','/recycle-bin':'Recycle Bin'
 };
 const pageTitle=path=>pageTitles[path]||'WardDesk';
 const ROLE_LABELS={SUPER_ADMIN:'Master Admin',SUB_MASTER_ADMIN:'Sub Master Admin',NAGARSEVAK:'Nagarsevak',EMPLOYEE:'Field Employee',CITIZEN:'Resident',SOCIAL_WORKER:'Social Worker',CANDIDATE:'Election Candidate'};
@@ -57,7 +58,8 @@ function prettyRole(u){const r=String(typeof u==='string'?u:(u?.role||u?.roleNam
 function workspaceLabel(user){if(isMaster(user))return 'Master administration';if(isSubMaster(user))return 'Sub Master Admin workspace';if(isNagarsevak(user))return 'Nagarsevak workspace';if(String(user?.role||'').toUpperCase()==='CITIZEN')return 'Resident workspace';return 'Field employee workspace'}
 const pageHelp={
  '/':'See ward numbers, people and complaint work at a glance.',
- '/admin':'See ward numbers, people and complaint work at a glance.',
+ '/admin':'Sign in to the staff workspace.',
+ '/dashboard':'See ward numbers, people and complaint work at a glance.',
  '/wards':'Create wards and colonies. Exact home location is saved when a team member visits the house.',
  '/houses':'When you visit a home, save GPS at the door. Tap the location later to open maps and get directions.',
  '/families':'Each family lives at a house. Open directions from the house location.',
@@ -76,6 +78,7 @@ const pageHelp={
  '/election-data':'Election information from official sources.',
  '/staff':'Nagarsevaks and the employees who work with them.',
  '/ward-activation':'Activate wards and Nagarsevaks. Residents only see Nagarsevaks who are active for their ward.',
+ '/nagarsevak-subscriptions':'See when each Nagarsevak was added and when their 1-year subscription ends.',
  '/stakeholders':'Community members and social workers.',
  '/sub-admins':'Additional admin accounts and their permissions.',
  '/groups':'Internal chat groups for ward teams and residents.',
@@ -101,6 +104,7 @@ const allowed=(key,u)=>{
  if(key==='WARD_INFORMATION') return can('VIEW_WARD_INFORMATION',u)||can('VIEW_WARDS',u);
  if(key==='SUBADMINS') return isMaster(u);
  if(key==='WARD_ACTIVATION') return isMaster(u);
+ if(key==='NAGARSEVAK_SUBSCRIPTIONS') return isMaster(u);
  if(key==='GOVERNMENT_VOTER_LISTS') return can('VIEW_GOVERNMENT_VOTER_LISTS',u);
  if(key==='ELECTION_DATA') return can('VIEW_ELECTION_DATA',u);
  if(key==='STAFF') return can('VIEW_STAFF',u);
@@ -120,10 +124,10 @@ function AdminNavItem({to,label,icon,itemKey,language,user,updatesOpen,setUpdate
    </div>}
   </div>
  );
- return <NavLink to={to} end={to==='/admin'} onClick={e=>sidebarGo(e,to)}><span className="nav-icon">{icon}</span><span>{language==='mr'?(mrNav[label]||label):label}</span></NavLink>;
+ return <NavLink to={to} end={to==='/dashboard'} onClick={e=>sidebarGo(e,to)}><span className="nav-icon">{icon}</span><span>{language==='mr'?(mrNav[label]||label):label}</span></NavLink>;
 }
 function Protected({children}){return getUser()?children:<Navigate to="/" replace/>}
-function HomeEntry(){const u=getUser(); if(!u) return <Login mode="user"/>; if(String(u.role||'').toUpperCase()==='CITIZEN') return <UserPanel/>; return <Navigate to="/admin" replace/>}
+function HomeEntry(){const u=getUser(); if(!u) return <Login mode="user"/>; if(String(u.role||'').toUpperCase()==='CITIZEN') return <UserPanel/>; return <Navigate to="/dashboard" replace/>}
 function sessionLoginPath(){
  let role='';
  try{role=String(JSON.parse(localStorage.getItem('ward_user')||'{}')?.role||'').toUpperCase()}catch{}
@@ -135,7 +139,7 @@ function expireSessionHard(){
  clearSession();
  window.location.replace(path);
 }
-function AdminEntry(){const u=getUser(); if(!u) return <Login mode="admin"/>; if(String(u.role||'').toUpperCase()==='CITIZEN') return <Navigate to="/" replace/>; return <Shell><Dashboard/></Shell>}
+function AdminEntry(){const u=getUser(); if(!u) return <Login mode="admin"/>; if(String(u.role||'').toUpperCase()==='CITIZEN') return <Navigate to="/" replace/>; return <Navigate to="/dashboard" replace/>}
 function CitizenShell({children}){
  const navigate=useNavigate(),location=useLocation(),user=getUser();
  const [menu,setMenu]=useState(false),[mobileNav,setMobileNav]=useState(false),[notifications,setNotifications]=useState([]),[language,setLanguage]=useState(()=>localStorage.getItem('ward_language')||'en'),[accountOpen,setAccountOpen]=useState(false),[welcome,setWelcome]=useState(false),[showNotifications,setShowNotifications]=useState(false),[selectedNotification,setSelectedNotification]=useState(null),[noteToast,setNoteToast]=useState(null);
@@ -206,10 +210,9 @@ function ProfileEditor({user,role,onClose,onSaved}){
  const [form,setForm]=useState({name:String(user?.name||'').trim(),email:String(user?.email||'').trim(),mobile:String(user?.mobile||'').replace(/\D/g,'').slice(0,10),password:'',confirmPassword:'',photo:user?.photo||''});
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
  useEffect(()=>{
-  if(!isNagar)return;
   api.me().then(r=>{
-   const photo=r?.data?.user?.photo;
-   if(photo) setForm(f=>f.photo?f:{...f,photo});
+   const next=r?.data?.user||{};
+   setForm(f=>({...f,photo:f.photo||next.photo||'',name:f.name||next.name||'',email:f.email||next.email||'',mobile:f.mobile||String(next.mobile||'').replace(/\D/g,'').slice(0,10)}));
   }).catch(()=>{});
  },[isNagar]);
  async function save(e){
@@ -232,6 +235,14 @@ function ProfileEditor({user,role,onClose,onSaved}){
   <div className="profile-editor">
    {error&&<div className="error-inline">{error}</div>}
    <form className="form-grid profile-edit-grid" onSubmit={save}>
+    <div className="profile-hero span-2">
+     <FaceAvatar name={form.name||user?.name} photo={form.photo||user?.photo} className="profile-hero-face"/>
+     <div className="profile-hero-copy">
+      <strong>{form.name||user?.name||'Your profile'}</strong>
+      <span>{prettyRole(role||user?.role)}</span>
+      <small>{form.email||user?.email||'—'}</small>
+     </div>
+    </div>
     {isNagar&&<div className="span-2"><CirclePhotoField label="Profile photo" value={form.photo} onChange={v=>setForm({...form,photo:v})}/></div>}
     <div className="profile-section span-2">
      <span className="profile-section-label">Personal details</span>
@@ -304,7 +315,7 @@ function GlobalPagination(){
   return()=>items.forEach(el=>{el.style.display='';});
  },[state.root,state.count,page,pageSize]);
 
- if(['/deaths','/people','/voters','/complaints','/government-voter-lists','/staff','/users','/houses'].includes(location.pathname)||!state.count)return null;
+ if(['/deaths','/people','/voters','/complaints','/government-voter-lists','/staff','/users','/houses','/nagarsevak-subscriptions'].includes(location.pathname)||!state.count)return null;
  const totalPages=Math.max(1,Math.ceil(state.count/pageSize));
  const current=Math.min(page,totalPages);
  const go=p=>setPage(Math.max(1,Math.min(totalPages,p)));
@@ -350,7 +361,7 @@ function Shell({children}){
    if(!live)return;
    const rows=(r.data||[]).filter(n=>n.direction!=='SENT');
    if(primed){
-    const fresh=rows.find(n=>!n.isRead && !seen.has(n.id) && /COMPLAINT|SCHEME|NAGARSEVAK_ACTIVATED|WARD_/.test(String(n.type||'').toUpperCase()));
+    const fresh=rows.find(n=>!n.isRead && !seen.has(n.id) && /COMPLAINT|SCHEME|NAGARSEVAK_ACTIVATED|WARD_|DEATH_|BIRTHDAY_/.test(String(n.type||'').toUpperCase()));
     if(fresh) window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'success',message:`${fresh.title}: ${fresh.message}`}}));
    }
    primed=true;
@@ -425,9 +436,9 @@ function Shell({children}){
  const pretty=prettyRole(user);
  const help=pageHelp[location.pathname]||workspaceLabel(user);
  const sectionName=pageSection(location.pathname,language);
- return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className={`sidebar ${open?'open':''}`}><div className="brand"><div className="brand-mark">W</div><div><strong>WardDesk</strong><span>Municipal workspace</span></div></div><nav ref={navRef} aria-label="Main">{visibleSections.map(section=><div className="nav-section" key={section.id}><div className="nav-section-label">{language==='mr'?section.mr:section.en}</div>{section.items.map(([to,label,icon,key])=><AdminNavItem key={key} to={to} label={label} icon={icon} itemKey={key} language={language} user={user} updatesOpen={updatesOpen} setUpdatesOpen={setUpdatesOpen} navRef={navRef} sidebarScrollKey={sidebarScrollKey} sidebarGo={sidebarGo}/>)}</div>)}</nav><div className="sidebar-footer"><div className="security-note">● Secure session · {pretty}</div><button className="logout-btn" onClick={logout}>Sign out</button></div></aside>{open&&<button className="scrim" onClick={()=>setOpen(false)}/>}<main className="main"><header className="topbar"><div className="admin-mobile-brand" aria-hidden="true">W</div><button className="menu-btn" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-context"><div className="eyebrow">{sectionName}</div><div className="topbar-title">{pageTitle(location.pathname)}</div><div className="topbar-workspace">{help}</div></div><div className="topbar-spacer"/><button type="button" className="language-btn" onClick={()=>setLanguage(v=>{const n=v==='en'?'mr':'en';localStorage.setItem('ward_language',n);applyLanguage(n);return n})} title="Change language">{language==='en'?'मराठी':'English'}</button><div className="notification-wrap"><button className="notification-btn" onClick={()=>setShowNotifications(v=>!v)}>🔔{receivedNotifications.filter(n=>!n.isRead).length>0&&<span className="notification-count">{receivedNotifications.filter(n=>!n.isRead).length}</span>}</button>{showNotifications&&<div className="notification-popover"><div className="notification-popover-head"><strong>Notifications</strong>{notifications.length>0&&<div className="card-actions">{notifications.some(n=>!n.isRead)&&<button type="button" className="small-btn" onClick={async()=>{await api.markAllNotificationsRead();setNotifications(x=>x.map(a=>a.direction==='SENT'?a:{...a,isRead:true}))}}>Mark all read</button>}<button type="button" className="small-btn danger" onClick={async()=>{if(!window.confirm('Clear all notifications?'))return;await api.clearNotifications();setNotifications([])}}>Clear</button></div>}</div>{!notifications.length?<div className="muted notification-empty">No notifications</div>:notifications.map(n=><button key={n.id} className={`notification-item ${n.isRead?'read':''}`} onClick={async()=>{try{if(!n.isRead){await api.markNotificationRead(n.id);setNotifications(x=>x.map(a=>a.id===n.id?{...a,isRead:true}:a))}}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}setSelectedNotification(n);setShowNotifications(false)}}><strong>{n.title}</strong><span>{n.message}</span><small>From: {n.sender?.name||'System'} · {n.type?.replaceAll('_',' ')||'Notification'} · {n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}<button type="button" className="notification-view-all" onClick={()=>{setShowNotifications(false);navigate('/groups')}}>Open Groups & Chat</button></div>}</div><button className="user-chip user-chip-button" onClick={()=>setShowProfile(true)} aria-label="Open profile"><FaceAvatar name={user?.name} photo={user?.photo} className="user-chip-face"/><div className="user-text"><strong>{user?.name}</strong><span>{pretty}</span></div></button></header><div className="content" id="main-content">{children}<GlobalPagination/></div><footer className="app-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>Secure administration workspace · {pretty}</span></footer>{toast&&<div className={`global-toast ${toast.type==='error'?'global-toast-error':'global-toast-success'}`} role={toast.type==='error'?'alert':'status'}><div><strong>{toast.type==='error'?'Action failed':'Success'}</strong><div>{toast.message}</div></div><button type="button" onClick={()=>setToast(null)} aria-label="Close">×</button></div>}{selectedNotification&&<div className="modal-backdrop" onPointerDown={()=>setSelectedNotification(null)}><div className="modal notification-detail-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{selectedNotification.title}</h2><span>{selectedNotification.sender?.name?`From ${selectedNotification.sender.name}`:'WardDesk notification'}</span></div><button type="button" className="icon-btn" onClick={()=>setSelectedNotification(null)}>×</button></div><div className="notification-detail-body"><p>{selectedNotification.message}</p><small>{selectedNotification.createdAt?new Date(selectedNotification.createdAt).toLocaleString('en-IN'):''}</small></div><div className="modal-actions"><button type="button" className="primary-btn" onClick={()=>{const target=String(selectedNotification.actionUrl||'').trim();const t=String(selectedNotification.type||'');setSelectedNotification(null);if(target.startsWith('/'))navigate(target);else if(t.includes('COMPLAINT'))navigate('/complaints');else if(t.includes('SCHEME'))navigate('/schemes');else if(t.includes('WARD_UPDATE')||t.includes('WARD_EVENT'))navigate('/ward-updates');else if(t.includes('18PLUS'))navigate('/follow-up-18');else if(t.includes('CHAT')||t.includes('MESSAGE'))navigate('/groups')}}>Open related section</button><button type="button" className="ghost-btn" onClick={()=>setSelectedNotification(null)}>Close</button></div></div></div>}{showProfile&&<div className="modal-backdrop" onPointerDown={()=>setShowProfile(false)}><div className="modal profile-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header profile-modal-header"><div><h2>My profile</h2><span>Update your name, contact details and password</span></div><button type="button" className="icon-btn" onClick={()=>setShowProfile(false)}>×</button></div><div className="profile-summary"><FaceAvatar name={user?.name} photo={user?.photo} className="staff-face-lg"/><div><h3>{user?.name}</h3><span>{pretty}</span></div></div><ProfileEditor user={user} role={role} onClose={()=>setShowProfile(false)} onSaved={(u)=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setShowProfile(false);window.location.reload()}}/></div></div>}</main></div>
+ return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className={`sidebar ${open?'open':''}`}><div className="brand"><div className="brand-mark">W</div><div><strong>WardDesk</strong><span>Municipal workspace</span></div></div><nav ref={navRef} aria-label="Main">{visibleSections.map(section=><div className="nav-section" key={section.id}><div className="nav-section-label">{language==='mr'?section.mr:section.en}</div>{section.items.map(([to,label,icon,key])=><AdminNavItem key={key} to={to} label={label} icon={icon} itemKey={key} language={language} user={user} updatesOpen={updatesOpen} setUpdatesOpen={setUpdatesOpen} navRef={navRef} sidebarScrollKey={sidebarScrollKey} sidebarGo={sidebarGo}/>)}</div>)}</nav><div className="sidebar-footer"><div className="security-note">● Secure session · {pretty}</div><button className="logout-btn" onClick={logout}>Sign out</button></div></aside>{open&&<button className="scrim" onClick={()=>setOpen(false)}/>}<main className="main"><header className="topbar"><div className="admin-mobile-brand" aria-hidden="true">W</div><button className="menu-btn" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-context"><div className="eyebrow">{sectionName}</div><div className="topbar-title">{pageTitle(location.pathname)}</div><div className="topbar-workspace">{help}</div></div><div className="topbar-spacer"/><button type="button" className="language-btn" onClick={()=>setLanguage(v=>{const n=v==='en'?'mr':'en';localStorage.setItem('ward_language',n);applyLanguage(n);return n})} title="Change language">{language==='en'?'मराठी':'English'}</button><div className="notification-wrap"><button className="notification-btn" onClick={()=>setShowNotifications(v=>!v)}>🔔{receivedNotifications.filter(n=>!n.isRead).length>0&&<span className="notification-count">{receivedNotifications.filter(n=>!n.isRead).length}</span>}</button>{showNotifications&&<div className="notification-popover"><div className="notification-popover-head"><strong>Notifications</strong>{notifications.length>0&&<div className="card-actions">{notifications.some(n=>!n.isRead)&&<button type="button" className="small-btn" onClick={async()=>{await api.markAllNotificationsRead();setNotifications(x=>x.map(a=>a.direction==='SENT'?a:{...a,isRead:true}))}}>Mark all read</button>}<button type="button" className="small-btn danger" onClick={async()=>{if(!window.confirm('Clear all notifications?'))return;await api.clearNotifications();setNotifications([])}}>Clear</button></div>}</div>{!notifications.length?<div className="muted notification-empty">No notifications</div>:notifications.map(n=><button key={n.id} className={`notification-item ${n.isRead?'read':''}`} onClick={async()=>{try{if(!n.isRead){await api.markNotificationRead(n.id);setNotifications(x=>x.map(a=>a.id===n.id?{...a,isRead:true}:a))}}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}setSelectedNotification(n);setShowNotifications(false)}}><strong>{n.title}</strong><span>{n.message}</span><small>From: {n.sender?.name||'System'} · {n.type?.replaceAll('_',' ')||'Notification'} · {n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}<button type="button" className="notification-view-all" onClick={()=>{setShowNotifications(false);navigate('/groups')}}>Open Groups & Chat</button></div>}</div><button className="user-chip user-chip-button" onClick={()=>setShowProfile(true)} aria-label="Open profile"><FaceAvatar name={user?.name} photo={user?.photo} className="user-chip-face"/><div className="user-text"><strong>{user?.name}</strong><span>{pretty}</span></div></button></header><div className="content" id="main-content">{children}<GlobalPagination/></div><footer className="app-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>Secure administration workspace · {pretty}</span></footer>{toast&&<div className={`global-toast ${toast.type==='error'?'global-toast-error':'global-toast-success'}`} role={toast.type==='error'?'alert':'status'}><div><strong>{toast.type==='error'?'Action failed':'Success'}</strong><div>{toast.message}</div></div><button type="button" onClick={()=>setToast(null)} aria-label="Close">×</button></div>}{selectedNotification&&<div className="modal-backdrop" onPointerDown={()=>setSelectedNotification(null)}><div className="modal notification-detail-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{selectedNotification.title}</h2><span>{selectedNotification.sender?.name?`From ${selectedNotification.sender.name}`:'WardDesk notification'}</span></div><button type="button" className="icon-btn" onClick={()=>setSelectedNotification(null)}>×</button></div><div className="notification-detail-body"><p>{selectedNotification.message}</p><small>{selectedNotification.createdAt?new Date(selectedNotification.createdAt).toLocaleString('en-IN'):''}</small></div><div className="modal-actions"><button type="button" className="primary-btn" onClick={()=>{const target=String(selectedNotification.actionUrl||'').trim();const t=String(selectedNotification.type||'');setSelectedNotification(null);if(target.startsWith('/'))navigate(target);else if(t.includes('COMPLAINT'))navigate('/complaints');else if(t.includes('SCHEME'))navigate('/schemes');else if(t.includes('WARD_UPDATE')||t.includes('WARD_EVENT'))navigate('/ward-updates');else if(t.includes('18PLUS'))navigate('/follow-up-18');else if(t.includes('SUBSCRIPTION'))navigate('/nagarsevak-subscriptions');else if(t.includes('DEATH'))navigate('/deaths');else if(t.includes('BIRTHDAY'))navigate('/birthdays');else if(t.includes('CHAT')||t.includes('MESSAGE'))navigate('/groups')}}>Open related section</button><button type="button" className="ghost-btn" onClick={()=>setSelectedNotification(null)}>Close</button></div></div></div>}{showProfile&&<div className="modal-backdrop" onPointerDown={()=>setShowProfile(false)}><div className="modal profile-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header profile-modal-header"><div><h2>My profile</h2><span>Update your photo, contact details and password</span></div><button type="button" className="icon-btn" onClick={()=>setShowProfile(false)}>×</button></div><ProfileEditor user={user} role={role} onClose={()=>setShowProfile(false)} onSaved={(u)=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setShowProfile(false);window.location.reload()}}/></div></div>}</main></div>
 }
-function CitizenOnly({children}){const u=getUser();if(!u)return <Navigate to="/login" replace/>;if(String(u.role||'').toUpperCase()!=='CITIZEN')return <Navigate to="/admin" replace/>;return <CitizenShell>{children}</CitizenShell>}
+function CitizenOnly({children}){const u=getUser();if(!u)return <Navigate to="/login" replace/>;if(String(u.role||'').toUpperCase()!=='CITIZEN')return <Navigate to="/dashboard" replace/>;return <CitizenShell>{children}</CitizenShell>}
 function Guard({permission,children}){
  const u=getUser();
  let ok=rolePanelAccess(permission,u);
@@ -457,7 +468,7 @@ function RolePage({citizen,admin}){
 }
 function Fallback(){
  const u=getUser();
- if(u&&String(u.role||'').toUpperCase()==='CITIZEN')return <Navigate to="/" replace/>; return <Navigate to="/admin" replace/>;
+ if(u&&String(u.role||'').toUpperCase()==='CITIZEN')return <Navigate to="/" replace/>; return <Navigate to="/dashboard" replace/>;
 }
 class AppErrorBoundary extends React.Component {
  constructor(props){ super(props); this.state={error:null}; }
@@ -474,7 +485,7 @@ class AppErrorBoundary extends React.Component {
 function signedInHome(){
  const u=getUser();
  if(!u) return '';
- return String(u.role||'').toUpperCase()==='CITIZEN'?'/':'/admin';
+ return String(u.role||'').toUpperCase()==='CITIZEN'?'/':'/dashboard';
 }
 function bounceAuthPagesIfSignedIn(){
  const dest=signedInHome();
@@ -516,7 +527,7 @@ export default function App(){
  return <AppErrorBoundary><Routes>
   <Route path="/" element={<HomeEntry/>}/>
   <Route path="/admin" element={<AdminEntry/>}/>
-  <Route path="/login" element={getUser()?(String(getUser()?.role||'').toUpperCase()==='CITIZEN'?<Navigate to="/" replace/>:<Navigate to="/admin" replace/>):<Login mode="user"/>}/>
+  <Route path="/login" element={getUser()?(String(getUser()?.role||'').toUpperCase()==='CITIZEN'?<Navigate to="/" replace/>:<Navigate to="/dashboard" replace/>):<Login mode="user"/>}/>
   <Route path="/admin/login" element={<Navigate to="/admin" replace/>}/>
   <Route path="/register" element={getUser()?<Navigate to="/" replace/>:<Register/>}/>
 
@@ -537,6 +548,7 @@ export default function App(){
   <Route path="/stakeholders" element={<AdminOnly><Guard permission="STAKEHOLDERS"><Stakeholders/></Guard></AdminOnly>}/>
   <Route path="/staff" element={<AdminOnly><Guard permission="STAFF"><Staff/></Guard></AdminOnly>}/>
   <Route path="/ward-activation" element={<AdminOnly><WardActivation/></AdminOnly>}/>
+  <Route path="/nagarsevak-subscriptions" element={<AdminOnly><NagarsevakSubscriptions/></AdminOnly>}/>
   <Route path="/users" element={<AdminOnly><Guard permission="USERS"><Users/></Guard></AdminOnly>}/>
   <Route path="/sub-admins" element={<AdminOnly><SubAdmins/></AdminOnly>}/>
   <Route path="/houses" element={<AdminOnly><Guard permission="HOUSES"><Houses/></Guard></AdminOnly>}/>

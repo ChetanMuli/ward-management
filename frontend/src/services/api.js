@@ -51,7 +51,7 @@ async function request(path,options={}){
 }
 function actionSuccessMessage(path,method){
  const parts=path.split('/').filter(Boolean);
- const names={wards:'ward',areas:'area',houses:'house',families:'family',persons:'citizen',voters:'voter status',complaints:'complaint',employees:'employee',corporators:'Nagarsevak',profile:'profile',notifications:'notification', 'maintenance':'maintenance', 'sub-admins':'Sub Master Admin', schemes:'scheme', deaths:'death record', 'ward-activations':'ward activation'};
+ const names={wards:'ward',areas:'area',houses:'house',families:'family',persons:'citizen',voters:'voter status',complaints:'complaint',employees:'employee',corporators:'Nagarsevak',profile:'profile',notifications:'notification', 'maintenance':'maintenance', 'sub-admins':'Sub Master Admin', schemes:'scheme', deaths:'death record', 'ward-activations':'ward activation', 'nagarsevak-subscriptions':'Nagarsevak subscription'};
  const name=path.includes('/death')?'death record':(names[parts[2]]||names[parts[1]]||'record');
  if(method==='POST') return `${name.charAt(0).toUpperCase()+name.slice(1)} created successfully.`;
  if(method==='PATCH') return `${name.charAt(0).toUpperCase()+name.slice(1)} updated successfully.`;
@@ -159,6 +159,7 @@ deleteUser:id=>v2Request(`/users/${id}`,{method:'DELETE'}),
 wardTeam:(wardId)=>v2('/ward-team',wardId?{wardId}:{}),
 myWard:()=>v2('/me/ward'),
 wardActivations:()=>v2('/ward-activations'),
+nagarsevakSubscriptions:(p={})=>v2('/nagarsevak-subscriptions',p),
 setWardActivation:(wardId,d)=>v2Request(`/ward-activations/${wardId}/ward`,{method:'PATCH',body:JSON.stringify(d)}),
 setNagarsevakPurchase:(wardId,d)=>v2Request(`/ward-activations/${wardId}/nagarsevak`,{method:'PATCH',body:JSON.stringify(d)}),
 syncWardCommunity:(wardId)=>v2Request(`/ward-activations/${wardId}/sync`,{method:'POST'}),

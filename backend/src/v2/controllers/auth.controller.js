@@ -67,13 +67,13 @@ const login = asyncHandler(async (req, res) => {
   const user = await User.findOne({ where: { [Op.or]: [{ email: identifier }, { mobile: identifier.replace(/\D/g, '') }] }, include: [{ model: Role }, { model: Ward, as: 'ward' }, { model: Employee, as: 'employeeProfile', include: [{ model: User, as: 'manager', attributes: ['id','name','email','mobile','wardId'] }] }] });
   if (!user || !user.passwordHash) throw new ApiError(401, 'Invalid credentials');
   if (!(await bcrypt.compare(password, user.passwordHash))) throw new ApiError(401, 'Invalid credentials');
-  if (user.status !== 'ACTIVE') throw new ApiError(403, 'Account is not active');
 
   const roleName = user.Role.name;
   const employee = user.employeeProfile;
   const { assertNagarsevakLoginAllowed, assertEmployeeLoginAllowed } = require('../../services/wardActivation.service');
   if (roleName === 'NAGARSEVAK') await assertNagarsevakLoginAllowed(user);
   if (roleName === 'EMPLOYEE') await assertEmployeeLoginAllowed(employee);
+  if (user.status !== 'ACTIVE') throw new ApiError(403, 'Account is not active');
   let permissions = roleName === 'SUPER_ADMIN' ? ALL_PERMISSIONS : roleName === 'NAGARSEVAK' ? normalisePermissions(user.permissions) : roleName === 'SUB_MASTER_ADMIN' ? normalisePermissions(user.permissions) : normalisePermissions(employee?.permissions);
   // Core ward-operations access for field roles. These are read/operational
   // capabilities only; destructive/admin privileges remain permission based.

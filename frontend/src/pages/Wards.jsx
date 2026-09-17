@@ -21,7 +21,7 @@ function activeNagarsevaks(w){
 
 export default function Wards(){
  const user=getUser(),master=isMaster(user),wardEditor=master||isNagarsevak(user)||isEmployee(user),{selectedWardId}=useWardFilter();
- const [wards,setWards]=useState(null),[error,setError]=useState(''),[edit,setEdit]=useState(null),[create,setCreate]=useState(null),[detail,setDetail]=useState(null),[areaEdit,setAreaEdit]=useState(null),[areaCreate,setAreaCreate]=useState(null),[busy,setBusy]=useState(false),[search,setSearch]=useState('');
+ const [wards,setWards]=useState(null),[error,setError]=useState(''),[edit,setEdit]=useState(null),[create,setCreate]=useState(null),[detail,setDetail]=useState(null),[areaEdit,setAreaEdit]=useState(null),[areaCreate,setAreaCreate]=useState(null),[busy,setBusy]=useState(false),[search,setSearch]=useState(''),[openChips,setOpenChips]=useState({});
  async function load(){try{setError('');setWards((await api.wards()).data||[])}catch(e){setError(e.message)}}
  useEffect(()=>{load()},[]);
  const visible=useMemo(()=>{const base=selectedWardId?(wards||[]).filter(w=>String(w.id)===String(selectedWardId)):(wards||[]);const q=search.trim().toLowerCase();if(!q)return base;return base.filter(w=>`${w.wardNumber||''} ${w.name||''} ${w.description||''} ${(w.areas||[]).map(a=>`${a.name||''} ${a.description||''}`).join(' ')}`.toLowerCase().includes(q));},[wards,selectedWardId,search]);
@@ -75,8 +75,8 @@ export default function Wards(){
       <div><span>Areas</span><strong>{areas.length}</strong></div>
       <div><span>Active nagarsevaks</span><strong>{nagars.length}</strong></div>
      </div>
-     <div className="ward-area-chips">{areas.slice(0,4).map(a=><span key={a.id}>{a.name}</span>)}{areas.length>4&&<span>+{areas.length-4} more</span>}{!areas.length&&<span className="muted">No areas yet</span>}</div>
-     <div className="ward-nagar-chips">{nagars.length?nagars.slice(0,3).map(u=><span key={u.id}>{u.name||'Nagarsevak'}</span>):<span className="muted">No active nagarsevak</span>}{nagars.length>3&&<span>+{nagars.length-3} more</span>}</div>
+     <div className="ward-area-chips">{(openChips[`a-${w.id}`]?areas:areas.slice(0,4)).map(a=><span key={a.id}>{a.name}</span>)}{areas.length>4&&<button type="button" className="ward-more-btn" onClick={()=>setOpenChips(s=>({...s,[`a-${w.id}`]:!s[`a-${w.id}`]}))}>{openChips[`a-${w.id}`]?'Show less':`+${areas.length-4} more`}</button>}{!areas.length&&<span className="muted">No areas yet</span>}</div>
+     <div className="ward-nagar-chips">{nagars.length?(openChips[`n-${w.id}`]?nagars:nagars.slice(0,3)).map(u=><span key={u.id}>{u.name||'Nagarsevak'}</span>):<span className="muted">No active nagarsevak</span>}{nagars.length>3&&<button type="button" className="ward-more-btn" onClick={()=>setOpenChips(s=>({...s,[`n-${w.id}`]:!s[`n-${w.id}`]}))}>{openChips[`n-${w.id}`]?'Show less':`+${nagars.length-3} more`}</button>}</div>
      <div className="ward-card-footer">
       <RowMenu items={[
        {label:'View details',onClick:()=>setDetail(w)},

@@ -103,7 +103,11 @@ function GroupPage(){
     const requestedGroup=filteredGroups.find(g=>String(g.id)===String(requested));
     if(requestedGroup){setActive(requestedGroup);setChatOpen(true);return;}
   }
-  setActive(a=>a&&filteredGroups.some(g=>g.id===a.id)?filteredGroups.find(g=>g.id===a.id):filteredGroups[0]);
+  setActive(a=>{
+    if(a&&filteredGroups.some(g=>g.id===a.id)) return filteredGroups.find(g=>g.id===a.id);
+    if(typeof window!=='undefined' && window.matchMedia('(max-width:800px)').matches) return null;
+    return filteredGroups[0];
+  });
  },[filteredGroups,searchParams]);
 
  useEffect(()=>{
@@ -215,7 +219,7 @@ function GroupPage(){
    <section className="group-chat-panel">
     {!active?<div className="group-empty">Select a chat to start messaging.</div>:<>
       <header className="group-chat-header">
-       <button type="button" className="wa-back" onClick={()=>setChatOpen(false)} aria-label="Back to chats">‹</button>
+       <button type="button" className="wa-back" onClick={()=>setChatOpen(false)} aria-label="Back to chats"><span aria-hidden="true">‹</span><span>Back</span></button>
        <GroupFace g={active}/>
        <div className="wa-head-copy"><span className="eyebrow">{isAllChat(active)?'ALL CHAT':active.type==='NAGARSEVAK'?'NAGARSEVAK GROUP':'GROUP'}</span><h2>{groupTitle(active)}</h2><p>{groupSubtitle(active)}{active.ward?.wardNumber?` · ${active.ward.wardNumber}`:''}</p></div>
        {(active.isMember||master||sub||active.type!=='CUSTOM')&&<button type="button" className="wa-clear-btn" onClick={clearMyChat}>Clear</button>}

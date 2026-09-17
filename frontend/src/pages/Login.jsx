@@ -7,6 +7,23 @@ export const COMPANY_EMAIL='chetan.a2zithub@gmail.com';
 export const COMPANY_MOBILE='8523697410';
 export const copyrightLine=`© ${new Date().getFullYear()} ${COMPANY_NAME}`;
 
+function AuthError({error}){
+ if(!error) return null;
+ const lines=String(error).split('\n').map(v=>v.trim()).filter(Boolean);
+ const panelOff=/deactivated|panel is not active|not open yet/i.test(error);
+ return (
+  <div className={`error-box ${panelOff?'login-panel-off':''}`}>
+   {lines.map((line,i)=><p key={i}>{line}</p>)}
+   {panelOff&&(
+    <div className="auth-company-contact">
+     <div><span>Email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
+     <div><span>Mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
+    </div>
+   )}
+  </div>
+ );
+}
+
 function IconMail(){
  return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3.4" y="5.6" width="17.2" height="12.8" rx="2.2"/><path d="m4.2 7.4 7.8 5.4 7.8-5.4"/></svg>;
 }
@@ -138,7 +155,7 @@ export default function Login({mode='user'}){
  useEffect(()=>{
   const u=getUser();
   if(!u) return;
-  const dest=String(u.role||'').toUpperCase()==='CITIZEN'?'/':'/admin';
+  const dest=String(u.role||'').toUpperCase()==='CITIZEN'?'/':'/dashboard';
   window.location.replace(dest);
  },[admin]);
 
@@ -181,7 +198,7 @@ export default function Login({mode='user'}){
    if(!admin&&!citizen) throw new Error('This is an administration account. Sign in at /admin.');
    if(admin&&citizen) throw new Error('This is a resident account. Sign in at /login.');
    setSession(result.data.token,result.data.user);
-   const dest=admin?'/admin':'/';
+   const dest=admin?'/dashboard':'/';
    try{window.history.replaceState({wardSignedIn:1},'',dest);}catch{}
    window.location.replace(dest);
    return;
@@ -251,8 +268,8 @@ export default function Login({mode='user'}){
     <p className="auth-staff-copy">Nagarsevak, Employee, Sub Master Admin and Master Admin passwords cannot be reset from this screen.</p>
     <p className="auth-staff-copy">Please contact <strong>{COMPANY_NAME}</strong>. We will verify your account and issue a new password.</p>
     <div className="auth-company-contact">
-     <div><span>Demo email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
-     <div><span>Demo mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
+     <div><span>Email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
+     <div><span>Mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
     </div>
     <button type="button" className="primary-btn full login-v2-submit" onClick={goLogin}>Back to sign in</button>
    </div>
@@ -262,7 +279,7 @@ export default function Login({mode='user'}){
  if(view==='forgot'){
   return <AuthShell admin={false} title="Forgot password" lead="We will send a 6-digit code to your registered email">
    <form onSubmit={requestCode} className="login-v2-card auth-simple-card">
-    {error&&<div className="error-box">{error}</div>}
+    {error&&<AuthError error={error}/>}
     <label>Registered email
      <span className="auth-input">
       <span className="auth-ico"><IconMail/></span>
@@ -288,7 +305,7 @@ export default function Login({mode='user'}){
      <strong>{debugOtp}</strong>
      <small>Tap to fill</small>
     </button>}
-    {error&&<div className="error-box">{error}</div>}
+    {error&&<AuthError error={error}/>}
     <label>Verification code
      <span className="auth-input auth-otp-input">
       <input type="text" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,'').slice(0,6))} required placeholder="••••••" maxLength="6"/>
@@ -309,7 +326,7 @@ export default function Login({mode='user'}){
  return <AuthShell admin={admin} title="Good to see you again" lead={admin?'Staff workspace for Master Admin, Nagarsevak and Employees':'Access your registered ward account'}>
   <form onSubmit={submit} className="login-v2-card auth-simple-card">
    {notice&&<div className="info-note login-session-notice">{notice}</div>}
-   {error&&<div className="error-box">{error}</div>}
+   {error&&<AuthError error={error}/>}
    <label>Your email or mobile
     <span className="auth-input">
      <span className="auth-ico"><IconMail/></span>
@@ -324,6 +341,13 @@ export default function Login({mode='user'}){
    <div className={`auth-simple-links auth-login-links ${admin?'is-admin':'is-resident'}`}>
     {!admin&&<button type="button" className="link-btn" onClick={()=>navigate('/register')}>Create account</button>}
     <button type="button" className="link-btn" onClick={openForgot}>Forgot password?</button>
+   </div>
+   <div className="auth-support-note login-support-block">
+    <p>If you have any problem, contact us.</p>
+    <div className="auth-company-contact">
+     <div><span>Email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
+     <div><span>Mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
+    </div>
    </div>
   </form>
  </AuthShell>;

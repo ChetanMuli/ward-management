@@ -16,6 +16,7 @@ const WardNagarsevakSubscription = sequelize.define('WardNagarsevakSubscription'
   deactivatedAt: { type: DataTypes.DATE, allowNull: true, field: 'deactivated_at' },
   deactivatedBy: { type: DataTypes.UUID, allowNull: true, field: 'deactivated_by' },
   notes: { type: DataTypes.TEXT, allowNull: true },
+  expiryNotifiedAt: { type: DataTypes.DATE, allowNull: true, field: 'expiry_notified_at' },
 }, {
   tableName: 'ward_nagarsevak_subscriptions',
   underscored: true,

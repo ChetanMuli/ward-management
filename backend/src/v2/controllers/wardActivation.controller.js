@@ -3,6 +3,8 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { success } = require('../../utils/apiResponse');
 const {
   listActivationBoard,
+  listNagarsevakSubscriptions,
+  notifyExpiredNagarsevakSubscriptions,
   setWardActivation,
   setNagarsevakPurchase,
   getResidentWardSnapshot,
@@ -16,6 +18,15 @@ function requireMaster(req) {
 const board = asyncHandler(async (req, res) => {
   requireMaster(req);
   const data = await listActivationBoard();
+  return success(res, { data });
+});
+
+const subscriptions = asyncHandler(async (req, res) => {
+  requireMaster(req);
+  notifyExpiredNagarsevakSubscriptions().catch((err) => {
+    console.error('[SUBSCRIPTION NOTIFY FAILURE]', err.message);
+  });
+  const data = await listNagarsevakSubscriptions();
   return success(res, { data });
 });
 
@@ -64,4 +75,4 @@ const sync = asyncHandler(async (req, res) => {
   return success(res, { data, message: 'Ward community membership synchronized.' });
 });
 
-module.exports = { board, myWard, setWard, setPurchase, sync };
+module.exports = { board, myWard, setWard, setPurchase, sync, subscriptions };

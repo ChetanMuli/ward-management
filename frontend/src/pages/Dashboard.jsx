@@ -60,6 +60,22 @@ export default function Dashboard(){
   </section>
   {data.ward&&<section className="panel dashboard-ward-summary"><div className="dashboard-ward-title"><span className="eyebrow">CURRENT WARD</span><h2>{data.ward.wardNumber}</h2><h3>{data.ward.name||'Ahilyanagar Municipal Corporation Ward'}</h3></div><div className="dashboard-ward-facts"><div><span>Population (2011)</span><strong>{Number(data.ward.population2011||0).toLocaleString('en-IN')}</strong></div><div><span>Key areas</span><strong>{Number(data.ward.areaCount||0)}</strong></div><div><span>Open complaints</span><strong>{data.openComplaints||0}</strong></div><div><span>Official map</span><a href={data.ward.officialMapUrl} target="_blank" rel="noreferrer">View AMC map ↗</a></div></div></section>}
   {(nagar||employee)&&<section className="panel profile-banner"><FaceAvatar name={data.user?.name||getUser()?.name} photo={data.user?.photo||getUser()?.photo} className="staff-face-lg"/><div><span className="eyebrow">{nagar?'NAGARSEVAK':'EMPLOYEE'}</span><h2>{data.user?.name}</h2><p>{scopeText}{data.employee?.designation?` · ${data.employee.designation}`:''}</p></div><div className="profile-quick"><div><span>Open work</span><strong>{data.openComplaints}</strong></div>{nagar&&<div><span>Employees</span><strong>{data.managedEmployees}</strong></div>}{employee&&<div><span>Manager</span><strong>{data.employee?.manager?.name||'—'}</strong></div>}</div></section>}
+  {(nagar||employee)&&<section className="panel today-ward-panel">
+   <div className="panel-title"><div><h3>Today in your ward</h3><span>Short list of whose day it is — birthday, 10th day (Dahava) and 1st year.</span></div></div>
+   {!(data.todayEvents||[]).length
+    ? <p className="muted">No birthday, Dahava or 1st year in this ward today.</p>
+    : <ul className="today-event-list">
+      {(data.todayEvents||[]).map(ev=>(
+       <li key={ev.id}>
+        <button type="button" className={`today-event today-${String(ev.kind||'').toLowerCase()}`} onClick={()=>openTo(ev.kind==='BIRTHDAY'?'/birthdays':'/deaths')}>
+         <span className="today-event-kind">{ev.label}</span>
+         <strong>{ev.name}</strong>
+         <small>{ev.house?`House ${ev.house}`:'Ward record'}</small>
+        </button>
+       </li>
+      ))}
+     </ul>}
+  </section>}
   <section className="panel dashboard-info-panel">
    <div className="panel-title"><div><h3>Ward information</h3><span>Live counts for {scopeText}. Tap a card to open that section.</span></div></div>
    <div className="stat-grid">

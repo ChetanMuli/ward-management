@@ -1,10 +1,11 @@
 const { Op } = require('sequelize');
-const { sequelize, DeathRecord, Person, Family, House, Area, Ward, VoterProfile, User } = require('../../models');
+const { sequelize, DeathRecord, DeathObservance, Person, Family, House, Area, Ward, VoterProfile, User } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { assertPerson, isWardAllowed } = require('../services/wardScope');
 const { logAudit } = require('../../services/audit.service');
+const { addDays, addYears } = require('../../utils/calendarDates');
 
 const fullInclude = [
   {
@@ -24,20 +25,6 @@ const fullInclude = [
   },
 ];
 
-function addDays(dateString, days) {
-  const d = new Date(`${dateString}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-function addYears(dateString, years) {
-  const d = new Date(`${dateString}T00:00:00Z`);
-  const targetYear=d.getUTCFullYear()+years;
-  const month=d.getUTCMonth(), day=d.getUTCDate();
-  d.setUTCFullYear(targetYear,month,day);
-  // Keep a Feb-29 anniversary on the last day of February in non-leap years.
-  if(month===1 && day===29 && d.getUTCMonth()!==1) d.setUTCFullYear(targetYear,1,28);
-  return d.toISOString().slice(0, 10);
-}
 function formatDate(v) {
   if (!v) return null;
   const d = new Date(`${v}T00:00:00Z`);
@@ -56,6 +43,7 @@ const list = asyncHandler(async (req, res) => {
     include: [
       { model: Person, as: 'Person', include: fullInclude },
       { model: User, as: 'reporter', attributes: ['id','name','email','mobile'] },
+      { model: DeathObservance, as: 'observance', required: false },
     ],
     order: [['dateOfDeath','DESC'], ['createdAt','DESC']],
     limit: Math.min(Number(req.query.limit)||500,500),
@@ -78,15 +66,17 @@ const list = asyncHandler(async (req, res) => {
   }):scopedRows;
   const data = filtered.map(r => {
     const p = r.Person;
+    const tenthDay = r.observance?.tenthDayOn || addDays(r.dateOfDeath, 10);
+    const firstDeathAnniversary = r.observance?.firstYearOn || addYears(r.dateOfDeath, 1);
     return {
       id:r.id,
       recordStatus:r.recordStatus || 'ACTIVE',
       dateOfDeath:r.dateOfDeath,
-      tenthDay:addDays(r.dateOfDeath,10),
-      firstDeathAnniversary:addYears(r.dateOfDeath,1),
+      tenthDay,
+      firstDeathAnniversary,
       dateOfDeathDisplay:formatDate(r.dateOfDeath),
-      tenthDayDisplay:formatDate(addDays(r.dateOfDeath,10)),
-      firstDeathAnniversaryDisplay:formatDate(addYears(r.dateOfDeath,1)),
+      tenthDayDisplay:formatDate(tenthDay),
+      firstDeathAnniversaryDisplay:formatDate(firstDeathAnniversary),
       notes:r.notes||null,
       verificationStatus:r.verificationStatus,
       previousVoterStatus:r.previousVoterStatus,
@@ -132,6 +122,19 @@ const create = asyncHandler(async (req,res) => {
     user:req.user, action:'CREATE_DEATH_RECORD', entity:'DeathRecord', recordId:record.id,
     newValue:{personId:person.id,dateOfDeath,notes}, ipAddress:req.ip,
   });
+  const wardId = person.family?.house?.area?.wardId || null;
+  try {
+    const { notifyDeathRecordCreated } = require('../../services/wardDay.service');
+    await notifyDeathRecordCreated({
+      wardId,
+      personName: person.fullName,
+      dateOfDeath,
+      personId: person.id,
+      deathRecordId: record.id,
+    });
+  } catch (err) {
+    console.error('[DEATH NOTIFY FAILURE]', err.message);
+  }
   return success(res,{statusCode:201,data:{
     id:record.id,dateOfDeath:record.dateOfDeath,tenthDay:addDays(record.dateOfDeath,10),
     firstDeathAnniversary:addYears(record.dateOfDeath,1),

@@ -92,6 +92,14 @@ function UserProfileModal({user,language,onClose,onSaved}){
   <Modal wide title={mr?'माझे प्रोफाइल':'My profile'} onClose={onClose}>
    <form className="form-grid profile-edit-grid" onSubmit={save}>
     {error&&<div className="error-inline span-2">{error}</div>}
+    <div className="profile-hero span-2">
+     <FaceAvatar name={form.name||user?.name} photo={user?.photo} className="profile-hero-face"/>
+     <div className="profile-hero-copy">
+      <strong>{form.name||user?.name||'—'}</strong>
+      <span>{mr?'निवासी':'Resident'}</span>
+      <small>{form.email||user?.email||'—'}</small>
+     </div>
+    </div>
     <div className="profile-section span-2">
      <span className="profile-section-label">{mr?'वैयक्तिक माहिती':'Personal details'}</span>
      <div className="form-grid profile-fields">

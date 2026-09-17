@@ -733,7 +733,7 @@ export default function Staff() {
 
           managerUserId:
             form.managerUserId ||
-            undefined,
+            (councillor ? String(user?.id || '') : undefined),
 
           permissions:
             form.permissions || [],

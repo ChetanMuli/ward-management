@@ -10,7 +10,7 @@ const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions'
 const { allowedWardIds, isWardAllowed } = require('../services/wardScope');
 const { getVisibleNagarsevaks, isWardActive, syncWardCommunityMembership, ensureNagarsevakSubscription, publicNagarsevak } = require('../../services/wardActivation.service');
 const { syncLogin } = require('../../services/accountStore');
-const { sanitisePhoto, decorateNagarsevakPhotos } = require('../../utils/photo');
+const { sanitisePhoto, decorateNagarsevakPhotos, nagarsevakPublicByIds } = require('../../utils/photo');
 
 async function role(name) {
   const r = await Role.findOne({ where: { name } });
@@ -65,13 +65,20 @@ const listCorporators = asyncHandler(async (req, res) => {
     })
     : [];
   const activeSub = new Set(subs.map((s) => `${s.nagarsevakUserId}:${s.wardId}`));
+  const photos = await nagarsevakPublicByIds(ids);
   return success(res, {
     data: result.rows.map(u => {
+      const extra = photos.get(String(u.id));
       const wardActive = String(u.ward?.status || '').toUpperCase() === 'ACTIVE';
       const residentVisible = u.status === 'ACTIVE' && wardActive && activeSub.has(`${u.id}:${u.wardId}`);
       return {
-        id:u.id,name:u.name,email:u.email,mobile:u.mobile,status:u.status,wardId:u.wardId,ward:u.ward,wardSeat:u.wardSeat,partyName:u.partyName,officialAddress:u.officialAddress,photo:u.photo||null,permissions:normalisePermissions(u.permissions),
+        id:u.id,name:u.name,email:u.email,mobile:u.mobile,status:u.status,wardId:u.wardId,ward:u.ward,
+        wardSeat: extra?.wardSeat || u.wardSeat || null,
+        partyName: extra?.partyName || u.partyName || null,
+        officialAddress:u.officialAddress,photo: extra?.photo || u.photo || null,
+        permissions:normalisePermissions(u.permissions),
         wardStatus: u.ward?.status || null,
+        wardActive,
         activationStatus: residentVisible ? 'ACTIVE' : 'INACTIVE',
         residentVisible,
       };
@@ -210,9 +217,15 @@ const updateCorporator = asyncHandler(async (req,res)=>{
     const nextStatus = String(patch.status || '').toUpperCase();
     if (!['SUSPENDED', 'INACTIVE'].includes(nextStatus)) delete patch.status;
   }
-  if (Object.prototype.hasOwnProperty.call(patch, 'photo')) user.setDataValue('photo', patch.photo);
+  if (Object.prototype.hasOwnProperty.call(patch, 'photo')) {
+    user.setDataValue('photo', patch.photo);
+    user._loginPhoto = patch.photo;
+  }
   await user.update(patch);
-  if (Object.prototype.hasOwnProperty.call(req.body, 'photo')) await syncLogin(user, Role);
+  if (Object.prototype.hasOwnProperty.call(req.body, 'photo')) {
+    user.setDataValue('photo', patch.photo);
+    await syncLogin(user, Role);
+  }
   if (String(oldWardId || '') !== String(user.wardId || '')) {
     if (oldWardId) {
       await WardNagarsevakSubscription.update(
@@ -276,7 +289,11 @@ const listEmployees = asyncHandler(async(req,res)=>{
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 100) : 25;
   const result=await Employee.findAndCountAll({
     where,
-    include:[{model:User,as:'User'},{model:Ward,as:'ward'},{model:User,as:'manager',attributes:['id','name','email','mobile','wardId']}],
+    include:[
+      {model:User,as:'User',required:false},
+      {model:Ward,as:'ward',required:false},
+      {model:User,as:'manager',attributes:['id','name','email','mobile','wardId'],required:false}
+    ],
     order:[[{model:User,as:'User'},'name','ASC']],
     limit,
     offset:(page-1)*limit,
@@ -289,8 +306,9 @@ const createEmployee = asyncHandler(async(req,res)=>{
   const {name,email,mobile,password,wardId,designation,assignedAreaIds=[],permissions=[],managerUserId}=req.body;
   await checkWard(wardId,req);
   let manager=null;
-  if (!managerUserId) throw new ApiError(400, 'Managing Nagarsevak is required');
-  if (managerUserId) { manager=await User.findByPk(effectiveManagerUserId,{include:[{model:Role},{model:Ward,as:'ward'}]}); if(!manager || manager.Role.name!=='NAGARSEVAK') throw new ApiError(400,'Managing user must be a Nagarsevak'); if(manager.wardId!==wardId) throw new ApiError(400,'Nagarsevak and employee must belong to the same ward'); if(req.user.roleName==='NAGARSEVAK'&&manager.id!==req.user.id) throw new ApiError(403,'You can create employees only under your account'); }
+  const effectiveManagerUserId = String(managerUserId || (req.user.roleName === 'NAGARSEVAK' ? req.user.id : '') || '');
+  if (!effectiveManagerUserId) throw new ApiError(400, 'Managing Nagarsevak is required');
+  manager=await User.findByPk(effectiveManagerUserId,{include:[{model:Role},{model:Ward,as:'ward'}]}); if(!manager || manager.Role.name!=='NAGARSEVAK') throw new ApiError(400,'Managing user must be a Nagarsevak'); if(manager.wardId!==wardId) throw new ApiError(400,'Nagarsevak and employee must belong to the same ward'); if(req.user.roleName==='NAGARSEVAK'&&manager.id!==req.user.id) throw new ApiError(403,'You can create employees only under your account');
   const [r,existingEmail,existingMobile]=await Promise.all([
     role('EMPLOYEE'),
     User.findOne({where:{email}}),
@@ -302,7 +320,8 @@ const createEmployee = asyncHandler(async(req,res)=>{
   if(areas.some(a=>a.wardId!==wardId)) throw new ApiError(400,'Every assigned area must belong to the employee ward');
   const user=await User.create({name,email,mobile,passwordHash:await bcrypt.hash(password,12),roleId:r.id,wardId,status:'ACTIVE'});
   const employee=await Employee.create({userId:user.id,wardId,managerUserId:effectiveManagerUserId,designation:designation||'Ward Employee',assignedAreaIds,permissions:[...new Set(['VIEW_DASHBOARD',...normalisePermissions(permissions)])],status:'ACTIVE'});
-  await logAudit({user:req.user,action:'CREATE_EMPLOYEE',entity:'Employee',recordId:employee.id,newValue:{name,email,mobile,wardId,designation,assignedAreaIds,permissions},ipAddress:req.ip});
+  await syncLogin(user, Role, { isCreate: true }).catch(() => {});
+  await logAudit({user:req.user,action:'CREATE_EMPLOYEE',entity:'Employee',recordId:employee.id,newValue:{name,email,mobile,wardId,designation,assignedAreaIds,permissions,managerUserId:effectiveManagerUserId},ipAddress:req.ip});
   await syncWardCommunityMembership(wardId).catch(() => {});
   return success(res,{statusCode:201,message:'Employee created',data:{id:employee.id,userId:user.id,name,email,mobile,wardId,managerUserId:employee.managerUserId,permissions:employee.permissions,assignedAreaIds}});
 });

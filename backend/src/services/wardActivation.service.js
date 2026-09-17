@@ -6,6 +6,8 @@ const {
   Role,
   WardNagarsevakSubscription,
   NagarsevakUser,
+  Employee,
+  WardSubscriptionEvent,
 } = require('../models');
 const Chat = require('./chat.store');
 const ApiError = require('../utils/ApiError');
@@ -15,6 +17,38 @@ const { canResidentSeeNagarsevak } = require('./wardActivation.rules');
 const { decorateNagarsevakPhotos } = require('../utils/photo');
 
 const PUBLIC_NAGAR_ATTRS = ['id', 'name', 'email', 'mobile', 'wardId', 'status', 'roleId'];
+const COMPANY_NAME = 'Kairo IT Solutions PVT LTD';
+const COMPANY_EMAIL = 'chetan.a2zithub@gmail.com';
+const COMPANY_MOBILE = '8523697410';
+const PANEL_CONTACT = `${COMPANY_NAME}\nEmail: ${COMPANY_EMAIL}\nMobile: ${COMPANY_MOBILE}`;
+
+function panelOffLoginMessage(kind = 'nagarsevak') {
+  if (kind === 'employee') {
+    return `Your Nagarsevak panel has been deactivated, so employee login is closed.\n\nPlease contact:\n${PANEL_CONTACT}`;
+  }
+  return `Your WardDesk panel has been deactivated. You cannot sign in until Master Admin activates it again.\n\nPlease contact:\n${PANEL_CONTACT}`;
+}
+
+async function logSubscriptionEvent({ subscription, action, fromStatus, toStatus, actor, notes, actedAt }) {
+  if (!subscription?.id || !action) return null;
+  try {
+    return await WardSubscriptionEvent.create({
+      id: crypto.randomUUID(),
+      subscriptionId: subscription.id,
+      wardId: subscription.wardId,
+      nagarsevakUserId: subscription.nagarsevakUserId,
+      action,
+      fromStatus: fromStatus || null,
+      toStatus: toStatus || null,
+      actedBy: actor?.id || null,
+      actedAt: actedAt || new Date(),
+      notes: notes || null,
+    });
+  } catch (err) {
+    console.error('[SUBSCRIPTION EVENT]', err.message);
+    return null;
+  }
+}
 
 async function roleId(name) {
   const role = await Role.findOne({ where: { name }, attributes: ['id'] });
@@ -267,11 +301,11 @@ async function isNagarsevakAccessActive(nagarsevakUserId, wardId = null) {
 async function assertNagarsevakLoginAllowed(user) {
   const ward = await getWard(user?.wardId);
   if (!isWardActive(ward)) {
-    throw new ApiError(403, 'This ward has not been activated yet. Please contact Master Admin.');
+    throw new ApiError(403, `This ward is not open yet.\n\nPlease contact:\n${PANEL_CONTACT}`);
   }
   const ok = await isNagarsevakAccessActive(user?.id, user?.wardId || null);
   if (!ok) {
-    throw new ApiError(403, 'Your Nagarsevak access has not been activated yet. Please contact Master Admin.');
+    throw new ApiError(403, panelOffLoginMessage('nagarsevak'));
   }
 }
 
@@ -280,11 +314,11 @@ async function assertEmployeeLoginAllowed(employee) {
   if (!managerId) return;
   const manager = await User.findByPk(managerId, { attributes: ['id', 'status', 'wardId'] });
   if (!manager || manager.status !== 'ACTIVE') {
-    throw new ApiError(403, 'Your Nagarsevak account is not active. Employee login is currently unavailable.');
+    throw new ApiError(403, panelOffLoginMessage('employee'));
   }
   const ok = await isNagarsevakAccessActive(manager.id, manager.wardId || employee.wardId || null);
   if (!ok) {
-    throw new ApiError(403, 'Your Nagarsevak has not been activated yet. Employee login is currently unavailable.');
+    throw new ApiError(403, panelOffLoginMessage('employee'));
   }
 }
 
@@ -328,15 +362,33 @@ async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, 
     patch.purchasedAt = sub.purchasedAt || now;
     patch.activatedAt = now;
     patch.activatedBy = actor?.id || null;
+    patch.expiryNotifiedAt = null;
   } else if (['INACTIVE', 'DEACTIVATED'].includes(next)) {
     patch.deactivatedAt = now;
     patch.deactivatedBy = actor?.id || null;
   }
   await sub.update(patch);
+  const eventAction = next === 'ACTIVE'
+    ? (previous === 'ACTIVE' ? 'NOTES_UPDATED' : (previous && previous !== 'PENDING' ? 'REACTIVATED' : 'ACTIVATED'))
+    : (['INACTIVE', 'DEACTIVATED'].includes(next) ? 'DEACTIVATED' : (created ? 'CREATED' : 'NOTES_UPDATED'));
+  await logSubscriptionEvent({
+    subscription: sub,
+    action: created && next !== 'PENDING' ? (next === 'ACTIVE' ? 'ACTIVATED' : eventAction) : eventAction,
+    fromStatus: created ? null : previous,
+    toStatus: next,
+    actor,
+    notes: notes || null,
+  });
   if (next === 'ACTIVE') {
     if (user.status !== 'ACTIVE') await user.update({ status: 'ACTIVE' });
-  } else if (['INACTIVE', 'DEACTIVATED'].includes(next) && user.status === 'ACTIVE') {
-    await user.update({ status: 'INACTIVE' });
+    const team = await Employee.findAll({ where: { managerUserId: user.id }, attributes: ['userId'] });
+    const empIds = team.map((row) => row.userId).filter(Boolean);
+    if (empIds.length) await User.update({ status: 'ACTIVE' }, { where: { id: empIds, status: 'INACTIVE' } });
+  } else if (['INACTIVE', 'DEACTIVATED'].includes(next)) {
+    if (user.status === 'ACTIVE') await user.update({ status: 'INACTIVE' });
+    const team = await Employee.findAll({ where: { managerUserId: user.id }, attributes: ['userId'] });
+    const empIds = team.map((row) => row.userId).filter(Boolean);
+    if (empIds.length) await User.update({ status: 'INACTIVE' }, { where: { id: empIds, status: 'ACTIVE' } });
   }
   await syncWardCommunityMembership(wardId);
 
@@ -487,6 +539,151 @@ async function listActivationBoard() {
   });
 }
 
+function addCalendarYears(value, years) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setFullYear(date.getFullYear() + years);
+  return date;
+}
+
+function describeSubscriptionCycle({ purchaseStatus, activatedAt, now = new Date() }) {
+  const live = String(purchaseStatus || '').toUpperCase() === 'ACTIVE';
+  const expiresAt = activatedAt ? addCalendarYears(activatedAt, 1) : null;
+  const daysLeft = expiresAt == null ? null : Math.ceil((expiresAt.getTime() - now.getTime()) / 86400000);
+  if (!live) {
+    const off = ['INACTIVE', 'DEACTIVATED'].includes(String(purchaseStatus || '').toUpperCase());
+    return { expiresAt, daysLeft, cycle: off ? 'PANEL_OFF' : 'NOT_ACTIVATED', panelOn: false };
+  }
+  if (expiresAt && daysLeft <= 0) return { expiresAt, daysLeft, cycle: 'YEAR_ENDED', panelOn: true };
+  if (expiresAt && daysLeft <= 30) return { expiresAt, daysLeft, cycle: 'EXPIRING', panelOn: true };
+  return { expiresAt, daysLeft, cycle: 'ACTIVE', panelOn: true };
+}
+
+async function listNagarsevakSubscriptions() {
+  const nagarRole = await roleId('NAGARSEVAK');
+  if (!nagarRole) return [];
+  const now = new Date();
+  const [nagars, subs] = await Promise.all([
+    User.findAll({
+      where: { roleId: nagarRole },
+      attributes: ['id', 'name', 'email', 'mobile', 'wardId', 'status', 'createdAt'],
+      include: [{ model: Ward, as: 'ward', attributes: ['id', 'wardNumber', 'name', 'status'], required: false }],
+      order: [['createdAt', 'DESC']],
+    }),
+    WardNagarsevakSubscription.findAll(),
+  ]);
+  return nagars.map((n) => {
+    const sub = subs.find((s) => String(s.nagarsevakUserId) === String(n.id) && String(s.wardId) === String(n.wardId))
+      || subs.find((s) => String(s.nagarsevakUserId) === String(n.id));
+    const addedAt = n.createdAt || null;
+    const purchaseStatus = sub?.status || 'PENDING';
+    const activatedAt = sub?.activatedAt || sub?.purchasedAt || null;
+    const wardStatus = String(n.ward?.status || '').toUpperCase() || 'INACTIVE';
+    const wardActive = wardStatus === 'ACTIVE';
+    const { expiresAt, daysLeft, cycle, panelOn } = describeSubscriptionCycle({ purchaseStatus, activatedAt, now });
+    return {
+      id: n.id,
+      name: n.name,
+      email: n.email,
+      mobile: n.mobile,
+      status: n.status,
+      wardId: n.wardId,
+      ward: n.ward ? { id: n.ward.id, wardNumber: n.ward.wardNumber, name: n.ward.name, status: n.ward.status || 'INACTIVE' } : null,
+      wardStatus,
+      wardActive,
+      addedAt,
+      activatedAt,
+      deactivatedAt: sub?.deactivatedAt || null,
+      purchaseStatus,
+      expiresAt,
+      daysLeft,
+      cycle,
+      panelOn,
+      canActivate: wardActive,
+      subscriptionId: sub?.id || null,
+      expiryNotifiedAt: sub?.expiryNotifiedAt || null,
+    };
+  });
+}
+
+async function notifyExpiredNagarsevakSubscriptions() {
+  const { idsForRoles, notifyUsers } = require('./notify.service');
+  let rows = [];
+  try {
+    rows = await listNagarsevakSubscriptions();
+  } catch (err) {
+    console.error('[SUBSCRIPTION LIST FAILURE]', err.message);
+    return 0;
+  }
+  const expired = rows.filter((row) => row.cycle === 'YEAR_ENDED' && row.panelOn);
+  if (!expired.length) return 0;
+  const masterIds = await idsForRoles(['SUPER_ADMIN']);
+  if (!masterIds.length) return 0;
+  let sent = 0;
+  for (const row of expired) {
+    if (row.expiryNotifiedAt) continue;
+    const when = row.expiresAt ? new Date(row.expiresAt).toLocaleDateString('en-IN', { dateStyle: 'medium' }) : 'today';
+    try {
+      await notifyUsers(masterIds, {
+        type: 'NAGARSEVAK_SUBSCRIPTION_EXPIRED',
+        title: 'Nagarsevak 1-year subscription ended',
+        message: `${row.name}'s 1-year term ended on ${when}. The panel is still on until you deactivate it manually.`,
+        actionUrl: '/nagarsevak-subscriptions',
+      });
+      if (row.subscriptionId) {
+        await WardNagarsevakSubscription.update(
+          { expiryNotifiedAt: new Date() },
+          { where: { id: row.subscriptionId } }
+        );
+        await logSubscriptionEvent({
+          subscription: { id: row.subscriptionId, wardId: row.wardId, nagarsevakUserId: row.id },
+          action: 'YEAR_ENDED_NOTIFIED',
+          fromStatus: row.purchaseStatus,
+          toStatus: row.purchaseStatus,
+        });
+      } else if (row.wardId) {
+        const sub = await ensureNagarsevakSubscription(row.wardId, row.id, row.purchaseStatus || 'PENDING');
+        if (sub?.id) {
+          await sub.update({ expiryNotifiedAt: new Date() }).catch(() => {});
+        }
+      }
+      sent += 1;
+    } catch (err) {
+      console.error('[SUBSCRIPTION NOTIFY FAILURE]', { id: row.id, error: err.message });
+    }
+  }
+  return sent;
+}
+
+async function notifyWardFieldStaff(wardId, payload) {
+  if (!wardId) return 0;
+  const nagarRole = await roleId('NAGARSEVAK');
+  const empRole = await roleId('EMPLOYEE');
+  const roleIds = [nagarRole, empRole].filter(Boolean);
+  if (!roleIds.length) return 0;
+  const users = await User.findAll({
+    where: { wardId, status: 'ACTIVE', roleId: { [Op.in]: roleIds } },
+    attributes: ['id', 'roleId'],
+  });
+  const allowedNagar = [];
+  for (const row of users) {
+    if (nagarRole && String(row.roleId) === String(nagarRole) && await isNagarsevakAccessActive(row.id, wardId)) {
+      allowedNagar.push(row.id);
+    }
+  }
+  if (!allowedNagar.length) return 0;
+  const empUserIds = users.filter((row) => empRole && String(row.roleId) === String(empRole)).map((row) => row.id);
+  let allowedEmp = [];
+  if (empUserIds.length) {
+    const team = await Employee.findAll({
+      where: { userId: { [Op.in]: empUserIds }, managerUserId: { [Op.in]: allowedNagar } },
+      attributes: ['userId'],
+    });
+    allowedEmp = team.map((row) => row.userId).filter(Boolean);
+  }
+  return notifyUsers([...allowedNagar, ...allowedEmp], payload);
+}
+
 module.exports = {
   canResidentSeeNagarsevak,
   getWard,
@@ -501,6 +698,9 @@ module.exports = {
   setNagarsevakPurchase,
   getResidentWardSnapshot,
   listActivationBoard,
+  listNagarsevakSubscriptions,
+  notifyExpiredNagarsevakSubscriptions,
+  notifyWardFieldStaff,
   ensureNagarsevakSubscription,
   isNagarsevakAccessActive,
   assertNagarsevakLoginAllowed,

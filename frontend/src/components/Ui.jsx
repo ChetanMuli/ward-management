@@ -28,19 +28,21 @@ export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,li
  const go=n=>{onPage(Math.max(1,Math.min(last,n)));scrollMainToTop();};
  return (
   <div className="global-pagination" aria-label="Pagination">
-   <div className="pagination-info">Showing {start}–{end} of {total}</div>
-   <div className="pagination-controls">
-    <label>Rows per page
+   <div className="pagination-meta">
+    <div className="pagination-info">Showing {start}–{end} of {total}</div>
+    <label className="pagination-size">Rows per page
      <select value={limit} onChange={e=>{onLimit(Number(e.target.value));onPage(1);scrollMainToTop();}}>
       {limits.map(n=><option key={n} value={n}>{n}</option>)}
      </select>
     </label>
-    <button type="button" className="small-btn" disabled={page<=1} onClick={()=>go(1)}>First</button>
-    <button type="button" className="small-btn" disabled={page<=1} onClick={()=>go(page-1)}>Previous</button>
-    {window.map((n,i)=>n==='…'?<span key={`gap-${i}`} className="pagination-gap">…</span>:<button type="button" key={n} className={`small-btn pagination-page ${n===page?'is-current':''}`} onClick={()=>go(n)}>{n}</button>)}
-    <button type="button" className="small-btn" disabled={page>=last} onClick={()=>go(page+1)}>Next</button>
-    <button type="button" className="small-btn" disabled={page>=last} onClick={()=>go(last)}>Last</button>
    </div>
+   <nav className="pagination-nav pagination-controls" aria-label="Pages">
+    <button type="button" className="small-btn pag-edge pag-first" disabled={page<=1} onClick={()=>go(1)}>First</button>
+    <button type="button" className="small-btn pag-step" disabled={page<=1} onClick={()=>go(page-1)}>Previous</button>
+    {window.map((n,i)=>n==='…'?<span key={`gap-${i}`} className="pagination-gap">…</span>:<button type="button" key={n} className={`small-btn pagination-page ${n===page?'is-current':''}`} onClick={()=>go(n)}>{n}</button>)}
+    <button type="button" className="small-btn pag-step" disabled={page>=last} onClick={()=>go(page+1)}>Next</button>
+    <button type="button" className="small-btn pag-edge pag-last" disabled={page>=last} onClick={()=>go(last)}>Last</button>
+   </nav>
   </div>
  );
 }
@@ -233,38 +235,64 @@ export function FaceAvatar({name='User',photo,className=''}){
  return <div className={`user-avatar ${className}`.trim()} aria-hidden="true">{initialsOf(name)}</div>;
 }
 export function CirclePhotoField({label='Profile photo',value,onChange,optional=true}){
- const fileRef=useRef(null),dragRef=useRef(null);
- const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1});
- const STAGE=280;
+ const fileRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
+ const STAGE=Math.min(280, typeof window==='undefined'?280:Math.max(220, Math.min(280, window.innerWidth-56)));
+ const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false);
  const cover=STAGE/Math.min(nat.w||1,nat.h||1);
  const scale=cover*zoom;
  const dw=(nat.w||1)*scale, dh=(nat.h||1)*scale;
+ function clamp(next, w=nat.w, h=nat.h, z=zoom){
+  const c=STAGE/Math.min(w||1,h||1);
+  const s=c*z;
+  const maxX=Math.max(0,((w||1)*s-STAGE)/2);
+  const maxY=Math.max(0,((h||1)*s-STAGE)/2);
+  return {x:Math.min(maxX,Math.max(-maxX,next.x||0)),y:Math.min(maxY,Math.max(-maxY,next.y||0))};
+ }
+ function openCrop(data){
+  setSrc(data);setZoom(1);zoomRef.current=1;setPos({x:0,y:0});posRef.current={x:0,y:0};setNat({w:1,h:1});setReady(false);setOpen(true);
+ }
  function readFile(file){
   if(!file)return;
   if(!file.type.startsWith('image/')){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Please select an image file.'}}));return;}
   const reader=new FileReader();
-  reader.onload=()=>{setSrc(String(reader.result||''));setZoom(1);setPos({x:0,y:0});setOpen(true)};
+  reader.onload=()=>openCrop(String(reader.result||''));
   reader.readAsDataURL(file);
  }
+ useEffect(()=>{posRef.current=pos;},[pos]);
+ useEffect(()=>{zoomRef.current=zoom;setPos(p=>clamp(p,nat.w,nat.h,zoom));},[zoom,nat.w,nat.h]);
+ useEffect(()=>{
+  if(!open)return;
+  const move=e=>{
+   if(!dragRef.current)return;
+   e.preventDefault();
+   const next=clamp({x:e.clientX-dragRef.current.x,y:e.clientY-dragRef.current.y},natRef.current.w,natRef.current.h,zoomRef.current);
+   posRef.current=next;setPos(next);
+  };
+  const up=()=>{dragRef.current=null};
+  window.addEventListener('pointermove',move,{passive:false});
+  window.addEventListener('pointerup',up);
+  window.addEventListener('pointercancel',up);
+  return()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up)};
+ },[open]);
  function onPointerDown(e){
-  e.preventDefault();
-  dragRef.current={x:e.clientX-pos.x,y:e.clientY-pos.y};
-  e.currentTarget.setPointerCapture?.(e.pointerId);
+  e.preventDefault();e.stopPropagation();
+  dragRef.current={x:e.clientX-posRef.current.x,y:e.clientY-posRef.current.y};
  }
- function onPointerMove(e){
-  if(!dragRef.current)return;
-  setPos({x:e.clientX-dragRef.current.x,y:e.clientY-dragRef.current.y});
- }
- function onPointerUp(){dragRef.current=null}
  function apply(){
-  if(!src)return;
+  if(!src||!ready)return;
   const img=new Image();
   img.onload=()=>{
+   const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
    const size=400,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
    const ctx=canvas.getContext('2d');if(!ctx)return;
-   const r=size/STAGE;
+   const z=zoomRef.current, p=posRef.current;
+   const s=(STAGE/Math.min(w,h))*z;
+   const left=(STAGE-w*s)/2+p.x;
+   const top=(STAGE-h*s)/2+p.y;
+   const srcSize=STAGE/s;
    ctx.fillStyle='#0b1624';ctx.fillRect(0,0,size,size);
-   ctx.drawImage(img,((STAGE-dw)/2+pos.x)*r,((STAGE-dh)/2+pos.y)*r,dw*r,dh*r);
+   ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.closePath();ctx.clip();
+   ctx.drawImage(img,-left/s,-top/s,srcSize,srcSize,0,0,size,size);
    let data=canvas.toDataURL('image/jpeg',.86);
    if(data.length>1450000) data=canvas.toDataURL('image/jpeg',.68);
    onChange(data);setOpen(false);setSrc('');
@@ -274,15 +302,15 @@ export function CirclePhotoField({label='Profile photo',value,onChange,optional=
  const node=open?(
   <div className="photo-crop-backdrop" onPointerDown={()=>{setOpen(false);setSrc('')}}>
    <div className="photo-crop-modal" onPointerDown={e=>e.stopPropagation()}>
-    <div className="modal-header"><div><h2>Adjust profile photo</h2><span>Drag to move. Zoom so the face fills the circle.</span></div><button type="button" className="icon-btn" onClick={()=>{setOpen(false);setSrc('')}}>×</button></div>
-    <div className="photo-crop-stage" style={{width:STAGE,height:STAGE}} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-     {src&&<img src={src} alt="" draggable="false" onLoad={e=>setNat({w:e.currentTarget.naturalWidth,h:e.currentTarget.naturalHeight})} style={{width:dw,height:dh,left:(STAGE-dw)/2+pos.x,top:(STAGE-dh)/2+pos.y}}/>}
+    <div className="modal-header"><div><h2>Adjust profile photo</h2><span>Drag to centre the face, then zoom until it fills the circle.</span></div><button type="button" className="icon-btn" onClick={()=>{setOpen(false);setSrc('')}}>×</button></div>
+    <div className="photo-crop-stage" style={{width:STAGE,height:STAGE}} onPointerDown={onPointerDown}>
+     {src&&<img src={src} alt="" draggable="false" onLoad={e=>{const w=e.currentTarget.naturalWidth||1,h=e.currentTarget.naturalHeight||1;natRef.current={w,h};setNat({w,h});setReady(true);setPos(p=>clamp(p,w,h,zoomRef.current));}} style={{width:dw,height:dh,left:(STAGE-dw)/2+pos.x,top:(STAGE-dh)/2+pos.y}}/>}
      <span className="photo-crop-ring" aria-hidden="true"/>
     </div>
-    <label className="photo-crop-zoom">Zoom<input type="range" min="1" max="2.8" step="0.02" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
+    <label className="photo-crop-zoom">Zoom<input type="range" min="1" max="3" step="0.02" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
     <div className="modal-actions">
      <button type="button" className="ghost-btn" onClick={()=>{setOpen(false);setSrc('')}}>Cancel</button>
-     <button type="button" className="primary-btn" onClick={apply}>Use this photo</button>
+     <button type="button" className="primary-btn" disabled={!ready} onClick={apply}>{ready?'Use this photo':'Loading…'}</button>
     </div>
    </div>
   </div>
@@ -294,8 +322,9 @@ export function CirclePhotoField({label='Profile photo',value,onChange,optional=
     <FaceAvatar name={label} photo={value} className="staff-face-lg"/>
     <div className="circle-photo-actions">
      <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{value?'Change photo':'Choose photo'}</button>
+     {value?<button type="button" className="small-btn" onClick={()=>openCrop(value)}>Adjust photo</button>:null}
      {value?<button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button>:null}
-     <p className="muted">Crop the photo to a circle so it looks correct on the ward dashboard and birthday card.</p>
+     <p className="muted">Crop the face into the circle. This photo is used on the ward dashboard and birthday card.</p>
     </div>
     <input ref={fileRef} className="image-file-input-native" type="file" accept="image/*" onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
    </div>

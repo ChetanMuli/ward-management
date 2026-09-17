@@ -1193,12 +1193,12 @@ html body .circle-photo-row{display:flex;align-items:center;gap:14px}
 html body .circle-photo-actions{min-width:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 html body .circle-photo-actions p{flex:1 1 100%;margin:0;font-size:12px}
 html body .photo-crop-backdrop{
-  position:fixed;inset:0;z-index:240;background:rgba(11,22,36,.55);
+  position:fixed;inset:0;z-index:400;background:rgba(11,22,36,.55);
   display:grid;place-items:center;padding:16px;
 }
 html body .photo-crop-modal{
   width:min(420px,100%);background:#fff;border-radius:18px;padding:16px 18px 18px;
-  box-shadow:0 24px 70px rgba(11,22,36,.22);
+  box-shadow:0 24px 70px rgba(11,22,36,.22);max-height:min(92dvh,720px);overflow:auto;
 }
 html body .photo-crop-stage{
   position:relative;margin:12px auto 14px;overflow:hidden;border-radius:50%;
@@ -1213,6 +1213,7 @@ html body .photo-crop-ring{
 html body .photo-crop-zoom{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#4b5563;margin:0 0 12px}
 html body .photo-crop-zoom input{flex:1;accent-color:#0f766e}
 
+@media (min-width:801px){
 html body .app-shell .staff-table-scroll{
   overflow-x:auto !important;width:100% !important;
 }
@@ -1256,9 +1257,10 @@ html body .app-shell .staff-nagar-table th:nth-child(8),
 html body .app-shell .staff-nagar-table td:nth-child(8){width:7% !important}
 html body .app-shell .staff-nagar-table th:nth-child(9),
 html body .app-shell .staff-nagar-table td:nth-child(9),
-html body .app-shell .staff-nagar-table td.staff-actions{width:120px !important;white-space:nowrap !important}
+html body .app-shell .staff-nagar-table td.staff-actions{width:168px !important;white-space:nowrap !important}
 html body .app-shell .staff-table-scroll td.staff-actions .row-menu,
 html body .app-shell .staff-table-scroll .staff-actions{white-space:nowrap !important}
+}
 html body .groups-page img.wa-avatar,
 html body .groups-page .wa-avatar.user-avatar-photo,
 html body .groups-page .wa-avatar{
@@ -1346,5 +1348,560 @@ html body .groups-page .group-filters{
     width:100% !important;
     margin-top:0 !important;
     align-self:stretch !important;
+  }
+}
+
+/* Pagination: compact wrap row, never a 2-column button stack */
+html body .global-pagination,
+html body .people-pagination,
+html body .houses-pagination,
+html body .death-pagination,
+html body .staff-pagination{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  gap:10px !important;
+  width:100% !important;
+  max-width:100% !important;
+  grid-template-columns:none !important;
+  box-sizing:border-box !important;
+}
+html body .pagination-meta{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px 12px !important;
+  width:100% !important;
+}
+html body .pagination-info{
+  width:auto !important;
+  margin:0 !important;
+  font-size:12px !important;
+  color:#5b677a !important;
+}
+html body .pagination-size,
+html body .pagination-meta label,
+html body .pagination-controls label{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+  width:auto !important;
+  min-width:0 !important;
+  margin:0 !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+  color:#68758a !important;
+  grid-column:auto !important;
+}
+html body .pagination-size select,
+html body .pagination-meta select,
+html body .pagination-controls select{
+  width:auto !important;
+  min-width:72px !important;
+  min-height:34px !important;
+  height:34px !important;
+}
+html body .pagination-nav,
+html body .pagination-controls{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:6px !important;
+  width:100% !important;
+  grid-template-columns:none !important;
+}
+html body .pagination-nav > *,
+html body .pagination-controls > :not(label){
+  width:auto !important;
+  min-width:0 !important;
+  flex:0 0 auto !important;
+  min-height:34px !important;
+  height:auto !important;
+  max-height:none !important;
+}
+html body .pagination-nav .small-btn,
+html body .pagination-controls .small-btn,
+html body .global-pagination .small-btn,
+html body .people-pagination .small-btn{
+  width:auto !important;
+  min-width:36px !important;
+  height:34px !important;
+  min-height:34px !important;
+  max-height:none !important;
+  padding:0 10px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  white-space:nowrap !important;
+  overflow:visible !important;
+}
+html body .pagination-page.is-current{
+  background:#0b1624 !important;
+  color:#fff !important;
+  border-color:#0b1624 !important;
+}
+html body .pagination-gap{
+  min-width:12px !important;
+  padding:0 2px !important;
+  color:#7a8799 !important;
+}
+
+/* Sub Master Admin: Select all matches permission chips */
+html body .permission-section-head{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+}
+html body .permission-section-head .small-btn,
+html body .permission-section-head .permission-btn,
+html body .permission-section-head .permission-select-all{
+  width:auto !important;
+  min-width:0 !important;
+  flex:0 0 auto !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  padding:7px 9px !important;
+  font-size:9px !important;
+  line-height:1.2 !important;
+  border-radius:7px !important;
+  white-space:nowrap !important;
+  overflow:visible !important;
+}
+
+/* Ward activation: Activate + Manage side by side */
+html body .activation-board-table td[data-label="Actions"],
+html body .table-wrap tbody td[data-label="Actions"]:has(.activation-row-actions){
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+}
+html body .table-wrap tbody td[data-label="Actions"]:has(.activation-row-actions),
+html body :is(.app-shell,.user-portal) .table-wrap tbody td[data-label="Actions"]:has(.activation-row-actions){
+  display:block !important;
+  grid-template-columns:none !important;
+}
+html body .activation-row-actions,
+html body .table-wrap tbody td[data-label="Actions"] .activation-row-actions,
+html body :is(.app-shell,.user-portal) .table-wrap tbody td[data-label="Actions"] .activation-row-actions{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  grid-column:1 / -1 !important;
+  justify-self:stretch !important;
+  flex-direction:row !important;
+  align-items:stretch !important;
+  gap:8px !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+html body .activation-row-actions .small-btn,
+html body .table-wrap tbody td[data-label="Actions"] .activation-row-actions .small-btn{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  height:auto !important;
+  min-height:40px !important;
+  max-height:none !important;
+  justify-content:center !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:unset !important;
+  font-size:11px !important;
+  line-height:1.25 !important;
+  padding:8px 6px !important;
+}
+
+/* Groups: labelled Back control */
+html body .groups-page .wa-back{
+  width:auto !important;
+  min-width:72px !important;
+  height:32px !important;
+  min-height:32px !important;
+  padding:0 12px 0 8px !important;
+  gap:2px !important;
+  border:1px solid rgba(255,255,255,.28) !important;
+  border-radius:999px !important;
+  background:rgba(255,255,255,.14) !important;
+  color:#fff !important;
+  font-size:13px !important;
+  font-weight:800 !important;
+  letter-spacing:.01em !important;
+}
+html body .groups-page .wa-back span:first-child{font-size:18px;line-height:1;}
+@media (max-width:800px){
+  html body .groups-page .wa-back{
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+  }
+}
+
+/* Admin + resident profile */
+html body .profile-hero{
+  display:flex !important;
+  align-items:center !important;
+  gap:14px !important;
+  padding:14px 16px !important;
+  border:1px solid #e4eaf2 !important;
+  border-radius:16px !important;
+  background:linear-gradient(135deg,#f7f9fc,#fff) !important;
+}
+html body .profile-hero-face,
+html body .profile-hero .staff-face-lg,
+html body .profile-hero img.profile-hero-face{
+  width:64px !important;
+  height:64px !important;
+  min-width:64px !important;
+  min-height:64px !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+  flex:0 0 auto !important;
+}
+html body .profile-hero-copy{
+  min-width:0 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:3px !important;
+}
+html body .profile-hero-copy strong{
+  font-size:17px !important;
+  color:#12203a !important;
+  overflow-wrap:anywhere !important;
+}
+html body .profile-hero-copy span{
+  font-size:11px !important;
+  font-weight:800 !important;
+  letter-spacing:.08em !important;
+  text-transform:uppercase !important;
+  color:#6b778a !important;
+}
+html body .profile-hero-copy small{
+  font-size:12px !important;
+  color:#526277 !important;
+  overflow-wrap:anywhere !important;
+}
+html body .profile-modal .profile-edit-grid,
+html body .profile-editor .profile-edit-grid{
+  gap:14px !important;
+}
+html body .sub-filter-bar{margin:12px 0 16px !important}
+html body .sub-stat-grid{margin-bottom:4px}
+html body .nagarsevak-sub-page tr.is-expired{background:#fff6f4}
+html body .nagarsevak-sub-page tr.is-expiring{background:#fff9ef}
+html body .nagarsevak-sub-page tr.is-panel-off{background:#f8fafc}
+html body .nagarsevak-sub-page .pill-active-year,
+html body .nagarsevak-sub-page .pill-active{background:#e7f6ed;color:#18734a}
+html body .nagarsevak-sub-page .pill-ending-soon{background:#fff4d6;color:#8a5a00}
+html body .nagarsevak-sub-page .pill-year-ended{background:#fde8e8;color:#b42318}
+html body .nagarsevak-sub-page .pill-panel-off,
+html body .nagarsevak-sub-page .pill-not-activated{background:#edf1f6;color:#586579}
+html body .table-wrap tbody td[data-label="Panel"]:has(.activation-row-actions),
+html body :is(.app-shell,.user-portal) .table-wrap tbody td[data-label="Panel"]:has(.activation-row-actions){
+  display:block !important;
+  grid-template-columns:none !important;
+}
+html body .nagarsevak-sub-page .sub-panel-actions{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:8px !important;
+  width:100% !important;
+}
+html body .nagarsevak-sub-page .sub-panel-actions .small-btn{
+  min-height:40px !important;
+  height:auto !important;
+  flex:1 1 140px !important;
+  justify-content:center !important;
+}
+html body .login-v2-card .error-box{
+  white-space:pre-wrap !important;
+  display:grid !important;
+  gap:6px !important;
+}
+html body .login-v2-card .error-box p{margin:0 !important;line-height:1.45}
+html body .login-v2-card .error-box.login-panel-off{
+  text-align:left !important;
+}
+html body .login-v2-card .login-panel-off .auth-company-contact{
+  margin-top:8px !important;
+}
+html body .ward-area-chips,
+html body .ward-nagar-chips{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:6px !important;
+  align-items:center !important;
+}
+html body .ward-more-btn{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-height:28px !important;
+  padding:4px 10px !important;
+  border-radius:999px !important;
+  border:1px solid #c9d6e8 !important;
+  background:#fff !important;
+  color:#0f4c81 !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+  cursor:pointer !important;
+  line-height:1.2 !important;
+}
+html body .ward-more-btn:hover{background:#eff6ff !important;border-color:#93c5fd !important}
+@media (max-width:800px){
+  html body .pagination-meta{flex-direction:column !important;align-items:stretch !important}
+  html body .pagination-size,
+  html body .pagination-meta label,
+  html body .pagination-controls > label{width:100% !important;justify-content:space-between !important;flex:1 1 100% !important}
+  html body .pagination-nav .pag-first,
+  html body .pagination-nav .pag-last{display:none !important}
+  html body .permission-section-head .small-btn,
+  html body .permission-section-head .permission-btn,
+  html body .permission-section-head .permission-select-all{
+    min-height:40px !important;
+    height:40px !important;
+  }
+  html body .groups-page:not(.chat-open) .group-chat-panel{
+    display:none !important;
+    height:0 !important;
+    min-height:0 !important;
+    max-height:0 !important;
+    overflow:hidden !important;
+    pointer-events:none !important;
+  }
+  html body .groups-page:not(.chat-open) .group-layout,
+  html body .groups-page:not(.chat-open) .wa-chat,
+  html body .user-page-main .groups-page:not(.chat-open) .group-layout,
+  html body .user-portal .groups-page:not(.chat-open) .group-layout{
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    background:#fff !important;
+    display:block !important;
+    overflow:visible !important;
+  }
+  html body .groups-page:not(.chat-open) .group-list,
+  html body .user-page-main .groups-page:not(.chat-open) .group-list{
+    display:block !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow:visible !important;
+    background:#fff !important;
+  }
+  html body .groups-page:not(.chat-open) .wa-item{
+    width:100% !important;
+  }
+  html body .groups-page.chat-open .group-chat-panel{
+    display:flex !important;
+    flex-direction:column !important;
+    height:100% !important;
+    min-height:0 !important;
+    background:#efeae2 !important;
+  }
+}
+
+html body .today-ward-panel{margin-top:4px}
+html body .today-event-list{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  gap:8px;
+}
+html body .today-event{
+  width:100%;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  grid-template-rows:auto auto;
+  column-gap:10px;
+  row-gap:2px;
+  text-align:left;
+  border:1px solid #dbe3ee;
+  background:#fff;
+  border-radius:12px;
+  padding:10px 12px;
+  cursor:pointer;
+}
+html body .today-event-kind{
+  grid-row:1 / span 2;
+  align-self:center;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#0f766e;
+  background:#ecfdf8;
+  border:1px solid #a7f3d0;
+  border-radius:999px;
+  padding:6px 8px;
+  white-space:nowrap;
+}
+html body .today-anniversary .today-event-kind,
+html body .today-dahava .today-event-kind{
+  color:#9a3412;
+  background:#fff7ed;
+  border-color:#fed7aa;
+}
+html body .today-event strong{font-size:14px;color:#12203a}
+html body .today-event small{color:#5b6b82;font-size:12px}
+
+html body .row-menu-pop{
+  padding:8px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:8px !important;
+}
+html body .row-menu-pop button,
+html body .row-menu-pop .death-action-btn,
+html body .row-menu-pop .row-menu-node,
+html body .row-menu-pop .row-menu-node > *{
+  width:100% !important;
+  min-height:42px !important;
+  height:auto !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  text-align:left !important;
+  padding:10px 12px !important;
+  border:1px solid #d5dee9 !important;
+  border-radius:10px !important;
+  background:#fff !important;
+  box-shadow:none !important;
+  font-size:14px !important;
+  font-weight:700 !important;
+  color:#1f2d44 !important;
+}
+html body .row-menu-pop button.danger,
+html body .row-menu-pop .row-menu-node.danger .death-action-btn{
+  border-color:#f0c2bc !important;
+  color:#b42318 !important;
+  background:#fff8f7 !important;
+}
+html body .ward-closed-note{
+  display:flex;
+  align-items:center;
+  min-height:40px;
+  padding:8px 10px;
+  border:1px dashed #d5dee9;
+  border-radius:10px;
+  background:#f8fafc;
+  color:#5b6b82;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.35;
+}
+@media (max-width:800px){
+  html body .app-shell .staff-table-scroll,
+  html body .app-shell .table-wrap.staff-table-scroll,
+  html body .app-shell .table-wrap{
+    min-width:0 !important;
+    width:100% !important;
+    max-width:100% !important;
+    overflow:visible !important;
+    overflow-x:hidden !important;
+  }
+  html body .app-shell .staff-table-scroll .staff-data-table,
+  html body .app-shell .staff-nagar-table,
+  html body .app-shell .table-wrap table{
+    min-width:0 !important;
+    width:100% !important;
+    max-width:100% !important;
+    table-layout:auto !important;
+  }
+  html body .app-shell .staff-table-scroll .staff-data-table th,
+  html body .app-shell .staff-table-scroll .staff-data-table td,
+  html body .app-shell .staff-nagar-table th:nth-child(n),
+  html body .app-shell .staff-nagar-table td:nth-child(n),
+  html body .app-shell .staff-nagar-table td.staff-actions{
+    width:auto !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    white-space:normal !important;
+    overflow:visible !important;
+    text-overflow:unset !important;
+  }
+  html body .app-shell .table-wrap tbody td,
+  html body .app-shell .staff-table-scroll .staff-data-table td{
+    display:grid !important;
+    grid-template-columns:minmax(92px,34%) minmax(0,1fr) !important;
+    align-items:center !important;
+    gap:8px !important;
+    width:100% !important;
+    box-sizing:border-box !important;
+  }
+  html body .app-shell .staff-table-scroll .staff-face-cell{
+    display:flex !important;
+    align-items:center !important;
+    gap:10px !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    grid-column:2 !important;
+  }
+  html body .app-shell .table-wrap tbody td[data-label="Actions"],
+  html body .app-shell .staff-table-scroll .staff-data-table td[data-label="Actions"],
+  html body .app-shell .staff-table-scroll .staff-data-table td.staff-actions,
+  html body .app-shell .table-wrap tbody td[data-label="Panel"]{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    align-items:stretch !important;
+  }
+  html body .app-shell .table-wrap tbody td[data-label="Actions"]::before,
+  html body .app-shell .staff-table-scroll .staff-data-table td.staff-actions::before,
+  html body .app-shell .table-wrap tbody td[data-label="Panel"]::before{
+    grid-column:1 / -1 !important;
+  }
+  html body .app-shell .row-menu,
+  html body .app-shell .table-wrap tbody td[data-label="Actions"] .row-menu,
+  html body .app-shell .staff-table-scroll td.staff-actions .row-menu{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    gap:8px !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    justify-content:stretch !important;
+    flex-wrap:nowrap !important;
+    white-space:normal !important;
+    grid-column:1 / -1 !important;
+  }
+  html body .app-shell .row-menu > .small-btn,
+  html body .app-shell .row-menu > .view-btn,
+  html body .app-shell .row-menu > .row-menu-toggle{
+    width:100% !important;
+    min-width:0 !important;
+    height:44px !important;
+    min-height:44px !important;
+    margin:0 !important;
+    justify-content:center !important;
+  }
+  html body .app-shell .row-menu-pop,
+  html body .app-shell .row-menu.is-open .row-menu-pop{
+    position:fixed !important;
+    left:12px !important;
+    right:12px !important;
+    bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important;
+    top:auto !important;
+    width:auto !important;
+    z-index:91 !important;
+  }
+  html body .app-shell .nagarsevak-sub-page .sub-panel-actions,
+  html body .app-shell .table-wrap tbody td[data-label="Panel"] .activation-row-actions{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    width:100% !important;
+    grid-column:1 / -1 !important;
+  }
+  html body .app-shell .nagarsevak-sub-page .sub-panel-actions .small-btn,
+  html body .app-shell .ward-closed-note{
+    width:100% !important;
+    flex:none !important;
+  }
+  html body .app-shell .circle-photo-row{
+    flex-wrap:wrap !important;
   }
 }
