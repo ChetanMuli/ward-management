@@ -354,34 +354,71 @@ export function RowMenu({items=[]}){
  const [open,setOpen]=useState(false);
  const ref=useRef(null);
  const toggleRef=useRef(null);
- const [pos,setPos]=useState({top:0,left:0,width:188});
+ const popRef=useRef(null);
  const visible=(items||[]).filter(Boolean);
  const rest=visible.slice(1);
  function place(){
   const btn=toggleRef.current;
-  if(!btn)return;
+  const pop=popRef.current;
+  if(!btn||!pop)return;
   const r=btn.getBoundingClientRect();
-  const width=Math.min(220,Math.max(188,window.innerWidth-24));
-  let left=r.right-width;
-  if(left<8)left=8;
-  if(left+width>window.innerWidth-8) left=Math.max(8,window.innerWidth-width-8);
-  const estH=Math.min(280,8+rest.length*38);
-  let top=r.bottom+6;
-  if(top+estH>window.innerHeight-8) top=Math.max(8,r.top-estH-6);
-  setPos({top,left,width});
+  const vw=window.innerWidth;
+  const vh=window.innerHeight;
+  const pad=10;
+  if(r.bottom<pad||r.top>vh-pad) return;
+  const mobile=vw<=800;
+  const width=mobile?Math.min(vw-pad*2,Math.max(r.width,220)):Math.min(220,Math.max(188,vw-24));
+  let left=mobile?Math.min(Math.max(pad,r.left),vw-width-pad):r.right-width;
+  if(left<pad)left=pad;
+  if(left+width>vw-pad) left=Math.max(pad,vw-width-pad);
+  const itemH=mobile?44:36;
+  const estH=Math.min(vh*0.6,12+rest.length*itemH);
+  const spaceBelow=vh-r.bottom-pad;
+  const spaceAbove=r.top-pad;
+  const openUp=spaceBelow<Math.min(estH,140)&&spaceAbove>spaceBelow;
+  const maxH=Math.max(96,Math.min(estH,openUp?spaceAbove-6:spaceBelow-6));
+  const top=openUp?Math.max(pad,r.top-maxH-6):Math.min(r.bottom+6,Math.max(pad,vh-maxH-pad));
+  const set=(k,v)=>pop.style.setProperty(k,v,'important');
+  set('position','fixed');
+  set('top',`${Math.round(top)}px`);
+  set('left',`${Math.round(left)}px`);
+  set('width',`${Math.round(width)}px`);
+  set('max-width',`${Math.round(width)}px`);
+  set('max-height',`${Math.round(maxH)}px`);
+  set('bottom','auto');
+  set('right','auto');
+  set('z-index','120');
  }
  useLayoutEffect(()=>{if(open)place();},[open,rest.length]);
  useEffect(()=>{
   if(!open)return;
   const close=e=>{if(ref.current&&!ref.current.contains(e.target)&&!e.target.closest('.row-menu-pop'))setOpen(false)};
-  const onMove=()=>place();
+  const onMove=()=>{
+   if(onMove.raf) cancelAnimationFrame(onMove.raf);
+   onMove.raf=requestAnimationFrame(()=>{
+    const btn=toggleRef.current;
+    if(!btn)return;
+    const r=btn.getBoundingClientRect();
+    if(r.bottom<8||r.top>window.innerHeight-8){setOpen(false);return;}
+    place();
+   });
+  };
   document.addEventListener('pointerdown',close,true);
   window.addEventListener('resize',onMove);
   window.addEventListener('scroll',onMove,true);
+  document.addEventListener('scroll',onMove,true);
+  document.documentElement.addEventListener('scroll',onMove);
+  window.visualViewport?.addEventListener('resize',onMove);
+  window.visualViewport?.addEventListener('scroll',onMove);
   return()=>{
+   if(onMove.raf) cancelAnimationFrame(onMove.raf);
    document.removeEventListener('pointerdown',close,true);
    window.removeEventListener('resize',onMove);
    window.removeEventListener('scroll',onMove,true);
+   document.removeEventListener('scroll',onMove,true);
+   document.documentElement.removeEventListener('scroll',onMove);
+   window.visualViewport?.removeEventListener('resize',onMove);
+   window.visualViewport?.removeEventListener('scroll',onMove);
   };
  },[open,rest.length]);
  if(!visible.length)return null;
@@ -395,7 +432,7 @@ export function RowMenu({items=[]}){
      {open&&createPortal(
       <>
        <div className="row-menu-scrim" onPointerDown={()=>setOpen(false)}/>
-       <div className="row-menu-pop" role="menu" style={{top:pos.top,left:pos.left,width:pos.width}}>
+       <div className="row-menu-pop" role="menu" ref={node=>{popRef.current=node;if(node)place();}}>
         {rest.map((item,i)=>(
          item.node
           ? <div key={item.label||i} className={`row-menu-node ${item.danger?'danger':''}`}>{item.node}</div>

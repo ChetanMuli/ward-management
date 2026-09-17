@@ -3123,7 +3123,7 @@ html body .row-menu{position:relative;display:flex;align-items:center;justify-co
 html body .row-menu > .small-btn{min-width:108px;height:34px;}
 html body .row-menu-toggle{min-width:78px !important;}
 html body .row-menu-pop{
-  position:absolute;top:calc(100% + 6px);right:0;z-index:24;
+  position:fixed;z-index:120;
   min-width:196px;padding:6px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;
   box-shadow:0 16px 40px rgba(16,29,48,.16);display:flex;flex-direction:column;
 }
@@ -3791,15 +3791,10 @@ html body .row-menu-scrim{display:none}
   html body .row-menu-pop,
   html body .row-menu.is-open .row-menu-pop{
     position:fixed !important;
-    top:auto !important;
-    right:12px !important;
-    left:12px !important;
-    bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important;
-    z-index:91 !important;
-    width:auto !important;
-    min-width:0 !important;
-    max-width:none !important;
-    max-height:min(70dvh,420px) !important;
+    bottom:auto !important;
+    right:auto !important;
+    z-index:120 !important;
+    max-height:min(60dvh,420px) !important;
     overflow:auto !important;
     padding:8px !important;
     border-radius:16px !important;

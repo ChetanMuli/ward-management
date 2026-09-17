@@ -1885,13 +1885,9 @@ html body .ward-closed-note{
   html body .app-shell .row-menu-pop,
   html body .app-shell .row-menu.is-open .row-menu-pop{
     position:fixed !important;
-    left:12px !important;
-    right:12px !important;
-    bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important;
-    top:auto !important;
-    width:auto !important;
-    max-width:none !important;
-    z-index:91 !important;
+    bottom:auto !important;
+    right:auto !important;
+    z-index:120 !important;
   }
   html body .app-shell .nagarsevak-sub-page .sub-panel-actions,
   html body .app-shell .table-wrap tbody td[data-label="Panel"] .activation-row-actions{
@@ -2112,14 +2108,9 @@ html body .row-menu-pop .row-menu-node.danger .death-action-btn{
     justify-content:center !important;
   }
   html body .row-menu-pop{
-    left:12px !important;
-    right:12px !important;
-    width:auto !important;
-    max-width:none !important;
-    min-width:0 !important;
-    bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important;
-    top:auto !important;
-    max-height:min(70dvh,420px) !important;
+    bottom:auto !important;
+    right:auto !important;
+    max-height:min(60dvh,420px) !important;
     overflow:auto !important;
   }
   html body .row-menu-pop button,
@@ -2179,4 +2170,17 @@ html body .government-voter-page .government-voter-filter{
   html body .government-voter-page .government-voter-filter{
     max-width:none !important;
   }
+}
+
+/* More menu: always next to the More button, never pinned to the page bottom */
+html body .row-menu-pop,
+html body .row-menu.is-open .row-menu-pop,
+html body .app-shell .row-menu-pop,
+html body .user-portal .row-menu-pop{
+  position:fixed !important;
+  bottom:auto !important;
+  right:auto !important;
+  z-index:120 !important;
+  overflow:auto !important;
+  -webkit-overflow-scrolling:touch !important;
 }
