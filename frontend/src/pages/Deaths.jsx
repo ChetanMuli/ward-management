@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
+import {useLocation} from 'react-router-dom';
 import {api,getUser} from '../services/api';
 import {Empty,ErrorBox,Field,Loading,Modal,PageHeader,SearchableSelect,Toolbar,fmtDate} from '../components/Ui';
 import WardFilter from '../components/WardFilter';
@@ -17,6 +18,7 @@ function personLabel(p){
 
 export default function Deaths(){
  const user=getUser(),{selectedWardId}=useWardFilter();
+ const location=useLocation();
  const [rows,setRows]=useState(null),[people,setPeople]=useState([]),[search,setSearch]=useState(''),[filterMode,setFilterMode]=useState('latest'),[windowKey,setWindowKey]=useState('latest25'),[recordStatus,setRecordStatus]=useState('ACTIVE'),[detail,setDetail]=useState(null),[fromDate,setFromDate]=useState(''),[toDate,setToDate]=useState(''),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[dateType,setDateType]=useState('death'),[form,setForm]=useState({personId:'',dateOfDeath:'',notes:''}),[open,setOpen]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const canCreate=isMaster(user)||isNagarsevak(user)||isEmployee(user)||can('CREATE_DEATH_RECORDS',user);
 
@@ -28,6 +30,12 @@ export default function Deaths(){
   catch(e){setError(e.message);setRows([])}
  }
  useEffect(()=>{setPage(1);const t=setTimeout(load,250);return()=>clearTimeout(t)},[selectedWardId,search,recordStatus]);
+ useEffect(()=>{
+  const id=new URLSearchParams(location.search).get('open');
+  if(!id||!rows?.length)return;
+  const found=rows.find(r=>String(r.id)===String(id)||String(r.deathRecordId)===String(id)||String(r.personId)===String(id));
+  if(found)setDetail(found);
+ },[location.search,rows]);
  const activePeople=useMemo(()=>people.filter(p=>p.status!=='DECEASED'),[people]);
  const windows=useMemo(()=>filterMode==='upcoming'?[{key:'next7',label:'Next 7 days',days:7},{key:'next15',label:'Next 15 days',days:15},{key:'next30',label:'Next 30 days',days:30},{key:'next90',label:'Next 90 days',days:90}]:filterMode==='previous'?[{key:'prev7',label:'Previous 7 days',days:7},{key:'prev15',label:'Previous 15 days',days:15},{key:'prev30',label:'Previous 30 days',days:30},{key:'prev90',label:'Previous 90 days',days:90}]:[{key:'latest10',label:'Latest 10 records',count:10},{key:'latest25',label:'Latest 25 records',count:25},{key:'latest50',label:'Latest 50 records',count:50},{key:'latest100',label:'Latest 100 records',count:100}], [filterMode]);
  const visibleRows=useMemo(()=>{

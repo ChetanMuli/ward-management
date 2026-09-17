@@ -15,6 +15,12 @@ function requireMaster(req) {
   if (req.user?.roleName !== 'SUPER_ADMIN') throw new ApiError(403, 'Only Master Admin can manage ward activation and purchases.');
 }
 
+function requireAdminDesk(req) {
+  if (!['SUPER_ADMIN', 'SUB_MASTER_ADMIN'].includes(req.user?.roleName)) {
+    throw new ApiError(403, 'Only Master Admin or Sub Master Admin can use this section.');
+  }
+}
+
 const board = asyncHandler(async (req, res) => {
   requireMaster(req);
   const data = await listActivationBoard();
@@ -22,7 +28,7 @@ const board = asyncHandler(async (req, res) => {
 });
 
 const subscriptions = asyncHandler(async (req, res) => {
-  requireMaster(req);
+  requireAdminDesk(req);
   notifyExpiredNagarsevakSubscriptions().catch((err) => {
     console.error('[SUBSCRIPTION NOTIFY FAILURE]', err.message);
   });
@@ -52,7 +58,7 @@ const setWard = asyncHandler(async (req, res) => {
 });
 
 const setPurchase = asyncHandler(async (req, res) => {
-  requireMaster(req);
+  requireAdminDesk(req);
   const sub = await setNagarsevakPurchase({
     wardId: req.params.wardId,
     nagarsevakUserId: req.body.nagarsevakUserId,

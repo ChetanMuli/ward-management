@@ -62,12 +62,18 @@ export function StatCard({label,value,hint,tone='',onClick}){
 }
 export function Empty({children='No records found.'}){return <div className="empty empty-pro"><div className="empty-mark" aria-hidden="true">◇</div><p>{children}</p></div>}
 export function Loading({label='Loading…'}){return <div className="loading loading-pro" role="status"><span className="spinner"/><span>{label}</span></div>}
-export function ErrorBox({error}){const [visible,setVisible]=useState(false);useEffect(()=>{if(!error)return;setVisible(true);const t=setTimeout(()=>setVisible(false),7000);return()=>clearTimeout(t)},[error]);if(!error||!visible)return null;return <div className="error-toast" role="alert"><div><strong>Action failed</strong><div>{error}</div></div><button onClick={()=>setVisible(false)} aria-label="Close">×</button></div>}
+export function ErrorBox({error}){
+ useEffect(()=>{
+  if(!error) return;
+  window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:error}}));
+ },[error]);
+ return null;
+}
 export function SuccessBox({message,onClose}){if(!message)return null;return <div className="success-toast" role="status"><div><strong>Success</strong><div>{message}</div></div><button onClick={onClose} aria-label="Close">×</button></div>}
 export function StatusPill({children}){const k=String(children||'').toLowerCase().replaceAll('_','-');return <span className={`pill pill-${k}`}>{String(children||'—').replaceAll('_',' ')}</span>}
 export function Modal({title,onClose,children,wide=false,layer=1}){
  useEffect(()=>{document.body.classList.add('modal-open');return()=>document.body.classList.remove('modal-open')},[]);
- const node=<div className={`modal-backdrop ${layer>1?'modal-backdrop-stack':''}`} style={{zIndex:40+Number(layer)*25}} onPointerDown={onClose}><div className={`modal ${wide?'modal-wide':''}`} onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{title}</h2></div><button type="button" className="icon-btn" onClick={onClose}>×</button></div>{children}</div></div>;
+ const node=<div className={`modal-backdrop ${layer>1?'modal-backdrop-stack':''}`} style={{zIndex:200+Number(layer)*25}} onPointerDown={onClose}><div className={`modal ${wide?'modal-wide':''}`} onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{title}</h2></div><button type="button" className="icon-btn" onClick={onClose}>×</button></div>{children}</div></div>;
  return typeof document!=='undefined'?createPortal(node,document.body):node;
 }
 
@@ -347,31 +353,57 @@ export function ProfileAvatar({name='User',size='md',className=''}){
 export function RowMenu({items=[]}){
  const [open,setOpen]=useState(false);
  const ref=useRef(null);
+ const toggleRef=useRef(null);
+ const [pos,setPos]=useState({top:0,left:0,width:188});
  const visible=(items||[]).filter(Boolean);
+ const rest=visible.slice(1);
+ function place(){
+  const btn=toggleRef.current;
+  if(!btn)return;
+  const r=btn.getBoundingClientRect();
+  const width=Math.min(220,Math.max(188,window.innerWidth-24));
+  let left=r.right-width;
+  if(left<8)left=8;
+  if(left+width>window.innerWidth-8) left=Math.max(8,window.innerWidth-width-8);
+  const estH=Math.min(280,8+rest.length*38);
+  let top=r.bottom+6;
+  if(top+estH>window.innerHeight-8) top=Math.max(8,r.top-estH-6);
+  setPos({top,left,width});
+ }
+ useLayoutEffect(()=>{if(open)place();},[open,rest.length]);
  useEffect(()=>{
   if(!open)return;
-  const close=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false)};
+  const close=e=>{if(ref.current&&!ref.current.contains(e.target)&&!e.target.closest('.row-menu-pop'))setOpen(false)};
+  const onMove=()=>place();
   document.addEventListener('pointerdown',close,true);
-  return()=>document.removeEventListener('pointerdown',close,true);
- },[open]);
+  window.addEventListener('resize',onMove);
+  window.addEventListener('scroll',onMove,true);
+  return()=>{
+   document.removeEventListener('pointerdown',close,true);
+   window.removeEventListener('resize',onMove);
+   window.removeEventListener('scroll',onMove,true);
+  };
+ },[open,rest.length]);
  if(!visible.length)return null;
- const [primary,...rest]=visible;
+ const [primary]=visible;
  return (
   <div className={`row-menu ${open?'is-open':''}`} ref={ref}>
    <button type="button" className={primary.danger?'small-btn danger':'small-btn view-btn'} onClick={primary.onClick}>{primary.label}</button>
    {rest.length>0&&(
     <>
-     <button type="button" className="small-btn row-menu-toggle" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>More</button>
-     {open&&<>
-      <div className="row-menu-scrim" onPointerDown={()=>setOpen(false)}/>
-      <div className="row-menu-pop" role="menu">
-       {rest.map((item,i)=>(
-        item.node
-         ? <div key={item.label||i} className={`row-menu-node ${item.danger?'danger':''}`}>{item.node}</div>
-         : <button type="button" key={item.label||i} className={item.danger?'danger':''} onClick={()=>{setOpen(false);item.onClick?.()}}>{item.label}</button>
-       ))}
-      </div>
-     </>}
+     <button type="button" ref={toggleRef} className="small-btn row-menu-toggle" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>More</button>
+     {open&&createPortal(
+      <>
+       <div className="row-menu-scrim" onPointerDown={()=>setOpen(false)}/>
+       <div className="row-menu-pop" role="menu" style={{top:pos.top,left:pos.left,width:pos.width}}>
+        {rest.map((item,i)=>(
+         item.node
+          ? <div key={item.label||i} className={`row-menu-node ${item.danger?'danger':''}`}>{item.node}</div>
+          : <button type="button" key={item.label||i} className={item.danger?'danger':''} onClick={()=>{setOpen(false);item.onClick?.()}}>{item.label}</button>
+        ))}
+       </div>
+      </>
+     ,document.body)}
     </>
    )}
   </div>

@@ -540,24 +540,21 @@ html body .app-shell .sidebar-footer{
   flex:0 0 auto !important;
   display:flex !important;
   flex-direction:column !important;
-  gap:8px !important;
+  align-items:stretch !important;
+  gap:0 !important;
   margin:0 !important;
   width:auto !important;
   z-index:2 !important;
-  padding:12px 8px 6px !important;
+  padding:10px 8px 8px !important;
   background:var(--admin-navy) !important;
   border-top:1px solid rgba(255,255,255,.1) !important;
   box-shadow:0 -10px 16px var(--admin-navy);
 }
-html body .app-shell .security-note{
-  color:#93a6ba !important;font-size:11px !important;margin:0 !important;
-  background:rgba(255,255,255,.04) !important;border:1px solid rgba(255,255,255,.08) !important;
-  border-radius:8px !important;padding:7px 10px !important;line-height:1.35 !important;
-}
+html body .app-shell .security-note{display:none !important}
 html body .app-shell .logout-btn{
   background:transparent !important;border:1px solid rgba(255,255,255,.16) !important;color:#e8eef5 !important;
-  border-radius:8px !important;min-height:32px !important;height:32px !important;
-  padding:0 12px !important;font-size:12px !important;font-weight:700 !important;
+  border-radius:8px !important;min-height:40px !important;height:40px !important;
+  padding:0 12px !important;font-size:13px !important;font-weight:700 !important;
   width:100% !important;line-height:1 !important;
 }
 html body .app-shell .logout-btn:hover{background:rgba(255,255,255,.08) !important;color:#fff !important}
@@ -1218,13 +1215,18 @@ html body .app-shell .staff-table-scroll{
   overflow-x:auto !important;width:100% !important;
 }
 html body .app-shell .staff-table-scroll .staff-data-table{
-  width:100% !important;min-width:1080px !important;table-layout:fixed !important;
+  width:100% !important;min-width:1200px !important;table-layout:fixed !important;
   border-collapse:separate !important;border-spacing:0 !important;
 }
 html body .app-shell .staff-table-scroll .staff-data-table th,
 html body .app-shell .staff-table-scroll .staff-data-table td{
   vertical-align:middle !important;overflow:hidden !important;text-overflow:ellipsis !important;
   white-space:nowrap !important;padding:10px 12px !important;
+}
+html body .app-shell .staff-table-scroll .staff-data-table td.staff-actions,
+html body .app-shell .staff-table-scroll .staff-data-table td[data-label="Actions"],
+html body .app-shell .staff-table-scroll .staff-data-table th:last-child{
+  overflow:visible !important;text-overflow:clip !important;white-space:nowrap !important;
 }
 html body .app-shell .staff-table-scroll .staff-data-table td:first-child,
 html body .app-shell .staff-table-scroll .staff-data-table th:first-child{
@@ -1240,7 +1242,7 @@ html body .app-shell .staff-table-scroll .staff-face-cell strong{
 }
 html body .app-shell .staff-table-scroll .staff-face-cell .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html body .app-shell .staff-nagar-table th:nth-child(1),
-html body .app-shell .staff-nagar-table td:nth-child(1){width:22% !important}
+html body .app-shell .staff-nagar-table td:nth-child(1){width:18% !important}
 html body .app-shell .staff-nagar-table th:nth-child(2),
 html body .app-shell .staff-nagar-table td:nth-child(2){width:14% !important}
 html body .app-shell .staff-nagar-table th:nth-child(3),
@@ -1257,9 +1259,9 @@ html body .app-shell .staff-nagar-table th:nth-child(8),
 html body .app-shell .staff-nagar-table td:nth-child(8){width:7% !important}
 html body .app-shell .staff-nagar-table th:nth-child(9),
 html body .app-shell .staff-nagar-table td:nth-child(9),
-html body .app-shell .staff-nagar-table td.staff-actions{width:168px !important;white-space:nowrap !important}
+html body .app-shell .staff-nagar-table td.staff-actions{width:248px !important;min-width:248px !important;white-space:nowrap !important;overflow:visible !important}
 html body .app-shell .staff-table-scroll td.staff-actions .row-menu,
-html body .app-shell .staff-table-scroll .staff-actions{white-space:nowrap !important}
+html body .app-shell .staff-table-scroll .staff-actions{white-space:nowrap !important;overflow:visible !important}
 }
 html body .groups-page img.wa-avatar,
 html body .groups-page .wa-avatar.user-avatar-photo,
@@ -1751,29 +1753,29 @@ html body .today-event strong{font-size:14px;color:#12203a}
 html body .today-event small{color:#5b6b82;font-size:12px}
 
 html body .row-menu-pop{
-  padding:8px !important;
+  padding:6px !important;
   display:flex !important;
   flex-direction:column !important;
-  gap:8px !important;
+  gap:4px !important;
 }
 html body .row-menu-pop button,
 html body .row-menu-pop .death-action-btn,
 html body .row-menu-pop .row-menu-node,
 html body .row-menu-pop .row-menu-node > *{
   width:100% !important;
-  min-height:42px !important;
-  height:auto !important;
+  min-height:32px !important;
+  height:32px !important;
   display:flex !important;
   align-items:center !important;
   justify-content:flex-start !important;
   text-align:left !important;
-  padding:10px 12px !important;
+  padding:0 10px !important;
   border:1px solid #d5dee9 !important;
-  border-radius:10px !important;
+  border-radius:8px !important;
   background:#fff !important;
   box-shadow:none !important;
-  font-size:14px !important;
-  font-weight:700 !important;
+  font-size:13px !important;
+  font-weight:600 !important;
   color:#1f2d44 !important;
 }
 html body .row-menu-pop button.danger,
@@ -1879,6 +1881,7 @@ html body .ward-closed-note{
     margin:0 !important;
     justify-content:center !important;
   }
+  html body .row-menu-pop,
   html body .app-shell .row-menu-pop,
   html body .app-shell .row-menu.is-open .row-menu-pop{
     position:fixed !important;
@@ -1887,6 +1890,7 @@ html body .ward-closed-note{
     bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important;
     top:auto !important;
     width:auto !important;
+    max-width:none !important;
     z-index:91 !important;
   }
   html body .app-shell .nagarsevak-sub-page .sub-panel-actions,
@@ -1903,5 +1907,276 @@ html body .ward-closed-note{
   }
   html body .app-shell .circle-photo-row{
     flex-wrap:wrap !important;
+  }
+}
+
+html body .login-page-v2.auth-simple .auth-login-links,
+html body .login-page-v2.auth-simple.admin-login .auth-login-links,
+html body .login-page-v2.auth-simple.citizen-login .auth-login-links{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:16px !important;
+  width:100% !important;
+  grid-template-columns:unset !important;
+}
+html body .login-page-v2.auth-simple .auth-login-actions,
+html body .login-page-v2.auth-simple.admin-login .auth-login-actions,
+html body .login-page-v2.auth-simple.citizen-login .auth-login-actions{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:0 !important;
+  width:100% !important;
+  margin-top:16px !important;
+  flex-wrap:nowrap !important;
+}
+html body .login-page-v2.auth-simple .auth-link-sep,
+html body .login-page-v2.auth-simple.admin-login .auth-link-sep,
+html body .login-page-v2.auth-simple.citizen-login .auth-link-sep{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:auto !important;
+  min-width:0 !important;
+  height:auto !important;
+  margin:0 10px !important;
+  background:none !important;
+  flex:0 0 auto !important;
+  align-self:center !important;
+  color:#9ca3af !important;
+  font-size:14px !important;
+  font-weight:500 !important;
+  line-height:1 !important;
+}
+html body .login-page-v2.auth-simple .auth-login-actions .link-btn,
+html body .login-page-v2.auth-simple.admin-login .auth-login-actions .link-btn,
+html body .login-page-v2.auth-simple.citizen-login .auth-login-actions .link-btn{
+  flex:0 0 auto !important;
+  width:auto !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  height:auto !important;
+  padding:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  border:0 !important;
+  border-radius:0 !important;
+  font-size:14px !important;
+  font-weight:700 !important;
+  line-height:1.3 !important;
+  color:#2563eb !important;
+  background:transparent !important;
+  background-image:none !important;
+  box-shadow:none !important;
+  text-decoration:underline !important;
+  text-underline-offset:3px !important;
+  white-space:nowrap !important;
+}
+html body .notification-view-all,
+html body .user-notification-open-chat{display:none !important}
+html body .notification-popover,
+html body .user-notification-popover{
+  max-height:min(70vh,460px) !important;
+  overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch !important;
+}
+@media (max-width:800px){
+  html body .notification-popover,
+  html body .user-notification-popover{
+    position:fixed !important;
+    left:12px !important;
+    right:12px !important;
+    top:64px !important;
+    width:auto !important;
+    max-width:none !important;
+    max-height:min(70dvh,480px) !important;
+    z-index:80 !important;
+  }
+  html body .user-notification-item,
+  html body .notification-item{
+    text-align:left !important;
+    padding:12px 14px !important;
+  }
+}
+
+/* Last-wins: compact More menus above tables, unclipped action buttons */
+html body .row-menu{
+  display:inline-flex !important;
+  flex-wrap:nowrap !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  position:relative !important;
+  white-space:nowrap !important;
+}
+html body .row-menu > .small-btn,
+html body .row-menu > .view-btn,
+html body .row-menu > .row-menu-toggle{
+  flex:0 0 auto !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  white-space:nowrap !important;
+  height:34px !important;
+  min-height:34px !important;
+}
+html body .row-menu > .view-btn{min-width:112px !important}
+html body .row-menu > .row-menu-toggle{min-width:68px !important;width:auto !important}
+html body .app-shell .table-wrap tbody td[data-label="Actions"],
+html body .app-shell .table-wrap tbody td.staff-actions,
+html body .app-shell .staff-table-scroll td.staff-actions{
+  overflow:visible !important;
+  white-space:nowrap !important;
+  width:248px !important;
+  min-width:248px !important;
+  max-width:none !important;
+}
+html body .row-menu-scrim{
+  display:block !important;
+  position:fixed !important;
+  inset:0 !important;
+  z-index:89 !important;
+  background:transparent !important;
+}
+html body .row-menu-pop{
+  position:fixed !important;
+  z-index:90 !important;
+  margin:0 !important;
+  padding:6px !important;
+  min-width:168px !important;
+  max-width:min(220px,calc(100vw - 16px)) !important;
+  background:#fff !important;
+  border:1px solid #d5dee9 !important;
+  border-radius:12px !important;
+  box-shadow:0 12px 32px rgba(11,22,36,.16) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:4px !important;
+}
+html body .row-menu-pop button,
+html body .row-menu-pop .death-action-btn,
+html body .row-menu-pop .row-menu-node,
+html body .row-menu-pop .row-menu-node > *{
+  width:100% !important;
+  min-height:32px !important;
+  height:32px !important;
+  max-height:32px !important;
+  padding:0 10px !important;
+  font-size:13px !important;
+  font-weight:600 !important;
+  line-height:1.2 !important;
+  border:1px solid #d5dee9 !important;
+  border-radius:8px !important;
+  background:#fff !important;
+  box-shadow:none !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  text-align:left !important;
+  color:#1f2d44 !important;
+}
+html body .row-menu-pop button:hover,
+html body .row-menu-pop .death-action-btn:hover{
+  background:#f4f7fb !important;
+}
+html body .row-menu-pop button.danger,
+html body .row-menu-pop .row-menu-node.danger .death-action-btn{
+  border-color:#f0c2bc !important;
+  color:#b42318 !important;
+  background:#fff8f7 !important;
+}
+@media (max-width:800px){
+  html body .app-shell .table-wrap tbody td[data-label="Actions"],
+  html body .app-shell .table-wrap tbody td.staff-actions,
+  html body .app-shell .staff-table-scroll td.staff-actions{
+    width:auto !important;
+    min-width:0 !important;
+    white-space:normal !important;
+  }
+  html body .row-menu{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    width:100% !important;
+    max-width:100% !important;
+  }
+  html body .row-menu > .small-btn,
+  html body .row-menu > .view-btn,
+  html body .row-menu > .row-menu-toggle{
+    width:100% !important;
+    min-width:0 !important;
+    height:40px !important;
+    min-height:40px !important;
+    justify-content:center !important;
+  }
+  html body .row-menu-pop{
+    left:12px !important;
+    right:12px !important;
+    width:auto !important;
+    max-width:none !important;
+    min-width:0 !important;
+    bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important;
+    top:auto !important;
+    max-height:min(70dvh,420px) !important;
+    overflow:auto !important;
+  }
+  html body .row-menu-pop button,
+  html body .row-menu-pop .death-action-btn,
+  html body .row-menu-pop .row-menu-node,
+  html body .row-menu-pop .row-menu-node > *{
+    min-height:38px !important;
+    height:38px !important;
+    max-height:38px !important;
+    font-size:14px !important;
+  }
+}
+
+html body .row-menu-pop button,
+html body .row-menu-pop button.danger{
+  white-space:nowrap !important;
+  box-sizing:border-box !important;
+}
+html body .government-voter-page .government-voter-upload{
+  display:grid !important;
+  grid-template-columns:minmax(200px,.9fr) minmax(220px,1.1fr) minmax(160px,.8fr) auto !important;
+  gap:12px !important;
+  align-items:end !important;
+}
+html body .government-voter-page .government-voter-summary{
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:10px !important;
+}
+html body .government-voter-page .government-voter-table tr.is-selected td{
+  background:#eef4fb !important;
+}
+html body .government-voter-page .government-voter-data-panel .panel-title{
+  display:flex !important;
+  justify-content:space-between !important;
+  align-items:flex-start !important;
+  gap:12px !important;
+}
+html body .government-voter-page .government-voter-filter{
+  margin:0 0 12px !important;
+  max-width:320px !important;
+}
+@media (max-width:900px){
+  html body .government-voter-page .government-voter-upload{
+    grid-template-columns:1fr !important;
+  }
+  html body .government-voter-page .government-voter-upload .primary-btn{
+    width:100% !important;
+    min-height:44px !important;
+  }
+  html body .government-voter-page .government-voter-summary{
+    grid-template-columns:1fr 1fr !important;
+  }
+  html body .government-voter-page .government-voter-data-panel .panel-title{
+    flex-direction:column !important;
+  }
+  html body .government-voter-page .government-voter-filter{
+    max-width:none !important;
   }
 }

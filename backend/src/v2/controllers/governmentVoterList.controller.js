@@ -4,7 +4,7 @@ const os = require('os');
 const path = require('path');
 const ExcelJS = require('exceljs');
 const pdfParse = require('pdf-parse');
-const { GovernmentVoterList, User, Ward, Role } = require('../../models');
+const { GovernmentVoterList, User, Ward } = require('../../models');
 const sequelize = require('../../config/database');
 const ApiError = require('../../utils/ApiError');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -31,19 +31,22 @@ function parseJsonArray(value) {
 
 async function assertListAccess(row, req) {
   if (req.user.roleName === 'SUPER_ADMIN') return true;
-  const ownWardId = String(req.user.wardId || '');
   const wardIds = parseJsonArray(row.wardIds);
-  if (req.user.roleName !== 'NAGARSEVAK') {
-    throw new ApiError(403, 'You do not have access to this government voter list.');
+  if (req.user.roleName === 'SUB_MASTER_ADMIN') {
+    const allowed = (req.user.wardIds || []).map(String);
+    if (!allowed.length || !wardIds.some(id => allowed.includes(String(id)))) {
+      throw new ApiError(403, 'This voter list is outside your assigned wards.');
+    }
+    return true;
   }
-  if (!ownWardId || !wardIds.includes(ownWardId)) {
-    throw new ApiError(403, 'This voter list is outside your ward.');
+  if (req.user.roleName === 'NAGARSEVAK') {
+    const ownWardId = String(req.user.wardId || '');
+    if (!ownWardId || !wardIds.includes(ownWardId)) {
+      throw new ApiError(403, 'This voter list is outside your ward.');
+    }
+    return true;
   }
-  // Government lists are private source files. Nagarsevaks can only see lists
-  // uploaded by their own account, even when a Master Admin uploaded a list
-  // for their ward or selected them in the admin assignment UI.
-  if (String(row.uploadedBy) === String(req.user.id)) return true;
-  throw new ApiError(403, 'This government voter list was not uploaded by your Nagarsevak account.');
+  throw new ApiError(403, 'You do not have access to this government voter list.');
 }
 
 function fileTypeFrom(file) {
@@ -220,26 +223,20 @@ const upload = asyncHandler(async (req, res) => {
   if (req.user.roleName === 'NAGARSEVAK') {
     if (!req.user.wardId) throw new ApiError(403, 'Your Nagarsevak account is not assigned to a ward.');
     wardIds = [String(req.user.wardId)];
-    assignmentMode = 'UPLOADER_ONLY';
-    assignedNagarsevakIds = [String(req.user.id)];
-  } else if (req.user.roleName === 'SUPER_ADMIN') {
-    if (!['ALL_NAGARSEVAKS', 'SPECIFIC_NAGARSEVAKS'].includes(assignmentMode)) {
-      throw new ApiError(400, 'Select whether this file is for all Nagarsevaks or specific Nagarsevaks.');
+    assignmentMode = 'ALL_NAGARSEVAKS';
+    assignedNagarsevakIds = [];
+  } else if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN') {
+    if (wardIds.length !== 1) throw new ApiError(400, 'Select one ward for this government voter list.');
+    if (req.user.roleName === 'SUB_MASTER_ADMIN') {
+      const allowed = (req.user.wardIds || []).map(String);
+      if (!allowed.includes(String(wardIds[0]))) throw new ApiError(403, 'You can only upload a voter list for an assigned ward.');
     }
-    if (!wardIds.length) throw new ApiError(400, 'Select at least one ward for this voter list.');
     const wardRows = await Ward.findAll({ where: { id: wardIds, status: 'ACTIVE' }, attributes: ['id'] });
-    if (wardRows.length !== wardIds.length) throw new ApiError(400, 'One or more selected wards are invalid.');
-    const nagRole = await Role.findOne({ where: { name: 'NAGARSEVAK' } });
-    if (!nagRole) throw new ApiError(400, 'Nagarsevak role is not configured.');
-    if (assignmentMode === 'ALL_NAGARSEVAKS') {
-      assignedNagarsevakIds = [];
-    } else {
-      const users = await User.findAll({ where: { id: assignedNagarsevakIds, roleId: nagRole.id, status: 'ACTIVE' }, attributes: ['id','wardId'] });
-      if (users.length !== assignedNagarsevakIds.length) throw new ApiError(400, 'One or more selected Nagarsevak accounts are invalid or inactive.');
-      if (users.some(u => !wardIds.includes(String(u.wardId)))) throw new ApiError(400, 'Every selected Nagarsevak must belong to one of the selected wards.');
-    }
+    if (wardRows.length !== 1) throw new ApiError(400, 'The selected ward is invalid.');
+    assignmentMode = 'ALL_NAGARSEVAKS';
+    assignedNagarsevakIds = [];
   } else {
-    throw new ApiError(403, 'Only Master Admin or Nagarsevak can upload government voter lists.');
+    throw new ApiError(403, 'Only Master Admin, Sub Master Admin or Nagarsevak can upload government voter lists.');
   }
 
   const ext = path.extname(req.file.originalname || '').toLowerCase();
@@ -312,10 +309,8 @@ const remove = asyncHandler(async (req, res) => {
   const row = await GovernmentVoterList.findByPk(req.params.id);
   if (!row) throw new ApiError(404, 'Voter list not found');
   await assertListAccess(row, req);
-  ensureStorage();
-  const filePath = path.join(STORAGE_DIR, row.storedFileName);
-  if (!fs.existsSync(filePath)) throw new ApiError(404, 'Original voter list file is missing from server storage.');
   // Keep the original file while it is in Recycle Bin so it can be restored.
+  // Missing files must not block delete — extracted rows stay in the database until recycle cleanup.
   await row.destroy();
   await logAudit({
     user: req.user,
@@ -325,7 +320,7 @@ const remove = asyncHandler(async (req, res) => {
     oldValue: { fileName: row.originalFileName, extractedCount: row.extractedCount },
     ipAddress: req.ip,
   });
-  return success(res, { message: 'Government voter list deleted successfully.' });
+  return success(res, { message: 'Government voter list moved to Recycle Bin.' });
 });
 
 const details = asyncHandler(async (req, res) => {
@@ -334,7 +329,12 @@ const details = asyncHandler(async (req, res) => {
   });
   if (!row) throw new ApiError(404, 'Voter list not found');
   await assertListAccess(row, req);
-  return success(res, { data: row });
+  const json=row.toJSON();
+  return success(res, { data: {
+    ...json,
+    wardIds: parseJsonArray(row.wardIds),
+    assignedNagarsevakIds: parseJsonArray(row.assignedNagarsevakIds),
+  } });
 });
 
 module.exports = { list, upload, extract, download, details, remove };

@@ -28,7 +28,7 @@ export default function Families(){
  const {selectedWardId}=useWardFilter();
  const [rows,setRows]=useState(null),[houses,setHouses]=useState([]),[wards,setWards]=useState([]),[search,setSearch]=useState('');
  const [detail,setDetail]=useState(null),[edit,setEdit]=useState(null),[add,setAdd]=useState(null);
- const [memberForm,setMemberForm]=useState(null),[editingMember,setEditingMember]=useState(null),[memberFamilyId,setMemberFamilyId]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [memberForm,setMemberForm]=useState(null),[editingMember,setEditingMember]=useState(null),[memberFamilyId,setMemberFamilyId]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[deathPerson,setDeathPerson]=useState(null);
  const [houseLoc,setHouseLoc]=useState(null),[locFamilyId,setLocFamilyId]=useState(''),[locReturn,setLocReturn]=useState(false);
  const pin=canPinHouse();
  async function load(){try{setError('');setRows((await api.families({limit:500,wardId:selectedWardId||undefined})).data||[])}catch(e){setError(e.message)}}
@@ -101,7 +101,7 @@ export default function Families(){
    </div>
    <div className="detail-card"><div className="panel-title"><div><h3>Family members ({(detail.members||[]).filter(m=>m.status!=='DECEASED').length})</h3><span>Members appear here immediately after saving. Add, edit or remove members at any time.</span></div></div>{!(detail.members||[]).filter(m=>m.status!=='DECEASED').length?<Empty>No active members. Add a member.</Empty>:<div className="member-grid">{(detail.members||[]).filter(m=>m.status!=='DECEASED').map(m=><div className="member-card rich-member" key={m.id}><div><strong>{m.fullName}</strong><span>{m.age==null?'Age not available':`${m.age} years`} · {m.mobile||'No mobile'}</span><span>{m.occupationType==='BUSINESS'?`Business: ${m.businessName||'—'}`:m.occupationType==='SERVICE'?`Service: ${m.companyName||'—'} ({m.employmentType||'—'})`:'Other occupation'}</span><span>{m.voterProfile?.status==='VOTER'?'Voter':'Non-Voter'}</span>{presenceLine(m)?<span>{presenceLine(m)}</span>:null}</div><div className="card-actions"><RowMenu items={[
      can('EDIT_CITIZENS')&&{label:'Edit',onClick:()=>{setEditingMember(m);setMemberFamilyId(detail.id);setMemberForm({...emptyPerson,...m,isVoter:m.voterProfile?.status==='VOTER'?'VOTER':m.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:m.voterProfile?.officialVoterIdRef||'',votingWard:m.voterProfile?.votingWard||'',constituency:m.voterProfile?.constituency||''});setDetail(null)}},
-     can('CREATE_DEATH_RECORDS')&&{label:'Mark deceased',danger:true,node:<DeathAction person={m} onSaved={()=>openFamily(detail.id)}/>},
+     can('CREATE_DEATH_RECORDS')&&{label:'Mark deceased',danger:true,onClick:()=>setDeathPerson(m)},
      can('DELETE_CITIZENS')&&{label:'Remove',danger:true,onClick:()=>deleteMember(m.id)}
     ]}/></div></div>)}</div>}</div>
   </Modal>}
@@ -117,5 +117,6 @@ export default function Families(){
   {memberForm&&<Modal wide title={editingMember?`Edit family member · ${editingMember.fullName||'Member'}`:'Add family member'} onClose={()=>{setMemberForm(null);setEditingMember(null);setMemberFamilyId('')}}><PersonForm value={memberForm} onChange={setMemberForm} hideFamily wards={wards} onSubmit={saveMember} onCancel={()=>{setMemberForm(null);setEditingMember(null);setMemberFamilyId('')}} busy={busy}/></Modal>}
 
   {(edit||add)&&<Modal wide title={edit?`Edit ${edit.familyName||'Family'}`:'Add family'} onClose={()=>{setEdit(null);setAdd(null)}}><form className="form-grid admin-form" onSubmit={saveFamily}><div className="form-section-title span-2"><strong>Household</strong><span>Link this family to the house whose exact pin you already recorded.</span></div><Field label="Family name"><input required value={(edit||add).familyName||''} onChange={e=>(edit?setEdit:setAdd)({...((edit||add)),familyName:e.target.value})} placeholder="e.g. Patil family"/></Field><Field label="House"><SearchableSelect required value={(edit||add).houseId||''} onChange={v=>(edit?setEdit:setAdd)({...((edit||add)),houseId:v})} options={wardHouses.map(h=>({value:h.id,label:placeLine([h.houseNumber,h.area?.name,h.address,hasCoords(h.latitude,h.longitude)?'pinned':''])}))} placeholder="Search house number, colony, address…"/></Field><Field className="span-2" label="Notes"><textarea value={(edit||add).notes||''} onChange={e=>(edit?setEdit:setAdd)({...((edit||add)),notes:e.target.value})} placeholder="Optional household note"/></Field><div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>{setEdit(null);setAdd(null)}}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Saving…':edit?'Save changes':'Create family'}</button></div></form></Modal>}
+  {deathPerson&&<DeathAction trigger={false} person={deathPerson} onSaved={()=>{if(detail?.id)openFamily(detail.id);load()}} onClose={()=>setDeathPerson(null)}/>}
  </div>;
 }

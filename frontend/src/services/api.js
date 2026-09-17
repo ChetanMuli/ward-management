@@ -38,9 +38,6 @@ async function request(path,options={}){
     : response.status===404?'The requested record was not found.'
     : '';
   const message=[payload?.message||payload?.error||statusText||`Request failed (${response.status})`,detail].filter(Boolean).join(': ');
-  if(options.method && ['POST','PATCH','DELETE'].includes(String(options.method).toUpperCase()) && !path.includes('/auth/')) {
-    window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message}}));
-  }
   throw new Error(message);
  }
  if(options.method && ['POST','PATCH','DELETE'].includes(String(options.method).toUpperCase()) && !path.includes('/auth/')){

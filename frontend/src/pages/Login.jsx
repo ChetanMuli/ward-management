@@ -14,12 +14,7 @@ function AuthError({error}){
  return (
   <div className={`error-box ${panelOff?'login-panel-off':''}`}>
    {lines.map((line,i)=><p key={i}>{line}</p>)}
-   {panelOff&&(
-    <div className="auth-company-contact">
-     <div><span>Email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
-     <div><span>Mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
-    </div>
-   )}
+   {panelOff&&<CompanyContact/>}
   </div>
  );
 }
@@ -74,13 +69,19 @@ function AuthApps({admin}){
  </div>;
 }
 
-function SupportNote(){
- return <div className="auth-support-note">
-  <p>If you do not receive the code by email, contact support.</p>
+function CompanyContact(){
+ return (
   <div className="auth-company-contact">
    <div><span>Email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
    <div><span>Mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
   </div>
+ );
+}
+
+function SupportNote(){
+ return <div className="auth-support-note">
+  <p>If you do not receive the code by email, contact support.</p>
+  <CompanyContact/>
  </div>;
 }
 
@@ -262,15 +263,22 @@ export default function Login({mode='user'}){
   }
  }
 
+ if(view==='support'){
+  return <AuthShell admin={admin} pageLabel={admin?'Admin support':'Resident support'} title="Support">
+   <div className="login-v2-card auth-simple-card">
+    <p className="auth-staff-copy">If you have any problem, contact us.</p>
+    <CompanyContact/>
+    <button type="button" className="primary-btn full login-v2-submit" onClick={goLogin}>Back to sign in</button>
+   </div>
+  </AuthShell>;
+ }
+
  if(view==='staff-help'){
   return <AuthShell admin={true} title="Forgot password" lead="Staff passwords are restored by our team">
    <div className="login-v2-card auth-simple-card">
     <p className="auth-staff-copy">Nagarsevak, Employee, Sub Master Admin and Master Admin passwords cannot be reset from this screen.</p>
     <p className="auth-staff-copy">Please contact <strong>{COMPANY_NAME}</strong>. We will verify your account and issue a new password.</p>
-    <div className="auth-company-contact">
-     <div><span>Email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
-     <div><span>Mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
-    </div>
+    <CompanyContact/>
     <button type="button" className="primary-btn full login-v2-submit" onClick={goLogin}>Back to sign in</button>
    </div>
   </AuthShell>;
@@ -338,16 +346,14 @@ export default function Login({mode='user'}){
    <button type="submit" className="primary-btn full login-v2-submit" disabled={busy}>
     {busy?'Signing in…':'Sign in'}
    </button>
-   <div className={`auth-simple-links auth-login-links ${admin?'is-admin':'is-resident'}`}>
-    {!admin&&<button type="button" className="link-btn" onClick={()=>navigate('/register')}>Create account</button>}
+   <div className={`auth-login-actions ${admin?'is-admin':'is-resident'}`}>
+    {!admin&&<>
+     <button type="button" className="link-btn" onClick={()=>navigate('/register')}>Create account</button>
+     <span className="auth-link-sep" aria-hidden="true">|</span>
+    </>}
+    <button type="button" className="link-btn" onClick={()=>{setError('');setNotice('');setView('support');}}>Support</button>
+    <span className="auth-link-sep" aria-hidden="true">|</span>
     <button type="button" className="link-btn" onClick={openForgot}>Forgot password?</button>
-   </div>
-   <div className="auth-support-note login-support-block">
-    <p>If you have any problem, contact us.</p>
-    <div className="auth-company-contact">
-     <div><span>Email</span><a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a></div>
-     <div><span>Mobile</span><a href={`tel:${COMPANY_MOBILE}`}>{COMPANY_MOBILE}</a></div>
-    </div>
    </div>
   </form>
  </AuthShell>;

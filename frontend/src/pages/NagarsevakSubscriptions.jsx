@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {api,getUser} from '../services/api';
-import {isMaster} from '../rbac';
+import {isMaster,isSubMaster} from '../rbac';
 import {Empty,ErrorBox,Loading,Modal,PageHeader,PaginationBar,SearchableSelect,StatusPill} from '../components/Ui';
 
 function fmtDate(v){
@@ -30,7 +30,7 @@ function Confirm({title,message,confirmLabel,tone='primary',busy,onClose,onConfi
 
 export default function NagarsevakSubscriptions(){
  const user=getUser();
- const master=isMaster(user);
+ const canManage=isMaster(user)||isSubMaster(user);
  const [rows,setRows]=useState(null);
  const [error,setError]=useState('');
  const [wards,setWards]=useState([]);
@@ -43,17 +43,17 @@ export default function NagarsevakSubscriptions(){
  const [confirm,setConfirm]=useState(null);
 
  function load(){
-  if(!master) return;
+  if(!canManage) return;
   setError('');
   return api.nagarsevakSubscriptions().then(r=>setRows(r?.data||[])).catch(e=>{setError(e.message);setRows([]);});
  }
 
  useEffect(()=>{
-  if(!master) return;
+  if(!canManage) return;
   api.wards().then(r=>setWards(r?.data||[])).catch(()=>setWards([]));
- },[master]);
+ },[canManage]);
 
- useEffect(()=>{load();},[master]);
+ useEffect(()=>{load();},[canManage]);
 
  async function applyStatus(row,next){
   if(!row?.wardId){setError('This Nagarsevak is not assigned to a ward.');return;}
@@ -100,7 +100,7 @@ export default function NagarsevakSubscriptions(){
   };
  },[rows]);
 
- if(!master) return <div className="admin-data-page nagarsevak-sub-page"><PageHeader kicker="Team & access" title="Nagarsevak subscriptions" subtitle="Only Master Admin can review subscription dates."/><Empty>Master Admin access is required.</Empty></div>;
+ if(!canManage) return <div className="admin-data-page nagarsevak-sub-page"><PageHeader kicker="Team & access" title="Nagarsevak subscriptions" subtitle="Only Master Admin and Sub Master Admin can review subscription dates."/><Empty>Admin desk access is required.</Empty></div>;
 
  return (
   <div className="admin-data-page nagarsevak-sub-page">
