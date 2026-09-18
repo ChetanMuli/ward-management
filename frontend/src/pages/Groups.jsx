@@ -24,9 +24,9 @@ function lastPreview(m){
   return m.content||'Message';
 }
 function GroupFace({g}){
-  if(isAllChat(g)) return <span className="wa-avatar community">W</span>;
+  if(isAllChat(g)) return <span className="wa-avatar community notranslate" translate="no">W</span>;
   if(g.type==='NAGARSEVAK') return <FaceAvatar name={g.nagarsevak?.name||groupTitle(g)} photo={g.nagarsevak?.photo} className="wa-avatar nagar"/>;
-  return <span className="wa-avatar">{initialsOf(groupTitle(g))}</span>;
+  return <span className="wa-avatar notranslate" translate="no">{initialsOf(groupTitle(g))}</span>;
 }
 
 function GroupPage(){
@@ -46,8 +46,13 @@ function GroupPage(){
  },[scopedWardId,canSelect,citizen,councillor,user?.wardId,user?.ward?.id]);
  useEffect(()=>{try{sessionStorage.setItem('ward_groups_filters',JSON.stringify({wardId,nagarsevakId,groupId,search}))}catch{}},[wardId,nagarsevakId,groupId,search]);
 
- const loadGroups=(id=wardId)=>api.chatGroups(id?{wardId:id}:{}).then(r=>setGroups(r.data||[])).catch(e=>{setError(e.message||'Unable to load chats.');setGroups([])});
+ const loadGroups=(id=wardId)=>api.chatGroups(id?{wardId:id}:{}).then(r=>{setGroups(r.data||[]);window.dispatchEvent(new CustomEvent('ward:chat-refresh'))}).catch(e=>{setError(e.message||'Unable to load chats.');setGroups([])});
  useEffect(()=>{loadGroups(wardId)},[wardId]);
+ useEffect(()=>{
+  if(!wardId)return;
+  const t=setInterval(()=>loadGroups(wardId),8000);
+  return()=>clearInterval(t);
+ },[wardId]);
 
  const accessibleGroups=useMemo(()=>{
   if(!wardId) return [];
@@ -116,7 +121,7 @@ function GroupPage(){
   let live=true;
   const load=()=>api.chatMessages(active.id,{limit:100}).then(r=>{if(live)setMessages(r.data||[])}).catch(e=>{if(live)setError(e.message)});
   load();
-  api.markChatRead(active.id).catch(()=>{});
+  api.markChatRead(active.id).then(()=>window.dispatchEvent(new CustomEvent('ward:chat-refresh'))).catch(()=>{});
   const t=setInterval(load,5000);
   return()=>{live=false;clearInterval(t)};
  },[active?.id]);
@@ -171,7 +176,14 @@ function GroupPage(){
    setMessages([]);
   }catch(e){setError(e.message)}
  }
- function openGroup(g){setActive(g);setChatOpen(true)}
+ function openGroup(g){
+  setActive(g);
+  setChatOpen(true);
+  if(Number(g.unreadCount)>0){
+   api.markChatRead(g.id).then(()=>window.dispatchEvent(new CustomEvent('ward:chat-refresh'))).catch(()=>{});
+   setGroups(rows=>(rows||[]).map(x=>x.id===g.id?{...x,unreadCount:0}:x));
+  }
+ }
 
  const wardOptions=wards.map(w=>({value:String(w.id),label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}));
  const nagOptions=nagarsevaks.map(n=>({value:String(n.id),label:`${n.name}${n.ward?.wardNumber?` · ${n.ward.wardNumber}`:''}`}));
@@ -204,6 +216,7 @@ function GroupPage(){
           <strong>{groupTitle(g)}</strong>
           <small>{last?lastPreview(last):groupSubtitle(g)}</small>
          </span>
+         {Number(g.unreadCount)>0&&active?.id!==g.id&&<span className="wa-unread">{Number(g.unreadCount)>99?'99+':g.unreadCount}</span>}
         </button>;
       };
       if(!wardId) return <div className="group-no-items">Select a ward to view its chats.</div>;
@@ -225,7 +238,7 @@ function GroupPage(){
        {(active.isMember||master||sub||active.type!=='CUSTOM')&&<button type="button" className="wa-clear-btn" onClick={clearMyChat}>Clear</button>}
        <div className="card-actions">{active.type==='CUSTOM'&&active.isMember&&<button className="small-btn" onClick={()=>api.leaveChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Leave</button>}{active.type==='CUSTOM'&&!active.isMember&&<button className="small-btn" onClick={()=>api.joinChatGroup(active.id).then(loadGroups).catch(e=>setError(e.message))}>Join</button>}{active.canManage&&active.type==='CUSTOM'&&<button className="small-btn danger" onClick={()=>removeGroup(active)}>Archive</button>}</div>
       </header>
-      <div className="group-messages wa-messages">{!active.isMember?<div className="group-empty">Join this group to view and send messages.</div>:!messages.length?<div className="group-empty">No messages yet. Say hello to the group.</div>:messages.map(m=><div key={m.id} className={`group-message ${m.senderUserId===user?.id?'mine':''}`}><div className="group-bubble"><div className="group-bubble-head">{m.senderUserId!==user?.id&&<FaceAvatar name={m.sender?.name||'User'} photo={m.sender?.photo||(String(m.senderUserId)===String(active?.nagarsevakUserId)?active?.nagarsevak?.photo:'')} className="chat-sender-face"/>}<strong>{m.senderUserId===user?.id?'You':m.sender?.name||'User'}</strong></div>{m.messageType==='IMAGE'?<ChatAttachment groupId={active.id} messageId={m.id} type="IMAGE"/>:m.messageType==='VIDEO'?<ChatAttachment groupId={active.id} messageId={m.id} type="VIDEO"/>:m.messageType==='PDF'?<ChatAttachment groupId={active.id} messageId={m.id} type="PDF"/>:<p>{m.content}</p>}<small>{m.createdAt?new Date(m.createdAt).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}):''}</small></div></div>)}<div ref={bottom}/></div>
+      <div className="group-messages wa-messages">{!active.isMember?<div className="group-empty">Join this group to view and send messages.</div>:!messages.length?<div className="group-empty">No messages yet. Say hello to the group.</div>:messages.map(m=>{const mine=String(m.senderUserId)===String(user?.id);const senderName=m.sender?.name||'User';const senderPhoto=m.sender?.photo||(String(m.senderUserId)===String(active?.nagarsevakUserId)?active?.nagarsevak?.photo:'');return <div key={m.id} className={`group-message ${mine?'mine':''}`}><div className="group-bubble"><div className="group-bubble-head">{!mine&&<FaceAvatar name={senderName} photo={senderPhoto} className="chat-sender-face"/>}<strong className="notranslate" translate="no">{mine?'You':senderName}</strong></div>{m.messageType==='IMAGE'?<ChatAttachment groupId={active.id} messageId={m.id} type="IMAGE"/>:m.messageType==='VIDEO'?<ChatAttachment groupId={active.id} messageId={m.id} type="VIDEO"/>:m.messageType==='PDF'?<ChatAttachment groupId={active.id} messageId={m.id} type="PDF"/>:<p>{m.content}</p>}<small>{m.createdAt?new Date(m.createdAt).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}):''}</small></div></div>})}<div ref={bottom}/></div>
       {canSend&&<div className="group-composer wa-composer">{pendingAttachment&&<div className="pending-chat-image"><span>{pendingAttachment.type==='PDF'?'📄':pendingAttachment.type==='VIDEO'?'🎬':'📷'} {pendingAttachment.name}</span><button type="button" className="small-btn danger" onClick={()=>{setPendingAttachment(null);if(fileRef.current)fileRef.current.value=''}}>Remove</button></div>}<div className="wa-compose-row"><label className="chat-image-picker wa-attach" title="Attach photo, video or PDF">📎<input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,application/pdf,.pdf,.mp4,.webm,.mov" onChange={e=>chooseAttachment(e.target.files?.[0])}/></label><textarea rows="1" value={compose} onChange={e=>setCompose(e.target.value)} placeholder="Type a message" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}/><button className="primary-btn wa-send" disabled={busy||(!compose.trim()&&!pendingAttachment)} onClick={send}>{busy?'…':'Send'}</button></div></div>}
     </>}
    </section>

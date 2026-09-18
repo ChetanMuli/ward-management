@@ -20,9 +20,8 @@ async function notifySchemePublished(req, scheme) {
     message: `${scheme.title} is now available in ${ward?.wardNumber || 'your ward'}. Open Schemes & Benefits for details.`,
     actionUrl: `/schemes?open=${scheme.id}`,
   };
-  const { notifyWardCitizens, notifyMastersAndWardStaff } = require('../../services/notify.service');
+  const { notifyWardCitizens } = require('../../services/notify.service');
   await notifyWardCitizens(targetWardId, payload);
-  await notifyMastersAndWardStaff(targetWardId, payload);
 }
 
 function scopeWhere(req){

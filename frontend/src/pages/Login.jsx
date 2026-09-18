@@ -103,8 +103,8 @@ export function AuthShell({admin,title,lead,pageLabel,register,children}){
    <div className="auth-blob auth-blob-a" aria-hidden="true"/>
    <div className="auth-blob auth-blob-b" aria-hidden="true"/>
    <div className="auth-simple-logo">
-    <span className="brand-mark">W</span>
-    <strong>WardDesk</strong>
+    <span className="brand-mark notranslate" translate="no">W</span>
+    <strong className="notranslate" translate="no">WardDesk</strong>
    </div>
    <p className="auth-page-tag">{label}</p>
    <h1>{title}</h1>

@@ -190,7 +190,6 @@ const createCorporator = asyncHandler(async (req, res) => {
     : [...ALL_PERMISSIONS];
   const user = await User.create({ name, email, mobile, partyName: partyName || null, wardSeat: wardSeat || null, officialAddress: officialAddress || null, photo: photo || null, passwordHash: await bcrypt.hash(password, 12), roleId:r.id, wardId, permissions, status:'INACTIVE' });
   await ensureNagarsevakSubscription(wardId, user.id, 'PENDING');
-  await ensureNagarsevakGroup(user.id);
   await logAudit({ user:req.user, action:'CREATE_NAGARSEVAK', entity:'User', recordId:user.id, newValue:{name,email,mobile,wardId,status:'INACTIVE'}, ipAddress:req.ip });
   return success(res,{statusCode:201,message:'Nagarsevak added to the ward. Activate the ward, then activate this Nagarsevak on Ward activation.',data:{id:user.id,name:user.name,email:user.email,mobile:user.mobile,wardId,status:user.status}});
 });

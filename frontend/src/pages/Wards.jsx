@@ -105,7 +105,23 @@ export default function Wards(){
     <Field label="Ward number *"><input required value={(edit||create).wardNumber||''} onChange={e=>(edit?setEdit:setCreate)({...((edit||create)),wardNumber:e.target.value})}/></Field>
     <Field label="Ward name (optional)"><input value={(edit||create).name||''} onChange={e=>(edit?setEdit:setCreate)({...((edit||create)),name:e.target.value})}/></Field>
     <Field className="span-2" label="Ward description"><textarea value={(edit||create).description||''} onChange={e=>(edit?setEdit:setCreate)({...((edit||create)),description:e.target.value})}/></Field>
-    {!edit&&<div className="span-2"><p className="activation-form-note">New wards stay inactive until you open them on Ward activation. Inactive wards do not appear on resident registration.</p><div className="section-label">Areas / Colonies in this ward</div>{(create.areas||[]).map((a,i)=><div className="inline-form-row" key={i}><input placeholder="Area / Colony name" value={a.name} onChange={e=>setCreate({...create,areas:create.areas.map((x,j)=>j===i?{...x,name:e.target.value}:x)})}/><input placeholder="Description" value={a.description} onChange={e=>setCreate({...create,areas:create.areas.map((x,j)=>j===i?{...x,description:e.target.value}:x)})}/><button type="button" className="small-btn danger" onClick={()=>setCreate({...create,areas:create.areas.filter((_,j)=>j!==i)})}>Remove</button></div>)}<button type="button" className="small-btn" onClick={()=>setCreate({...create,areas:[...(create.areas||[]),{...emptyArea}]})}>+ Add another area</button></div>}
+    {!edit&&<div className="span-2 ward-area-editor">
+     <p className="activation-form-note">New wards stay inactive until you open them on Ward activation. Inactive wards do not appear on resident registration.</p>
+     <div className="section-label">Colonies / areas in this ward</div>
+     {(create.areas||[]).map((a,i)=>(
+      <div className="ward-area-editor-card" key={i}>
+       <div className="ward-area-editor-head">
+        <strong>Colony {i+1}</strong>
+        {(create.areas||[]).length>1&&<button type="button" className="small-btn danger" onClick={()=>setCreate({...create,areas:create.areas.filter((_,j)=>j!==i)})}>Remove</button>}
+       </div>
+       <div className="form-grid">
+        <Field label="Colony / area name *"><input placeholder="e.g. Savedi Village" value={a.name} onChange={e=>setCreate({...create,areas:create.areas.map((x,j)=>j===i?{...x,name:e.target.value}:x)})}/></Field>
+        <Field label="Landmark or note (optional)"><input placeholder="e.g. Near bus stop" value={a.description} onChange={e=>setCreate({...create,areas:create.areas.map((x,j)=>j===i?{...x,description:e.target.value}:x)})}/></Field>
+       </div>
+      </div>
+     ))}
+     <button type="button" className="small-btn" onClick={()=>setCreate({...create,areas:[...(create.areas||[]),{...emptyArea}]})}>+ Add another colony</button>
+    </div>}
     <div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>{setEdit(null);setCreate(null)}}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Saving…':edit?'Save changes':'Create ward'}</button></div>
    </form>
   </Modal>}

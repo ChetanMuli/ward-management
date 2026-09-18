@@ -217,12 +217,15 @@ async function syncWardCommunityMembership(wardId) {
   const visibleSet = new Set(visibleIds.map(String));
 
   for (const nagar of allNagars) {
-    const group = await ensureNagarsevakChatGroup(nagar);
-    if (!group) continue;
     if (visibleSet.has(String(nagar.id)) && nagar.status === 'ACTIVE') {
+      const group = await ensureNagarsevakChatGroup(nagar);
+      if (!group) continue;
       await replaceGroupMembers(group.id, [...residentsAndStaff, nagar.id]);
     } else {
-      await replaceGroupMembers(group.id, nagar.status === 'ACTIVE' ? [nagar.id] : []);
+      await Chat.update(
+        { isActive: false },
+        { where: { nagarsevakUserId: nagar.id, type: 'NAGARSEVAK' } }
+      );
     }
   }
 

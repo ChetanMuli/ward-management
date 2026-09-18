@@ -21,8 +21,8 @@ function snippet(text,n=90){
 
 export default function Dashboard(){
  const user=getUser(); const navigate=useNavigate();
- const [data,setData]=useState(null),[detail,setDetail]=useState(null),[error,setError]=useState(''),[refreshing,setRefreshing]=useState(false);
- const {selectedWardId:selected}=useWardFilter();
+ const [data,setData]=useState(null),[detail,setDetail]=useState(null),[error,setError]=useState(''),[refreshing,setRefreshing]=useState(false),[chatUnread,setChatUnread]=useState(0);
+ const {selectedWardId:selected,canSelect}=useWardFilter();
  useEffect(()=>{
   let live=true;
   const load=()=>{
@@ -32,6 +32,17 @@ export default function Dashboard(){
   setError('');load();
   const timer=setInterval(load,30000);
   return()=>{live=false;clearInterval(timer)};
+ },[selected]);
+ useEffect(()=>{
+  let live=true;
+  const loadChat=()=>api.chatGroups(selected?{wardId:selected}:{}).then(r=>{
+   if(!live)return;
+   setChatUnread((r.data||[]).reduce((n,g)=>n+Number(g.unreadCount||0),0));
+  }).catch(()=>{});
+  loadChat();
+  const t=setInterval(loadChat,15000);
+  window.addEventListener('ward:chat-refresh',loadChat);
+  return()=>{live=false;clearInterval(t);window.removeEventListener('ward:chat-refresh',loadChat)};
  },[selected]);
  if(error&&!data)return <><PageHeader title="Dashboard"/><ErrorBox error={error}/></>;
  if(!data)return <Loading/>;
@@ -53,11 +64,12 @@ export default function Dashboard(){
  return <div className="admin-dashboard-page">
   <PageHeader kicker="Overview" title={title} subtitle={subtitle}/>
   <ErrorBox error={error}/>
-  <section className="dashboard-scope-panel">
+  {canSelect&&<section className="dashboard-scope-panel">
    <div className="dashboard-scope-copy"><span className="eyebrow">DASHBOARD FILTER</span><h3>View dashboard by ward</h3><p>Choose a ward to see its houses, citizens, voters and complaints. The same ward stays selected in Complaints and other sections.</p></div>
    <div className="dashboard-scope-control"><WardFilter label="Select ward"/></div>
    <div className="scope-chip"><span>SHOWING DATA FOR</span><strong>{scopeText}</strong><small>{refreshing?'Updating…':`Updated ${new Date(data.generatedAt||Date.now()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`}</small></div>
-  </section>
+  </section>}
+  {!canSelect&&<div className="scope-chip dashboard-fixed-scope"><span>SHOWING DATA FOR</span><strong>{scopeText}</strong><small>{refreshing?'Updating…':`Updated ${new Date(data.generatedAt||Date.now()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`}</small></div>}
   {data.ward&&<section className="panel dashboard-ward-summary"><div className="dashboard-ward-title"><span className="eyebrow">CURRENT WARD</span><h2>{data.ward.wardNumber}</h2><h3>{data.ward.name||'Ahilyanagar Municipal Corporation Ward'}</h3></div><div className="dashboard-ward-facts"><div><span>Population (2011)</span><strong>{Number(data.ward.population2011||0).toLocaleString('en-IN')}</strong></div><div><span>Key areas</span><strong>{Number(data.ward.areaCount||0)}</strong></div><div><span>Open complaints</span><strong>{data.openComplaints||0}</strong></div><div><span>Official map</span><a href={data.ward.officialMapUrl} target="_blank" rel="noreferrer">View AMC map ↗</a></div></div></section>}
   {(nagar||employee)&&<section className="panel profile-banner"><FaceAvatar name={data.user?.name||getUser()?.name} photo={data.user?.photo||getUser()?.photo} className="staff-face-lg"/><div><span className="eyebrow">{nagar?'NAGARSEVAK':'EMPLOYEE'}</span><h2>{data.user?.name}</h2><p>{scopeText}{data.employee?.designation?` · ${data.employee.designation}`:''}</p></div><div className="profile-quick"><div><span>Open work</span><strong>{data.openComplaints}</strong></div>{nagar&&<div><span>Employees</span><strong>{data.managedEmployees}</strong></div>}{employee&&<div><span>Manager</span><strong>{data.employee?.manager?.name||'—'}</strong></div>}</div></section>}
   {(nagar||employee)&&<section className="panel today-ward-panel">
@@ -88,6 +100,7 @@ export default function Dashboard(){
     <StatCard label="18+ next 90 days" value={data.upcoming18Next90} hint="Follow-up candidates" onClick={()=>openTo('/follow-up-18')}/>
     {master&&<StatCard label="Nagarsevaks" value={data.corporatorCount} hint="Active ward leaders" onClick={()=>openTo('/staff')}/>}
     {nagar&&<StatCard label="My employees" value={data.managedEmployees} hint="Directly managed" onClick={()=>openTo('/staff')}/>}
+    {(nagar||employee)&&<StatCard label="Groups & Chat" value={chatUnread} hint={chatUnread?`${chatUnread} unread message${chatUnread===1?'':'s'}`:'Open ward chat'} onClick={()=>openTo('/groups')}/>}
    </div>
   </section>
   <div className="two-col dashboard-lower">

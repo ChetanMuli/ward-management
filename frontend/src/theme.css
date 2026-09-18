@@ -2184,3 +2184,377 @@ html body .user-portal .row-menu-pop{
   overflow:auto !important;
   -webkit-overflow-scrolling:touch !important;
 }
+html body .modal-backdrop{
+  z-index:210 !important;
+}
+html body .modal-backdrop-stack{
+  z-index:280 !important;
+}
+html body .ward-area-editor{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+html body .ward-area-editor-card{
+  display:grid;
+  gap:10px;
+  padding:14px;
+  border:1px solid var(--admin-line,#e2e8f0);
+  border-radius:14px;
+  background:#f8fafc;
+}
+html body .ward-area-editor-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+html body .ward-area-editor-head strong{
+  font-size:13px;
+  color:#12203a;
+}
+html body .ward-area-editor-card .form-grid{
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) !important;
+  gap:12px !important;
+}
+html body .wa-item{
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+html body .wa-unread,
+html body .nav-chat-badge,
+html body .user-nav-badge.chat-unread{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:99px;
+  background:#0f766e;
+  color:#fff;
+  font-size:10px;
+  font-weight:800;
+  line-height:1;
+  letter-spacing:0;
+  flex:0 0 auto;
+  box-sizing:border-box;
+  vertical-align:middle;
+}
+html body .wa-unread{
+  margin-left:auto;
+}
+html body .user-portal .user-nav-link{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+  line-height:1 !important;
+}
+html body .user-portal .user-nav-link-text{
+  display:inline-block;
+  line-height:1.2;
+}
+html body .user-portal .user-nav-badge,
+html body .user-portal .user-nav-badge.chat-unread{
+  margin:0 !important;
+  position:relative;
+  top:0;
+  transform:none;
+}
+html body .app-shell .nav-chat-badge{
+  background:#38bdf8;
+  color:#0b1624;
+  margin-left:auto;
+}
+html body .app-shell .sidebar nav a{
+  display:flex !important;
+  align-items:center !important;
+}
+html body .dashboard-fixed-scope{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:2px;
+  max-width:420px;
+  margin:0 0 16px;
+  padding:11px 13px;
+  border-radius:10px;
+  background:#f7f9fc;
+  border:1px solid #e5eaf1;
+}
+html body .app-shell .profile-quick{
+  display:flex;
+  gap:18px;
+  flex-wrap:wrap;
+}
+html body .app-shell .profile-quick > div{
+  min-width:88px;
+}
+@media (max-width:800px){
+  html body .ward-area-editor-card .form-grid{
+    grid-template-columns:1fr !important;
+  }
+  html body .app-shell .profile-banner{
+    align-items:flex-start !important;
+  }
+  html body .app-shell .profile-quick{
+    width:100% !important;
+  }
+}
+
+html body .app-shell .topbar{
+  min-height:64px !important;
+  height:64px !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:12px !important;
+  overflow:visible !important;
+}
+html body .app-shell .topbar-context{
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  justify-content:center !important;
+}
+html body .app-shell .topbar-workspace{
+  max-width:min(560px,46vw) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+html body .app-shell .topbar-actions{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  flex:0 0 auto !important;
+  margin-left:auto !important;
+}
+html body .app-shell .topbar-actions .notification-wrap{margin-right:0 !important;}
+html body .app-shell .language-btn,
+html body .app-shell .notification-btn,
+html body .app-shell .user-chip-button{
+  height:40px !important;
+  min-height:40px !important;
+  box-sizing:border-box !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+html body .app-shell .language-btn{
+  padding:0 12px !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  white-space:nowrap !important;
+}
+html body .app-shell .notification-btn{
+  width:40px !important;
+  padding:0 !important;
+  font-size:16px !important;
+}
+html body .app-shell .user-chip-button{
+  padding:3px 12px 3px 3px !important;
+  gap:8px !important;
+  max-width:220px !important;
+}
+html body .app-shell .user-chip-button .user-text{
+  min-width:0 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  gap:1px !important;
+  line-height:1.15 !important;
+}
+html body .app-shell .user-chip-button .user-text strong{
+  font-size:12px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  max-width:140px !important;
+}
+html body .app-shell .user-chip-button .user-text span{
+  font-size:10px !important;
+  color:#64748b !important;
+}
+html body .user-avatar,
+html body .app-shell .user-avatar,
+html body .profile-hero-face,
+html body .staff-face,
+html body .staff-face-lg,
+html body .user-chip-face{
+  display:grid !important;
+  place-items:center !important;
+  background:#0b1624 !important;
+  color:#fff !important;
+  font-weight:800 !important;
+  letter-spacing:.04em !important;
+  overflow:hidden !important;
+  border-radius:50% !important;
+  line-height:1 !important;
+  text-transform:uppercase !important;
+  flex:0 0 auto !important;
+}
+html body .user-avatar span,
+html body .user-avatar-fallback span{
+  display:block !important;
+  line-height:1 !important;
+  color:inherit !important;
+}
+html body img.user-avatar,
+html body img.profile-hero-face,
+html body img.staff-face,
+html body img.staff-face-lg,
+html body img.user-chip-face,
+html body .user-avatar-photo{
+  background:#e2e8f0 !important;
+  object-fit:cover !important;
+  padding:0 !important;
+  color:transparent !important;
+}
+html body .user-chip-face{
+  width:36px !important;
+  height:36px !important;
+  min-width:36px !important;
+  font-size:11px !important;
+}
+html body .profile-hero-face,
+html body .staff-face-lg{
+  width:64px !important;
+  height:64px !important;
+  min-width:64px !important;
+  font-size:18px !important;
+}
+html body .user-portal .user-avatar,
+html body .nagar-info-card .user-avatar{
+  background:#0f766e !important;
+  color:#fff !important;
+}
+html body .user-portal .user-top-tools,
+html body .user-portal .user-actions{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  flex:0 0 auto !important;
+}
+html body .user-portal .user-language-btn,
+html body .user-portal .user-icon-btn,
+html body .user-portal .user-account,
+html body .user-portal .user-mobile-menu{
+  height:40px !important;
+  min-height:40px !important;
+  box-sizing:border-box !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+html body .user-portal .user-language-btn{
+  padding:0 12px !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  white-space:nowrap !important;
+}
+html body .ward-gt-host,
+html body #google_translate_element{
+  position:absolute !important;
+  left:-9999px !important;
+  width:1px !important;
+  height:1px !important;
+  overflow:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+}
+html body .goog-te-banner-frame,
+html body .goog-te-balloon-frame,
+html body .goog-tooltip,
+html body #goog-gt-tt,
+html body .goog-te-gadget{
+  display:none !important;
+  visibility:hidden !important;
+  height:0 !important;
+  width:0 !important;
+  overflow:hidden !important;
+}
+html body iframe.skiptranslate{
+  display:none !important;
+  visibility:hidden !important;
+  height:0 !important;
+  border:0 !important;
+}
+html body{top:0 !important;}
+html body .groups-page .wa-avatar,
+html body .user-portal .groups-page .wa-avatar,
+html body .user-portal .groups-page .user-avatar.wa-avatar,
+html body .app-shell .groups-page .user-avatar.wa-avatar{
+  width:44px !important;
+  height:44px !important;
+  min-width:44px !important;
+  min-height:44px !important;
+  font-size:13px !important;
+}
+html body .groups-page .chat-sender-face,
+html body .groups-page .group-bubble-head .user-avatar,
+html body .user-portal .groups-page .chat-sender-face,
+html body .user-portal .groups-page .group-bubble-head .user-avatar,
+html body .app-shell .groups-page .chat-sender-face{
+  width:28px !important;
+  height:28px !important;
+  min-width:28px !important;
+  min-height:28px !important;
+  font-size:10px !important;
+  background:#0b1624 !important;
+  color:#fff !important;
+}
+html body .user-portal .groups-page .chat-sender-face,
+html body .user-portal .groups-page .group-bubble-head .user-avatar{
+  background:#0f766e !important;
+}
+html body .brand-mark,
+html body .user-brand-mark,
+html body .admin-mobile-brand,
+html body .groups-page .wa-avatar.community{
+  font-family:inherit !important;
+}
+@media (max-width:800px){
+  html body .app-shell .topbar{height:56px !important;min-height:56px !important;}
+  html body .app-shell .topbar-workspace{display:none !important;}
+  html body .app-shell .user-chip-button{width:40px !important;height:40px !important;padding:2px !important;max-width:40px !important;}
+  html body .app-shell .user-chip-button .user-text{display:none !important;}
+  html body .app-shell .language-btn,
+  html body .app-shell .notification-btn{height:38px !important;min-height:38px !important;}
+}
+html body .user-portal .user-nav-link{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+  line-height:1 !important;
+}
+html body .user-portal .user-nav.is-open .user-nav-link{
+  justify-content:flex-start !important;
+}
+html body .user-portal .user-nav-link-text{
+  display:inline-block;
+  line-height:1.2;
+}
+html body .user-portal .user-nav-badge,
+html body .user-portal .user-nav-badge.chat-unread{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  margin:0 !important;
+  position:relative !important;
+  top:0 !important;
+  transform:none !important;
+  min-width:18px !important;
+  height:18px !important;
+  padding:0 5px !important;
+  font-size:10px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  border-radius:99px !important;
+  background:#0f766e !important;
+  color:#fff !important;
+  flex:0 0 auto !important;
+  align-self:center !important;
+}

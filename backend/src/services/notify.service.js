@@ -58,7 +58,9 @@ async function notifyUser({ userId, type, title, message, senderUserId = null, a
 }
 
 async function notifyUsers(userIds, payload) {
-  const ids = [...new Set((userIds || []).filter(Boolean).map(String))];
+  const sender = String(payload?.senderUserId || '');
+  const ids = [...new Set((userIds || []).filter(Boolean).map(String))]
+    .filter((id) => !sender || id !== sender);
   if (!ids.length) return 0;
   const rows = ids.map((userId) => ({
     id: crypto.randomUUID(),

@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Navigate,NavLink,Route,Routes,useLocation,useNavigate} from 'react-router-dom';
 import {api,clearSession,getUser} from './services/api';
 import {can,isMaster,isSubMaster,isNagarsevak,isEmployee,roleOf,canModule} from './rbac';
-import {initLanguage,setLanguage as applyLanguage} from './language';
+import {initLanguage,setLanguage as applyLanguage,switchLanguage} from './language';
 import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
 import Stakeholders from './pages/Stakeholders';
 import Groups from './pages/Groups'; import Deaths from './pages/Deaths'; import SubAdmins from './pages/SubAdmins'; import WardUpdates from './pages/WardUpdates'; import UserPanel from './pages/UserPanel'; import UserComplaints from './pages/UserComplaints'; import ElectionData from './pages/ElectionData'; import WardActivation from './pages/WardActivation'; import NagarsevakSubscriptions from './pages/NagarsevakSubscriptions';
@@ -113,7 +113,7 @@ const allowed=(key,u)=>{
  if(key==='DEATH') return can('VIEW_DEATH_RECORDS',u);
  return canModule(key,'VIEW',u);
 };
-function AdminNavItem({to,label,icon,itemKey,language,user,updatesOpen,setUpdatesOpen,navRef,sidebarScrollKey,sidebarGo}){
+function AdminNavItem({to,label,icon,itemKey,language,user,updatesOpen,setUpdatesOpen,navRef,sidebarScrollKey,sidebarGo,chatUnread=0}){
  if(itemKey==='WARD_UPDATES_GROUP') return (
   <div className={`nav-group ${updatesOpen?'open':''}`}>
    <button type="button" className="nav-group-toggle" onClick={()=>{const pos=navRef.current?.scrollTop||0;try{sessionStorage.setItem(sidebarScrollKey,String(pos))}catch{};setUpdatesOpen(v=>!v);requestAnimationFrame(()=>{if(navRef.current)navRef.current.scrollTop=pos})}} aria-expanded={updatesOpen}>
@@ -125,7 +125,7 @@ function AdminNavItem({to,label,icon,itemKey,language,user,updatesOpen,setUpdate
    </div>}
   </div>
  );
- return <NavLink to={to} end={to==='/dashboard'} onClick={e=>sidebarGo(e,to)}><span className="nav-icon">{icon}</span><span>{language==='mr'?(mrNav[label]||label):label}</span></NavLink>;
+ return <NavLink to={to} end={to==='/dashboard'} onClick={e=>sidebarGo(e,to)}><span className="nav-icon">{icon}</span><span>{language==='mr'?(mrNav[label]||label):label}</span>{itemKey==='CHAT'&&chatUnread>0&&<span className="nav-chat-badge notranslate" translate="no">{chatUnread>99?'99+':chatUnread}</span>}</NavLink>;
 }
 function Protected({children}){return getUser()?children:<Navigate to="/" replace/>}
 function HomeEntry(){const u=getUser(); if(!u) return <Login mode="user"/>; if(String(u.role||'').toUpperCase()==='CITIZEN') return <CitizenOnly><UserPanel/></CitizenOnly>; return <Navigate to="/dashboard" replace/>}
@@ -146,6 +146,7 @@ function CitizenShell({children}){
  const [menu,setMenu]=useState(false),[mobileNav,setMobileNav]=useState(false),[notifications,setNotifications]=useState([]),[language,setLanguage]=useState(()=>localStorage.getItem('ward_language')||'en'),[accountOpen,setAccountOpen]=useState(false),[welcome,setWelcome]=useState(false),[showNotifications,setShowNotifications]=useState(false),[noteToast,setNoteToast]=useState(null);
  const receivedNotifications=useMemo(()=>notifications.filter(n=>n.direction!=='SENT'),[notifications]);
  const unread=useMemo(()=>receivedNotifications.filter(n=>!n.isRead).length,[receivedNotifications]);
+ const [chatUnread,setChatUnread]=useState(0);
  const accountRef=React.useRef(null);
  const notificationRef=useRef(null);
  const seenNotes=useRef(new Set());
@@ -157,7 +158,7 @@ function CitizenShell({children}){
    if(!live)return;
    const rows=(r.data||[]).filter(n=>n.direction!=='SENT');
    if(primedNotes.current){
-    const fresh=rows.find(n=>!n.isRead && !seenNotes.current.has(n.id) && /NAGARSEVAK_ACTIVATED|WARD_ACTIVATED|WARD_/.test(String(n.type||'').toUpperCase()));
+    const fresh=rows.find(n=>!n.isRead && !seenNotes.current.has(n.id) && /NAGARSEVAK_ACTIVATED|WARD_ACTIVATED|WARD_|CHAT|MESSAGE/.test(String(n.type||'').toUpperCase()));
     if(fresh) setNoteToast({title:fresh.title||'Update',message:fresh.message||''});
    }
    primedNotes.current=true;
@@ -173,7 +174,22 @@ function CitizenShell({children}){
   return()=>{live=false;clearInterval(t);window.removeEventListener('focus',onFocus);document.removeEventListener('visibilitychange',onVis)};
  },[]);
  useEffect(()=>{initLanguage();applyLanguage(language)},[language]);
- useEffect(()=>{document.title=`${pageTitle(location.pathname)} · WardDesk`;const token=localStorage.getItem('ward_token');if(!token)return;let timer;try{const payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));const ms=Number(payload.exp)*1000-Date.now();if(ms<=0){sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login');return}timer=setTimeout(()=>{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')},ms+250)}catch{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')}return()=>clearTimeout(timer)},[location.pathname]);
+ useEffect(()=>{document.title=`${pageTitle(location.pathname)} · WardDesk`;const token=localStorage.getItem('ward_token');if(!token)return;let timer;try{const payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));const ms=Number(payload.exp)*1000-Date.now();if(ms<=0){sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login');return}timer=setTimeout(()=>{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')},ms+250)}catch{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')}return()=>clearTimeout(timer) },[location.pathname]);
+ useEffect(()=>{
+  let live=true;
+  const loadChat=()=>api.chatGroups().then(r=>{
+   if(!live)return;
+   setChatUnread((r.data||[]).reduce((n,g)=>n+Number(g.unreadCount||0),0));
+  }).catch(()=>{});
+  loadChat();
+  const t=setInterval(loadChat,8000);
+  const onFocus=()=>loadChat();
+  const onVis=()=>{if(document.visibilityState==='visible')loadChat();};
+  window.addEventListener('focus',onFocus);
+  window.addEventListener('ward:chat-refresh',onFocus);
+  document.addEventListener('visibilitychange',onVis);
+  return()=>{live=false;clearInterval(t);window.removeEventListener('focus',onFocus);window.removeEventListener('ward:chat-refresh',onFocus);document.removeEventListener('visibilitychange',onVis)};
+ },[location.pathname]);
  useEffect(()=>{if(!noteToast)return;const t=setTimeout(()=>setNoteToast(null),5000);return()=>clearTimeout(t)},[noteToast]);
  useEffect(()=>{
   const handler=e=>{
@@ -190,7 +206,7 @@ function CitizenShell({children}){
   const t=setTimeout(scrollMainToTop,80);
   return()=>clearTimeout(t);
  },[location.pathname]);
- const logout=()=>{clearSession();window.location.replace('/login')}; const toggleLanguage=()=>{const n=language==='en'?'mr':'en';localStorage.setItem('ward_language',n);setLanguage(n);window.location.reload()};
+ const logout=()=>{clearSession();window.location.replace('/login')}; const toggleLanguage=()=>switchLanguage(language==='en'?'mr':'en');
  const go=p=>{setMenu(false);setMobileNav(false);setShowNotifications(false);navigate(p)};
  const markNotification=async(id)=>{try{await api.markNotificationRead(id);setNotifications(xs=>xs.map(n=>n.id===id?{...n,isRead:true}:n));}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}};
  const openNotification=async(n)=>{try{if(n?.direction!=='SENT'&&!n?.isRead)await api.markNotificationRead(n.id);setNotifications(xs=>xs.map(x=>x.id===n.id?{...x,isRead:true}:x));setShowNotifications(false);navigate(notificationTarget(n,'citizen'));}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}};
@@ -205,15 +221,15 @@ function CitizenShell({children}){
  const clearAllNotifications=async()=>{try{await api.clearNotifications();setNotifications([])}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}};
  return <div className="user-portal">
   <header className="user-topbar">
-   <div className="user-brand" onClick={()=>go('/')} role="button" tabIndex={0}><div className="user-brand-mark">W</div><div><strong>WardDesk</strong><span>Your Ward · Digital Services</span></div></div>
+   <div className="user-brand" onClick={()=>go('/')} role="button" tabIndex={0}><div className="user-brand-mark notranslate" translate="no">W</div><div><strong className="notranslate" translate="no">WardDesk</strong><span>Your Ward · Digital Services</span></div></div>
    <nav className={`user-nav user-nav-static ${mobileNav?'is-open':''}`}>
     <button className={`user-nav-link ${location.pathname==='/'?'active':''}`} onClick={()=>go('/')}>{language==='mr'?'मुख्यपृष्ठ':'Home'}</button>
     <button className={`user-nav-link ${location.pathname.startsWith('/ward-updates')?'active':''}`} onClick={()=>go('/ward-updates')}>{language==='mr'?'वॉर्ड अपडेट्स':'Updates & Events'}</button>
     <button className={`user-nav-link ${location.pathname.startsWith('/schemes')?'active':''}`} onClick={()=>go('/schemes')}>{language==='mr'?'योजना':'Schemes'}</button>
     <button className={`user-nav-link ${location.pathname.startsWith('/my-complaints')?'active':''}`} onClick={()=>go('/my-complaints')}>{language==='mr'?'माझ्या तक्रारी':'My Complaints'}</button>
-    <button className={`user-nav-link ${location.pathname.startsWith('/groups')?'active':''}`} onClick={()=>go('/groups')}>{language==='mr'?'गट व चॅट':'Groups & Chat'}{unread>0&&<span className="user-nav-badge">{unread}</span>}</button>
+    <button className={`user-nav-link ${location.pathname.startsWith('/groups')?'active':''}`} onClick={()=>go('/groups')}><span className="user-nav-link-text">{language==='mr'?'गट व चॅट':'Groups & Chat'}</span>{chatUnread>0&&<span className="user-nav-badge chat-unread notranslate" translate="no">{chatUnread>99?'99+':chatUnread}</span>}</button>
    </nav>
-   <div className="user-actions"><button className="user-language-btn" onClick={toggleLanguage}>{language==='en'?'मराठी':'English'}</button><div className="user-notification-wrap" ref={notificationRef}><button type="button" className="user-icon-btn" onClick={()=>{setMenu(false);setMobileNav(false);setShowNotifications(v=>!v)}} aria-label="Notifications">🔔{unread>0&&<span className="user-notification-dot">{unread>9?'9+':unread}</span>}</button>{showNotifications&&<div className="user-notification-popover"><div className="user-notification-head"><strong>{language==='mr'?'सूचना':'Notifications'}</strong><div>{unread>0&&<button type="button" onClick={markAllNotifications}>{language==='mr'?'सर्व वाचले':'Mark all read'}</button>}<button type="button" onClick={clearAllNotifications}>{language==='mr'?'साफ करा':'Clear'}</button></div></div>{!notifications.length?<div className="user-notification-empty">{language==='mr'?'कोणत्याही सूचना नाहीत':'No notifications'}</div>:notifications.map(n=><button type="button" key={n.id} className={`user-notification-item ${n.isRead?'read':''}`} onClick={()=>openNotification(n)}><strong>{n.title||'Notification'}</strong><span>{n.message||''}</span><small>{n.sender?.name?`From: ${n.sender.name} · `:''}{n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}</div>}</div><div className="user-account-wrap" ref={accountRef}><button className="user-account" onClick={()=>{setMobileNav(false);setMenu(v=>!v)}}><ProfileAvatar name={user?.name} size="sm"/><span className="user-account-text"><b>{user?.name}</b><small>{user?.ward?.wardNumber||'My Ward'}</small></span></button>{menu&&<div className="user-account-menu"><div className="user-menu-summary"><strong>{user?.name}</strong><span>{user?.email}</span><small>{user?.ward?.wardNumber}{user?.ward?.name?` · ${user.ward.name}`:''}</small></div><button onClick={()=>{setMenu(false);setAccountOpen(true)}}>My profile</button><button onClick={logout} className="danger-link">Sign out</button></div>}</div><button className="user-mobile-menu" onClick={()=>{setMenu(false);setMobileNav(v=>!v)}} aria-label="Open menu">☰</button></div>
+   <div className="user-actions"><button type="button" className="user-language-btn notranslate" translate="no" onClick={toggleLanguage}>{language==='en'?'मराठी':'English'}</button><div className="user-notification-wrap" ref={notificationRef}><button type="button" className="user-icon-btn" onClick={()=>{setMenu(false);setMobileNav(false);setShowNotifications(v=>!v)}} aria-label="Notifications">🔔{unread>0&&<span className="user-notification-dot">{unread>9?'9+':unread}</span>}</button>{showNotifications&&<div className="user-notification-popover"><div className="user-notification-head"><strong>{language==='mr'?'सूचना':'Notifications'}</strong><div>{unread>0&&<button type="button" onClick={markAllNotifications}>{language==='mr'?'सर्व वाचले':'Mark all read'}</button>}<button type="button" onClick={clearAllNotifications}>{language==='mr'?'साफ करा':'Clear'}</button></div></div>{!notifications.length?<div className="user-notification-empty">{language==='mr'?'कोणत्याही सूचना नाहीत':'No notifications'}</div>:notifications.map(n=><button type="button" key={n.id} className={`user-notification-item ${n.isRead?'read':''}`} onClick={()=>openNotification(n)}><strong>{n.title||'Notification'}</strong><span>{n.message||''}</span><small>{n.sender?.name?`From: ${n.sender.name} · `:''}{n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}</div>}</div><div className="user-account-wrap" ref={accountRef}><button className="user-account" onClick={()=>{setMobileNav(false);setMenu(v=>!v)}}><ProfileAvatar name={user?.name} size="sm"/><span className="user-account-text"><b>{user?.name}</b><small>{user?.ward?.wardNumber||'My Ward'}</small></span></button>{menu&&<div className="user-account-menu"><div className="user-menu-summary"><strong>{user?.name}</strong><span>{user?.email}</span><small>{user?.ward?.wardNumber}{user?.ward?.name?` · ${user.ward.name}`:''}</small></div><button onClick={()=>{setMenu(false);setAccountOpen(true)}}>My profile</button><button onClick={logout} className="danger-link">Sign out</button></div>}</div><button className="user-mobile-menu" onClick={()=>{setMenu(false);setMobileNav(v=>!v)}} aria-label="Open menu">☰</button></div>
   </header>
   <main className="user-main user-page-main">{children}</main>
   {noteToast&&<div className={`global-toast ${noteToast.type==='error'?'global-toast-error':'global-toast-success'}`} role={noteToast.type==='error'?'alert':'status'}><div><strong>{noteToast.title}</strong><div>{noteToast.message}</div></div><button type="button" onClick={()=>setNoteToast(null)} aria-label="Close">×</button></div>}
@@ -259,7 +275,7 @@ function ProfileEditor({user,role,onClose,onSaved}){
       <small>{form.email||user?.email||'—'}</small>
      </div>
     </div>
-    {isNagar&&<div className="span-2"><CirclePhotoField label="Profile photo" value={form.photo} onChange={v=>setForm({...form,photo:v})}/></div>}
+    {isNagar&&<div className="span-2"><CirclePhotoField label="Profile photo" name={form.name||user?.name} value={form.photo} onChange={v=>setForm({...form,photo:v})}/></div>}
     <div className="profile-section span-2">
      <span className="profile-section-label">Personal details</span>
      <div className="form-grid profile-fields">
@@ -338,7 +354,7 @@ function GlobalPagination(){
  return <PaginationBar page={current} pages={totalPages} total={state.count} limit={pageSize} onPage={go} onLimit={n=>{setPageSize(n);setPage(1)}}/>;
 }
 function Shell({children}){
- const navigate=useNavigate(),location=useLocation(),user=getUser(),navRef=useRef(null),[open,setOpen]=useState(false),[language,setLanguage]=useState(()=>localStorage.getItem('ward_language')||'en'),[notifications,setNotifications]=useState([]),[showNotifications,setShowNotifications]=useState(false),[showProfile,setShowProfile]=useState(false),[toast,setToast]=useState(null),[updatesOpen,setUpdatesOpen]=useState(()=>location.pathname.startsWith('/ward-updates'));
+ const navigate=useNavigate(),location=useLocation(),user=getUser(),navRef=useRef(null),[open,setOpen]=useState(false),[language,setLanguage]=useState(()=>localStorage.getItem('ward_language')||'en'),[notifications,setNotifications]=useState([]),[showNotifications,setShowNotifications]=useState(false),[showProfile,setShowProfile]=useState(false),[toast,setToast]=useState(null),[updatesOpen,setUpdatesOpen]=useState(()=>location.pathname.startsWith('/ward-updates')),[chatUnread,setChatUnread]=useState(0);
  const receivedNotifications=useMemo(()=>notifications.filter(n=>n.direction!=='SENT'),[notifications]);
  const sidebarScrollKey='ward_sidebar_scroll_top';
  const rememberSidebar=()=>{ window.dispatchEvent(new CustomEvent('ward:close-overlays')); setOpen(false); if(navRef.current){ const value=navRef.current.scrollTop; try{sessionStorage.setItem(sidebarScrollKey,String(value))}catch{} } };
@@ -392,6 +408,21 @@ function Shell({children}){
   document.addEventListener('visibilitychange',onVis);
   return()=>{live=false;clearInterval(t);window.removeEventListener('focus',onFocus);document.removeEventListener('visibilitychange',onVis)};
  },[]);
+ useEffect(()=>{
+  let live=true;
+  const loadChat=()=>api.chatGroups().then(r=>{
+   if(!live)return;
+   setChatUnread((r.data||[]).reduce((n,g)=>n+Number(g.unreadCount||0),0));
+  }).catch(()=>{});
+  loadChat();
+  const t=setInterval(loadChat,8000);
+  const onFocus=()=>loadChat();
+  const onVis=()=>{if(document.visibilityState==='visible')loadChat();};
+  window.addEventListener('focus',onFocus);
+  window.addEventListener('ward:chat-refresh',onFocus);
+  document.addEventListener('visibilitychange',onVis);
+  return()=>{live=false;clearInterval(t);window.removeEventListener('focus',onFocus);window.removeEventListener('ward:chat-refresh',onFocus);document.removeEventListener('visibilitychange',onVis)};
+ },[location.pathname]);
  useEffect(()=>{
   const handler=e=>setToast(e.detail||null);
   window.addEventListener('ward:toast',handler);
@@ -453,7 +484,9 @@ function Shell({children}){
  const pretty=prettyRole(user);
  const help=pageHelp[location.pathname]||workspaceLabel(user);
  const sectionName=pageSection(location.pathname,language);
- return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className={`sidebar ${open?'open':''}`}><div className="brand"><div className="brand-mark">W</div><div><strong>WardDesk</strong><span>Municipal workspace</span></div></div><nav ref={navRef} aria-label="Main">{visibleSections.map(section=><div className="nav-section" key={section.id}><div className="nav-section-label">{language==='mr'?section.mr:section.en}</div>{section.items.map(([to,label,icon,key])=><AdminNavItem key={key} to={to} label={label} icon={icon} itemKey={key} language={language} user={user} updatesOpen={updatesOpen} setUpdatesOpen={setUpdatesOpen} navRef={navRef} sidebarScrollKey={sidebarScrollKey} sidebarGo={sidebarGo}/>)}</div>)}</nav><div className="sidebar-footer"><button className="logout-btn" onClick={logout}>Sign out</button></div></aside>{open&&<button className="scrim" onClick={()=>setOpen(false)}/>}<main className="main"><header className="topbar"><div className="admin-mobile-brand" aria-hidden="true">W</div><button className="menu-btn" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-context"><div className="eyebrow">{sectionName}</div><div className="topbar-title">{pageTitle(location.pathname)}</div><div className="topbar-workspace">{help}</div></div><div className="topbar-spacer"/><button type="button" className="language-btn" onClick={()=>setLanguage(v=>{const n=v==='en'?'mr':'en';localStorage.setItem('ward_language',n);applyLanguage(n);return n})} title="Change language">{language==='en'?'मराठी':'English'}</button><div className="notification-wrap"><button className="notification-btn" onClick={()=>setShowNotifications(v=>!v)}>🔔{receivedNotifications.filter(n=>!n.isRead).length>0&&<span className="notification-count">{receivedNotifications.filter(n=>!n.isRead).length}</span>}</button>{showNotifications&&<div className="notification-popover"><div className="notification-popover-head"><strong>Notifications</strong>{notifications.length>0&&<div className="card-actions">{notifications.some(n=>!n.isRead)&&<button type="button" className="small-btn" onClick={async()=>{await api.markAllNotificationsRead();setNotifications(x=>x.map(a=>a.direction==='SENT'?a:{...a,isRead:true}))}}>Mark all read</button>}<button type="button" className="small-btn danger" onClick={async()=>{if(!window.confirm('Clear all notifications?'))return;await api.clearNotifications();setNotifications([])}}>Clear</button></div>}</div>{!notifications.length?<div className="muted notification-empty">No notifications</div>:notifications.map(n=><button key={n.id} className={`notification-item ${n.isRead?'read':''}`} onClick={()=>openNotification(n)}><strong>{n.title}</strong><span>{n.message}</span><small>From: {n.sender?.name||'System'} · {n.type?.replaceAll('_',' ')||'Notification'} · {n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}</div>}</div><button className="user-chip user-chip-button" onClick={()=>setShowProfile(true)} aria-label="Open profile"><FaceAvatar name={user?.name} photo={user?.photo} className="user-chip-face"/><div className="user-text"><strong>{user?.name}</strong><span>{pretty}</span></div></button></header><div className="content" id="main-content">{children}<GlobalPagination/></div><footer className="app-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>Secure administration workspace · {pretty}</span></footer>{toast&&<div className={`global-toast ${toast.type==='error'?'global-toast-error':'global-toast-success'}`} role={toast.type==='error'?'alert':'status'}><div><strong>{toast.type==='error'?'Action failed':'Success'}</strong><div>{toast.message}</div></div><button type="button" onClick={()=>setToast(null)} aria-label="Close">×</button></div>}{showProfile&&<div className="modal-backdrop" onPointerDown={()=>setShowProfile(false)}><div className="modal profile-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header profile-modal-header"><div><h2>My profile</h2><span>Update your photo, contact details and password</span></div><button type="button" className="icon-btn" onClick={()=>setShowProfile(false)}>×</button></div><ProfileEditor user={user} role={role} onClose={()=>setShowProfile(false)} onSaved={(u)=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setShowProfile(false);window.location.reload()}}/></div></div>}</main></div>
+ const chipName=String(user?.name||'').trim()||pretty;
+ const chipRole=chipName.toLowerCase()===String(pretty||'').trim().toLowerCase()?'':pretty;
+ return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className={`sidebar ${open?'open':''}`}><div className="brand"><div className="brand-mark notranslate" translate="no">W</div><div><strong className="notranslate" translate="no">WardDesk</strong><span>Municipal workspace</span></div></div><nav ref={navRef} aria-label="Main">{visibleSections.map(section=><div className="nav-section" key={section.id}><div className="nav-section-label">{language==='mr'?section.mr:section.en}</div>{section.items.map(([to,label,icon,key])=><AdminNavItem key={key} to={to} label={label} icon={icon} itemKey={key} language={language} user={user} updatesOpen={updatesOpen} setUpdatesOpen={setUpdatesOpen} navRef={navRef} sidebarScrollKey={sidebarScrollKey} sidebarGo={sidebarGo} chatUnread={chatUnread}/>)}</div>)}</nav><div className="sidebar-footer"><button className="logout-btn" onClick={logout}>Sign out</button></div></aside>{open&&<button className="scrim" onClick={()=>setOpen(false)}/>}<main className="main"><header className="topbar"><div className="admin-mobile-brand notranslate" translate="no" aria-hidden="true">W</div><button className="menu-btn" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-context"><div className="eyebrow">{sectionName}</div><div className="topbar-title">{pageTitle(location.pathname)}</div><div className="topbar-workspace">{help}</div></div><div className="topbar-actions"><button type="button" className="language-btn notranslate" translate="no" onClick={()=>switchLanguage(language==='en'?'mr':'en')} title="Change language">{language==='en'?'मराठी':'English'}</button><div className="notification-wrap"><button className="notification-btn" onClick={()=>setShowNotifications(v=>!v)}>🔔{receivedNotifications.filter(n=>!n.isRead).length>0&&<span className="notification-count">{receivedNotifications.filter(n=>!n.isRead).length}</span>}</button>{showNotifications&&<div className="notification-popover"><div className="notification-popover-head"><strong>Notifications</strong>{notifications.length>0&&<div className="card-actions">{notifications.some(n=>!n.isRead)&&<button type="button" className="small-btn" onClick={async()=>{await api.markAllNotificationsRead();setNotifications(x=>x.map(a=>a.direction==='SENT'?a:{...a,isRead:true}))}}>Mark all read</button>}<button type="button" className="small-btn danger" onClick={async()=>{if(!window.confirm('Clear all notifications?'))return;await api.clearNotifications();setNotifications([])}}>Clear</button></div>}</div>{!notifications.length?<div className="muted notification-empty">No notifications</div>:notifications.map(n=><button key={n.id} className={`notification-item ${n.isRead?'read':''}`} onClick={()=>openNotification(n)}><strong>{n.title}</strong><span>{n.message}</span><small>From: {n.sender?.name||'System'} · {n.type?.replaceAll('_',' ')||'Notification'} · {n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}</div>}</div><button className="user-chip user-chip-button" onClick={()=>setShowProfile(true)} aria-label="Open profile"><FaceAvatar name={chipName} photo={user?.photo} className="user-chip-face"/><div className="user-text notranslate" translate="no"><strong>{chipName}</strong>{chipRole?<span>{chipRole}</span>:null}</div></button></div></header><div className="content" id="main-content">{children}<GlobalPagination/></div><footer className="app-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>Secure administration workspace · {pretty}</span></footer>{toast&&<div className={`global-toast ${toast.type==='error'?'global-toast-error':'global-toast-success'}`} role={toast.type==='error'?'alert':'status'}><div><strong>{toast.type==='error'?'Action failed':'Success'}</strong><div>{toast.message}</div></div><button type="button" onClick={()=>setToast(null)} aria-label="Close">×</button></div>}{showProfile&&<div className="modal-backdrop" onPointerDown={()=>setShowProfile(false)}><div className="modal profile-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header profile-modal-header"><div><h2>My profile</h2><span>Update your photo, contact details and password</span></div><button type="button" className="icon-btn" onClick={()=>setShowProfile(false)}>×</button></div><ProfileEditor user={user} role={role} onClose={()=>setShowProfile(false)} onSaved={(u)=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setShowProfile(false);window.location.reload()}}/></div></div>}</main></div>
 }
 function CitizenOnly({children}){const u=getUser();if(!u)return <Navigate to="/login" replace/>;if(String(u.role||'').toUpperCase()!=='CITIZEN')return <Navigate to="/dashboard" replace/>;return <CitizenShell>{children}</CitizenShell>}
 function Guard({permission,children}){

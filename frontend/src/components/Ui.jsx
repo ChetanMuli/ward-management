@@ -73,7 +73,8 @@ export function SuccessBox({message,onClose}){if(!message)return null;return <di
 export function StatusPill({children}){const k=String(children||'').toLowerCase().replaceAll('_','-');return <span className={`pill pill-${k}`}>{String(children||'—').replaceAll('_',' ')}</span>}
 export function Modal({title,onClose,children,wide=false,layer=1}){
  useEffect(()=>{document.body.classList.add('modal-open');return()=>document.body.classList.remove('modal-open')},[]);
- const node=<div className={`modal-backdrop ${layer>1?'modal-backdrop-stack':''}`} style={{zIndex:200+Number(layer)*25}} onPointerDown={onClose}><div className={`modal ${wide?'modal-wide':''}`} onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{title}</h2></div><button type="button" className="icon-btn" onClick={onClose}>×</button></div>{children}</div></div>;
+ const z=Number(layer)>1?280:210;
+ const node=<div className={`modal-backdrop ${layer>1?'modal-backdrop-stack':''}`} ref={el=>{if(el)el.style.setProperty('z-index',String(z),'important')}} onPointerDown={onClose}><div className={`modal ${wide?'modal-wide':''}`} onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{title}</h2></div><button type="button" className="icon-btn" onClick={onClose}>×</button></div>{children}</div></div>;
  return typeof document!=='undefined'?createPortal(node,document.body):node;
 }
 
@@ -235,12 +236,21 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
 
 export function initialsOf(name='User'){return String(name||'User').split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'U'}
 export function isDataImage(value){return typeof value==='string' && /^data:image\//i.test(value.trim())}
+export function isUsablePhoto(value){
+ const src=typeof value==='string'?value.trim():'';
+ if(!src||src==='null'||src==='undefined') return false;
+ return /^(data:image\/[a-z0-9.+-]+;base64,|blob:|https?:\/\/|\/(?!\/))/i.test(src);
+}
 export function FaceAvatar({name='User',photo,className=''}){
  const src=typeof photo==='string'?photo.trim():'';
- if(isDataImage(src)) return <img className={`user-avatar user-avatar-photo ${className}`.trim()} src={src} alt={name}/>;
- return <div className={`user-avatar ${className}`.trim()} aria-hidden="true">{initialsOf(name)}</div>;
+ const [broken,setBroken]=useState(false);
+ useEffect(()=>{setBroken(false)},[src]);
+ if(isUsablePhoto(src)&&!broken){
+  return <img className={`user-avatar user-avatar-photo notranslate ${className}`.trim()} src={src} alt={name||'Profile'} translate="no" onError={()=>setBroken(true)}/>;
+ }
+ return <div className={`user-avatar user-avatar-fallback notranslate ${className}`.trim()} aria-hidden="true" translate="no"><span>{initialsOf(name)}</span></div>;
 }
-export function CirclePhotoField({label='Profile photo',value,onChange,optional=true}){
+export function CirclePhotoField({label='Profile photo',name,value,onChange,optional=true}){
  const fileRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
  const STAGE=Math.min(280, typeof window==='undefined'?280:Math.max(220, Math.min(280, window.innerWidth-56)));
  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false);
@@ -325,7 +335,7 @@ export function CirclePhotoField({label='Profile photo',value,onChange,optional=
   <div className="circle-photo-field">
    <div className="section-label">{label}{optional?' (optional)':''}</div>
    <div className="circle-photo-row">
-    <FaceAvatar name={label} photo={value} className="staff-face-lg"/>
+    <FaceAvatar name={name||'User'} photo={value} className="staff-face-lg"/>
     <div className="circle-photo-actions">
      <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{value?'Change photo':'Choose photo'}</button>
      {value?<button type="button" className="small-btn" onClick={()=>openCrop(value)}>Adjust photo</button>:null}

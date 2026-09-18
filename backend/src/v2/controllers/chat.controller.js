@@ -10,6 +10,7 @@ const { success } = require('../../utils/apiResponse');
 const { allowedWardIds, isWardAllowed } = require('../services/wardScope');
 const { getVisibleNagarsevakIds, isNagarsevakVisibleInWard, syncWardCommunityMembership } = require('../../services/wardActivation.service');
 const { nagarsevakPublicByIds } = require('../../utils/photo');
+const { notifyUsers } = require('../../services/notify.service');
 
 const uploadDir = path.resolve(process.env.CHAT_UPLOAD_DIR || path.join(__dirname, '..', '..', '..', 'uploads', 'chat'));
 try { fs.mkdirSync(uploadDir, { recursive: true }); } catch (_) {}
@@ -164,11 +165,16 @@ async function syncGroupMembers(group, users, nagarRoleId, visibleNagarsevakIds)
 
 async function ensureNagarsevakGroup(nagarsevakUserId, options = {}) {
   const user = await User.findByPk(nagarsevakUserId);
-  if (!user || user.status !== 'ACTIVE' || !user.wardId) return null;
+  if (!user || !user.wardId) return null;
+  const ward = options.wardId || user.wardId;
+  const visible = await isNagarsevakVisibleInWard(ward, user.id);
+  if (!visible || user.status !== 'ACTIVE') {
+    await archiveNagarsevakGroup(user.id);
+    return null;
+  }
   const existing = await Chat.findOne({
     where: { nagarsevakUserId: user.id, type: 'NAGARSEVAK' }
   });
-  const ward = options.wardId || user.wardId;
   const name = `Nagarsevak · ${user.name}`;
   const group = existing
     ? await existing.update({ wardId: ward, isActive: true, name, mode: 'CHAT' })
@@ -196,12 +202,19 @@ async function ensureAllNagarsevakGroups(wardId) {
   if (!wardId) return;
   const nagarRoleId = await nagarsevakRoleId();
   if (!nagarRoleId) return;
-  const rows = await User.findAll({
-    where: { wardId, roleId: nagarRoleId, status: 'ACTIVE' },
-    attributes: ['id'],
-    hooks: false,
-  });
-  for (const row of rows) await ensureNagarsevakGroup(row.id, { wardId });
+  const [rows, visibleIds] = await Promise.all([
+    User.findAll({
+      where: { wardId, roleId: nagarRoleId },
+      attributes: ['id'],
+      hooks: false,
+    }),
+    getVisibleNagarsevakIds(wardId),
+  ]);
+  const visible = new Set(visibleIds.map(String));
+  for (const row of rows) {
+    if (visible.has(String(row.id))) await ensureNagarsevakGroup(row.id, { wardId });
+    else await archiveNagarsevakGroup(row.id);
+  }
 }
 
 async function archiveNagarsevakGroup(nagarsevakUserId) {
@@ -285,6 +298,40 @@ async function ensureUserGroups(user) {
   if (user.roleName === 'NAGARSEVAK') await ensureNagarsevakGroup(user.id);
 }
 
+async function unreadCountForGroup(groupId, userId, options = {}) {
+  const kind = await Chat.resolveKind(groupId);
+  if (!kind) return 0;
+  const Message = kind === 'all' ? Chat.AllChatMessage : Chat.GroupChatMessage;
+  const Member = kind === 'all' ? Chat.AllChatMember : Chat.GroupChatMember;
+  const member = await Member.findOne({ where: { groupId, userId } });
+  const state = await loadChatState(groupId, userId);
+  const sinceDates = [
+    asDate(member?.lastReadAt),
+    asDate(state?.lastReadAt),
+    asDate(member?.lastClearedAt),
+    asDate(state?.lastClearedAt),
+  ].filter(Boolean);
+  let since = sinceDates.sort((a, b) => a.getTime() - b.getTime()).pop() || null;
+  if (!since) {
+    // Master/sub-master can browse every group without a real read cursor.
+    // Baseline now so old archive messages are not shown as unread; later
+    // messages still increment until they open the chat.
+    if (options.observer) {
+      await saveChatState(groupId, userId, { lastReadAt: new Date() });
+      return 0;
+    }
+    since = asDate(member?.joinedAt);
+    if (!since) return 0;
+  }
+  return Message.count({
+    where: {
+      groupId,
+      senderUserId: { [Op.ne]: userId },
+      createdAt: { [Op.gt]: since },
+    },
+  });
+}
+
 const listGroups = asyncHandler(async (req, res) => {
   cleanupOldMessages().catch((err) => console.error('[CHAT CLEANUP]', err.message));
   await ensureUserGroups(req.user);
@@ -308,13 +355,19 @@ const listGroups = asyncHandler(async (req, res) => {
     ],
     order: [['type', 'ASC'], ['name', 'ASC']],
   });
+  const wardIds = [...new Set(rows.map(g => g.wardId).filter(Boolean))];
+  const visibleMap = await visibleIdsByWard(wardIds);
   const citizenVisible = req.user.roleName === 'CITIZEN' && req.user.wardId
-    ? new Set((await getVisibleNagarsevakIds(req.user.wardId)).map(String))
+    ? new Set((visibleMap.get(String(req.user.wardId)) || []).map(String))
     : null;
   const allowed = allowedForGroups;
   const visibleRows = rows.filter(g => {
     const inWard = req.user.roleName === 'SUPER_ADMIN' || String(g.wardId) === String(req.user.wardId || '') || (allowed && allowed.map(String).includes(String(g.wardId)));
     if (!inWard) return false;
+    if (g.type === 'NAGARSEVAK') {
+      const visible = new Set((visibleMap.get(String(g.wardId)) || []).map(String));
+      if (!visible.has(String(g.nagarsevakUserId))) return false;
+    }
     if (req.user.roleName === 'NAGARSEVAK') {
       return g.type === 'WARD' || (g.type === 'NAGARSEVAK' && String(g.nagarsevakUserId) === String(req.user.id));
     }
@@ -326,11 +379,22 @@ const listGroups = asyncHandler(async (req, res) => {
     }
     return true;
   });
+  await syncActiveWardMembers(visibleRows).catch((err) => console.error('[CHAT SYNC MEMBERS]', err.message));
   const memberships = await Chat.Member.findAll({ where: { userId: req.user.id }, attributes: ['groupId'] });
   const ids = new Set(memberships.map(x => x.groupId));
   if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN') {
     visibleRows.forEach((g) => ids.add(g.id));
   }
+  const observer = req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN';
+  const unreadEntries = await Promise.all(visibleRows.map(async (g) => {
+    try {
+      return [g.id, await unreadCountForGroup(g.id, req.user.id, { observer })];
+    } catch (err) {
+      console.error('[CHAT UNREAD]', err.message);
+      return [g.id, 0];
+    }
+  }));
+  const unreadMap = Object.fromEntries(unreadEntries);
   const nagarProfiles = await nagarsevakPublicByIds(visibleRows.map(g => g.nagarsevakUserId || g.nagarsevak?.id));
   const data = visibleRows.map(g => {
     const row = g.toJSON();
@@ -346,6 +410,7 @@ const listGroups = asyncHandler(async (req, res) => {
     }
     return {
       ...row,
+      unreadCount: Number(unreadMap[g.id] || 0),
       isMember: ids.has(g.id),
       canClear: true,
       canManage: req.user.roleName === 'SUPER_ADMIN' || (g.type === 'CUSTOM' && g.createdByUserId === req.user.id),
@@ -482,6 +547,23 @@ const sendMessage = asyncHandler(async (req, res) => {
   const senderPhotos = await nagarsevakPublicByIds([req.user.id]);
   const extra = senderPhotos.get(String(req.user.id));
   if (json?.sender) json.sender.photo = extra?.photo || req.user.photo || json.sender.photo || null;
+  if (group.wardId) {
+    await reconcileWardGroupMembers(group.wardId).catch(() => {});
+  }
+  const members = await Chat.Member.findAll({ where: { groupId: group.id }, attributes: ['userId'] });
+  const preview = type === 'TEXT'
+    ? content.slice(0, 120)
+    : type === 'IMAGE' ? 'Sent a photo' : type === 'VIDEO' ? 'Sent a video' : 'Sent a file';
+  const groupLabel = group.type === 'WARD'
+    ? (group.ward?.wardNumber || group.name || 'All chat')
+    : (group.name || 'Group');
+  notifyUsers(members.map((m) => m.userId), {
+    senderUserId: req.user.id,
+    type: 'CHAT_MESSAGE',
+    title: `New message · ${groupLabel}`,
+    message: `${req.user.name || 'Someone'}: ${preview}`,
+    actionUrl: `/groups?group=${group.id}`,
+  }).catch((err) => console.error('[CHAT NOTIFY]', err.message));
   return success(res, { statusCode: 201, data: json });
 });
 

@@ -3114,7 +3114,8 @@ html body .groups-page .chat-image-picker{position:relative}
 .ward-activation-page .card-actions{flex-wrap:wrap}
 html body .primary-btn.danger{background:#b42318;border-color:#b42318;color:#fff}
 html body .user-profile-avatar-initials{display:none !important;}
-html body .modal-backdrop-stack{z-index:90 !important;}
+html body .modal-backdrop{z-index:210 !important;}
+html body .modal-backdrop-stack{z-index:280 !important;}
 html body .ward-card-meta{margin:6px 0 4px;}
 html body .pill-visible,html body .pill-active,html body .pill-account-active{background:#e7f6ed;color:#18734a;}
 html body .pill-hidden,html body .pill-inactive,html body .pill-deactivated,html body .pill-unpurchased,html body .pill-pending,html body .pill-account-inactive{background:#edf1f6;color:#586579;}

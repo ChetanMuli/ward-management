@@ -156,14 +156,6 @@ const create = asyncHandler(async (req, res) => {
   if (recipients.length) {
     await NotificationBulkCreate(recipients, update, req.user.id);
   }
-  const { notifyMastersAndWardStaff } = require('../../services/notify.service');
-  await notifyMastersAndWardStaff(wardId, {
-    senderUserId: req.user.id,
-    type: update.type === 'EVENT' ? 'WARD_EVENT' : 'WARD_UPDATE',
-    title: update.title,
-    message: update.message,
-    actionUrl: `/ward-updates?open=${update.id}`,
-  });
 
   return success(res, {
     statusCode: 201,

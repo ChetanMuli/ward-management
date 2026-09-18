@@ -1911,6 +1911,7 @@ export default function Staff() {
                 <div className="span-2">
                   <CirclePhotoField
                     label="Nagarsevak photo"
+                    name={form.name || 'Nagarsevak'}
                     value={form.photo || ''}
                     onChange={value => setForm({ ...form, photo: value })}
                   />

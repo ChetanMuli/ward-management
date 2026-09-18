@@ -34,12 +34,6 @@ Object.assign(M,UI_MR);
 
 let observer=null;
 let currentLanguage='en';
-function translateNode(node,toMr){
- const map=toMr?M:R;
- const dynamic=(v)=>{if(toMr){let x=v.replace(/^All (\d+) wards$/,'सर्व $1 वॉर्ड').replace(/^(\d+) active members$/,'$1 सक्रिय सदस्य').replace(/^(\d+) members$/,'$1 सदस्य').replace(/^(\d+) permissions granted\.$/,'$1 परवानग्या दिल्या आहेत.');return x;} return v.replace(/^सर्व (\d+) वॉर्ड$/,'All $1 wards').replace(/^(\d+) सक्रिय सदस्य$/,'$1 active members').replace(/^(\d+) सदस्य$/,'$1 members').replace(/^(\d+) परवानग्या दिल्या आहेत\.$/,'$1 permissions granted.');};
- if(node.nodeType===Node.TEXT_NODE){const raw=node.nodeValue;const trimmed=raw.trim();if(trimmed){const translated=map[trimmed]||dynamic(trimmed);if(translated!==trimmed)node.nodeValue=raw.replace(trimmed,translated);}}
- if(node.nodeType===Node.ELEMENT_NODE){for(const attr of ['placeholder','title','aria-label']){const v=node.getAttribute(attr);if(v&&(map[v]))node.setAttribute(attr,map[v]);}node.childNodes.forEach(n=>translateNode(n,toMr));}
-}
 
 const MR_EN_EXTRA={
  'ओळखण्याचे ठिकाण:':'Landmark:','कुटुंब:':'Family:','कुटुंबातील सदस्य':'Family members','घर:':'House:','जन्मतारीख':'Date of birth','जन्मतारीख:':'Date of birth:','तुम्हाला वाढदिवसाच्या मनःपूर्वक शुभेच्छा! तुमचे आयुष्य आनंद, उत्तम आरोग्य, यश आणि समृद्धीने भरलेले जावो.':'Heartfelt birthday wishes! May your life be filled with happiness, good health, success and prosperity.','दिवस:':'Days:','नगरसेवक · WardDesk':'Nagarsevak · WardDesk','नाव:':'Name:','निवडलेल्या दिवस / कालावधीसाठी कोणतेही वाढदिवस नाहीत.':'No birthdays for the selected day / period.','पत्ता:':'Address:','पर्यायी मोबाईल:':'Alternate mobile:','या तारखेपर्यंत':'Up to this date','या तारखेपासून':'From this date','लिंग:':'Gender:','वय:':'Age:','वसाहत / क्षेत्र:':'Locality / area:','वसाहत:':'Locality:','वाढदिवस:':'Birthday:','वाढदिवसाचे कार्ड प्रिंट करा':'Print birthday card','वाढदिवसाच्या हार्दिक शुभेच्छा':'Happy Birthday','वॉर्ड व वसाहत':'Ward & locality','वॉर्ड:':'Ward:','शुभेच्छुक':'Best wishes from','संपूर्ण माहिती':'View full details',
@@ -69,9 +63,139 @@ Object.assign(M,{
 });
 
 
+Object.assign(M,{
+ 'See ward numbers, people and complaint work at a glance.':'वॉर्ड संख्या, नागरिक आणि तक्रारींचे काम एका नजरेत पहा.',
+ 'Master administration':'मास्टर प्रशासन','Sub Master Admin workspace':'सब मास्टर अ‍ॅडमिन कार्यक्षेत्र','Nagarsevak workspace':'नगरसेवक कार्यक्षेत्र','Field employee workspace':'क्षेत्र कर्मचारी कार्यक्षेत्र','Resident workspace':'रहिवासी कार्यक्षेत्र',
+ 'Municipal workspace':'महानगरपालिका कार्यक्षेत्र','Your Ward · Digital Services':'तुमचा वॉर्ड · डिजिटल सेवा',
+ 'Master Admin':'मास्टर अ‍ॅडमिन','Sub Master Admin':'सब मास्टर अ‍ॅडमिन','Field Employee':'क्षेत्र कर्मचारी','Resident':'रहिवासी',
+ 'Profile photo':'प्रोफाइल फोटो','Nagarsevak photo':'नगरसेवक फोटो','Choose photo':'फोटो निवडा','Change photo':'फोटो बदला','Adjust photo':'फोटो जुळवा','Remove':'काढा',
+ 'Crop the face into the circle. This photo is used on the ward dashboard and birthday card.':'चेहरा वर्तुळात आणा. हा फोटो वॉर्ड डॅशबोर्ड आणि वाढदिवस कार्डवर वापरला जातो.',
+ 'Create wards and colonies. Exact home location is saved when a team member visits the house.':'वॉर्ड आणि वसाहती तयार करा. टीम सदस्य घराला भेट देईल तेव्हा नेमके स्थान जतन होते.',
+ 'When you visit a home, save GPS at the door. Tap the location later to open maps and get directions.':'घराला भेट देताना दाराशी GPS जतन करा. नंतर स्थान टॅप करून नकाशा आणि दिशा मिळवा.',
+ 'Each family lives at a house. Open directions from the house location.':'प्रत्येक कुटुंब एका घरात राहते. घराच्या स्थानावरून दिशा उघडा.',
+ 'Official ward facts, maps and published information.':'अधिकृत वॉर्ड माहिती, नकाशे आणि प्रकाशित माहिती.',
+ 'Search every citizen by name, mobile, job or address.':'नाव, मोबाईल, नोकरी किंवा पत्त्यानुसार नागरिक शोधा.',
+ 'See who is marked as a voter in the family register.':'कुटुंब नोंदणीत मतदार म्हणून चिन्हांकित व्यक्ती पहा.',
+ 'Registered login accounts for this ward system.':'या वॉर्ड प्रणालीतील नोंदणीकृत लॉगिन खाती.',
+ 'Track civic complaints from report to resolution.':'तक्रार नोंदीपासून निराकरणापर्यंत नागरिक तक्रारी ट्रॅक करा.',
+ 'Publish notices and events for residents.':'रहिवाशांसाठी सूचना आणि कार्यक्रम प्रकाशित करा.',
+ 'Create a ward notice or event.':'वॉर्ड सूचना किंवा कार्यक्रम तयार करा.',
+ 'Publish government and local benefits residents can use.':'रहिवासी वापरू शकतील अशा सरकारी आणि स्थानिक योजना प्रकाशित करा.',
+ 'Upcoming birthdays in the selected ward.':'निवडलेल्या वॉर्डमधील आगामी वाढदिवस.',
+ 'People turning 18 — useful for voter follow-up.':'१८ वर्षे पूर्ण होणारे नागरिक — मतदार फॉलो-अपसाठी उपयुक्त.',
+ 'Record deaths so family registers stay accurate.':'कुटुंब नोंदी अचूक राहण्यासाठी मृत्यू नोंदवा.',
+ 'Official voter lists for election work.':'निवडणूक कामासाठी अधिकृत मतदार याद्या.',
+ 'Election information from official sources.':'अधिकृत स्रोतांवरील निवडणूक माहिती.',
+ 'Nagarsevaks and the employees who work with them.':'नगरसेवक आणि त्यांच्यासोबत काम करणारे कर्मचारी.',
+ 'Activate wards and Nagarsevaks. Residents only see Nagarsevaks who are active for their ward.':'वॉर्ड आणि नगरसेवक सक्रिय करा. रहिवासी फक्त आपल्या वॉर्डातील सक्रिय नगरसेवक पाहतात.',
+ 'See when each Nagarsevak was added and when their 1-year subscription ends.':'प्रत्येक नगरसेवक कधी जोडला आणि त्यांची १ वर्षाची सदस्यता कधी संपते ते पहा.',
+ 'Community members and social workers.':'समुदाय सदस्य आणि सामाजिक कार्यकर्ते.',
+ 'Additional admin accounts and their permissions.':'अतिरिक्त प्रशासन खाती आणि त्यांच्या परवानग्या.',
+ 'Internal chat groups for ward teams and residents.':'वॉर्ड टीम आणि रहिवाशांसाठी अंतर्गत चॅट गट.',
+ 'Export ward data for reviews and reports.':'आढावा आणि अहवालासाठी वॉर्ड डेटा एक्सपोर्ट करा.',
+ 'Restore records that were deleted by mistake.':'चुकून हटवलेल्या नोंदी पुनर्संचयित करा.',
+ 'Secure registered ward account':'सुरक्षित नोंदणीकृत वॉर्ड खाते','Open profile':'प्रोफाइल उघडा','Notifications':'सूचना',
+ 'Update your photo, contact details and password':'तुमचा फोटो, संपर्क माहिती आणि पासवर्ड अद्ययावत करा',
+ 'Personal details':'वैयक्तिक माहिती','Security':'सुरक्षा','Leave blank to keep your current password. New password must be at least 8 characters.':'सध्याचा पासवर्ड ठेवायचा असल्यास हे रिकामे ठेवा. नवीन पासवर्ड किमान ८ अक्षरांचा असावा.',
+ 'My Complaints':'माझ्या तक्रारी','Updates & Events':'अपडेट्स व कार्यक्रम','Groups & Chat':'गट व चॅट','Home':'मुख्यपृष्ठ'
+});
 const UI_EN_FROM_MR=Object.fromEntries(Object.entries(MR_EN_EXTRA).map(([mr,en])=>[en,mr]));
 Object.assign(M,UI_EN_FROM_MR);
 const R=Object.fromEntries(Object.entries(M).map(([a,b])=>[b,a]));
 
-export function setLanguage(lang){currentLanguage=lang==='mr'?'mr':'en';document.documentElement.dataset.lang=currentLanguage;localStorage.setItem('ward_language',currentLanguage);translateNode(document.body,currentLanguage==='mr');}
-export function initLanguage(){const lang=localStorage.getItem('ward_language')==='mr'?'mr':'en';currentLanguage=lang;document.documentElement.dataset.lang=lang;observer?.disconnect();observer=new MutationObserver(muts=>{muts.forEach(m=>m.addedNodes.forEach(n=>translateNode(n,currentLanguage==='mr')));});observer.observe(document.body,{childList:true,subtree:true});translateNode(document.body,lang==='mr');return lang;}
+const SKIP_TAGS=new Set(['SCRIPT','STYLE','TEXTAREA','INPUT','CODE','PRE','SVG','CANVAS','NOSCRIPT']);
+function shouldSkip(el){
+ if(!el||el.nodeType!==1) return false;
+ if(SKIP_TAGS.has(el.tagName)) return true;
+ if(el.classList?.contains('notranslate')||el.getAttribute?.('translate')==='no') return true;
+ if(el.id==='google_translate_element'||el.classList?.contains('goog-te-gadget')||el.classList?.contains('goog-te-banner-frame')) return true;
+ if(el.classList?.contains('brand-mark')||el.classList?.contains('user-brand-mark')||el.classList?.contains('admin-mobile-brand')||el.classList?.contains('wa-avatar')||el.classList?.contains('brand')) return true;
+ return false;
+}
+function translateNode(node,toMr){
+ const map=toMr?M:R;
+ const dynamic=(v)=>{if(toMr){let x=v.replace(/^All (\d+) wards$/,'सर्व $1 वॉर्ड').replace(/^(\d+) active members$/,'$1 सक्रिय सदस्य').replace(/^(\d+) members$/,'$1 सदस्य').replace(/^(\d+) permissions granted\.$/,'$1 परवानग्या दिल्या आहेत.');return x;} return v.replace(/^सर्व (\d+) वॉर्ड$/,'All $1 wards').replace(/^(\d+) सक्रिय सदस्य$/,'$1 active members').replace(/^(\d+) सदस्य$/,'$1 members').replace(/^(\d+) परवानग्या दिल्या आहेत\.$/,'$1 permissions granted.');};
+ if(!node) return;
+ if(node.nodeType===Node.TEXT_NODE){const raw=node.nodeValue;const trimmed=raw.trim();if(trimmed){if(/^[A-Za-z0-9]{1,3}$/.test(trimmed)) return;const translated=map[trimmed]||dynamic(trimmed);if(translated!==trimmed)node.nodeValue=raw.replace(trimmed,translated);}return;}
+ if(node.nodeType===Node.ELEMENT_NODE){if(shouldSkip(node)) return;for(const attr of ['placeholder','title','aria-label']){const v=node.getAttribute(attr);if(v&&(map[v]))node.setAttribute(attr,map[v]);}node.childNodes.forEach(n=>translateNode(n,toMr));}
+}
+
+function googleCookie(value){
+ const expire=value?';max-age=31536000':';expires=Thu, 01 Jan 1970 00:00:00 GMT';
+ const encoded=value||'';
+ document.cookie=`googtrans=${encoded};path=/${expire}`;
+ const host=location.hostname;
+ if(host&&host!=='localhost'&&host!=='127.0.0.1') document.cookie=`googtrans=${encoded};path=/;domain=.${host}${expire}`;
+}
+function triggerGoogleCombo(lang){
+ const code=lang==='mr'?'mr':'';
+ const apply=()=>{
+  const sel=document.querySelector('.goog-te-combo');
+  if(!sel) return false;
+  const next=code||'en';
+  if(sel.value!==next){sel.value=next;sel.dispatchEvent(new Event('change'));}
+  return true;
+ };
+ if(apply()) return;
+ let n=0;
+ const t=setInterval(()=>{if(apply()||++n>48)clearInterval(t);},250);
+}
+function ensureGoogleWidget(lang){
+ if(lang!=='mr') return;
+ if(!document.getElementById('google_translate_element')){
+  const host=document.createElement('div');
+  host.id='google_translate_element';
+  host.className='ward-gt-host notranslate';
+  host.setAttribute('translate','no');
+  host.setAttribute('aria-hidden','true');
+  document.body.appendChild(host);
+ }
+ if(document.getElementById('google-translate-script')){
+  triggerGoogleCombo('mr');
+  return;
+ }
+ window.googleTranslateElementInit=function(){
+  if(!window.google?.translate?.TranslateElement) return;
+  new window.google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'en,mr',autoDisplay:false},'google_translate_element');
+  triggerGoogleCombo('mr');
+ };
+ const s=document.createElement('script');
+ s.id='google-translate-script';
+ s.async=true;
+ s.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+ document.body.appendChild(s);
+}
+
+export function setLanguage(lang){
+ currentLanguage=lang==='mr'?'mr':'en';
+ document.documentElement.lang=currentLanguage==='mr'?'mr':'en';
+ document.documentElement.dataset.lang=currentLanguage;
+ localStorage.setItem('ward_language',currentLanguage);
+ if(currentLanguage==='mr') googleCookie('/en/mr');
+ else googleCookie('');
+ translateNode(document.body,currentLanguage==='mr');
+ if(currentLanguage==='mr'){ensureGoogleWidget('mr');triggerGoogleCombo('mr');}
+}
+export function switchLanguage(next){
+ const lang=next==='mr'?'mr':'en';
+ localStorage.setItem('ward_language',lang);
+ if(lang==='mr') googleCookie('/en/mr');
+ else googleCookie('');
+ window.location.reload();
+}
+export function initLanguage(){
+ const lang=localStorage.getItem('ward_language')==='mr'?'mr':'en';
+ currentLanguage=lang;
+ document.documentElement.lang=lang==='mr'?'mr':'en';
+ document.documentElement.dataset.lang=lang;
+ if(lang==='mr') googleCookie('/en/mr');
+ else googleCookie('');
+ observer?.disconnect();
+ observer=new MutationObserver(muts=>{muts.forEach(m=>m.addedNodes.forEach(n=>translateNode(n,currentLanguage==='mr')));});
+ if(document.body){
+  observer.observe(document.body,{childList:true,subtree:true});
+  translateNode(document.body,lang==='mr');
+  if(lang==='mr') ensureGoogleWidget('mr');
+ }
+ return lang;
+}
