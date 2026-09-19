@@ -699,6 +699,7 @@ html body table thead th{
 html body table td{border-color:var(--wd-line) !important;background:#fff}
 html body table tbody tr:hover td{background:#f8fafc}
 html body .table-link{color:var(--wd-link) !important;background:none;border:0;padding:0;font-weight:700;cursor:pointer}
+html body .plain-cell{color:var(--wd-ink) !important;cursor:default !important;pointer-events:none !important;font-weight:800 !important;background:none !important;border:0 !important;padding:0 !important;text-decoration:none !important}
 html body .muted{color:var(--wd-muted)}
 html body .tab.active{background:var(--wd-sidebar) !important;color:#fff !important;border-color:var(--wd-sidebar) !important}
 html body .pagination-page.is-current{background:var(--wd-sidebar) !important;color:#fff !important;border-color:var(--wd-sidebar) !important}

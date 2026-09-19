@@ -29,7 +29,7 @@ export default function PersonForm({value,onChange,families=[],wards=[],hideFami
  const voterChoice=isAdult?form.isVoter:'';
  const voterOptions=wards.map(w=>({value:w.wardNumber,label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}));
  return <form className="form-grid person-form" onSubmit={onSubmit}>
-  {!hideFamily&&<Field className="span-2" label="Family *"><SearchableSelect required value={form.familyId||''} onChange={v=>set('familyId',v)} options={families.map(f=>({value:f.id,label:`${f.familyName||'Unnamed family'} · ${[f.house?.apartment?.name,f.house?.houseNumber].filter(Boolean).join(' / ')||'No house'}${f.nativeVillage?` · मूल गाव ${f.nativeVillage}`:''}`}))} placeholder="Search family…"/></Field>}
+  {!hideFamily&&<Field className="span-2" label="Family *"><SearchableSelect required value={form.familyId||''} onChange={v=>set('familyId',v)} options={families.map(f=>({value:f.id,label:`${f.familyName||'Unnamed family'} · ${[f.house?.apartment?.name,f.house?.houseNumber].filter(Boolean).join(' / ')||'No house'}${f.nativeVillage?` · Native village ${f.nativeVillage}`:''}`}))} placeholder="Search family…"/></Field>}
 
   <div className="form-section-title span-2"><strong>Basic details</strong><span>Enter the citizen's actual information. No field is pre-selected.</span></div>
   <Field label="Full name *"><input required value={form.fullName||''} onChange={e=>set('fullName',e.target.value)} placeholder="Enter full name or N/A" autoComplete="name"/></Field>

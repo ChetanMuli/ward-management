@@ -171,7 +171,7 @@ const house = asyncHandler(async (req, res) => {
   const full = await House.findByPk(row.id, {
     include: [
       { model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] },
-      { model: Apartment, as: 'apartment' },
+      { model: Apartment, as: 'apartment', required: false },
       { model: Family, as: 'families', required: false, include: [{ model: Person, as: 'members', where: { status: 'ACTIVE' }, required: false }] },
     ],
   });

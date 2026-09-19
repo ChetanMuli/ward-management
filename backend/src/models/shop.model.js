@@ -32,7 +32,8 @@ const Shop = sequelize.define('Shop', {
 }, {
   paranoid: true,
   deletedAt: 'deletedAt',
-  tableName: 'shops',
+  tableName: 'shops_and_offices',
+  comment: 'Shops and offices registered in each colony',
   indexes: [
     { fields: ['area_id'] },
     { fields: ['kind'] },

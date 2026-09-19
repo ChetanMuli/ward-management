@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { House, Family, Person, VoterProfile, Complaint, Area, Ward, User, Role, Employee } = require('../../models');
+const { House, Family, Person, VoterProfile, Complaint, Area, Ward, User, Role, Employee, Apartment } = require('../../models');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { daysTo18thBirthday, daysToNextBirthday } = require('../../services/age.service');
@@ -67,8 +67,12 @@ const summary = asyncHandler(async (req, res) => {
   const whereWith=(extra)=>({[Op.and]:[complaintScope, extra]});
 
   const statusCounts={};
-  const [houses,families,scopedPeople,complaints,openComplaints,managedEmployees,corporatorCount] = await Promise.all([
+  const apartmentWhere = requestedWardId
+    ? { wardId: requestedWardId }
+    : (accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}});
+  const [houses,apartments,families,scopedPeople,complaints,openComplaints,managedEmployees,corporatorCount] = await Promise.all([
     House.count({ where:areaFilter }),
+    Apartment.count({ where:apartmentWhere }),
     Family.count({ where:{}, include:familyInclude, distinct:true }),
     Person.findAll({ where:{status:'ACTIVE'}, include:personInclude }),
     Complaint.count({ where:complaintScope, ...countOpts }),
@@ -145,7 +149,7 @@ const summary = asyncHandler(async (req, res) => {
 
   return success(res,{data:{
     wardId:requestedWardId, ward, user:userInfo, employee:employeeInfo,
-    houses,families,persons,voters,nonVoters,complaints,openComplaints,
+    houses,apartments,families,persons,voters,nonVoters,complaints,openComplaints,
     birthdaysNext30:birthdayCount,upcoming18Next90:upcomingCount,
     todayEvents,todayBirthdays,todayDahava,todayVarshashraddha,todayDeaths,
     managedEmployees,corporatorCount,employeeCount,statusCounts,
