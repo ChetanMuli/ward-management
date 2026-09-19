@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { House, Family, Person, PersonDocument, VoterProfile, Complaint, Area, Ward, User, Role } = require('../../models');
+const { House, Family, Person, PersonDocument, VoterProfile, Complaint, Area, Apartment, Ward, User, Role } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -10,14 +10,14 @@ const { nagarsevakPublicByIds } = require('../../utils/photo');
 
 const familyInclude = [
   { model: Person, as: 'members', where: { status: 'ACTIVE' }, required: false, include: [{ model: VoterProfile, as: 'voterProfile' }] },
-  { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }] },
+  { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name'] }] },
 ];
 const personInclude = [
   {
     model: Family,
     as: 'family',
     include: [
-      { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }] },
+      { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name'] }] },
       { model: Person, as: 'members', where: { status: 'ACTIVE' }, required: false, include: [{ model: VoterProfile, as: 'voterProfile' }] },
     ],
   },
@@ -40,6 +40,25 @@ function pairCoords(lat,lng){
   const longitude=cleanCoord(lng);
   if(latitude==null||longitude==null) return {latitude:null,longitude:null};
   return {latitude,longitude};
+}
+
+function emptyToNull(v){
+  if(v===''||v==null) return null;
+  const s=String(v).trim();
+  return s||null;
+}
+
+function familyFields(body){
+  return {
+    houseId:body.houseId||null,
+    familyName:emptyToNull(body.familyName),
+    notes:emptyToNull(body.notes),
+    nativeVillage:emptyToNull(body.nativeVillage),
+    nativeTaluka:emptyToNull(body.nativeTaluka),
+    nativeDistrict:emptyToNull(body.nativeDistrict),
+    nativeState:'Maharashtra',
+    status:body.status||'ACTIVE'
+  };
 }
 
 function calculateAgeSafe(dob){
@@ -127,7 +146,7 @@ const houses = asyncHandler(async (req, res) => {
   const { limit, offset, page } = pagination(req.query);
   await assertRequestedWard(req, req.query.wardId);
   const where = await houseWhere(req);
-  for (const k of ['ownership', 'houseType', 'status', 'areaId']) if (req.query[k]) where[k] = req.query[k];
+  for (const k of ['ownership', 'houseType', 'status', 'areaId', 'apartmentId']) if (req.query[k]) where[k] = req.query[k];
   if (req.query.search) {
     where[Op.or] = [
       { houseNumber: { [Op.like]: `%${req.query.search}%` } },
@@ -141,13 +160,23 @@ const houses = asyncHandler(async (req, res) => {
   }
   const r = await House.findAndCountAll({
     where,
-    include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }],
+    include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name','areaId'] }],
     limit, offset, order: [['createdAt', 'DESC']], distinct: true,
   });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });
 });
 
-const house = asyncHandler(async (req, res) => success(res, { data: await assertHouse(req.params.id, req) }));
+const house = asyncHandler(async (req, res) => {
+  const row = await assertHouse(req.params.id, req);
+  const full = await House.findByPk(row.id, {
+    include: [
+      { model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] },
+      { model: Apartment, as: 'apartment' },
+      { model: Family, as: 'families', required: false, include: [{ model: Person, as: 'members', where: { status: 'ACTIVE' }, required: false }] },
+    ],
+  });
+  return success(res, { data: full });
+});
 
 const families = asyncHandler(async (req, res) => {
   const { limit, offset, page } = pagination(req.query);
@@ -158,6 +187,9 @@ const families = asyncHandler(async (req, res) => {
   if (req.query.familyName) where.familyName = { [Op.like]: `%${req.query.familyName}%` };
   if (req.query.search) where[Op.or] = [
     { familyName: { [Op.like]: `%${req.query.search}%` } },
+    { nativeVillage: { [Op.like]: `%${req.query.search}%` } },
+    { nativeTaluka: { [Op.like]: `%${req.query.search}%` } },
+    { nativeDistrict: { [Op.like]: `%${req.query.search}%` } },
     { '$house.houseNumber$': { [Op.like]: `%${req.query.search}%` } },
     { '$house.address$': { [Op.like]: `%${req.query.search}%` } },
   ];
@@ -174,7 +206,10 @@ const persons = asyncHandler(async (req, res) => {
   const { limit, offset, page } = pagination(req.query);
   await assertRequestedWard(req, req.query.wardId);
   const { areaIds } = await scopeAreaIds(req, req.query.wardId);
-  const where = { status: req.query.status || 'ACTIVE' };
+  const requestedStatus=String(req.query.status||'ACTIVE').toUpperCase();
+  const LIVE_PERSON_STATUSES=['ACTIVE','MOVED_OUT','DUPLICATE','VERIFICATION_PENDING'];
+  if(!LIVE_PERSON_STATUSES.includes(requestedStatus)) throw new ApiError(400,'Deceased citizens are available only in Death Records');
+  const where = { status: requestedStatus };
   if (req.query.familyId) where.familyId = req.query.familyId;
   if (req.query.search) {
     const search=String(req.query.search).trim();
@@ -204,6 +239,11 @@ const persons = asyncHandler(async (req, res) => {
     if (!['VOTER','NON_VOTER','NOT_SPECIFIED'].includes(status)) throw new ApiError(400,'Invalid voter status');
     include[1] = { ...include[1], where:{status}, required:true };
   }
+  if (req.query.presenceStatus) {
+    const status=String(req.query.presenceStatus).toUpperCase();
+    if (!['AT_HOME','OUT_OF_CITY'].includes(status)) throw new ApiError(400,'Invalid presence status');
+    where.presenceStatus=status;
+  }
   if (areaIds) {
     const familyIds = await familyIdsForAreas(areaIds);
     where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
@@ -222,7 +262,14 @@ const voters = asyncHandler(async (req, res) => {
   await assertRequestedWard(req, req.query.wardId);
   const { areaIds } = await scopeAreaIds(req, req.query.wardId);
   const where = {};
-  if (req.query.status) where.status = req.query.status;
+  const LIVE_VOTER_STATUSES=['VOTER','NON_VOTER','NOT_SPECIFIED'];
+  if (req.query.status) {
+    const status=String(req.query.status).toUpperCase();
+    if(!LIVE_VOTER_STATUSES.includes(status)) throw new ApiError(400,'Deceased citizens are available only in Death Records');
+    where.status = status;
+  } else {
+    where.status = { [Op.in]: LIVE_VOTER_STATUSES };
+  }
   const search=String(req.query.search||'').trim();
   if(search) where[Op.or]=[
     {status:{[Op.like]:`%${search}%`}},
@@ -238,11 +285,16 @@ const voters = asyncHandler(async (req, res) => {
     {'$Person.companyName$':{[Op.like]:`%${search}%`}},
   ];
   const include = [{ model: Person, as: 'Person', where:{status:'ACTIVE'}, required:true, include: [{ model: Family, as: 'family', include: [{ model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }] }] }] }];
+  if (req.query.presenceStatus) {
+    const status=String(req.query.presenceStatus).toUpperCase();
+    if (!['AT_HOME','OUT_OF_CITY'].includes(status)) throw new ApiError(400,'Invalid presence status');
+    include[0]={...include[0], where:{status:'ACTIVE', presenceStatus:status}};
+  }
   if (areaIds) {
     const familyIds = await familyIdsForAreas(areaIds);
     const families = familyIds.length ? await Family.findAll({ where:{id:{[Op.in]:familyIds}}, attributes:['id'] }) : [];
     const ids = families.map(f=>f.id);
-    const personsInWard = ids.length ? await Person.findAll({ where:{familyId:{[Op.in]:ids}}, attributes:['id'] }) : [];
+    const personsInWard = ids.length ? await Person.findAll({ where:{familyId:{[Op.in]:ids}, status:'ACTIVE'}, attributes:['id'] }) : [];
     where.personId = { [Op.in]: personsInWard.length ? personsInWard.map(p=>p.id) : ['00000000-0000-0000-0000-000000000000'] };
   }
   const r = await VoterProfile.findAndCountAll({ where, include, limit, offset, distinct: true });
@@ -283,7 +335,7 @@ const complaints = asyncHandler(async (req, res) => {
 
   const include = [
     { model: Person, as: 'citizen', include: [{ model: Family, as: 'family', include: [{ model: House, as: 'house' }] }] },
-    { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }] },
+    { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name'] }] },
     { model: require('../../models').Employee, as: 'assignedEmployee', include: [{ model: require('../../models').User, as: 'manager', attributes: ['id', 'name', 'email', 'mobile'] }, { model: require('../../models').User, as: 'User', attributes: ['id', 'name', 'email', 'mobile'] }] },
   ];
   if (areaIds) include[1] = { ...include[1], where: { areaId: { [Op.in]: areaIds.length ? areaIds : ['00000000-0000-0000-0000-000000000000'] } }, required: true };
@@ -331,7 +383,8 @@ const birthdays = asyncHandler(async (req, res) => {
 
 const updatePerson = asyncHandler(async (req, res) => {
   const p = await assertPerson(req.params.id, req);
-  const allowed = ['fullName','gender','dob','mobile','alternateMobile','email','occupation','occupationType','businessName','businessAddress','companyName','employmentType','followupStatus','followupDate','followupNotes','status','notes','voterIdImage','aadhaarImage','panCardImage','presenceStatus','currentCity','livingWith'];
+  if (p.status === 'DECEASED') throw new ApiError(409,'This citizen is in Death Records. Restore the death record before editing.');
+  const allowed = ['fullName','gender','dob','mobile','alternateMobile','email','occupation','occupationType','businessName','businessAddress','companyName','employmentType','followupStatus','followupDate','followupNotes','notes','voterIdImage','aadhaarImage','panCardImage','presenceStatus','currentCity','livingWith'];
   const patch = {};
   for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
   applyPresence(patch, req.body);
@@ -379,6 +432,7 @@ const updatePerson = asyncHandler(async (req, res) => {
 });
 const updateVoter = asyncHandler(async (req, res) => {
   const p = await assertPerson(req.params.personId, req);
+  if (p.status === 'DECEASED') throw new ApiError(409,'This citizen is in Death Records. Restore the death record before editing.');
   let voter = await VoterProfile.findOne({ where: { personId: p.id } });
   if (!voter) voter = await VoterProfile.create({ personId: p.id, status: 'NOT_SPECIFIED' });
   const age = calculateAgeSafe(p.dob);
@@ -422,6 +476,18 @@ const createHouse = asyncHandler(async (req, res) => {
   const geo=pairCoords(payload.latitude,payload.longitude);
   payload.latitude=geo.latitude;
   payload.longitude=geo.longitude;
+  if(payload.apartmentId){
+    const apartment=await Apartment.findByPk(payload.apartmentId);
+    if(!apartment||String(apartment.areaId)!==String(area.id)) throw new ApiError(400,'Apartment must belong to the selected colony');
+    payload.houseType=payload.houseType||'FLAT';
+    if(payload.latitude==null && apartment.latitude!=null){
+      const geoFromApt=pairCoords(apartment.latitude, apartment.longitude);
+      payload.latitude=geoFromApt.latitude;
+      payload.longitude=geoFromApt.longitude;
+    }
+  } else {
+    payload.apartmentId=null;
+  }
 
   // Owner information is optional
   payload.ownerName =
@@ -458,10 +524,25 @@ const createHouse = asyncHandler(async (req, res) => {
   });
 });
 
-const updateHouse = asyncHandler(async (req,res) => { const row=await assertHouse(req.params.id,req); const patch={...req.body}; for(const k of ['ownerName','ownerMobile','landmark','notes','city','pincode']) if(patch[k]==='') patch[k]=null; if('latitude' in patch || 'longitude' in patch){ const geo=pairCoords(patch.latitude ?? row.latitude, patch.longitude ?? row.longitude); patch.latitude=geo.latitude; patch.longitude=geo.longitude; } if(patch.areaId){const area=await Area.findByPk(req.body.areaId);if(!area)throw new ApiError(400,'Area not found');if(req.user.roleName!=='SUPER_ADMIN'&&area.wardId!==req.user.wardId)throw new ApiError(403,'Area belongs to another ward');} const old=row.toJSON(); await row.update(patch); await logAudit({user:req.user,action:'UPDATE_HOUSE',entity:'House',recordId:row.id,oldValue:old,newValue:patch,ipAddress:req.ip}); return success(res,{data:row,message:'House updated'}); });
+const updateHouse = asyncHandler(async (req,res) => { const row=await assertHouse(req.params.id,req); const patch={...req.body}; for(const k of ['ownerName','ownerMobile','landmark','notes','city','pincode']) if(patch[k]==='') patch[k]=null; if('latitude' in patch || 'longitude' in patch){ const geo=pairCoords(patch.latitude ?? row.latitude, patch.longitude ?? row.longitude); patch.latitude=geo.latitude; patch.longitude=geo.longitude; } if(patch.areaId){const area=await Area.findByPk(req.body.areaId);if(!area)throw new ApiError(400,'Area not found');if(req.user.roleName!=='SUPER_ADMIN'&&area.wardId!==req.user.wardId)throw new ApiError(403,'Area belongs to another ward');} if('apartmentId' in patch){ if(!patch.apartmentId){ patch.apartmentId=null; } else { const apartment=await Apartment.findByPk(patch.apartmentId); const areaId=patch.areaId||row.areaId; if(!apartment||String(apartment.areaId)!==String(areaId)) throw new ApiError(400,'Apartment must belong to the selected colony'); if(!patch.houseType) patch.houseType='FLAT'; } } const old=row.toJSON(); await row.update(patch); await logAudit({user:req.user,action:'UPDATE_HOUSE',entity:'House',recordId:row.id,oldValue:old,newValue:patch,ipAddress:req.ip}); return success(res,{data:row,message:'House updated'}); });
 const deleteHouse = asyncHandler(async(req,res)=>{const row=await assertHouse(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_HOUSE',entity:'House',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'House moved to recycle bin'});});
-const createFamily = asyncHandler(async(req,res)=>{await assertHouse(req.body.houseId,req);const row=await Family.create(req.body);await logAudit({user:req.user,action:'CREATE_FAMILY',entity:'Family',recordId:row.id,newValue:req.body,ipAddress:req.ip});return success(res,{statusCode:201,data:row,message:'Family created'});});
-const updateFamily = asyncHandler(async(req,res)=>{const row=await assertFamily(req.params.id,req);if(req.body.houseId)await assertHouse(req.body.houseId,req);const old=row.toJSON();await row.update(req.body);await logAudit({user:req.user,action:'UPDATE_FAMILY',entity:'Family',recordId:row.id,oldValue:old,newValue:req.body,ipAddress:req.ip});return success(res,{data:row,message:'Family updated'});});
+const createFamily = asyncHandler(async(req,res)=>{
+  await assertHouse(req.body.houseId,req);
+  const payload=familyFields(req.body);
+  if(!payload.houseId) throw new ApiError(400,'House is required');
+  const row=await Family.create(payload);
+  await logAudit({user:req.user,action:'CREATE_FAMILY',entity:'Family',recordId:row.id,newValue:payload,ipAddress:req.ip});
+  return success(res,{statusCode:201,data:row,message:'Family created'});
+});
+const updateFamily = asyncHandler(async(req,res)=>{
+  const row=await assertFamily(req.params.id,req);
+  if(req.body.houseId) await assertHouse(req.body.houseId,req);
+  const old=row.toJSON();
+  const payload=familyFields({...old,...req.body,houseId:req.body.houseId||row.houseId});
+  await row.update(payload);
+  await logAudit({user:req.user,action:'UPDATE_FAMILY',entity:'Family',recordId:row.id,oldValue:old,newValue:payload,ipAddress:req.ip});
+  return success(res,{data:row,message:'Family updated'});
+});
 const deleteFamily = asyncHandler(async(req,res)=>{const row=await assertFamily(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_FAMILY',entity:'Family',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Family moved to recycle bin'});});
 const createPerson = asyncHandler(async(req,res)=>{
   await assertFamily(req.body.familyId,req);
@@ -514,7 +595,7 @@ const createPerson = asyncHandler(async(req,res)=>{
   const full=await Person.findByPk(row.id,{include:personDetailInclude});
   return success(res,{statusCode:201,data:full,message:'Citizen created and added to family registers'});
 });
-const deletePerson = asyncHandler(async(req,res)=>{const row=await assertPerson(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_CITIZEN',entity:'Person',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Citizen moved to recycle bin'});});
+const deletePerson = asyncHandler(async(req,res)=>{const row=await assertPerson(req.params.id,req);if(row.status==='DECEASED') throw new ApiError(409,'Deceased citizens stay in Death Records. Restore the death record first if this was marked by mistake.');await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_CITIZEN',entity:'Person',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Citizen moved to recycle bin'});});
 const deleteComplaint = asyncHandler(async(req,res)=>{const row=await assertComplaint(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_COMPLAINT',entity:'Complaint',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Complaint moved to recycle bin'});});
 
 module.exports={houses,house,createHouse,updateHouse,deleteHouse,families,family,createFamily,updateFamily,deleteFamily,persons,person,createPerson,updatePerson,deletePerson,voters,updateVoter,complaints,complaint,deleteComplaint,upcoming18,birthdays};

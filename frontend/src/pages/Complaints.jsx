@@ -1,23 +1,14 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import {api,getUser} from '../services/api';
-import {Empty,ErrorBox,Field,ImageField,Loading,Modal,PageHeader,RowMenu,StatusPill,Toolbar,fmtDateTime,SearchableSelect,PaginationBar} from '../components/Ui';
+import {Empty,ErrorBox,Field,ImageField,MultiImageField,Loading,Modal,PageHeader,RowMenu,StatusPill,Toolbar,fmtDateTime,SearchableSelect,PaginationBar} from '../components/Ui';
+import {packComplaintImages,parseComplaintImages} from '../complaintMedia';
 import WardFilter from '../components/WardFilter';
 import {useWardFilter} from '../wardFilter';
 import {can,isEmployee,isNagarsevak,isMaster,isSubMaster} from '../rbac';
 
 const statuses=['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED'];
-const blank={houseId:'',citizenPersonId:'',description:'',reportedImage:null};
-async function compressImage(file){
- if(!file)return null;
- if(!file.type.startsWith('image/'))throw new Error('Please select a JPG, PNG or WEBP image.');
- const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error('Unable to read the selected image.'));i.src=URL.createObjectURL(file)});
- const max=1400,scale=Math.min(1,max/Math.max(img.width,img.height));
- const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));
- const ctx=c.getContext('2d');if(!ctx)throw new Error('Image processing is unavailable in this browser.');
- ctx.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);
- return c.toDataURL('image/jpeg',0.78);
-}
+const blank={houseId:'',citizenPersonId:'',description:'',reportedImages:[]};
 const wa=(mobile,message)=>{let n=String(mobile||'').replace(/\D/g,'');if(n.length===10)n='91'+n;if(n.length<11)throw new Error('Valid mobile number is not available for WhatsApp.');window.open(`https://wa.me/${n}?text=${encodeURIComponent(message)}`,'_blank','noopener,noreferrer')};
 
 export default function Complaints(){
@@ -56,7 +47,7 @@ export default function Complaints(){
  const visible=useMemo(()=>rows||[],[rows]);
 
  function resetFilters(){const emptyFilters={search:'',status:'',assignedEmployeeId:''};setFilters(emptyFilters);setPage(1);setShowFilters(false);}
- async function create(e){e.preventDefault();setBusy(true);try{await api.createComplaint({...form,category:'OTHER',priority:'MEDIUM'});setOpen(false);setForm({...blank});await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
+ async function create(e){e.preventDefault();setBusy(true);try{await api.createComplaint({...form,category:'OTHER',priority:'MEDIUM',reportedImages:form.reportedImages||[],reportedImage:packComplaintImages(form.reportedImages||[])});setOpen(false);setForm({...blank});await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
  async function update(e){e.preventDefault();setBusy(true);try{
    await api.updateComplaintStatus(editing.id,{status:editing.status,comment:editing.comment,resolutionNote:editing.resolutionNote,resolutionImage:editing.resolutionImage});
    setEditing(null);await load()
@@ -88,7 +79,7 @@ export default function Complaints(){
   {!rows?<Loading/>:!visible.length?<Empty>No complaints match the selected filters.</Empty>:<div className="panel table-wrap"><table><thead><tr><th>ID</th><th>Citizen</th><th>Problem</th><th>Ward</th><th>Status</th><th>Assignment</th><th>Created</th><th/></tr></thead><tbody>{visible.map(c=><tr key={c.id}>
    <td data-label="ID"><button className="table-link" onClick={()=>openDetail(c.id)}><strong>{c.complaintNumber}</strong></button></td>
    <td data-label="Citizen">{c.citizen?.fullName||c.submittedBy?.name||'Registered user'}<div className="muted">{c.citizen?.mobile||c.submittedBy?.mobile||c.submittedBy?.email||''}</div></td>
-   <td data-label="Problem"><div>{c.description}</div>{c.reportedImage&&<a href={c.reportedImage} target="_blank" rel="noreferrer">Problem image</a>}{c.resolutionImage&&<><br/><a href={c.resolutionImage} target="_blank" rel="noreferrer">Completion image</a></>}</td>
+   <td data-label="Problem"><div>{c.description}</div>{parseComplaintImages(c.reportedImages||c.reportedImage)[0]&&<a href={parseComplaintImages(c.reportedImages||c.reportedImage)[0]} target="_blank" rel="noreferrer">{parseComplaintImages(c.reportedImages||c.reportedImage).length>1?`${parseComplaintImages(c.reportedImages||c.reportedImage).length} photos`:'Problem image'}</a>}{c.resolutionImage&&<><br/><a href={c.resolutionImage} target="_blank" rel="noreferrer">Completion image</a></>}</td>
    <td data-label="Ward">{c.ward?.wardNumber||c.house?.area?.ward?.wardNumber||'—'}<div className="muted">{c.ward?.name||c.house?.area?.ward?.name||''}</div></td><td data-label="Status"><StatusPill>{c.status}</StatusPill></td>
    <td data-label="Assignment"><div>Nagarsevak: <strong>{c.assignedNagarsevak?.name||c.assignedEmployee?.manager?.name||'Not assigned'}</strong></div><div className="muted">Employee: {c.assignedEmployee?.User?.name||'Not assigned'}</div></td>
    <td data-label="Created">{fmtDateTime(c.createdAt)}</td>
@@ -96,6 +87,7 @@ export default function Complaints(){
      {label:'View details',onClick:()=>openDetail(c.id)},
      (isMaster(user)||isNagarsevak(user)||isSubMaster(user))&&{label:'Assign',onClick:()=>setAssigning({id:c.id,complaintNumber:c.complaintNumber,employeeId:c.assignedEmployeeId||'',assignToSelf:false})},
      can('EDIT_COMPLAINTS')&&(isEmployee(user)?c.assignedEmployeeId===user?.employeeProfile?.id:true)&&{label:'Update',onClick:()=>setEditing({...c,comment:'',resolutionNote:c.resolutionNote||'',resolutionImage:c.resolutionImage||null})},
+     can('EDIT_COMPLAINTS')&&!isEmployee(user)&&c.status==='RESOLVED'&&{label:'Close',onClick:async()=>{if(!window.confirm(`Close complaint ${c.complaintNumber}?`))return;try{await api.updateComplaintStatus(c.id,{status:'CLOSED',comment:'Closed after resolution.'});await load()}catch(e){setError(e.message)}}},
      c.assignedEmployee?.User?.mobile&&{label:'WhatsApp employee',onClick:()=>{try{wa(c.assignedEmployee.User.mobile,`Complaint ${c.complaintNumber}: ${c.status}. Please coordinate the work.`)}catch(e){setError(e.message)}}},
      c.assignedEmployee?.manager?.mobile&&{label:'WhatsApp Nagarsevak',onClick:()=>{try{wa(c.assignedEmployee.manager.mobile,`Complaint ${c.complaintNumber}: ${c.status}. Please review/coordinate this complaint.`)}catch(e){setError(e.message)}}},
      can('DELETE_COMPLAINTS')&&{label:'Delete',danger:true,onClick:async()=>{if(!window.confirm(`Move complaint ${c.complaintNumber} to recycle bin?`))return;try{await api.deleteComplaint(c.id);await load()}catch(e){setError(e.message)}}}
@@ -110,7 +102,7 @@ export default function Complaints(){
    {selectedCitizen&&<div className="span-2 muted">Selected house: {selectedCitizen.family?.house?.houseNumber||'—'} · {selectedCitizen.family?.house?.address||'—'}</div>}
    <div className="form-section-title span-2"><strong>Problem</strong><span>Describe the issue clearly so the ward team can act.</span></div>
    <Field className="span-2" label="Problem description"><textarea required minLength="5" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="What is the problem, and where exactly?"/></Field>
-   <div className="span-2"><ImageField label="Problem image" value={form.reportedImage} onChange={v=>setForm({...form,reportedImage:v})} cameraLabel="Take problem photo"/></div>
+   <div className="span-2"><MultiImageField label="Problem photos" values={form.reportedImages||[]} onChange={v=>setForm({...form,reportedImages:v})} cameraLabel="Open camera"/></div>
    <div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>setOpen(false)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Submitting…':'Submit complaint'}</button></div>
   </form></Modal>}
 
@@ -133,8 +125,9 @@ export default function Complaints(){
     <div className="detail-card"><h3>Complaint information</h3><p><b>Category:</b> {detail.category?.replaceAll('_',' ')||'—'}</p><p><b>Priority:</b> {detail.priority||'—'}</p><p><b>Status:</b> <StatusPill>{detail.status}</StatusPill></p><p><b>Created:</b> {fmtDateTime(detail.createdAt)}</p><p><b>Resolved:</b> {fmtDateTime(detail.resolvedAt)}</p><p><b>Location:</b> {detail.location||'—'}</p><p><b>Problem:</b> {detail.description||'—'}</p></div>
     <div className="detail-card"><h3>Ward & assignment</h3><p><b>Ward:</b> {detail.ward?.wardNumber||detail.house?.area?.ward?.wardNumber||'—'}{detail.ward?.name||detail.house?.area?.ward?.name?` · ${detail.ward?.name||detail.house?.area?.ward?.name}`:''}</p><p><b>Nagarsevak:</b> {detail.assignedNagarsevak?.name||detail.assignedEmployee?.manager?.name||'Not assigned'}</p><p><b>Employee:</b> {detail.assignedEmployee?.User?.name||'Not assigned'}</p><p><b>Employee mobile:</b> {detail.assignedEmployee?.User?.mobile||'—'}</p><p><b>Resolution note:</b> {detail.resolutionNote||'—'}</p></div>
    </div>
-   {(detail.reportedImage||detail.resolutionImage)&&<div className="detail-card"><h3>Complaint photos</h3><div className="image-grid">{detail.reportedImage&&<div><strong>Problem reported</strong><img src={detail.reportedImage} alt="Reported problem"/></div>}{detail.resolutionImage&&<div><strong>Work completed</strong><img src={detail.resolutionImage} alt="Completed work"/></div>}</div></div>}
+   {(parseComplaintImages(detail.reportedImages||detail.reportedImage).length||detail.resolutionImage)&&<div className="detail-card"><h3>Complaint photos</h3><div className="image-grid">{parseComplaintImages(detail.reportedImages||detail.reportedImage).map((src,i)=><div key={i}><strong>Problem reported {i+1}</strong><img src={src} alt={`Reported problem ${i+1}`}/></div>)}{detail.resolutionImage&&<div><strong>Work completed</strong><img src={detail.resolutionImage} alt="Completed work"/></div>}</div></div>}
    <div className="detail-card"><h3>Activity timeline</h3><div className="complaint-timeline">{(detail.history||[]).length?(detail.history||[]).slice().sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).map((h,i)=><div className="timeline-item" key={h.id||i}><strong>{h.newStatus?.replaceAll('_',' ')||'Updated'}</strong><small>{fmtDateTime(h.createdAt)} · {h.changedBy?.name||'System'}</small><div>{h.comment||'Status updated'}</div></div>):<div className="muted">No activity recorded.</div>}</div></div>
+   <div className="modal-actions"><button className="ghost-btn" onClick={()=>setDetail(null)}>Close</button>{can('EDIT_COMPLAINTS')&&!isEmployee(user)&&detail.status==='RESOLVED'&&<button className="primary-btn" onClick={async()=>{try{await api.updateComplaintStatus(detail.id,{status:'CLOSED',comment:'Closed after resolution.'});setDetail(null);await load()}catch(e){setError(e.message)}}}>Mark closed</button>}</div>
   </Modal>}
  </div>
 }

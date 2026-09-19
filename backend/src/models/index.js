@@ -4,7 +4,9 @@ const Role = require('./role.model');
 const User = require('./user.model');
 const Ward = require('./ward.model');
 const Area = require('./area.model');
+const Apartment = require('./apartment.model');
 const House = require('./house.model');
+const Shop = require('./shop.model');
 const Family = require('./family.model');
 const Person = require('./person.model');
 const VoterProfile = require('./voterProfile.model');
@@ -63,6 +65,17 @@ Area.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
 // ---- Area <-> House ----
 Area.hasMany(House, { foreignKey: 'areaId', as: 'houses' });
 House.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
+
+// ---- Apartment (building) sits between colony and flats ----
+Ward.hasMany(Apartment, { foreignKey: 'wardId', as: 'apartments' });
+Apartment.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+Area.hasMany(Apartment, { foreignKey: 'areaId', as: 'apartments' });
+Apartment.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
+Apartment.hasMany(House, { foreignKey: 'apartmentId', as: 'flats' });
+House.belongsTo(Apartment, { foreignKey: 'apartmentId', as: 'apartment' });
+
+Area.hasMany(Shop, { foreignKey: 'areaId', as: 'shops' });
+Shop.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
 
 // ---- House <-> Family ----
 House.hasMany(Family, { foreignKey: 'houseId', as: 'families' });
@@ -267,7 +280,9 @@ module.exports = {
   CommunityUser,
   Ward,
   Area,
+  Apartment,
   House,
+  Shop,
   Family,
   Person,
   VoterProfile,

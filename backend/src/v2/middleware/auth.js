@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const { User, Role, Employee, Ward } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const asyncHandler = require('../../utils/asyncHandler');
-const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions');
+const { normalisePermissions, ALL_PERMISSIONS, resolveFieldPermissions } = require('../utils/permissions');
 
 const authenticateV2 = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization || '';
@@ -26,24 +26,9 @@ const authenticateV2 = asyncHandler(async (req, res, next) => {
   const employee = user.employeeProfile;
   let permissions = roleName === 'SUPER_ADMIN'
     ? ALL_PERMISSIONS
-    : roleName === 'NAGARSEVAK'
-      ? normalisePermissions(user.permissions)
-      : roleName === 'SUB_MASTER_ADMIN' || roleName === 'SOCIAL_WORKER' || roleName === 'CANDIDATE'
-        ? normalisePermissions(user.permissions)
-        : normalisePermissions(employee?.permissions);
-  const coreRolePermissions = roleName === 'NAGARSEVAK'
-    ? ['VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS','VIEW_HOUSES','VIEW_FAMILIES','VIEW_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','ASSIGN_COMPLAINTS','VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_USERS','VIEW_WARDS','VIEW_ELECTION_DATA','VIEW_GOVERNMENT_VOTER_LISTS','CREATE_GOVERNMENT_VOTER_LISTS','VIEW_STAFF','CREATE_STAFF','EDIT_STAFF','DELETE_STAFF','EDIT_COMPLAINTS']
-    : roleName === 'EMPLOYEE'
-      ? ['VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS','VIEW_HOUSES','VIEW_FAMILIES','VIEW_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_WARDS','VIEW_ELECTION_DATA','EDIT_COMPLAINTS']
-      : [];
-  permissions = [...new Set([...permissions, ...coreRolePermissions])];
-  if (roleName === 'EMPLOYEE') permissions = permissions.filter(p => !['VIEW_USERS','EDIT_USERS','DELETE_USERS'].includes(p));
-
-  // Every active employee needs a safe landing page. The dashboard is read-only
-  // and is not a data-management privilege, so keep it available even when
-  // granular employee permissions are restricted.
-  if (roleName === 'EMPLOYEE' && !permissions.includes('VIEW_DASHBOARD')) permissions.push('VIEW_DASHBOARD');
-  if (roleName === 'NAGARSEVAK' && !permissions.includes('VIEW_DASHBOARD')) permissions.push('VIEW_DASHBOARD');
+    : roleName === 'NAGARSEVAK' || roleName === 'EMPLOYEE'
+      ? resolveFieldPermissions(roleName, roleName === 'EMPLOYEE' ? employee?.permissions : user.permissions)
+      : normalisePermissions(roleName === 'SUB_MASTER_ADMIN' || roleName === 'SOCIAL_WORKER' || roleName === 'CANDIDATE' ? user.permissions : employee?.permissions);
 
   // Citizen-facing pages are service pages, not admin permission-managed modules.
   // Give every active citizen the read/send capabilities required by the WardDesk

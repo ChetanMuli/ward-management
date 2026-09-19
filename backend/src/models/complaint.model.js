@@ -16,8 +16,8 @@ const Complaint = sequelize.define('Complaint', {
   },
   description: { type: DataTypes.TEXT, allowNull: false },
   attachmentKey: DataTypes.STRING,
-  reportedImage: DataTypes.TEXT,
-  resolutionImage: DataTypes.TEXT,
+  reportedImage: DataTypes.TEXT('long'),
+  resolutionImage: DataTypes.TEXT('long'),
   priority: {
     type: DataTypes.ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL'),
     defaultValue: 'MEDIUM',

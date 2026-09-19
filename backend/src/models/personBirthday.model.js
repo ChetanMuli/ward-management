@@ -11,6 +11,7 @@ const PersonBirthday = sequelize.define('PersonBirthday', {
   dob: { type: DataTypes.DATEONLY, allowNull: false },
   birthMonth: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, field: 'birth_month' },
   birthDay: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, field: 'birth_day' },
+  notifiedOn: { type: DataTypes.DATEONLY, allowNull: true, field: 'notified_on' },
   status: {
     type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
     allowNull: false,

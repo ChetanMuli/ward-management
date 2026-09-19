@@ -3,8 +3,10 @@ import {useNavigate} from 'react-router-dom';
 import {api,getUser} from '../services/api';
 import {ErrorBox,Loading,Modal,PageHeader,StatCard,StatusPill,FaceAvatar} from '../components/Ui';
 import WardFilter from '../components/WardFilter';
-import {isEmployee,isMaster,isNagarsevak} from '../rbac';
+import {isEmployee,isMaster,isNagarsevak,can} from '../rbac';
 import {useWardFilter} from '../wardFilter';
+import {hasCoords} from '../location';
+import {DirectionsLink} from '../components/LocationMap';
 
 const complaintLabels=['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED'];
 function wardLabel(row){
@@ -17,6 +19,34 @@ function snippet(text,n=90){
   const t=String(text||'').replace(/\s+/g,' ').trim();
   if(!t) return 'No problem description';
   return t.length>n?`${t.slice(0,n)}…`:t;
+}
+function TodayColumn({title,count,empty,items,kind,onOpen}){
+  return (
+    <div className={`today-col today-col-${kind}`}>
+      <div className="today-col-head">
+        <div>
+          <h4>{title}</h4>
+          <span>{count} today</span>
+        </div>
+        <strong>{count}</strong>
+      </div>
+      {!items.length
+        ? <p className="muted">{empty}</p>
+        : <ul className="today-event-list">{items.map(ev=>(
+          <li key={ev.id}>
+            <div className={`today-event today-${kind}`}>
+              <button type="button" className="today-event-main" onClick={()=>onOpen(ev)}>
+                <strong>{ev.name}</strong>
+                <small>{ev.house?`House ${ev.house}`:'House not linked'}{ev.address?` · ${ev.address}`:''}</small>
+              </button>
+              {hasCoords(ev.latitude,ev.longitude)
+                ? <DirectionsLink lat={ev.latitude} lng={ev.longitude} label="Directions"/>
+                : <span className="muted today-no-pin">No pin</span>}
+            </div>
+          </li>
+        ))}</ul>}
+    </div>
+  );
 }
 
 export default function Dashboard(){
@@ -47,11 +77,16 @@ export default function Dashboard(){
  if(error&&!data)return <><PageHeader title="Dashboard"/><ErrorBox error={error}/></>;
  if(!data)return <Loading/>;
  const master=isMaster(user),nagar=isNagarsevak(user),employee=isEmployee(user);const status=data.statusCounts||{};
+ const field=nagar||employee;
  const title=master?'Master dashboard':nagar?'Nagarsevak dashboard':'Employee dashboard';
- const subtitle=master?'See people, households and complaint work across every ward you manage.':nagar?'Your ward at a glance — people, households, complaints and team.':'Your assigned ward and field work at a glance.';
+ const subtitle=master?'See people, households and complaint work across every ward you manage.':nagar?'Your ward today — who has a birthday, Dahava or Varshashraddha, plus open work.':'Same field view as your Nagarsevak — today\'s visits, directions and assigned work.';
  const scopeText=data.ward?`${data.ward.wardNumber} · ${data.ward.name}`:'All wards';
  const openTo=(path)=>navigate(path);
  const recent=data.recentComplaints||[];
+ const events=data.todayEvents||[];
+ const birthdays=events.filter(ev=>ev.kind==='BIRTHDAY');
+ const dahava=events.filter(ev=>ev.kind==='DAHAVA');
+ const varsha=events.filter(ev=>ev.kind==='ANNIVERSARY');
  const statusMeta={
   SUBMITTED:{label:'Submitted',hint:'Just received'},
   PENDING:{label:'Pending',hint:'Waiting to assign'},
@@ -70,42 +105,35 @@ export default function Dashboard(){
    <div className="scope-chip"><span>SHOWING DATA FOR</span><strong>{scopeText}</strong><small>{refreshing?'Updating…':`Updated ${new Date(data.generatedAt||Date.now()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`}</small></div>
   </section>}
   {!canSelect&&<div className="scope-chip dashboard-fixed-scope"><span>SHOWING DATA FOR</span><strong>{scopeText}</strong><small>{refreshing?'Updating…':`Updated ${new Date(data.generatedAt||Date.now()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`}</small></div>}
-  {data.ward&&<section className="panel dashboard-ward-summary"><div className="dashboard-ward-title"><span className="eyebrow">CURRENT WARD</span><h2>{data.ward.wardNumber}</h2><h3>{data.ward.name||'Ahilyanagar Municipal Corporation Ward'}</h3></div><div className="dashboard-ward-facts"><div><span>Population (2011)</span><strong>{Number(data.ward.population2011||0).toLocaleString('en-IN')}</strong></div><div><span>Key areas</span><strong>{Number(data.ward.areaCount||0)}</strong></div><div><span>Open complaints</span><strong>{data.openComplaints||0}</strong></div><div><span>Official map</span><a href={data.ward.officialMapUrl} target="_blank" rel="noreferrer">View AMC map ↗</a></div></div></section>}
-  {(nagar||employee)&&<section className="panel profile-banner"><FaceAvatar name={data.user?.name||getUser()?.name} photo={data.user?.photo||getUser()?.photo} className="staff-face-lg"/><div><span className="eyebrow">{nagar?'NAGARSEVAK':'EMPLOYEE'}</span><h2>{data.user?.name}</h2><p>{scopeText}{data.employee?.designation?` · ${data.employee.designation}`:''}</p></div><div className="profile-quick"><div><span>Open work</span><strong>{data.openComplaints}</strong></div>{nagar&&<div><span>Employees</span><strong>{data.managedEmployees}</strong></div>}{employee&&<div><span>Manager</span><strong>{data.employee?.manager?.name||'—'}</strong></div>}</div></section>}
-  {(nagar||employee)&&<section className="panel today-ward-panel">
-   <div className="panel-title"><div><h3>Today in your ward</h3><span>Short list of whose day it is — birthday, 10th day (Dahava) and 1st year.</span></div></div>
-   {!(data.todayEvents||[]).length
-    ? <p className="muted">No birthday, Dahava or 1st year in this ward today.</p>
-    : <ul className="today-event-list">
-      {(data.todayEvents||[]).map(ev=>(
-       <li key={ev.id}>
-        <button type="button" className={`today-event today-${String(ev.kind||'').toLowerCase()}`} onClick={()=>openTo(ev.kind==='BIRTHDAY'?'/birthdays':'/deaths')}>
-         <span className="today-event-kind">{ev.label}</span>
-         <strong>{ev.name}</strong>
-         <small>{ev.house?`House ${ev.house}`:'Ward record'}</small>
-        </button>
-       </li>
-      ))}
-     </ul>}
+  {data.ward&&master&&<section className="panel dashboard-ward-summary"><div className="dashboard-ward-title"><span className="eyebrow">CURRENT WARD</span><h2>{data.ward.wardNumber}</h2><h3>{data.ward.name||'Ahilyanagar Municipal Corporation Ward'}</h3></div><div className="dashboard-ward-facts"><div><span>Population (2011)</span><strong>{Number(data.ward.population2011||0).toLocaleString('en-IN')}</strong></div><div><span>Key areas</span><strong>{Number(data.ward.areaCount||0)}</strong></div><div><span>Open complaints</span><strong>{data.openComplaints||0}</strong></div><div><span>Official map</span><a href={data.ward.officialMapUrl} target="_blank" rel="noreferrer">View AMC map ↗</a></div></div></section>}
+  {field&&<section className="panel profile-banner"><FaceAvatar name={data.user?.name||getUser()?.name} photo={data.user?.photo||getUser()?.photo} className="staff-face-lg"/><div><span className="eyebrow">{nagar?'NAGARSEVAK':'EMPLOYEE'}</span><h2>{data.user?.name}</h2><p>{scopeText}{data.employee?.designation?` · ${data.employee.designation}`:''}</p></div><div className="profile-quick"><div><span>Open work</span><strong>{data.openComplaints}</strong></div>{nagar&&<div><span>Employees</span><strong>{data.managedEmployees}</strong></div>}{employee&&<div><span>Nagarsevak</span><strong>{data.employee?.manager?.name||'—'}</strong></div>}</div></section>}
+  {field&&<section className="panel today-ward-panel">
+   <div className="panel-title"><div><h3>Today in your ward</h3><span>Who has a birthday, Dahava (10th day) or Varshashraddha (1st year). Open directions to visit the house.</span></div></div>
+   <div className="today-col-grid">
+    <TodayColumn title="Birthdays" kind="birthday" count={data.todayBirthdays||birthdays.length} empty="No birthday in this ward today." items={birthdays} onOpen={()=>openTo('/birthdays')}/>
+    <TodayColumn title="Dahava (10th day)" kind="dahava" count={data.todayDahava||dahava.length} empty="No Dahava in this ward today." items={dahava} onOpen={()=>openTo('/deaths')}/>
+    <TodayColumn title="Varshashraddha (1st year)" kind="anniversary" count={data.todayVarshashraddha||varsha.length} empty="No Varshashraddha in this ward today." items={varsha} onOpen={()=>openTo('/deaths')}/>
+   </div>
   </section>}
   <section className="panel dashboard-info-panel">
-   <div className="panel-title"><div><h3>Ward information</h3><span>Live counts for {scopeText}. Tap a card to open that section.</span></div></div>
+   <div className="panel-title"><div><h3>{field?'Ward work':'Ward information'}</h3><span>Live counts for {scopeText}. Tap a card to open that section.</span></div></div>
    <div className="stat-grid">
-    <StatCard label="Houses" value={data.houses} hint="Registered households" onClick={()=>openTo('/houses')}/>
-    <StatCard label="Families" value={data.families} hint="Registered family records" onClick={()=>openTo('/families')}/>
-    <StatCard label="Citizens" value={data.persons} hint="Active residents" onClick={()=>openTo('/people')}/>
-    <StatCard label="Total complaints" value={data.complaints||0} hint={`${data.openComplaints||0} still open`} onClick={()=>openTo('/complaints')}/>
-    <StatCard label="Voters" value={data.voters} hint={`${data.nonVoters||0} non-voters`} onClick={()=>openTo('/voters')}/>
-    <StatCard label="Birthdays next 30" value={data.birthdaysNext30} hint="Upcoming wishes" onClick={()=>openTo('/birthdays')}/>
-    <StatCard label="18+ next 90 days" value={data.upcoming18Next90} hint="Follow-up candidates" onClick={()=>openTo('/follow-up-18')}/>
+    {can('VIEW_HOUSES')&&<StatCard label="Houses" value={data.houses} hint="Registered households" onClick={()=>openTo('/houses')}/>}
+    {can('VIEW_FAMILIES')&&<StatCard label="Families" value={data.families} hint="Registered family records" onClick={()=>openTo('/families')}/>}
+    {can('VIEW_CITIZENS')&&<StatCard label="Citizens" value={data.persons} hint="Active residents" onClick={()=>openTo('/people')}/>}
+    {can('VIEW_COMPLAINTS')&&<StatCard label="Open complaints" value={data.openComplaints||0} hint={`${data.complaints||0} total`} onClick={()=>openTo('/complaints')}/>}
+    {can('VIEW_VOTERS')&&<StatCard label="Voters" value={data.voters} hint={`${data.nonVoters||0} non-voters`} onClick={()=>openTo('/voters')}/>}
+    {!field&&<StatCard label="Birthdays today" value={data.todayBirthdays||0} hint="In this ward today" onClick={()=>openTo('/birthdays')}/>}
+    {can('VIEW_BIRTHDAYS')&&<StatCard label="Birthdays next 30" value={data.birthdaysNext30} hint="Upcoming wishes" onClick={()=>openTo('/birthdays')}/>}
+    {can('VIEW_18PLUS')&&<StatCard label="18+ next 90 days" value={data.upcoming18Next90} hint="Follow-up candidates" onClick={()=>openTo('/follow-up-18')}/>}
     {master&&<StatCard label="Nagarsevaks" value={data.corporatorCount} hint="Active ward leaders" onClick={()=>openTo('/staff')}/>}
-    {nagar&&<StatCard label="My employees" value={data.managedEmployees} hint="Directly managed" onClick={()=>openTo('/staff')}/>}
-    {(nagar||employee)&&<StatCard label="Groups & Chat" value={chatUnread} hint={chatUnread?`${chatUnread} unread message${chatUnread===1?'':'s'}`:'Open ward chat'} onClick={()=>openTo('/groups')}/>}
+    {nagar&&can('VIEW_STAFF')&&<StatCard label="My employees" value={data.managedEmployees} hint="Directly managed" onClick={()=>openTo('/staff')}/>}
+    {can('VIEW_CHAT')&&<StatCard label="Groups & Chat" value={chatUnread} hint={chatUnread?`${chatUnread} unread message${chatUnread===1?'':'s'}`:'Open ward chat'} onClick={()=>openTo('/groups')}/>}
    </div>
   </section>
   <div className="two-col dashboard-lower">
-   <section className="panel complaint-status-panel"><div className="panel-title"><div><h3>Complaint status</h3><span>Live breakdown for {scopeText}.</span></div><button type="button" className="small-btn" onClick={()=>openTo('/complaints')}>Open list</button></div>
-    <div className="status-card-grid">{complaintLabels.map(s=>{const meta=statusMeta[s];return <button type="button" className={`status-card status-${String(s).toLowerCase().replaceAll('_','-')}`} key={s} onClick={()=>openTo(`/complaints?status=${s}`)}><span className="status-card-label">{meta.label}</span><strong>{status[s]||0}</strong><small>{meta.hint}</small></button>})}</div>
+   <section className="panel complaint-status-panel"><div className="panel-title"><div><h3>Complaint status</h3><span>Live breakdown for {scopeText}.</span></div>{can('VIEW_COMPLAINTS')&&<button type="button" className="small-btn" onClick={()=>openTo('/complaints')}>Open list</button>}</div>
+    <div className="status-card-grid">{complaintLabels.map(s=>{const meta=statusMeta[s];return <button type="button" className={`status-card status-${String(s).toLowerCase().replaceAll('_','-')}`} key={s} onClick={()=>can('VIEW_COMPLAINTS')&&openTo(`/complaints?status=${s}`)}><span className="status-card-label">{meta.label}</span><strong>{status[s]||0}</strong><small>{meta.hint}</small></button>})}</div>
    </section>
    <section className="panel"><div className="panel-title"><div><h3>Recent complaints</h3><span>{recent.length?`${recent.length} latest items in this scope.`:'New complaints will appear here.'}</span></div></div>{!recent.length?<p className="muted">No complaints in this ward scope yet.</p>:<div className="status-list dashboard-recent">{recent.map(c=><div className="status-row recent-row" key={c.id}><div><strong>{c.complaintNumber}</strong><span>{c.citizen?.fullName||c.submittedBy?.name||'Citizen'} · {wardLabel(c)}</span><small className="recent-problem">{snippet(c.description)}</small><small className="recent-assign">Nagarsevak: {c.assignedNagarsevak?.name||c.assignedEmployee?.manager?.name||'Not assigned'} · Employee: {c.assignedEmployee?.User?.name||'Not assigned'}</small></div><div className="recent-actions"><StatusPill>{c.status}</StatusPill><button className="small-btn view-btn" onClick={async()=>{try{setDetail((await api.complaint(c.id)).data)}catch(e){setError(e.message)}}}>View</button></div></div>)}</div>}</section>
   </div>

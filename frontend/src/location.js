@@ -7,6 +7,10 @@ export function hasCoords(lat,lng){
  return Math.abs(la)<=90&&Math.abs(lo)<=180;
 }
 
+export function isCityFallbackPin(lat,lng){
+ return Math.abs(Number(lat)-AHILYANAGAR.lat)<0.000051 && Math.abs(Number(lng)-AHILYANAGAR.lng)<0.000051;
+}
+
 export function fmtCoord(v){
  const n=Number(v);
  return Number.isFinite(n)?n.toFixed(6):'';
@@ -70,6 +74,15 @@ export function mapsViewUrl(lat,lng){
  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery(lat,lng))}`;
 }
 
+export function mapsEmbedUrl(lat,lng,zoom=18){
+ const q=mapsQuery(lat,lng);
+ return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=${zoom}&hl=en&output=embed`;
+}
+
+export function geoAppUrl(lat,lng){
+ return `geo:${Number(lat)},${Number(lng)}?q=${encodeURIComponent(mapsQuery(lat,lng))}`;
+}
+
 export function directionsUrl(lat,lng){
  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapsQuery(lat,lng))}&travelmode=driving`;
 }
@@ -78,17 +91,58 @@ export function placeLine(parts){
  return parts.map(p=>String(p||'').trim()).filter(Boolean).join(' · ');
 }
 
+export function nativePlaceLine(row){
+ if(!row) return '';
+ return placeLine([
+  row.nativeVillage,
+  row.nativeTaluka&&`Tal. ${row.nativeTaluka}`,
+  row.nativeDistrict&&`Dist. ${row.nativeDistrict}`,
+  row.nativeState
+ ]);
+}
+
+export const MAHARASHTRA_DISTRICTS=[
+ 'Ahilyanagar','Akola','Amravati','Beed','Bhandara','Buldhana','Chandrapur','Chhatrapati Sambhajinagar',
+ 'Dharashiv','Dhule','Gadchiroli','Gondia','Hingoli','Jalgaon','Jalna','Kolhapur','Latur','Mumbai City',
+ 'Mumbai Suburban','Nagpur','Nanded','Nandurbar','Nashik','Palghar','Parbhani','Pune','Raigad','Ratnagiri',
+ 'Sangli','Satara','Sindhudurg','Solapur','Thane','Wardha','Washim','Yavatmal'
+];
+
+export function isFlatHome(house){
+ if(!house) return false;
+ return !!(house.apartmentId||house.apartment?.id||String(house.houseType||'').toUpperCase()==='FLAT');
+}
+
+export function homePickOption(house){
+ if(!house) return {value:'',label:'',hint:''};
+ const colony=house.area?.name||'';
+ if(isFlatHome(house)){
+  return {
+   value:house.id,
+   label:`Flat ${house.houseNumber||'—'}`,
+   hint:placeLine([house.apartment?.name,colony]),
+   search:`${house.houseNumber||''} ${house.apartment?.name||''} ${colony} flat`
+  };
+ }
+ return {
+  value:house.id,
+  label:`House ${house.houseNumber||'—'}`,
+  hint:colony,
+  search:`${house.houseNumber||''} ${colony} house`
+ };
+}
+
 export function housePlace(house){
  if(!house) return '';
  const area=house.area||{};
  const ward=area.ward||{};
  return placeLine([
-  house.houseNumber&&`House ${house.houseNumber}`,
+  house.apartment?.name,
+  house.houseNumber&&(house.apartmentId||house.apartment?'Flat '+house.houseNumber:'House '+house.houseNumber),
   area.name,
   ward.wardNumber&&`Ward ${ward.wardNumber}`,
   house.landmark||area.landmark,
-  house.city||area.city||ward.city,
-  house.pincode||area.pincode||ward.pincode
+  house.city||area.city||ward.city
  ]);
 }
 
@@ -109,4 +163,26 @@ export function centerOf(...items){
   if(hasCoords(item?.latitude,item?.longitude)) return {lat:Number(item.latitude),lng:Number(item.longitude),zoom:17};
  }
  return {lat:AHILYANAGAR.lat,lng:AHILYANAGAR.lng,zoom:13};
+}
+
+export function isOutOfCity(p){
+ return String(p?.presenceStatus||'').toUpperCase()==='OUT_OF_CITY';
+}
+export function isVoterPerson(p){
+ return String(p?.voterProfile?.status||p?.VoterProfile?.status||p?.status||'').toUpperCase()==='VOTER';
+}
+export const PEOPLE_PLACE_OPTIONS=[
+ {value:'',label:'All people'},
+ {value:'AT_HOME',label:'At this house'},
+ {value:'OUT_OF_CITY',label:'Out of city'},
+ {value:'OUT_VOTER',label:'Out of city voters'},
+ {value:'VOTER',label:'Voters'}
+];
+export function presenceApiQuery(filter){
+ if(filter==='OUT_VOTER') return {presenceStatus:'OUT_OF_CITY',voterStatus:'VOTER',status:'VOTER'};
+ if(filter==='OUT_OF_CITY') return {presenceStatus:'OUT_OF_CITY'};
+ if(filter==='AT_HOME') return {presenceStatus:'AT_HOME'};
+ if(filter==='VOTER') return {voterStatus:'VOTER',status:'VOTER'};
+ if(filter==='NON_VOTER') return {voterStatus:'NON_VOTER',status:'NON_VOTER'};
+ return {};
 }

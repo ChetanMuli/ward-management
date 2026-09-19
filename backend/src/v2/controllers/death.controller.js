@@ -102,8 +102,14 @@ const create = asyncHandler(async (req,res) => {
   if (existing) throw new ApiError(409,'A death record already exists for this citizen');
 
   const record = await sequelize.transaction(async transaction => {
+    const live=await Person.findByPk(person.id,{transaction});
+    if(!live) throw new ApiError(404,'Citizen not found');
     const voter=await VoterProfile.findOne({where:{personId:person.id},transaction});
-    const previousVoterStatus=voter?.status || 'NOT_SPECIFIED';
+    const previousVoterStatus=voter?.status && voter.status!=='DECEASED' ? voter.status : 'NOT_SPECIFIED';
+    await live.update({status:'DECEASED'},{transaction});
+    if(voter) await voter.update({status:'DECEASED'},{transaction});
+    const { syncPersonBirthday } = require('../../services/wardDay.service');
+    await syncPersonBirthday(live, transaction);
     const created = await DeathRecord.create({
       personId:person.id,
       dateOfDeath,
@@ -113,8 +119,6 @@ const create = asyncHandler(async (req,res) => {
       recordStatus:'ACTIVE',
       notes:notes || null,
     },{transaction});
-    await Person.update({status:'DECEASED'},{where:{id:person.id},transaction});
-    if(voter) await voter.update({status:'DECEASED'},{transaction});
     return created;
   });
 
@@ -154,10 +158,14 @@ const restore = asyncHandler(async (req,res) => {
     throw new ApiError(400,'This death record has already been restored.');
   }
   await sequelize.transaction(async transaction => {
-    await Person.update({status:'ACTIVE'},{where:{id:person.id},transaction});
+    const live=await Person.findByPk(person.id,{transaction});
+    if(live) await live.update({status:'ACTIVE'},{transaction});
     const voter=await VoterProfile.findOne({where:{personId:person.id},transaction});
-    if(voter) await voter.update({status:record.previousVoterStatus || 'NOT_SPECIFIED'},{transaction});
+    const restoredStatus=record.previousVoterStatus && record.previousVoterStatus!=='DECEASED' ? record.previousVoterStatus : 'NOT_SPECIFIED';
+    if(voter) await voter.update({status:restoredStatus},{transaction});
     await record.update({recordStatus:'RESTORED',restoredBy:req.user.id,restoredAt:new Date()},{transaction});
+    const { syncPersonBirthday } = require('../../services/wardDay.service');
+    if(live) await syncPersonBirthday(live, transaction);
   });
   await logAudit({user:req.user,action:'RESTORE_DEATH_RECORD',entity:'DeathRecord',recordId:record.id,newValue:{recordStatus:'RESTORED',personId:person.id},ipAddress:req.ip});
   return success(res,{message:`Death record restored. ${person.fullName} is active again.`});

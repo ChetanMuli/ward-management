@@ -1,13 +1,14 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {api} from '../services/api';
+import {useNavigate} from 'react-router-dom';
+import {api,getUser} from '../services/api';
 import {ErrorBox,Field,Loading,Modal,PageHeader,RowMenu,StatusPill,Toolbar} from '../components/Ui';
 import WardFilter from '../components/WardFilter';
 import {useWardFilter} from '../wardFilter';
 import {isMaster,isNagarsevak,isEmployee} from '../rbac';
-import {getUser} from '../services/api';
+import LocationPicker from '../components/LocationMap';
 
 const blank={wardNumber:'',name:'',description:'',status:'INACTIVE'};
-const emptyArea={name:'',description:'',status:'ACTIVE'};
+const emptyApartment={name:'',areaId:'',floors:'',address:'',landmark:'',notes:'',latitude:'',longitude:''};
 
 function activeNagarsevaks(w){
  const users=w?.users||[];
@@ -21,7 +22,8 @@ function activeNagarsevaks(w){
 
 export default function Wards(){
  const user=getUser(),master=isMaster(user),wardEditor=master||isNagarsevak(user)||isEmployee(user),{selectedWardId}=useWardFilter();
- const [wards,setWards]=useState(null),[error,setError]=useState(''),[edit,setEdit]=useState(null),[create,setCreate]=useState(null),[detail,setDetail]=useState(null),[areaEdit,setAreaEdit]=useState(null),[areaCreate,setAreaCreate]=useState(null),[busy,setBusy]=useState(false),[search,setSearch]=useState(''),[openChips,setOpenChips]=useState({});
+ const navigate=useNavigate();
+ const [wards,setWards]=useState(null),[error,setError]=useState(''),[edit,setEdit]=useState(null),[create,setCreate]=useState(null),[detail,setDetail]=useState(null),[areaEdit,setAreaEdit]=useState(null),[areaCreate,setAreaCreate]=useState(null),[apartmentEdit,setApartmentEdit]=useState(null),[apartmentCreate,setApartmentCreate]=useState(null),[busy,setBusy]=useState(false),[search,setSearch]=useState(''),[openChips,setOpenChips]=useState({});
  async function load(){try{setError('');setWards((await api.wards()).data||[])}catch(e){setError(e.message)}}
  useEffect(()=>{load()},[]);
  const visible=useMemo(()=>{const base=selectedWardId?(wards||[]).filter(w=>String(w.id)===String(selectedWardId)):(wards||[]);const q=search.trim().toLowerCase();if(!q)return base;return base.filter(w=>`${w.wardNumber||''} ${w.name||''} ${w.description||''} ${(w.areas||[]).map(a=>`${a.name||''} ${a.description||''}`).join(' ')}`.toLowerCase().includes(q));},[wards,selectedWardId,search]);
@@ -38,6 +40,17 @@ export default function Wards(){
     for(const a of (create.areas||[]).filter(x=>x.name.trim())) await api.createArea(ward.id,{name:a.name,description:a.description||null});
    }
    setEdit(null);setCreate(null);await load();
+  }catch(e){setError(e.message)}
+  finally{setBusy(false)}
+ }
+ async function saveApartment(e){
+  e.preventDefault();setBusy(true);
+  try{
+   const src=apartmentEdit||apartmentCreate;
+   const payload={name:src.name,areaId:src.areaId,floors:src.floors,address:src.address||null,landmark:src.landmark||null,notes:src.notes||null,latitude:src.latitude||null,longitude:src.longitude||null};
+   if(apartmentEdit) await api.updateApartment(apartmentEdit.id,payload);
+   else await api.createApartment(payload);
+   setApartmentEdit(null);setApartmentCreate(null);await load();
   }catch(e){setError(e.message)}
   finally{setBusy(false)}
  }
@@ -73,6 +86,7 @@ export default function Wards(){
      <p className="ward-card-copy">{w.description||'Add colonies so houses can be registered under this ward.'}</p>
      <div className="ward-card-stats">
       <div><span>Areas</span><strong>{areas.length}</strong></div>
+      <div><span>Apartments</span><strong>{(w.apartments||[]).length}</strong></div>
       <div><span>Active nagarsevaks</span><strong>{nagars.length}</strong></div>
      </div>
      <div className="ward-area-chips">{(openChips[`a-${w.id}`]?areas:areas.slice(0,4)).map(a=><span key={a.id}>{a.name}</span>)}{areas.length>4&&<button type="button" className="ward-more-btn" onClick={()=>setOpenChips(s=>({...s,[`a-${w.id}`]:!s[`a-${w.id}`]}))}>{openChips[`a-${w.id}`]?'Show less':`+${areas.length-4} more`}</button>}{!areas.length&&<span className="muted">No areas yet</span>}</div>
@@ -82,10 +96,12 @@ export default function Wards(){
        {label:'View details',onClick:()=>setDetail(w)},
        wardEditor&&{label:'Edit ward',onClick:()=>setEdit({...blank,...w})},
        wardEditor&&{label:'Add area / colony',onClick:()=>setAreaCreate({wardId:w.id,...emptyArea})},
+       wardEditor&&{label:'Add apartment',onClick:()=>setApartmentCreate({...emptyApartment,wardId:w.id,areaId:(w.areas||[])[0]?.id||''})},
        master&&{label:'Delete ward',danger:true,onClick:async()=>{if(confirm(`Delete ward ${w.wardNumber}? It will move to the recycle bin.`)){try{await api.deleteWard(w.id);await load()}catch(e){setError(e.message)}}}}
       ]}/>
      </div>
      <div className="area-list">{areas.map(a=><div className="area-item" key={a.id}><div><strong>{a.name}</strong><span>{a.description||'Colony / area in this ward'}</span></div>{wardEditor&&<div className="card-actions"><button className="small-btn" onClick={()=>setAreaEdit({...emptyArea,...a})}>Edit</button><button className="small-btn danger" onClick={async()=>{if(confirm(`Delete area ${a.name}?`)){try{await api.deleteArea(a.id);load()}catch(e){setError(e.message)}}}}>Delete</button></div>}</div>)}</div>
+     <div className="area-list">{(w.apartments||[]).map(a=><div className="area-item" key={a.id}><div><strong>{a.name}</strong><span>Apartment in {a.area?.name||'this colony'}{a.floors?` · ${a.floors} floors`:''}</span></div>{wardEditor&&<div className="card-actions"><button className="small-btn" onClick={()=>navigate(`/houses?apartmentId=${a.id}`)}>+ Add house</button><button className="small-btn" onClick={()=>navigate(`/families?apartmentId=${a.id}`)}>Families</button><button className="small-btn" onClick={()=>setApartmentEdit({...emptyApartment,...a,wardId:a.wardId||w.id})}>Edit</button><button className="small-btn danger" onClick={async()=>{if(confirm(`Delete apartment ${a.name}? Houses stay saved.`)){try{await api.deleteApartment(a.id);load()}catch(e){setError(e.message)}}}}>Delete</button></div>}</div>)}{wardEditor&&!(w.apartments||[]).length&&<p className="muted">No apartments yet. Add an apartment, then add houses in it and the families who live there.</p>}</div>
     </section>
    );
   })}</div>}
@@ -95,6 +111,7 @@ export default function Wards(){
     <div className="detail-card"><h3>Ward</h3><p><b>Ward number:</b> {detail.wardNumber||'—'}</p><p><b>Activation:</b> <StatusPill>{detail.status||'INACTIVE'}</StatusPill></p><p><b>Name:</b> {detail.name||'N/A'}</p><p><b>Description:</b> {detail.description||'N/A'}</p></div>
     <div className="detail-card"><h3>Active nagarsevaks</h3>{activeNagarsevaks(detail).length?activeNagarsevaks(detail).map(u=><p key={u.id}><b>{u.name||'Nagarsevak'}</b>{u.mobile?` · ${u.mobile}`:''}</p>):<p className="muted">No active nagarsevak on this ward yet.</p>}</div>
     <div className="detail-card span-2"><h3>Areas / Colonies</h3>{(detail.areas||[]).length?(detail.areas||[]).map(a=><div className="area-detail-row" key={a.id}><div><b>{a.name}</b><span>{a.description||'No description'}</span></div></div>):<p className="muted">No colonies yet.</p>}</div>
+    <div className="detail-card span-2"><h3>Apartments</h3>{(detail.apartments||[]).length?(detail.apartments||[]).map(a=><div className="area-detail-row" key={a.id}><div><b>{a.name}</b><span>{a.area?.name||'Colony'}{a.floors?` · ${a.floors} floors`:''}</span></div></div>):<p className="muted">No apartments yet. Add a building, then add flats and residents in Houses / Families.</p>}</div>
    </div>
    <div className="modal-actions"><button className="ghost-btn" onClick={()=>setDetail(null)}>Close</button></div>
   </Modal>}
@@ -139,6 +156,22 @@ export default function Wards(){
     <Field className="span-2" label="Area / Colony name *"><input required value={areaCreate.name} onChange={e=>setAreaCreate({...areaCreate,name:e.target.value})}/></Field>
     <Field className="span-2" label="Description"><textarea value={areaCreate.description} onChange={e=>setAreaCreate({...areaCreate,description:e.target.value})}/></Field>
     <div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>setAreaCreate(null)}>Cancel</button><button className="primary-btn" disabled={busy}>Add area</button></div>
+   </form>
+  </Modal>}
+  {(apartmentCreate||apartmentEdit)&&<Modal wide title={apartmentEdit?'Edit apartment':'Add apartment'} onClose={()=>{setApartmentCreate(null);setApartmentEdit(null)}}>
+   <form className="form-grid admin-form" onSubmit={saveApartment}>
+    <div className="form-section-title span-2"><strong>Apartment / building</strong><span>Register the building. Then add each house in it, and add every family who lives in those houses.</span></div>
+    <Field className="span-2" label="Colony / area *"><select required value={(apartmentEdit||apartmentCreate).areaId||''} onChange={e=>(apartmentEdit?setApartmentEdit:setApartmentCreate)({...(apartmentEdit||apartmentCreate),areaId:e.target.value})}>
+     <option value="">Select colony</option>
+     {((wards||[]).find(w=>String(w.id)===String((apartmentEdit||apartmentCreate).wardId||apartmentEdit?.wardId))?.areas||[]).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+    </select></Field>
+    <Field className="span-2" label="Apartment name *"><input required value={(apartmentEdit||apartmentCreate).name||''} onChange={e=>(apartmentEdit?setApartmentEdit:setApartmentCreate)({...(apartmentEdit||apartmentCreate),name:e.target.value})} placeholder="e.g. Sai Residency"/></Field>
+    <Field label="Floors (optional)"><input inputMode="numeric" value={(apartmentEdit||apartmentCreate).floors||''} onChange={e=>(apartmentEdit?setApartmentEdit:setApartmentCreate)({...(apartmentEdit||apartmentCreate),floors:e.target.value.replace(/\D/g,'')})} placeholder="e.g. 7"/></Field>
+    <Field label="Landmark (optional)"><input value={(apartmentEdit||apartmentCreate).landmark||''} onChange={e=>(apartmentEdit?setApartmentEdit:setApartmentCreate)({...(apartmentEdit||apartmentCreate),landmark:e.target.value})}/></Field>
+    <Field className="span-2" label="Address (optional)"><textarea value={(apartmentEdit||apartmentCreate).address||''} onChange={e=>(apartmentEdit?setApartmentEdit:setApartmentCreate)({...(apartmentEdit||apartmentCreate),address:e.target.value})} placeholder="Street, gate, wing"/></Field>
+    <div className="form-section-title span-2"><strong>Building location (optional)</strong><span>Pin the apartment gate. Each flat can then refine the exact door GPS.</span></div>
+    <LocationPicker key={`apt-${(apartmentEdit||apartmentCreate).id||'new'}`} value={apartmentEdit||apartmentCreate} onChange={next=>(apartmentEdit?setApartmentEdit:setApartmentCreate)(cur=>({...cur,latitude:next.latitude,longitude:next.longitude}))} centerFrom={[(wards||[]).find(w=>String(w.id)===String((apartmentEdit||apartmentCreate).wardId))]} hint="Stand at the apartment gate and tap Use GPS. Only the pin is saved."/>
+    <div className="modal-actions span-2"><button type="button" className="ghost-btn" onClick={()=>{setApartmentCreate(null);setApartmentEdit(null)}}>Cancel</button><button className="primary-btn" disabled={busy}>{apartmentEdit?'Save apartment':'Add apartment'}</button></div>
    </form>
   </Modal>}
  </div>;

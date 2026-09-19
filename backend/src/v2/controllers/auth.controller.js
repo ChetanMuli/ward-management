@@ -5,7 +5,7 @@ const { User, Role, Ward, Employee } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
-const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions');
+const { normalisePermissions, ALL_PERMISSIONS, resolveFieldPermissions } = require('../utils/permissions');
 const { syncWardCommunityMembership } = require('../../services/wardActivation.service');
 const otpStore = require('../../services/otp.service');
 const { sanitisePhoto } = require('../../utils/photo');
@@ -74,16 +74,11 @@ const login = asyncHandler(async (req, res) => {
   if (roleName === 'NAGARSEVAK') await assertNagarsevakLoginAllowed(user);
   if (roleName === 'EMPLOYEE') await assertEmployeeLoginAllowed(employee);
   if (user.status !== 'ACTIVE') throw new ApiError(403, 'Account is not active');
-  let permissions = roleName === 'SUPER_ADMIN' ? ALL_PERMISSIONS : roleName === 'NAGARSEVAK' ? normalisePermissions(user.permissions) : roleName === 'SUB_MASTER_ADMIN' ? normalisePermissions(user.permissions) : normalisePermissions(employee?.permissions);
-  // Core ward-operations access for field roles. These are read/operational
-  // capabilities only; destructive/admin privileges remain permission based.
-  const coreRolePermissions = roleName === 'NAGARSEVAK'
-    ? ['VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS','VIEW_HOUSES','VIEW_FAMILIES','VIEW_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','ASSIGN_COMPLAINTS','VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_USERS','VIEW_WARDS','VIEW_STAFF']
-    : roleName === 'EMPLOYEE'
-      ? ['VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS','VIEW_HOUSES','VIEW_FAMILIES','VIEW_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_WARDS']
-      : [];
-  permissions = [...new Set([...permissions, ...coreRolePermissions])];
-  if (roleName === 'EMPLOYEE') permissions = permissions.filter(p => !['VIEW_USERS','EDIT_USERS','DELETE_USERS'].includes(p));
+  let permissions = roleName === 'SUPER_ADMIN'
+    ? ALL_PERMISSIONS
+    : roleName === 'NAGARSEVAK' || roleName === 'EMPLOYEE'
+      ? resolveFieldPermissions(roleName, roleName === 'EMPLOYEE' ? employee?.permissions : user.permissions)
+      : normalisePermissions(user.permissions);
   const wardIds = roleName === 'SUB_MASTER_ADMIN' ? (Array.isArray(user.wardIds) ? user.wardIds : []) : [];
   if (roleName === 'CITIZEN') {
     const citizenPortalPermissions = [

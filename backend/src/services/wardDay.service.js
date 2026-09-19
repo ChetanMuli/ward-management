@@ -122,7 +122,7 @@ async function syncDeathObservance(record, transaction) {
 }
 
 function houseInclude() {
-  return [{ model: House, as: 'house', required: false, attributes: ['id', 'houseNumber'] }];
+  return [{ model: House, as: 'house', required: false, attributes: ['id', 'houseNumber', 'latitude', 'longitude', 'address'] }];
 }
 
 async function loadTodayWardEvents(wardIds) {
@@ -156,18 +156,27 @@ async function loadTodayWardEvents(wardIds) {
     label: 'Birthday',
     name: row.fullName,
     house: row.house?.houseNumber || null,
+    address: row.house?.address || null,
+    latitude: row.house?.latitude || null,
+    longitude: row.house?.longitude || null,
     date: today,
   }));
   for (const row of observances) {
     const name = row.person?.fullName || row.fullName || 'Citizen';
     const house = row.house?.houseNumber || null;
+    const loc = {
+      house,
+      address: row.house?.address || null,
+      latitude: row.house?.latitude || null,
+      longitude: row.house?.longitude || null,
+    };
     if (row.tenthDayOn === today) {
       items.push({
         id: `dahava-${row.deathRecordId}`,
         kind: 'DAHAVA',
-        label: '10th day (Dahava)',
+        label: 'Dahava (10th day)',
         name,
-        house,
+        ...loc,
         date: row.tenthDayOn,
       });
     }
@@ -175,9 +184,9 @@ async function loadTodayWardEvents(wardIds) {
       items.push({
         id: `year-${row.deathRecordId}`,
         kind: 'ANNIVERSARY',
-        label: '1st year',
+        label: 'Varshashraddha (1st year)',
         name,
-        house,
+        ...loc,
         date: row.firstYearOn,
       });
     }
@@ -221,6 +230,34 @@ async function notifyTodayDeathReminders() {
   return sent;
 }
 
+async function notifyTodayBirthdays() {
+  const today = todayStamp();
+  const [year, month, day] = today.split('-').map(Number);
+  const birthDay = (month === 2 && day === 28 && !isLeapYear(year)) ? { [Op.in]: [28, 29] } : day;
+  const rows = await PersonBirthday.findAll({
+    where: {
+      status: 'ACTIVE',
+      birthMonth: month,
+      birthDay,
+      [Op.or]: [{ notifiedOn: null }, { notifiedOn: { [Op.ne]: today } }],
+    },
+    include: houseInclude(),
+  });
+  let sent = 0;
+  for (const row of rows) {
+    if (!row.wardId) continue;
+    const house = row.house?.houseNumber ? ` (House ${row.house.houseNumber})` : '';
+    sent += await notifyWardFieldStaff(row.wardId, {
+      type: 'BIRTHDAY_TODAY',
+      title: 'Today · Birthday',
+      message: `Today is ${row.fullName}'s birthday${house}.`,
+      actionUrl: '/birthdays',
+    });
+    await row.update({ notifiedOn: today });
+  }
+  return sent;
+}
+
 async function notifyDeathRecordCreated({ wardId, personName, dateOfDeath, deathRecordId }) {
   if (!wardId) return 0;
   const tenth = addDays(dateOfDeath, 10);
@@ -251,5 +288,6 @@ module.exports = {
   syncDeathObservance,
   loadTodayWardEvents,
   notifyTodayDeathReminders,
+  notifyTodayBirthdays,
   notifyDeathRecordCreated,
 };

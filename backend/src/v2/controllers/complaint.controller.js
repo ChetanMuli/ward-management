@@ -6,6 +6,7 @@ const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { logAudit } = require('../../services/audit.service');
 const { assertComplaint, isWardAllowed } = require('../services/wardScope');
+const { parseImageList, packImageList } = require('../utils/complaintMedia');
 const { nagarsevakPublicByIds } = require('../../utils/photo');
 
 const SLA_HOURS = { CRITICAL:24, HIGH:48, MEDIUM:72, LOW:168 };
@@ -31,6 +32,7 @@ async function attachNagarPhotos(rows) {
   const mapped = jsons.map((j) => {
     const extra = photos.get(String(j.assignedNagarsevak?.id || j.assignedNagarsevakUserId || ''));
     if (j.assignedNagarsevak && extra?.photo) j.assignedNagarsevak.photo = extra.photo;
+    j.reportedImages = parseImageList(j.reportedImage);
     return j;
   });
   return Array.isArray(rows) ? mapped : mapped[0];
@@ -47,6 +49,10 @@ function cleanImage(value){
   if(typeof value!=='string'||value.length>1500000) throw new ApiError(400,'Image is too large. Please upload a smaller image (max about 1.5 MB).');
   if(!/^data:image\/(jpeg|jpg|png|webp);base64,/.test(value)) throw new ApiError(400,'Only JPG, PNG or WEBP images are supported.');
   return value;
+}
+function cleanReportedImages(body){
+  const raw=body?.reportedImages!=null?body.reportedImages:body?.reportedImage;
+  return packImageList(raw, cleanImage);
 }
 
 const list = asyncHandler(async(req,res)=>{
@@ -121,7 +127,7 @@ async function notifyComplaintCitizen(complaint, type, title, message, senderUse
 
 const create = asyncHandler(async(req,res)=>{
   const {houseId,category,description,priority='MEDIUM',citizenPersonId,assignedNagarsevakUserId,location}=req.body;
-  const reportedImage=cleanImage(req.body.reportedImage);
+  const reportedImage=cleanReportedImages(req.body);
 
   if(req.user.roleName==='CITIZEN'){
     const wardId=req.user.wardId;
@@ -263,12 +269,13 @@ const updateStatus = asyncHandler(async(req,res)=>{
     if(current==='ASSIGNED'&&status==='RESOLVED') throw new ApiError(400,'Start the work with IN PROGRESS before resolving it');
   } else if(management){
     const allowedTransitions={
-      SUBMITTED:['PENDING','ASSIGNED'],
-      PENDING:['ASSIGNED','CLOSED','REOPENED'],
-      ASSIGNED:['PENDING','REOPENED'],
-      IN_PROGRESS:['REOPENED'],
+      SUBMITTED:['PENDING','ASSIGNED','IN_PROGRESS'],
+      PENDING:['ASSIGNED','IN_PROGRESS'],
+      ASSIGNED:['IN_PROGRESS','RESOLVED','REOPENED'],
+      IN_PROGRESS:['RESOLVED','REOPENED'],
       RESOLVED:['CLOSED','REOPENED'],
-      REOPENED:['PENDING','ASSIGNED','CLOSED']
+      REOPENED:['ASSIGNED','IN_PROGRESS'],
+      CLOSED:['REOPENED']
     };
     if(!allowedTransitions[current]?.includes(status)){
       throw new ApiError(400,`Cannot change complaint from ${current.replaceAll('_',' ')} to ${status.replaceAll('_',' ')}`);
@@ -312,10 +319,35 @@ const updateStatus = asyncHandler(async(req,res)=>{
   return success(res,{data:await attachNagarPhotos(await complaintWithContext(complaint.id)),message:'Complaint updated'});
 });
 
+const closeResolvedOvernight=async()=>{
+  const start=(()=>{
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+    const y=parts.find(p=>p.type==='year')?.value;
+    const m=parts.find(p=>p.type==='month')?.value;
+    const d=parts.find(p=>p.type==='day')?.value;
+    return new Date(`${y}-${m}-${d}T00:00:00+05:30`);
+  })();
+  const rows=await Complaint.findAll({where:{status:'RESOLVED',resolvedAt:{[Op.ne]:null,[Op.lt]:start}}});
+  if(!rows.length) return 0;
+  const masterRole=await Role.findOne({where:{name:'SUPER_ADMIN'}});
+  const master=masterRole?await User.findOne({where:{roleId:masterRole.id,status:'ACTIVE'},attributes:['id'],order:[['createdAt','ASC']]}):null;
+  let closed=0;
+  for(const row of rows){
+    const actor=row.assignedNagarsevakUserId||master?.id;
+    if(!actor) continue;
+    const oldStatus=row.status;
+    await row.update({status:'CLOSED'});
+    await ComplaintHistory.create({complaintId:row.id,oldStatus,newStatus:'CLOSED',changedByUserId:actor,comment:'Automatically closed the next day after resolution.'});
+    await notifyComplaintCitizen(row,'COMPLAINT_STATUS','Your complaint was closed',`${row.complaintNumber} was closed the next day after it was resolved.`,actor);
+    closed+=1;
+  }
+  return closed;
+};
+
 const detail = asyncHandler(async(req,res)=>{
   await assertComplaint(req.params.id,req);
   const data=await attachNagarPhotos(await complaintWithContext(req.params.id));
   return success(res,{data});
 });
 
-module.exports={list,create,assign,updateStatus,detail};
+module.exports={list,create,assign,updateStatus,detail,closeResolvedOvernight};

@@ -184,26 +184,24 @@ export function SearchableMultiSelect({label,value=[],onChange,options=[],placeh
 }
 
 export function ImageField({label,value,onChange,optional=true,cameraLabel='Take photo'}){
- const cameraRef=useRef(null),deviceRef=useRef(null),cameraCaptureRef=useRef(null),videoRef=useRef(null),canvasRef=useRef(null);
+ const deviceRef=useRef(null),videoRef=useRef(null),canvasRef=useRef(null);
  const [cameraOpen,setCameraOpen]=useState(false),[cameraBusy,setCameraBusy]=useState(false),[cameraError,setCameraError]=useState('');
+ const phone=typeof window!=='undefined'&&(window.matchMedia('(max-width:800px), (pointer:coarse)').matches||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||''));
  const stopCamera=()=>{const stream=videoRef.current?.srcObject;if(stream?.getTracks)stream.getTracks().forEach(t=>t.stop());if(videoRef.current)videoRef.current.srcObject=null;setCameraOpen(false);setCameraBusy(false)};
  useEffect(()=>()=>{const stream=videoRef.current?.srcObject;if(stream?.getTracks)stream.getTracks().forEach(t=>t.stop())},[]);
  const openCamera=async()=>{
   setCameraError('');
-  // On phones/tablets, the native camera picker is much more reliable than
-  // getUserMedia when the browser has a previously denied permission state.
-  if(window.matchMedia?.('(max-width: 800px)').matches){cameraCaptureRef.current?.click();return;}
-  if(!navigator.mediaDevices?.getUserMedia){setCameraError('Camera is not supported in this browser. Use the device camera option below.');setCameraOpen(true);return;}
+  if(!navigator.mediaDevices?.getUserMedia){setCameraError('Camera is not supported in this browser. Use Choose from device.');setCameraOpen(true);return;}
   setCameraOpen(true);setCameraBusy(true);
   try{
    let stream;
-   try{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:false});}
-   catch(first){stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});}
+   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});}
+   catch(first){stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});}
    if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play().catch(()=>{});}
    setCameraBusy(false);
   }catch(err){
    const denied=err?.name==='NotAllowedError'||err?.name==='PermissionDeniedError';
-   setCameraError(denied?'Camera access is blocked for this site. Allow camera permission in browser/site settings, or use “Use phone camera” below.':err?.message||'Unable to open the camera.');
+   setCameraError(denied?'Camera access is blocked. Allow camera permission, or use Choose from device.':err?.message||'Unable to open the camera.');
    setCameraBusy(false);
   }
  };
@@ -213,24 +211,59 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
   const max=1280,scale=Math.min(1,max/Math.max(video.videoWidth||1280,video.videoHeight||720));canvas.width=Math.max(1,Math.round((video.videoWidth||1280)*scale));canvas.height=Math.max(1,Math.round((video.videoHeight||720)*scale));
   const ctx=canvas.getContext('2d');if(!ctx){setCameraError('Camera capture is unavailable.');return;}ctx.drawImage(video,0,0,canvas.width,canvas.height);let data=canvas.toDataURL('image/jpeg',.72);if(data.length>1450000){data=canvas.toDataURL('image/jpeg',.58)}onChange(data);stopCamera();
  };
+ const readFile=async(file)=>{
+  if(!file)return;
+  if(!file.type.startsWith('image/')){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Please select an image file.'}}));return;}
+  if(file.size>12*1024*1024){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Image must be smaller than 12 MB.'}}));return;}
+  const data=await new Promise((resolve,reject)=>{const img=new Image(),reader=new FileReader();reader.onload=()=>{img.onload=()=>{const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));ctx.drawImage(img,0,0,c.width,c.height);let out=c.toDataURL('image/jpeg',.72);if(out.length>1450000)out=c.toDataURL('image/jpeg',.58);resolve(out);};img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');};reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file)});
+  return data;
+ };
  const read=async e=>{
-  const input=e.currentTarget,file=input.files?.[0];if(!file)return;
-  if(!file.type.startsWith('image/')){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Please select an image file.'}}));input.value='';return;}
-  if(file.size>12*1024*1024){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Image must be smaller than 12 MB.'}}));input.value='';return;}
-  try{
-   const data=await new Promise((resolve,reject)=>{const img=new Image(),reader=new FileReader();reader.onload=()=>{img.onload=()=>{const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));ctx.drawImage(img,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.72);if(data.length>1450000)data=c.toDataURL('image/jpeg',.58);resolve(data);};img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');};reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file)});
-   onChange(data);if(cameraOpen)stopCamera();
-  }catch(err){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read this image.'}}));}
+  const input=e.currentTarget,file=input.files?.[0];
+  try{if(file){onChange(await readFile(file));if(cameraOpen)stopCamera();}}
+  catch(err){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read this image.'}}));}
   input.value='';
  };
  return <div className="image-field">
   <div className="section-label">{label}{optional?' (optional)':''}</div>
   <div className="image-input-actions">
-   <button type="button" className="upload-btn camera-upload" onClick={openCamera}>📷 {cameraLabel}</button><label className="upload-btn camera-native-upload">📷 {cameraLabel}<input ref={cameraCaptureRef} className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label>
+   {phone
+    ? <label className="upload-btn camera-upload">📷 {cameraLabel}<input className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label>
+    : <button type="button" className="upload-btn camera-upload" onClick={openCamera}>📷 {cameraLabel}</button>}
    <label className="upload-btn secondary-upload">📁 Choose from device<input ref={deviceRef} className="image-file-input-native" type="file" accept="image/*" onChange={read}/></label>
   </div>
   {value&&<div className="image-preview"><img src={value} alt={`${label} preview`}/><button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button></div>}
   {cameraOpen&&<div className="camera-modal-backdrop" onPointerDown={e=>{if(e.target===e.currentTarget)stopCamera()}}><div className="camera-modal" onPointerDown={e=>e.stopPropagation()}><div className="camera-modal-head"><strong>{cameraLabel}</strong><button type="button" className="icon-btn" onClick={stopCamera}>×</button></div>{cameraError?<div className="camera-error">{cameraError}</div>:<div className="camera-preview-wrap"><video ref={videoRef} playsInline muted autoPlay/><span className="camera-frame"/></div>}<div className="camera-actions"><label className="camera-fallback-btn">📷 Use phone camera<input className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label><button type="button" className="ghost-btn" onClick={stopCamera}>Cancel</button><button type="button" className="primary-btn" disabled={cameraBusy||!!cameraError} onClick={capture}>{cameraBusy?'Opening camera…':'Capture photo'}</button></div></div></div>}
+ </div>;
+}
+
+export function MultiImageField({label,values=[],onChange,optional=true,max=6,cameraLabel='Open camera'}){
+ const deviceRef=useRef(null);
+ const photos=(values||[]).filter(Boolean).slice(0,max);
+ const phone=typeof window!=='undefined'&&(window.matchMedia('(max-width:800px), (pointer:coarse)').matches||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||''));
+ const add=async files=>{
+  const list=Array.from(files||[]).filter(f=>f&&f.type&&f.type.startsWith('image/'));
+  if(!list.length) return;
+  const next=[...photos];
+  for(const file of list){
+   if(next.length>=max) break;
+   if(file.size>12*1024*1024){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Each image must be smaller than 12 MB.'}}));continue;}
+   const data=await new Promise((resolve,reject)=>{const img=new Image(),reader=new FileReader();reader.onload=()=>{img.onload=()=>{const scale=Math.min(1,1100/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));ctx.drawImage(img,0,0,c.width,c.height);let out=c.toDataURL('image/jpeg',.62);if(out.length>1200000)out=c.toDataURL('image/jpeg',.5);resolve(out);};img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');};reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file)});
+   next.push(data);
+  }
+  onChange(next);
+ };
+ const read=async e=>{try{await add(e.currentTarget.files);}catch(err){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read this image.'}}));}e.currentTarget.value='';};
+ return <div className="image-field">
+  <div className="section-label">{label}{optional?' (optional)':''}{photos.length?` · ${photos.length}/${max}`:''}</div>
+  <div className="image-input-actions">
+   {phone
+    ? <label className="upload-btn camera-upload">📷 {cameraLabel}<input className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label>
+    : <button type="button" className="upload-btn camera-upload" onClick={()=>deviceRef.current?.click()}>📷 {cameraLabel}</button>}
+   <label className="upload-btn secondary-upload">📁 Choose from device<input ref={deviceRef} className="image-file-input-native" type="file" accept="image/*" multiple onChange={read}/></label>
+  </div>
+  {photos.length>0&&<div className="image-preview-grid">{photos.map((src,i)=><div className="image-preview" key={`${i}-${src.slice(-12)}`}><img src={src} alt={`${label} ${i+1}`}/><button type="button" className="small-btn danger" onClick={()=>onChange(photos.filter((_,idx)=>idx!==i))}>Remove</button></div>)}</div>}
+  {photos.length<max&&<p className="muted" style={{marginTop:8}}>Add more than one photo if needed (up to {max}).</p>}
  </div>;
 }
 

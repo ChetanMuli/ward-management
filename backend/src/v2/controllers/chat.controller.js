@@ -131,20 +131,21 @@ async function nagarsevakRoleId() {
   return role?.id || null;
 }
 
-function memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds) {
+function memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, employeeRoleId) {
   const visible = new Set((visibleNagarsevakIds || []).map(String));
+  const notEmployee = (u) => !employeeRoleId || String(u.roleId) !== String(employeeRoleId);
   if (group.type === 'NAGARSEVAK' && nagarRoleId) {
     const ownerVisible = visible.has(String(group.nagarsevakUserId));
     if (!ownerVisible) {
       return users.filter(u => String(u.id) === String(group.nagarsevakUserId)).map(u => u.id);
     }
     return users
-      .filter(u => String(u.roleId) !== String(nagarRoleId) || String(u.id) === String(group.nagarsevakUserId))
+      .filter(u => notEmployee(u) && (String(u.roleId) !== String(nagarRoleId) || String(u.id) === String(group.nagarsevakUserId)))
       .map(u => u.id);
   }
   if (group.type === 'WARD' && nagarRoleId) {
     return users
-      .filter(u => String(u.roleId) !== String(nagarRoleId) || visible.has(String(u.id)))
+      .filter(u => notEmployee(u) && (String(u.roleId) !== String(nagarRoleId) || visible.has(String(u.id))))
       .map(u => u.id);
   }
   return users.map(u => u.id);
@@ -158,8 +159,14 @@ async function visibleIdsByWard(wardIds) {
   return map;
 }
 
+async function employeeRoleId() {
+  const role = await Role.findOne({ where: { name: 'EMPLOYEE' }, attributes: ['id'] });
+  return role?.id || null;
+}
+
 async function syncGroupMembers(group, users, nagarRoleId, visibleNagarsevakIds) {
-  const allowedUserIds = memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds);
+  const empRole = await employeeRoleId();
+  const allowedUserIds = memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, empRole);
   await Chat.Member.reconcile(group.id, allowedUserIds);
 }
 
@@ -293,6 +300,7 @@ async function ensureUserGroups(user) {
     await syncWardCommunityMembership(user.wardId);
     return;
   }
+  if (user.roleName === 'EMPLOYEE') return;
   const wardGroup = await Chat.findOne({ where: { wardId: user.wardId, type: 'WARD', isActive: true } });
   if (wardGroup) await ensureMembershipRow(wardGroup.id, user.id);
   if (user.roleName === 'NAGARSEVAK') await ensureNagarsevakGroup(user.id);

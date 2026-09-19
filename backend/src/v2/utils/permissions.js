@@ -21,6 +21,25 @@ const PERMISSIONS = Object.freeze([
 
 const ALL_PERMISSIONS = [...PERMISSIONS];
 
+const NAGARSEVAK_CORE = Object.freeze([
+  'VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS',
+  'VIEW_HOUSES','CREATE_HOUSES','EDIT_HOUSES','VIEW_FAMILIES','CREATE_FAMILIES','EDIT_FAMILIES',
+  'VIEW_CITIZENS','CREATE_CITIZENS','EDIT_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','ASSIGN_COMPLAINTS','EDIT_COMPLAINTS',
+  'VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','CREATE_DEATH_RECORDS',
+  'VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_USERS','VIEW_WARDS',
+  'VIEW_ELECTION_DATA','VIEW_GOVERNMENT_VOTER_LISTS','CREATE_GOVERNMENT_VOTER_LISTS',
+  'VIEW_STAFF','CREATE_STAFF','EDIT_STAFF','DELETE_STAFF'
+]);
+
+const EMPLOYEE_CORE = Object.freeze([
+  'VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS',
+  'VIEW_HOUSES','CREATE_HOUSES','EDIT_HOUSES','VIEW_FAMILIES','CREATE_FAMILIES','EDIT_FAMILIES',
+  'VIEW_CITIZENS','CREATE_CITIZENS','EDIT_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','EDIT_COMPLAINTS',
+  'VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','CREATE_DEATH_RECORDS',
+  'VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_WARDS',
+  'VIEW_ELECTION_DATA','VIEW_GOVERNMENT_VOTER_LISTS'
+]);
+
 function normalisePermissions(value) {
   if (Array.isArray(value)) return [...new Set(value.filter(v => PERMISSIONS.includes(v)))];
   if (typeof value === 'string') {
@@ -29,4 +48,18 @@ function normalisePermissions(value) {
   return [];
 }
 
-module.exports = { PERMISSIONS, ALL_PERMISSIONS, normalisePermissions };
+function resolveFieldPermissions(roleName, stored) {
+  const saved = normalisePermissions(stored);
+  const core = roleName === 'NAGARSEVAK' ? NAGARSEVAK_CORE : roleName === 'EMPLOYEE' ? EMPLOYEE_CORE : [];
+  const onlyLanding = !saved.length || (saved.length === 1 && saved[0] === 'VIEW_DASHBOARD');
+  let permissions = onlyLanding ? [...core] : saved;
+  if (roleName === 'EMPLOYEE') {
+    permissions = permissions.filter((p) => !['VIEW_USERS','EDIT_USERS','DELETE_USERS','VIEW_STAFF','CREATE_STAFF','EDIT_STAFF','DELETE_STAFF'].includes(p));
+  }
+  if (['NAGARSEVAK','EMPLOYEE'].includes(roleName) && !permissions.includes('VIEW_DASHBOARD')) {
+    permissions.push('VIEW_DASHBOARD');
+  }
+  return [...new Set(permissions)];
+}
+
+module.exports = { PERMISSIONS, ALL_PERMISSIONS, NAGARSEVAK_CORE, EMPLOYEE_CORE, normalisePermissions, resolveFieldPermissions };

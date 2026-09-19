@@ -239,11 +239,12 @@ export default function Staff() {
 
   const staffDraft = (()=>{ try { return JSON.parse(sessionStorage.getItem('ward_staff_draft')||'null') } catch { return null; } })();
   const staffEditDraft = (()=>{ try { return JSON.parse(sessionStorage.getItem('ward_staff_edit')||'null') } catch { return null; } })();
-  const [tab, setTab] = useState(staffDraft?.tab || (master ? 'NAGARSEVAK' : 'EMPLOYEE'));
+  const [tab, setTab] = useState(staffDraft?.tab || (master || sub ? 'NAGARSEVAK' : 'EMPLOYEE'));
   const [edit, setEdit] = useState(staffEditDraft?.new ? 'create' : (staffEditDraft?.id ? {id:staffEditDraft.id} : null));
   const [form, setForm] = useState(staffDraft?.form || {...empty});
 
   useEffect(()=>{ try { sessionStorage.setItem('ward_staff_draft',JSON.stringify({tab,form})) ; if(edit) sessionStorage.setItem('ward_staff_edit',JSON.stringify({id:edit==='create'?null:edit.id,new:edit==='create'})); else sessionStorage.removeItem('ward_staff_edit'); } catch {} },[tab,form,edit]);
+  useEffect(()=>{ if(!(master||sub) && tab!=='EMPLOYEE') setTab('EMPLOYEE'); },[master,sub,tab]);
 
 
   const [detail, setDetail] = useState(null);
@@ -301,7 +302,8 @@ export default function Staff() {
           page: ePage,
           limit: eLimit,
           wardId:
-            selectedWardId || undefined
+            selectedWardId || undefined,
+          managerUserId: councillor ? user?.id : undefined
         }),
 
         (master || sub)
@@ -317,9 +319,10 @@ export default function Staff() {
 
         api.employees({
           page: 1,
-          limit: 100,
+          limit: 500,
           wardId:
-            selectedWardId || undefined
+            selectedWardId || undefined,
+          managerUserId: councillor ? user?.id : undefined
         }),
 
         api.wards()
@@ -413,6 +416,7 @@ export default function Staff() {
     selectedWardId,
     master,
     sub,
+    councillor,
     nPage,
     nLimit,
     ePage,
@@ -428,7 +432,10 @@ export default function Staff() {
     nagarsevaks || [];
 
   const visibleE =
-    employees || [];
+    (employees || []).filter(e => {
+      if (!councillor) return true;
+      return String(e.managerUserId || e.manager?.id || '') === String(user?.id || '');
+    });
 
 
   const nTotal =
@@ -652,7 +659,13 @@ export default function Staff() {
         ...empty,
         wardId: selectedWardId || user?.wardId || '',
         managerUserId: councillor ? String(user?.id || '') : '',
-        permissions: [],
+        permissions: [
+          'VIEW_DASHBOARD','VIEW_WARD_INFORMATION','VIEW_WARD_UPDATES','VIEW_NOTIFICATIONS',
+          'VIEW_HOUSES','CREATE_HOUSES','EDIT_HOUSES','VIEW_FAMILIES','CREATE_FAMILIES','EDIT_FAMILIES',
+          'VIEW_CITIZENS','CREATE_CITIZENS','EDIT_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','EDIT_COMPLAINTS',
+          'VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','CREATE_DEATH_RECORDS',
+          'VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_WARDS','VIEW_ELECTION_DATA'
+        ],
       });
 
       setEdit('create');
@@ -1140,7 +1153,9 @@ export default function Staff() {
         }
 
         subtitle={
-          'Manage Nagarsevak and Employee access separately.'
+          (master || sub)
+            ? 'Manage Nagarsevak and Employee access separately.'
+            : 'Manage employees for your ward.'
         }
       />
 
@@ -1390,7 +1405,7 @@ export default function Staff() {
         ) : !visibleE.length ? (
 
           <Empty>
-            No employees for this ward.
+            {councillor ? 'No employees under your account.' : 'No employees for this ward.'}
           </Empty>
 
         ) : (

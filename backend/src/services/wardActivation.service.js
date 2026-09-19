@@ -149,10 +149,9 @@ async function eligibleResidentIds(wardId) {
 }
 
 async function eligibleCommunityUserIds(wardId, visibleNagarsevakIds) {
-  const [citizenRole, employeeRole] = await Promise.all([roleId('CITIZEN'), roleId('EMPLOYEE')]);
-  const roleIds = [citizenRole, employeeRole].filter(Boolean);
+  const citizenRole = await roleId('CITIZEN');
   const where = { wardId, status: 'ACTIVE' };
-  if (roleIds.length) where.roleId = { [Op.in]: roleIds };
+  if (citizenRole) where.roleId = citizenRole;
   const users = await User.findAll({ where, attributes: ['id'] });
   const ids = users.map((u) => u.id);
   for (const id of visibleNagarsevakIds || []) ids.push(id);
@@ -423,7 +422,7 @@ async function getResidentWardSnapshot(user) {
   const wardId = user?.wardId;
   const ward = await getWard(wardId);
   if (!ward) {
-    return { ward: null, nagarsevak: null, nagarsevaks: [], community: null };
+    return { ward: null, nagarsevak: null, nagarsevaks: [], employees: [], community: null };
   }
   const visible = isWardActive(ward) ? await getVisibleNagarsevaks(wardId) : [];
   const nagarsevaks = await decorateNagarsevakPhotos(visible.map(publicNagarsevak));
@@ -440,6 +439,7 @@ async function getResidentWardSnapshot(user) {
     },
     nagarsevak: nagarsevaks[0] || null,
     nagarsevaks,
+    employees: [],
     community: community ? { id: community.id, name: community.name, active: !!community.isActive } : null,
   };
 }

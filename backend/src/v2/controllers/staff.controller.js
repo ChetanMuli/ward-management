@@ -6,7 +6,7 @@ const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { logAudit } = require('../../services/audit.service');
-const { normalisePermissions, ALL_PERMISSIONS } = require('../utils/permissions');
+const { normalisePermissions, ALL_PERMISSIONS, EMPLOYEE_CORE } = require('../utils/permissions');
 const { allowedWardIds, isWardAllowed } = require('../services/wardScope');
 const { getVisibleNagarsevaks, isWardActive, syncWardCommunityMembership, ensureNagarsevakSubscription, publicNagarsevak } = require('../../services/wardActivation.service');
 const { syncLogin } = require('../../services/accountStore');
@@ -282,10 +282,11 @@ const listEmployees = asyncHandler(async(req,res)=>{
   if(req.query.status) where.status=req.query.status;
   if(req.user.roleName==='EMPLOYEE') where.userId=req.user.id;
   if(req.user.roleName==='NAGARSEVAK') where.managerUserId=req.user.id;
+  else if(req.query.managerUserId) where.managerUserId=req.query.managerUserId;
   const rawPage = Number.parseInt(req.query.page, 10);
   const rawLimit = Number.parseInt(req.query.limit, 10);
   const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 100) : 25;
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 25;
   const result=await Employee.findAndCountAll({
     where,
     include:[
@@ -318,7 +319,9 @@ const createEmployee = asyncHandler(async(req,res)=>{
   const areas=await Area.findAll({where:{id:assignedAreaIds}});
   if(areas.some(a=>a.wardId!==wardId)) throw new ApiError(400,'Every assigned area must belong to the employee ward');
   const user=await User.create({name,email,mobile,passwordHash:await bcrypt.hash(password,12),roleId:r.id,wardId,status:'ACTIVE'});
-  const employee=await Employee.create({userId:user.id,wardId,managerUserId:effectiveManagerUserId,designation:designation||'Ward Employee',assignedAreaIds,permissions:[...new Set(['VIEW_DASHBOARD',...normalisePermissions(permissions)])],status:'ACTIVE'});
+  const granted=normalisePermissions(permissions);
+  const employeePerms=granted.length?[...new Set(['VIEW_DASHBOARD',...granted])]:[...EMPLOYEE_CORE];
+  const employee=await Employee.create({userId:user.id,wardId,managerUserId:effectiveManagerUserId,designation:designation||'Ward Employee',assignedAreaIds,permissions:employeePerms,status:'ACTIVE'});
   await syncLogin(user, Role, { isCreate: true }).catch(() => {});
   await logAudit({user:req.user,action:'CREATE_EMPLOYEE',entity:'Employee',recordId:employee.id,newValue:{name,email,mobile,wardId,designation,assignedAreaIds,permissions,managerUserId:effectiveManagerUserId},ipAddress:req.ip});
   await syncWardCommunityMembership(wardId).catch(() => {});
@@ -490,7 +493,7 @@ const listWardTeam = asyncHandler(async(req,res)=>{
     const rows=await User.findAll({where:{roleId:nr.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId','roleId'],order:[['name','ASC']]});
     nagarsevaks=await decorateNagarsevakPhotos(rows.map(publicNagarsevak));
   }
-  return success(res,{data:{ward,nagarsevaks,employees,nagarsevakCount:nagarsevaks.length,employeeCount:employees.length,wardStatus:ward.status}});
+  return success(res,{data:{ward,nagarsevaks,employees:residentFacing?[]:employees,nagarsevakCount:nagarsevaks.length,employeeCount:residentFacing?0:employees.length,wardStatus:ward.status}});
 });
 
 const permissions = asyncHandler(async(req,res)=>success(res,{data:{permissions:ALL_PERMISSIONS}}));

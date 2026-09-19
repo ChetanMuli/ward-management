@@ -48,7 +48,7 @@ async function request(path,options={}){
 }
 function actionSuccessMessage(path,method){
  const parts=path.split('/').filter(Boolean);
- const names={wards:'ward',areas:'area',houses:'house',families:'family',persons:'citizen',voters:'voter status',complaints:'complaint',employees:'employee',corporators:'Nagarsevak',profile:'profile',notifications:'notification', 'maintenance':'maintenance', 'sub-admins':'Sub Master Admin', schemes:'scheme', deaths:'death record', 'ward-activations':'ward activation', 'nagarsevak-subscriptions':'Nagarsevak subscription'};
+ const names={wards:'ward',areas:'area',houses:'house',shops:'shop / office',apartments:'apartment',families:'family',persons:'citizen',voters:'voter status',complaints:'complaint',employees:'employee',corporators:'Nagarsevak',profile:'profile',notifications:'notification', 'maintenance':'maintenance', 'sub-admins':'Sub Master Admin', schemes:'scheme', deaths:'death record', 'ward-activations':'ward activation', 'nagarsevak-subscriptions':'Nagarsevak subscription'};
  const name=path.includes('/death')?'death record':(names[parts[2]]||names[parts[1]]||'record');
  if(method==='POST') return `${name.charAt(0).toUpperCase()+name.slice(1)} created successfully.`;
  if(method==='PATCH') return `${name.charAt(0).toUpperCase()+name.slice(1)} updated successfully.`;
@@ -94,12 +94,21 @@ export const api={
  updateArea:(id,d)=>v2Request(`/areas/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
  deleteArea:id=>v2Request(`/areas/${id}`,{method:'DELETE'}),
  createArea:(wardId,d)=>v2Request(`/wards/${wardId}/areas`,{method:'POST',body:JSON.stringify(d)}),
+ apartments:(p={})=>v2('/apartments',p),
+ createApartment:d=>v2Request('/apartments',{method:'POST',body:JSON.stringify(d)}),
+ updateApartment:(id,d)=>v2Request(`/apartments/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
+ deleteApartment:id=>v2Request(`/apartments/${id}`,{method:'DELETE'}),
  dashboard:(p={})=>v2('/dashboard',p),
  houses:(p={})=>v2('/houses',p),
  house:id=>v2(`/houses/${id}`),
  createHouse:d=>v2Request('/houses',{method:'POST',body:JSON.stringify(d)}),
  updateHouse:(id,d)=>v2Request(`/houses/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
  deleteHouse:id=>v2Request(`/houses/${id}`,{method:'DELETE'}),
+ shops:(p={})=>v2('/shops',p),
+ shop:id=>v2(`/shops/${id}`),
+ createShop:d=>v2Request('/shops',{method:'POST',body:JSON.stringify(d)}),
+ updateShop:(id,d)=>v2Request(`/shops/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
+ deleteShop:id=>v2Request(`/shops/${id}`,{method:'DELETE'}),
  verifyHouse:id=>request(`/houses/${id}/verify`,{method:'POST'}),
  families:(p={})=>v2('/families',p),
  family:id=>v2(`/families/${id}`),

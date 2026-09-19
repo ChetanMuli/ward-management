@@ -108,16 +108,18 @@ const summary = asyncHandler(async (req, res) => {
   const birthdayCount=scopedPeople.map(p=>daysToNextBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=30).length;
   const upcomingCount=scopedPeople.map(p=>daysTo18thBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=90).length;
   let todayEvents=[];
-  if(['NAGARSEVAK','EMPLOYEE'].includes(req.user.roleName)){
-    const deathWardIds=requestedWardId
-      ? [requestedWardId]
-      : (accessibleWardIds===null?null:accessibleWardIds);
-    try{
-      todayEvents=await loadTodayWardEvents(deathWardIds);
-    }catch(err){
-      console.error('[DASHBOARD TODAY EVENTS]', err.message);
-    }
+  const eventWardIds=requestedWardId
+    ? [requestedWardId]
+    : (accessibleWardIds===null?null:accessibleWardIds);
+  try{
+    todayEvents=await loadTodayWardEvents(eventWardIds);
+  }catch(err){
+    console.error('[DASHBOARD TODAY EVENTS]', err.message);
   }
+  const todayBirthdays=todayEvents.filter(ev=>ev.kind==='BIRTHDAY').length;
+  const todayDahava=todayEvents.filter(ev=>ev.kind==='DAHAVA').length;
+  const todayVarshashraddha=todayEvents.filter(ev=>ev.kind==='ANNIVERSARY').length;
+  const todayDeaths=todayDahava+todayVarshashraddha;
   const userInfo={id:req.user.id,name:req.user.name,email:req.user.email,mobile:req.user.mobile,role:req.user.roleName,wardId:req.user.wardId,ward:req.user.ward,photo:req.user.photo||null};
   const employeeInfo=req.user.employeeProfile?{id:req.user.employeeProfile.id,designation:req.user.employeeProfile.designation,status:req.user.employeeProfile.status,managerUserId:req.user.employeeProfile.managerUserId,manager:req.user.employeeProfile.manager,assignedAreaIds:req.user.employeeProfile.assignedAreaIds||[],permissions:req.user.employeeProfile.permissions||[]}:null;
 
@@ -145,7 +147,7 @@ const summary = asyncHandler(async (req, res) => {
     wardId:requestedWardId, ward, user:userInfo, employee:employeeInfo,
     houses,families,persons,voters,nonVoters,complaints,openComplaints,
     birthdaysNext30:birthdayCount,upcoming18Next90:upcomingCount,
-    todayEvents,
+    todayEvents,todayBirthdays,todayDahava,todayVarshashraddha,todayDeaths,
     managedEmployees,corporatorCount,employeeCount,statusCounts,
     teamNagarsevaks,teamEmployees,
     recentComplaints:recentData,

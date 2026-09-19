@@ -3,7 +3,7 @@ import {Navigate,NavLink,Route,Routes,useLocation,useNavigate} from 'react-route
 import {api,clearSession,getUser} from './services/api';
 import {can,isMaster,isSubMaster,isNagarsevak,isEmployee,roleOf,canModule} from './rbac';
 import {initLanguage,setLanguage as applyLanguage,switchLanguage} from './language';
-import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
+import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Shops from './pages/Shops'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
 import Stakeholders from './pages/Stakeholders';
 import Groups from './pages/Groups'; import Deaths from './pages/Deaths'; import SubAdmins from './pages/SubAdmins'; import WardUpdates from './pages/WardUpdates'; import UserPanel from './pages/UserPanel'; import UserComplaints from './pages/UserComplaints'; import ElectionData from './pages/ElectionData'; import WardActivation from './pages/WardActivation'; import NagarsevakSubscriptions from './pages/NagarsevakSubscriptions';
 import {Modal,PaginationBar,ProfileAvatar,FaceAvatar,CirclePhotoField,scrollMainToTop} from './components/Ui';
@@ -20,6 +20,7 @@ const navSections=[
  {id:'people',en:'People & houses',mr:'नागरिक व घरे',items:[
   ['/houses','Houses','⌂','HOUSES'],
   ['/families','Families','👪','FAMILIES'],
+  ['/shops','Shops & Offices','▣','SHOPS'],
   ['/people','All Citizens','●','PEOPLE'],
   ['/voters','Voter / Non-Voter','✓','VOTERS'],
   ['/users','Registered Users','●','USERS']
@@ -49,11 +50,14 @@ const navSections=[
   ['/recycle-bin','Recycle Bin','♻','RECYCLE']
  ]}
 ];
-const mrNav={'All chat & Groups':'ऑल चॅट व गट','Groups & Chat':'गट व चॅट',Dashboard:'डॅशबोर्ड','Wards & Areas':'वॉर्ड व परिसर','Ward Information':'वॉर्डची संपूर्ण माहिती','Nagarsevak & Employees':'नगरसेवक व कर्मचारी','Ward activation':'वॉर्ड सक्रियता','Nagarsevak subscriptions':'नगरसेवक सदस्यता','Community Members':'समुदाय सदस्य','Registered Users':'नोंदणीकृत वापरकर्ते','Sub Master Admins':'सब मास्टर अ‍ॅडमिन','Houses':'घरे','Families':'कुटुंबे','All Citizens':'सर्व नागरिक','Voter / Non-Voter':'मतदार / अमतदार','Government Voter Lists':'शासकीय मतदार यादी','Election Data':'निवडणूक माहिती','Birthdays':'वाढदिवस','18+ Follow-up':'१८+ फॉलो-अप','Death Records':'मृत्यू नोंद','Complaints':'तक्रारी','Schemes & Benefits':'योजना व लाभ','Reports & Export':'अहवाल व एक्सपोर्ट','Audit Logs':'ऑडिट लॉग','Ward Updates & Events':'वॉर्ड अपडेट्स व कार्यक्रम','All Ward Updates':'सर्व वॉर्ड अपडेट्स','New Update / Event':'नवीन अपडेट / कार्यक्रम','Recycle Bin':'रिसायकल बिन'};
+const mrNav={'All chat & Groups':'ऑल चॅट व गट','Groups & Chat':'गट व चॅट',Dashboard:'डॅशबोर्ड','Wards & Areas':'वॉर्ड व परिसर','Ward Information':'वॉर्डची संपूर्ण माहिती','Nagarsevak & Employees':'नगरसेवक व कर्मचारी','Ward activation':'वॉर्ड सक्रियता','Nagarsevak subscriptions':'नगरसेवक सदस्यता','Community Members':'समुदाय सदस्य','Registered Users':'नोंदणीकृत वापरकर्ते','Sub Master Admins':'सब मास्टर अ‍ॅडमिन','Houses':'घरे','Families':'कुटुंबे','Shops & Offices':'दुकाने व कार्यालये','All Citizens':'सर्व नागरिक','Voter / Non-Voter':'मतदार / अमतदार','Government Voter Lists':'शासकीय मतदार यादी','Election Data':'निवडणूक माहिती','Birthdays':'वाढदिवस','18+ Follow-up':'१८+ फॉलो-अप','Death Records':'मृत्यू नोंद','Complaints':'तक्रारी','Schemes & Benefits':'योजना व लाभ','Reports & Export':'अहवाल व एक्सपोर्ट','Audit Logs':'ऑडिट लॉग','Ward Updates & Events':'वॉर्ड अपडेट्स व कार्यक्रम','All Ward Updates':'सर्व वॉर्ड अपडेट्स','New Update / Event':'नवीन अपडेट / कार्यक्रम','Recycle Bin':'रिसायकल बिन'};
 const pageTitles={
- '/':'Dashboard','/login':'Resident login','/register':'Resident registration','/admin':'Admin login','/dashboard':'Dashboard','/wards':'Wards & Areas','/ward-information':'Ward Information','/staff':'Nagarsevak & Employees','/ward-activation':'Ward activation','/nagarsevak-subscriptions':'Nagarsevak subscriptions','/stakeholders':'Community Members','/users':'Registered Ward Users','/sub-admins':'Sub Master Admins','/houses':'Houses','/families':'Families','/people':'All Citizens','/voters':'Voter / Non-Voter','/government-voter-lists':'Government Voter Lists','/election-data':'Election Data','/ward-updates':'Ward Updates & Events','/ward-updates/new':'Create Ward Update / Event','/birthdays':'Birthdays','/follow-up-18':'18+ Follow-up','/deaths':'Death Records','/complaints':'Complaints','/schemes':'Schemes & Benefits','/reports':'Reports & Export','/groups':'All chat & Groups','/recycle-bin':'Recycle Bin'
+ '/':'Dashboard','/login':'Resident login','/register':'Resident registration','/admin':'Admin login','/dashboard':'Dashboard','/wards':'Wards & Areas','/ward-information':'Ward Information','/staff':'Nagarsevak & Employees','/ward-activation':'Ward activation','/nagarsevak-subscriptions':'Nagarsevak subscriptions','/stakeholders':'Community Members','/users':'Registered Ward Users','/sub-admins':'Sub Master Admins','/houses':'Houses','/families':'Families','/shops':'Shops & Offices','/people':'All Citizens','/voters':'Voter / Non-Voter','/government-voter-lists':'Government Voter Lists','/election-data':'Election Data','/ward-updates':'Ward Updates & Events','/ward-updates/new':'Create Ward Update / Event','/birthdays':'Birthdays','/follow-up-18':'18+ Follow-up','/deaths':'Death Records','/complaints':'Complaints','/schemes':'Schemes & Benefits','/reports':'Reports & Export','/groups':'All chat & Groups','/recycle-bin':'Recycle Bin'
 };
-const pageTitle=path=>pageTitles[path]||'WardDesk';
+const pageTitle=(path,user)=>{
+ if(path==='/staff' && !(isMaster(user)||isSubMaster(user))) return 'Employees';
+ return pageTitles[path]||'WardDesk';
+};
 const ROLE_LABELS={SUPER_ADMIN:'Master Admin',SUB_MASTER_ADMIN:'Sub Master Admin',NAGARSEVAK:'Nagarsevak',EMPLOYEE:'Field Employee',CITIZEN:'Resident',SOCIAL_WORKER:'Social Worker',CANDIDATE:'Election Candidate'};
 function prettyRole(u){const r=String(typeof u==='string'?u:(u?.role||u?.roleName||'')).toUpperCase();return ROLE_LABELS[r]||(r?r.replaceAll('_',' '):'User')}
 function workspaceLabel(user){if(isMaster(user))return 'Master administration';if(isSubMaster(user))return 'Sub Master Admin workspace';if(isNagarsevak(user))return 'Nagarsevak workspace';if(String(user?.role||'').toUpperCase()==='CITIZEN')return 'Resident workspace';return 'Field employee workspace'}
@@ -64,6 +68,7 @@ const pageHelp={
  '/wards':'Create wards and colonies. Exact home location is saved when a team member visits the house.',
  '/houses':'When you visit a home, save GPS at the door. Tap the location later to open maps and get directions.',
  '/families':'Each family lives at a house. Open directions from the house location.',
+ '/shops':'Register shops and offices in the ward and save their exact location.',
  '/ward-information':'Official ward facts, maps and published information.',
  '/people':'Search every citizen by name, mobile, job or address.',
  '/voters':'See who is marked as a voter in the family register.',
@@ -77,7 +82,7 @@ const pageHelp={
  '/deaths':'Record deaths so family registers stay accurate.',
  '/government-voter-lists':'Official voter lists for election work.',
  '/election-data':'Election information from official sources.',
- '/staff':'Nagarsevaks and the employees who work with them.',
+ '/staff':'Master Admin manages Nagarsevaks. Nagarsevak and employee workspaces show employees for the ward.',
  '/ward-activation':'Activate wards and Nagarsevaks. Residents only see Nagarsevaks who are active for their ward.',
  '/nagarsevak-subscriptions':'See when each Nagarsevak was added and when their 1-year subscription ends.',
  '/stakeholders':'Community members and social workers.',
@@ -88,31 +93,44 @@ const pageHelp={
 };
 function pageSection(path,language='en'){const hit=navSections.find(s=>s.items.some(([to])=>to===path||(to==='__WARD_UPDATES__'&&String(path).startsWith('/ward-updates'))));if(!hit)return language==='mr'?'वॉर्डडेस्क':'WardDesk';return language==='mr'?hit.mr:hit.en}
 const roleName=u=>String(u?.role||u?.roleName||'').toUpperCase();
-const rolePanelAccess=(key,u)=>{
- const r=roleName(u);
- if(r==='SUPER_ADMIN') return true;
- if(r==='NAGARSEVAK' && ['DASHBOARD','WARDS','WARD_INFORMATION','WARD_UPDATES','NOTIFICATIONS','HOUSES','FAMILIES','PEOPLE','VOTERS','BIRTHDAYS','FOLLOWUP','DEATH','COMPLAINTS','SCHEMES','CHAT','REPORTS','RECYCLE','USERS','STAFF'].includes(key)) return true;
- if(r==='EMPLOYEE' && ['DASHBOARD','WARDS','WARD_INFORMATION','WARD_UPDATES','NOTIFICATIONS','HOUSES','FAMILIES','PEOPLE','VOTERS','BIRTHDAYS','FOLLOWUP','DEATH','COMPLAINTS','SCHEMES','CHAT','REPORTS','RECYCLE'].includes(key)) return true;
- return false;
+const NAV_VIEW={
+ DASHBOARD:['VIEW_DASHBOARD'],
+ WARDS:['VIEW_WARDS'],
+ WARD_INFORMATION:['VIEW_WARD_INFORMATION','VIEW_WARDS'],
+ HOUSES:['VIEW_HOUSES'],
+ FAMILIES:['VIEW_FAMILIES'],
+ SHOPS:['VIEW_HOUSES'],
+ PEOPLE:['VIEW_CITIZENS'],
+ VOTERS:['VIEW_VOTERS'],
+ USERS:['VIEW_USERS'],
+ COMPLAINTS:['VIEW_COMPLAINTS'],
+ WARD_UPDATES:['VIEW_WARD_UPDATES'],
+ WARD_UPDATES_GROUP:['VIEW_WARD_UPDATES'],
+ SCHEMES:['VIEW_SCHEMES'],
+ BIRTHDAYS:['VIEW_BIRTHDAYS'],
+ FOLLOWUP:['VIEW_18PLUS'],
+ DEATH:['VIEW_DEATH_RECORDS'],
+ STAFF:['VIEW_STAFF'],
+ CHAT:['VIEW_CHAT'],
+ REPORTS:['EXPORT_DATA'],
+ RECYCLE:['VIEW_RECYCLE_BIN'],
+ GOVERNMENT_VOTER_LISTS:['VIEW_GOVERNMENT_VOTER_LISTS'],
+ ELECTION_DATA:['VIEW_ELECTION_DATA'],
+ NOTIFICATIONS:['VIEW_NOTIFICATIONS']
 };
 const allowed=(key,u)=>{
- if(rolePanelAccess(key,u)) return true;
+ if(isMaster(u)) return true;
+ if(key==='SUBADMINS') return false;
+ if(key==='WARD_ACTIVATION') return false;
+ if(key==='NAGARSEVAK_SUBSCRIPTIONS') return isSubMaster(u);
+ if(key==='STAKEHOLDERS') return false;
  if(key==='USERS' && isEmployee(u)) return false;
- if(key==='NOTIFICATIONS') return can('VIEW_NOTIFICATIONS',u);
- if(key==='WARD_UPDATES'||key==='WARD_UPDATES_GROUP') return can('VIEW_WARD_UPDATES',u);
- if(key==='USERS') return can('VIEW_USERS',u);
- if(key==='WARDS') return can('VIEW_WARDS',u);
- if(key==='WARD_INFORMATION') return can('VIEW_WARD_INFORMATION',u)||can('VIEW_WARDS',u);
- if(key==='SUBADMINS') return isMaster(u);
- if(key==='WARD_ACTIVATION') return isMaster(u);
- if(key==='NAGARSEVAK_SUBSCRIPTIONS') return isMaster(u)||isSubMaster(u);
- if(key==='GOVERNMENT_VOTER_LISTS') return can('VIEW_GOVERNMENT_VOTER_LISTS',u);
- if(key==='ELECTION_DATA') return can('VIEW_ELECTION_DATA',u);
- if(key==='STAFF') return can('VIEW_STAFF',u);
- if(key==='STAKEHOLDERS') return isMaster(u);
- if(key==='DEATH') return can('VIEW_DEATH_RECORDS',u);
+ if(key==='STAFF' && isEmployee(u)) return false;
+ const needed=NAV_VIEW[key];
+ if(needed) return needed.some(p=>can(p,u));
  return canModule(key,'VIEW',u);
 };
+const staffNavLabel=(u)=>(isMaster(u)||isSubMaster(u))?'Nagarsevak & Employees':'Employees';
 function AdminNavItem({to,label,icon,itemKey,language,user,updatesOpen,setUpdatesOpen,navRef,sidebarScrollKey,sidebarGo,chatUnread=0}){
  if(itemKey==='WARD_UPDATES_GROUP') return (
   <div className={`nav-group ${updatesOpen?'open':''}`}>
@@ -125,7 +143,7 @@ function AdminNavItem({to,label,icon,itemKey,language,user,updatesOpen,setUpdate
    </div>}
   </div>
  );
- return <NavLink to={to} end={to==='/dashboard'} onClick={e=>sidebarGo(e,to)}><span className="nav-icon">{icon}</span><span>{language==='mr'?(mrNav[label]||label):label}</span>{itemKey==='CHAT'&&chatUnread>0&&<span className="nav-chat-badge notranslate" translate="no">{chatUnread>99?'99+':chatUnread}</span>}</NavLink>;
+ return <NavLink to={to} end={to==='/dashboard'} onClick={e=>sidebarGo(e,to)}><span className="nav-icon">{icon}</span><span>{itemKey==='STAFF'?(language==='mr'?((isMaster(user)||isSubMaster(user))?'नगरसेवक व कर्मचारी':'कर्मचारी'):staffNavLabel(user)):(language==='mr'?(mrNav[label]||label):label)}</span>{itemKey==='CHAT'&&chatUnread>0&&<span className="nav-chat-badge notranslate" translate="no">{chatUnread>99?'99+':chatUnread}</span>}</NavLink>;
 }
 function Protected({children}){return getUser()?children:<Navigate to="/" replace/>}
 function HomeEntry(){const u=getUser(); if(!u) return <Login mode="user"/>; if(String(u.role||'').toUpperCase()==='CITIZEN') return <CitizenOnly><UserPanel/></CitizenOnly>; return <Navigate to="/dashboard" replace/>}
@@ -174,7 +192,7 @@ function CitizenShell({children}){
   return()=>{live=false;clearInterval(t);window.removeEventListener('focus',onFocus);document.removeEventListener('visibilitychange',onVis)};
  },[]);
  useEffect(()=>{initLanguage();applyLanguage(language)},[language]);
- useEffect(()=>{document.title=`${pageTitle(location.pathname)} · WardDesk`;const token=localStorage.getItem('ward_token');if(!token)return;let timer;try{const payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));const ms=Number(payload.exp)*1000-Date.now();if(ms<=0){sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login');return}timer=setTimeout(()=>{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')},ms+250)}catch{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')}return()=>clearTimeout(timer) },[location.pathname]);
+ useEffect(()=>{document.title=`${pageTitle(location.pathname,user)} · WardDesk`;const token=localStorage.getItem('ward_token');if(!token)return;let timer;try{const payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));const ms=Number(payload.exp)*1000-Date.now();if(ms<=0){sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login');return}timer=setTimeout(()=>{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')},ms+250)}catch{sessionStorage.setItem('ward_session_expired','1');clearSession();window.location.replace('/login')}return()=>clearTimeout(timer) },[location.pathname]);
  useEffect(()=>{
   let live=true;
   const loadChat=()=>api.chatGroups().then(r=>{
@@ -354,7 +372,9 @@ function GlobalPagination(){
  return <PaginationBar page={current} pages={totalPages} total={state.count} limit={pageSize} onPage={go} onLimit={n=>{setPageSize(n);setPage(1)}}/>;
 }
 function Shell({children}){
- const navigate=useNavigate(),location=useLocation(),user=getUser(),navRef=useRef(null),[open,setOpen]=useState(false),[language,setLanguage]=useState(()=>localStorage.getItem('ward_language')||'en'),[notifications,setNotifications]=useState([]),[showNotifications,setShowNotifications]=useState(false),[showProfile,setShowProfile]=useState(false),[toast,setToast]=useState(null),[updatesOpen,setUpdatesOpen]=useState(()=>location.pathname.startsWith('/ward-updates')),[chatUnread,setChatUnread]=useState(0);
+ const navigate=useNavigate(),location=useLocation(),navRef=useRef(null),[open,setOpen]=useState(false),[language,setLanguage]=useState(()=>localStorage.getItem('ward_language')||'en'),[notifications,setNotifications]=useState([]),[showNotifications,setShowNotifications]=useState(false),[showProfile,setShowProfile]=useState(false),[toast,setToast]=useState(null),[updatesOpen,setUpdatesOpen]=useState(()=>location.pathname.startsWith('/ward-updates')),[chatUnread,setChatUnread]=useState(0),[userVersion,setUserVersion]=useState(0);
+ const user=getUser();
+ void userVersion;
  const receivedNotifications=useMemo(()=>notifications.filter(n=>n.direction!=='SENT'),[notifications]);
  const sidebarScrollKey='ward_sidebar_scroll_top';
  const rememberSidebar=()=>{ window.dispatchEvent(new CustomEvent('ward:close-overlays')); setOpen(false); if(navRef.current){ const value=navRef.current.scrollTop; try{sessionStorage.setItem(sidebarScrollKey,String(value))}catch{} } };
@@ -384,7 +404,24 @@ function Shell({children}){
   return()=>nav.removeEventListener('scroll',save);
  },[]);
  useEffect(()=>{const onKey=e=>{if(e.key==='Escape'){setOpen(false);setShowNotifications(false);setShowProfile(false)}};document.addEventListener('keydown',onKey);return()=>document.removeEventListener('keydown',onKey)},[]);
- useEffect(()=>{document.title=`${pageTitle(location.pathname)} · WardDesk`},[location.pathname]);
+ useEffect(()=>{document.title=`${pageTitle(location.pathname,user)} · WardDesk`},[location.pathname,user]);
+ useEffect(()=>{
+  let live=true;
+  api.me().then(r=>{
+   if(!live) return;
+   const next=r?.data?.user;
+   const cur=getUser();
+   if(!next||!cur) return;
+   localStorage.setItem('ward_user',JSON.stringify({
+    ...cur,
+    permissions:next.permissions||cur.permissions,
+    role:next.roleName||next.role||cur.role,
+    roleName:next.roleName||cur.roleName||cur.role
+   }));
+   setUserVersion(v=>v+1);
+  }).catch(()=>{});
+  return()=>{live=false};
+ },[]);
  useEffect(()=>{
   let live=true;
   let primed=false;
@@ -491,18 +528,9 @@ function Shell({children}){
 function CitizenOnly({children}){const u=getUser();if(!u)return <Navigate to="/login" replace/>;if(String(u.role||'').toUpperCase()!=='CITIZEN')return <Navigate to="/dashboard" replace/>;return <CitizenShell>{children}</CitizenShell>}
 function Guard({permission,children}){
  const u=getUser();
- let ok=rolePanelAccess(permission,u);
- if(!ok){
-  if(permission==='WARD_UPDATES') ok=isMaster(u)||isSubMaster(u)||isNagarsevak(u)||isEmployee(u)||roleName(u)==='CITIZEN';
-  else if(permission==='USERS') ok=isMaster(u)||isSubMaster(u)||isNagarsevak(u);
-  else if(permission==='WARDS') ok=isMaster(u)||isNagarsevak(u)||isEmployee(u)||canModule('WARDS','VIEW',u);
-  else if(permission==='STAFF') ok=isMaster(u)||isNagarsevak(u)||(isSubMaster(u)&&canModule('STAFF','VIEW',u));
-  else if(permission==='STAKEHOLDERS') ok=isMaster(u);
-  else if(permission==='NAGARSEVAK_SUBSCRIPTIONS') ok=isMaster(u)||isSubMaster(u);
-  else if(permission==='DEATH') ok=can('VIEW_DEATH_RECORDS',u);
-  else ok=canModule(permission,'VIEW',u);
- }
- return ok?children:<Navigate to="/" replace/>;
+ if(roleName(u)==='CITIZEN') return <Navigate to="/" replace/>;
+ const ok=allowed(permission,u);
+ return ok?children:<Navigate to="/dashboard" replace/>;
 }
 function AdminOnly({children}){
  const u=getUser();
@@ -604,6 +632,7 @@ export default function App(){
   <Route path="/sub-admins" element={<AdminOnly><SubAdmins/></AdminOnly>}/>
   <Route path="/houses" element={<AdminOnly><Guard permission="HOUSES"><Houses/></Guard></AdminOnly>}/>
   <Route path="/families" element={<AdminOnly><Guard permission="FAMILIES"><Families/></Guard></AdminOnly>}/>
+  <Route path="/shops" element={<AdminOnly><Guard permission="SHOPS"><Shops/></Guard></AdminOnly>}/>
   <Route path="/people" element={<AdminOnly><Guard permission="PEOPLE"><People/></Guard></AdminOnly>}/>
   <Route path="/voters" element={<AdminOnly><Guard permission="VOTERS"><Voters/></Guard></AdminOnly>}/>
   <Route path="/government-voter-lists" element={<AdminOnly><Guard permission="GOVERNMENT_VOTER_LISTS"><GovernmentVoterLists/></Guard></AdminOnly>}/>

@@ -584,8 +584,9 @@ html body .app-shell .page-header{
 html body .app-shell .page-header > div{min-width:0;flex:1 1 auto}
 html body .app-shell .page-header h1{margin:2px 0 6px !important;line-height:1.15 !important;color:var(--admin-ink) !important;letter-spacing:-.03em !important}
 html body .app-shell .page-header p{margin:0 !important;max-width:640px;color:var(--admin-muted) !important}
-html body .app-shell .page-header .primary-btn,
-html body .app-shell .page-header .ghost-btn{flex:0 0 auto;align-self:flex-start}
+html body .app-shell .page-header .houses-header-actions{flex:0 0 auto;align-self:flex-start}
+html body .app-shell .page-header .houses-header-actions .primary-btn,
+html body .app-shell .page-header .houses-header-actions .ghost-btn{width:auto}
 html body .app-shell .panel{
   background:#fff !important;border:1px solid var(--admin-line) !important;border-radius:14px !important;
   box-shadow:0 1px 2px rgba(15,23,42,.04) !important;padding:18px !important;
@@ -1707,7 +1708,66 @@ html body .ward-more-btn:hover{background:#eff6ff !important;border-color:#93c5f
   }
 }
 
-html body .today-ward-panel{margin-top:4px}
+html body .today-col-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:12px;
+}
+html body .today-col{
+  border:1px solid #e2e8f0;
+  border-radius:14px;
+  background:#f8fafc;
+  padding:12px;
+  min-width:0;
+}
+html body .today-col-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+html body .today-col-head h4{
+  margin:0;
+  font-size:14px;
+  color:#12203a;
+}
+html body .today-col-head span{
+  display:block;
+  margin-top:2px;
+  color:#64748b;
+  font-size:12px;
+}
+html body .today-col-head strong{
+  font-size:22px;
+  line-height:1;
+  color:#0f766e;
+}
+html body .today-col-dahava .today-col-head strong,
+html body .today-col-anniversary .today-col-head strong{color:#c2410c}
+html body .today-event{
+  display:flex !important;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  grid-template-columns:unset;
+  grid-template-rows:unset;
+}
+html body .today-event-main{
+  border:0;
+  background:transparent;
+  padding:0;
+  text-align:left;
+  min-width:0;
+  display:grid;
+  gap:2px;
+  cursor:pointer;
+}
+html body .today-no-pin{font-size:11px;white-space:nowrap}
+@media(max-width:980px){
+  html body .today-col-grid{grid-template-columns:1fr}
+}
 html body .today-event-list{
   list-style:none;
   margin:0;
@@ -2557,4 +2617,99 @@ html body .user-portal .user-nav-badge.chat-unread{
   color:#fff !important;
   flex:0 0 auto !important;
   align-self:center !important;
+}
+
+/* Camera: one working control. Overlay the file input so phone capture actually opens. */
+html body .image-input-actions{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:8px !important;
+}
+html body .image-input-actions .upload-btn{
+  position:relative !important;
+  overflow:hidden !important;
+  display:inline-flex !important;
+  flex:1 1 140px !important;
+  min-height:42px !important;
+}
+html body .image-input-actions .camera-upload,
+html body .image-input-actions .secondary-upload{
+  display:inline-flex !important;
+}
+html body .image-input-actions .camera-native-upload{
+  display:none !important;
+}
+html body .image-file-input-native{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  opacity:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:block !important;
+  cursor:pointer !important;
+  font-size:28px !important;
+}
+html body .image-preview-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+html body .loc-gps-btn{
+  min-height:42px !important;
+  cursor:pointer !important;
+  touch-action:manipulation !important;
+}
+html body .family-scope-bar{
+  margin:0 0 12px;
+  font-size:13px;
+  line-height:1.45;
+  color:var(--wd-muted);
+}
+html body .family-scope-bar strong{color:var(--wd-ink)}
+html body .form-grid .searchable-select{min-width:0;width:100%}
+html body .houses-header-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+html body .apt-pick-row{grid-column:1 / -1;display:grid;gap:8px;min-width:0}
+html body .apt-pick-row .searchable-select,html body .apt-pick-row label{min-width:0}
+html body .apt-add-inline{justify-self:start;min-height:40px}
+html body .apt-empty-hint{margin:0}
+html body iframe.loc-gmaps,html body .loc-thumb.loc-gmaps{
+  width:100%;
+  height:240px;
+  border:0;
+  border-radius:12px;
+  background:#e8eef4;
+}
+html body a.loc-gmaps-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  text-decoration:none;
+  padding:0 12px;
+}
+@media (max-width:800px){
+  html body .image-input-actions{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+  }
+  html body .image-input-actions .upload-btn{
+    flex:none !important;
+    width:100% !important;
+  }
+  html body .loc-picker-bar{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+  }
+  html body .loc-gps-btn,html body a.loc-gmaps-btn{
+    grid-column:1 / -1 !important;
+    width:100% !important;
+  }
+  html body iframe.loc-gmaps,html body .loc-thumb.loc-gmaps{height:220px}
+  html body .houses-header-actions{width:100%}
+  html body .houses-header-actions .primary-btn,
+  html body .houses-header-actions .ghost-btn{flex:1;width:auto;min-width:0}
 }

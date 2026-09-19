@@ -5,6 +5,7 @@ const House = sequelize.define('House', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   houseNumber: { type: DataTypes.STRING, allowNull: false },
   areaId: { type: DataTypes.UUID, allowNull: false },
+  apartmentId: { type: DataTypes.UUID, allowNull: true },
   address: { type: DataTypes.TEXT, allowNull: false },
   landmark: DataTypes.STRING,
   city: DataTypes.STRING,

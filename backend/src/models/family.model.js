@@ -5,6 +5,10 @@ const Family = sequelize.define('Family', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   houseId: { type: DataTypes.UUID, allowNull: false },
   familyName: { type: DataTypes.STRING, allowNull: true },
+  nativeVillage: DataTypes.STRING,
+  nativeTaluka: DataTypes.STRING,
+  nativeDistrict: DataTypes.STRING,
+  nativeState: DataTypes.STRING,
   status: {
     type: DataTypes.ENUM('ACTIVE', 'INACTIVE', 'MOVED_OUT'),
     defaultValue: 'ACTIVE',
