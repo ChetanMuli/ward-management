@@ -48,7 +48,7 @@ async function request(path,options={}){
 }
 function actionSuccessMessage(path,method){
  const parts=path.split('/').filter(Boolean);
- const names={wards:'ward',areas:'area',houses:'house',shops:'shop / office',apartments:'apartment',families:'family',persons:'citizen',voters:'voter status',complaints:'complaint',employees:'employee',corporators:'Nagarsevak',profile:'profile',notifications:'notification', 'maintenance':'maintenance', 'sub-admins':'Sub Master Admin', schemes:'scheme', deaths:'death record', 'ward-activations':'ward activation', 'nagarsevak-subscriptions':'Nagarsevak subscription'};
+  const names={wards:'ward',areas:'area',houses:'house',shops:'shop / office',apartments:'apartment',families:'family',persons:'citizen',voters:'voter status',complaints:'complaint',employees:'employee',corporators:'Nagarsevak',profile:'profile',notifications:'notification', 'maintenance':'maintenance', 'sub-admins':'Sub Master Admin', schemes:'scheme', deaths:'death record', 'ward-activations':'ward activation', 'nagarsevak-subscriptions':'Nagarsevak subscription', schedules:'schedule item'};
  const name=path.includes('/death')?'death record':(names[parts[2]]||names[parts[1]]||'record');
  if(method==='POST') return `${name.charAt(0).toUpperCase()+name.slice(1)} created successfully.`;
  if(method==='PATCH') return `${name.charAt(0).toUpperCase()+name.slice(1)} updated successfully.`;
@@ -180,4 +180,9 @@ archiveWardUpdate:id=>v2Request(`/ward-updates/${id}/archive`,{method:'PATCH'}),
  sendNotification:d=>v2Request('/notifications/send',{method:'POST',body:JSON.stringify(d)}),
  schemeRecipients:(schemeId)=>v2(`/notifications/scheme-recipients`,{schemeId}),
  sendSchemeNotification:d=>v2Request('/notifications/scheme',{method:'POST',body:JSON.stringify(d)}),
+ schedules:(p={})=>v2('/schedules',p),
+ createSchedule:d=>v2Request('/schedules',{method:'POST',body:JSON.stringify(d)}),
+ updateSchedule:(id,d)=>v2Request(`/schedules/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
+ updateScheduleStatus:(id,d)=>v2Request(`/schedules/${id}/status`,{method:'PATCH',body:JSON.stringify(d)}),
+ deleteSchedule:id=>v2Request(`/schedules/${id}`,{method:'DELETE'}),
 };

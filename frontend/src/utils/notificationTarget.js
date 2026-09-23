@@ -24,5 +24,6 @@ export function notificationTarget(n, audience='staff'){
  if(/18PLUS|FOLLOW/.test(type)) return citizen?'/':'/follow-up-18';
  if(/SUBSCRIPTION/.test(type)) return citizen?'/':'/nagarsevak-subscriptions';
  if(/CHAT|DIRECT_MESSAGE|^MESSAGE$/.test(type)) return '/groups';
+ if(/SCHEDULE/.test(type)) return '/schedules';
  return citizen?'/':'/dashboard';
 }

@@ -186,3 +186,93 @@ export function presenceApiQuery(filter){
  if(filter==='NON_VOTER') return {voterStatus:'NON_VOTER',status:'NON_VOTER'};
  return {};
 }
+
+export function getAccurateLocation(options = {}) {
+  const { timeout = 20000, desiredAccuracy = 25 } = options;
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      return reject(new Error('GPS location is not supported on this device.'));
+    }
+
+    let bestPos = null;
+    let watchId = null;
+    let timer = null;
+
+    const cleanup = () => {
+      if (watchId !== null) {
+        try { navigator.geolocation.clearWatch(watchId); } catch (_) {}
+      }
+      if (timer) clearTimeout(timer);
+    };
+
+    const finish = async (pos) => {
+      cleanup();
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const accuracy = Math.round(pos.coords.accuracy || 0);
+
+      let address = '';
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        if (res.ok) {
+          const data = await res.json();
+          const addr = data.address || {};
+          const parts = [
+            addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood,
+            addr.residential || addr.city_district || addr.quarter,
+            addr.city || addr.town || addr.village,
+            addr.postcode
+          ].filter(Boolean);
+          address = parts.join(', ');
+        }
+      } catch (_) {}
+
+      resolve({
+        latitude: lat,
+        longitude: lng,
+        accuracy,
+        address: address || '',
+        formatted: address ? `${address} (GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)})` : `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (±${accuracy}m)`
+      });
+    };
+
+    timer = setTimeout(() => {
+      if (bestPos) {
+        finish(bestPos);
+      } else {
+        cleanup();
+        reject(new Error('GPS request timed out. Please ensure location services are turned on.'));
+      }
+    }, timeout);
+
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const acc = pos.coords?.accuracy || 9999;
+          if (!bestPos || acc < (bestPos.coords?.accuracy || 9999)) {
+            bestPos = pos;
+          }
+          if (acc <= desiredAccuracy) {
+            finish(pos);
+          }
+        },
+        () => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => finish(pos),
+            (e) => {
+              cleanup();
+              reject(new Error(e.message || 'Could not retrieve GPS location.'));
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+          );
+        },
+        { enableHighAccuracy: true, timeout, maximumAge: 0 }
+      );
+    } catch (e) {
+      cleanup();
+      reject(e);
+    }
+  });
+}
+

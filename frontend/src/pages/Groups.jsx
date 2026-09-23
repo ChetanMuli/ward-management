@@ -31,7 +31,7 @@ function GroupFace({g}){
 
 function GroupPage(){
  const user=getUser();
- const master=isMaster(user),sub=isSubMaster(user),councillor=isNagarsevak(user),citizen=roleOf(user)==='CITIZEN';
+ const master=isMaster(user),sub=isSubMaster(user),councillor=isNagarsevak(user),citizen=roleOf(user)==='CITIZEN',isEmp=roleOf(user)==='EMPLOYEE';
  const {wards,selectedWardId:scopedWardId,canSelect}=useWardFilter();
  const canCreate=can('CREATE_CHAT_GROUP',user)||master;
  const [groups,setGroups]=useState(null),[active,setActive]=useState(null),[messages,setMessages]=useState([]),[error,setError]=useState(''),[busy,setBusy]=useState(false),[compose,setCompose]=useState(''),[pendingAttachment,setPendingAttachment]=useState(null),[chatOpen,setChatOpen]=useState(false);
@@ -41,9 +41,9 @@ function GroupPage(){
  const fileRef=useRef(null); const bottom=useRef(null); const [searchParams]=useSearchParams();
 
  useEffect(()=>{
-  const next = citizen || councillor ? (user?.wardId || user?.ward?.id || '') : (scopedWardId || (!canSelect ? (user?.wardId || user?.ward?.id || '') : ''));
+  const next = citizen || councillor || isEmp ? (user?.wardId || user?.ward?.id || '') : (scopedWardId || (!canSelect ? (user?.wardId || user?.ward?.id || '') : ''));
   if(next) setWardId(String(next));
- },[scopedWardId,canSelect,citizen,councillor,user?.wardId,user?.ward?.id]);
+ },[scopedWardId,canSelect,citizen,councillor,isEmp,user?.wardId,user?.ward?.id]);
  useEffect(()=>{try{sessionStorage.setItem('ward_groups_filters',JSON.stringify({wardId,nagarsevakId,groupId,search}))}catch{}},[wardId,nagarsevakId,groupId,search]);
 
  const loadGroups=(id=wardId)=>api.chatGroups(id?{wardId:id}:{}).then(r=>{setGroups(r.data||[]);window.dispatchEvent(new CustomEvent('ward:chat-refresh'))}).catch(e=>{setError(e.message||'Unable to load chats.');setGroups([])});
@@ -58,7 +58,7 @@ function GroupPage(){
   if(!wardId) return [];
   const base=(groups||[]).filter(g=>String(g.wardId)===String(wardId));
   return base.filter(g=>{
-    if(citizen) return isAllChat(g)||g.type==='NAGARSEVAK';
+    if(citizen || isEmp) return isAllChat(g)||g.type==='NAGARSEVAK';
     if(!search.trim()) return true;
     const q=search.trim().toLowerCase();
     return [g.name,g.ward?.wardNumber,g.ward?.name,g.nagarsevak?.name].filter(Boolean).some(v=>String(v).toLowerCase().includes(q));
@@ -66,7 +66,7 @@ function GroupPage(){
     const rank=g=>isAllChat(g)?0:g.type==='NAGARSEVAK'?1:2;
    return rank(a)-rank(b)||groupTitle(a).localeCompare(groupTitle(b));
   });
- },[groups,wardId,search,citizen]);
+ },[groups,wardId,search,citizen,isEmp]);
 
  const nagarsevaks=useMemo(()=>{
   const map=new Map();
@@ -79,14 +79,14 @@ function GroupPage(){
 
  const filteredGroups=useMemo(()=>{
   return accessibleGroups.filter(g=>{
-   if(citizen) return true;
+   if(citizen || isEmp) return true;
    if(councillor && g.type==='NAGARSEVAK' && String(g.nagarsevakUserId)!==String(user?.id)) return false;
    if(councillor && g.type==='CUSTOM') return false;
    if(nagarsevakId && !(g.type==='NAGARSEVAK'&&String(g.nagarsevakUserId)===String(nagarsevakId))) return false;
    if(groupId && String(g.id)!==String(groupId)) return false;
    return true;
   });
- },[accessibleGroups,nagarsevakId,groupId,citizen,councillor,user?.id]);
+ },[accessibleGroups,nagarsevakId,groupId,citizen,isEmp,councillor,user?.id]);
 
  const groupOptions=useMemo(()=>{
   const source=nagarsevakId
@@ -192,10 +192,10 @@ function GroupPage(){
  if(!groups)return <div className="groups-page"><PageHeader kicker="Chat" title="All chat & Groups"/><Loading/></div>;
  if(error&&!groups.length)return <div className="groups-page"><PageHeader kicker="Chat" title="All chat & Groups"/><ErrorBox error={error}/><button type="button" className="small-btn" onClick={()=>{setError('');setGroups(null);loadGroups()}}>Try again</button></div>;
  return <div className={`groups-page ${chatOpen?'chat-open':''}`}>
-  <PageHeader kicker="Chat" title="All chat & Groups" subtitle={citizen?(accessibleGroups.some(g=>g.type==='NAGARSEVAK')?'Ward All chat and your Nagarsevak group.':'All chat is available. Your Nagarsevak group will appear here when your ward representative is available.'):councillor?'Your ward All chat and your personal Nagarsevak group. Other Nagarsevak chats stay private to them.':'All chat includes everyone in the ward. Groups are Nagarsevak and custom chats.'} action={canCreate?<button className="primary-btn" onClick={()=>setCreate(true)}>+ Create group</button>:null}/>
+  <PageHeader kicker="Chat" title="All chat & Groups" subtitle={citizen?(accessibleGroups.some(g=>g.type==='NAGARSEVAK')?'Ward All chat and your Nagarsevak group.':'All chat is available. Your Nagarsevak group will appear here when your ward representative is available.'):isEmp?'Your ward All chat and your managing Nagarsevak group.':councillor?'Your ward All chat and your personal Nagarsevak group. Other Nagarsevak chats stay private to them.':'All chat includes everyone in the ward. Groups are Nagarsevak and custom chats.'} action={canCreate?<button className="primary-btn" onClick={()=>setCreate(true)}>+ Create group</button>:null}/>
   <ErrorBox error={error}/>
 
- {!citizen&&!councillor&&<><div className="group-filters">
+ {!citizen&&!councillor&&!isEmp&&<><div className="group-filters">
    <SearchableSelect label="Ward" value={wardId} onChange={v=>{setWardId(v);setNagarsevakId('');setGroupId('')}} options={wardOptions} disabled={!canSelect} placeholder={canSelect?'Select ward first…':'Assigned ward'}/>
    <SearchableSelect label="Nagarsevak" value={nagarsevakId} onChange={v=>{setNagarsevakId(v);setGroupId('')}} options={[{value:'',label:'All Nagarsevaks'},...nagOptions]} placeholder="All Nagarsevaks"/>
    <SearchableSelect label="Group" value={groupId} onChange={setGroupId} options={[{value:'',label:nagarsevakId?'All groups for this Nagarsevak':'All groups in this ward'},...groupOptions]} disabled={!wardId} placeholder="All groups in this ward"/>

@@ -22,8 +22,14 @@ export function userWardId(user = getUser()) {
 }
 
 export function permissionsOf(user = getUser()) {
-  const raw = user?.permissions || user?.permissionCodes || user?.employee?.permissions || [];
+  const raw = user?.permissions || user?.employeeProfile?.permissions || user?.employee?.permissions || user?.permissionCodes || [];
   if (Array.isArray(raw)) return raw.map(p => typeof p === 'string' ? p : (p.code || p.name || '')).filter(Boolean);
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.map(p => typeof p === 'string' ? p : (p.code || p.name || '')).filter(Boolean);
+    } catch (_) {}
+  }
   if (raw && typeof raw === 'object') return Object.entries(raw).filter(([,v]) => v).map(([k]) => k);
   return [];
 }

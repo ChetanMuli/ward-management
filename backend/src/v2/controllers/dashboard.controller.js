@@ -5,6 +5,7 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { daysTo18thBirthday, daysToNextBirthday } = require('../../services/age.service');
 const { loadTodayWardEvents } = require('../../services/wardDay.service');
 const { nagarsevakPublicByIds } = require('../../utils/photo');
+const { parseImageList } = require('../utils/complaintMedia');
 const { isWardAllowed, allowedWardIds } = require('../services/wardScope');
 
 const OPEN_STATUSES=['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','REOPENED'];
@@ -106,6 +107,7 @@ const summary = asyncHandler(async (req, res) => {
     const json=typeof c.toJSON==='function'?c.toJSON():c;
     const extra=recentPhotos.get(String(json.assignedNagarsevak?.id||json.assignedNagarsevakUserId||''));
     if(json.assignedNagarsevak&&extra?.photo) json.assignedNagarsevak.photo=extra.photo;
+    json.reportedImages = parseImageList(json.reportedImage);
     return json;
   });
 
@@ -124,8 +126,79 @@ const summary = asyncHandler(async (req, res) => {
   const todayDahava=todayEvents.filter(ev=>ev.kind==='DAHAVA').length;
   const todayVarshashraddha=todayEvents.filter(ev=>ev.kind==='ANNIVERSARY').length;
   const todayDeaths=todayDahava+todayVarshashraddha;
-  const userInfo={id:req.user.id,name:req.user.name,email:req.user.email,mobile:req.user.mobile,role:req.user.roleName,wardId:req.user.wardId,ward:req.user.ward,photo:req.user.photo||null};
-  const employeeInfo=req.user.employeeProfile?{id:req.user.employeeProfile.id,designation:req.user.employeeProfile.designation,status:req.user.employeeProfile.status,managerUserId:req.user.employeeProfile.managerUserId,manager:req.user.employeeProfile.manager,assignedAreaIds:req.user.employeeProfile.assignedAreaIds||[],permissions:req.user.employeeProfile.permissions||[]}:null;
+  let extraUser = null;
+  if (req.user.roleName === 'NAGARSEVAK') {
+    const pMap = await nagarsevakPublicByIds([req.user.id]);
+    extraUser = pMap.get(String(req.user.id));
+  }
+  const userInfo = {
+    id: req.user.id,
+    name: req.user.name,
+    email: req.user.email,
+    mobile: req.user.mobile,
+    role: req.user.roleName,
+    wardId: req.user.wardId,
+    ward: req.user.ward,
+    wardSeat: extraUser?.wardSeat || req.user.wardSeat || null,
+    partyName: extraUser?.partyName || req.user.partyName || null,
+    officialAddress: extraUser?.officialAddress || req.user.officialAddress || null,
+    photo: extraUser?.photo || req.user.photo || null
+  };
+
+  let employeeInfo = null;
+  if (req.user.employeeProfile) {
+    const emp = await Employee.findByPk(req.user.employeeProfile.id, {
+      include: [{ model: User, as: 'manager', attributes: ['id', 'name', 'mobile', 'email'] }]
+    });
+    const areaIds = (emp?.assignedAreaIds || req.user.employeeProfile.assignedAreaIds || []);
+    let assignedAreas = [];
+    if (areaIds.length) {
+      assignedAreas = await Area.findAll({
+        where: { id: { [Op.in]: areaIds } },
+        attributes: ['id', 'name', 'code', 'category'],
+        order: [['name', 'ASC']]
+      });
+    }
+    let managerExtra = null;
+    if (emp?.managerUserId) {
+      const mMap = await nagarsevakPublicByIds([emp.managerUserId]);
+      managerExtra = mMap.get(String(emp.managerUserId));
+    }
+    employeeInfo = {
+      id: emp?.id || req.user.employeeProfile.id,
+      designation: emp?.designation || req.user.employeeProfile.designation,
+      status: emp?.status || req.user.employeeProfile.status,
+      managerUserId: emp?.managerUserId || req.user.employeeProfile.managerUserId,
+      manager: emp?.manager ? {
+        id: emp.manager.id,
+        name: emp.manager.name,
+        mobile: emp.manager.mobile,
+        partyName: managerExtra?.partyName || null,
+        wardSeat: managerExtra?.wardSeat || null,
+        officialAddress: managerExtra?.officialAddress || null,
+        photo: managerExtra?.photo || null,
+      } : null,
+      assignedAreaIds: areaIds,
+      assignedAreas,
+      permissions: emp?.permissions || req.user.employeeProfile.permissions || []
+    };
+  }
+
+  let myEmployees = [];
+  if (req.user.roleName === 'NAGARSEVAK') {
+    const rawEmps = await Employee.findAll({
+      where: { managerUserId: req.user.id, status: 'ACTIVE' },
+      include: [{ model: User, as: 'User', attributes: ['id', 'name', 'mobile', 'email'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    myEmployees = rawEmps.map(e => ({
+      id: e.id,
+      name: e.User?.name || 'Employee',
+      mobile: e.User?.mobile || '',
+      designation: e.designation || 'Field Employee',
+      assignedAreaIds: e.assignedAreaIds || []
+    }));
+  }
 
   const nagarRole=await Role.findOne({where:{name:'NAGARSEVAK'}});
   const empRole=await Role.findOne({where:{name:'EMPLOYEE'}});
@@ -148,7 +221,7 @@ const summary = asyncHandler(async (req, res) => {
   }
 
   return success(res,{data:{
-    wardId:requestedWardId, ward, user:userInfo, employee:employeeInfo,
+    wardId:requestedWardId, ward, user:userInfo, employee:employeeInfo, myEmployees,
     houses,apartments,families,persons,voters,nonVoters,complaints,openComplaints,
     birthdaysNext30:birthdayCount,upcoming18Next90:upcomingCount,
     todayEvents,todayBirthdays,todayDahava,todayVarshashraddha,todayDeaths,

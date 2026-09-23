@@ -16,7 +16,7 @@ function parseImageList(value) {
 }
 
 function packImageList(value, cleanOne) {
-  const list = parseImageList(value).slice(0, 8).map((item) => (cleanOne ? cleanOne(item) : item)).filter(Boolean);
+  const list = parseImageList(value).slice(0, 5).map((item) => (cleanOne ? cleanOne(item) : item)).filter(Boolean);
   if (!list.length) return null;
   if (list.length === 1) return list[0];
   return JSON.stringify(list);

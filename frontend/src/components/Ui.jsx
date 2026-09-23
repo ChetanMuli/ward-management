@@ -47,8 +47,8 @@ export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,li
  );
 }
 
-export function PageHeader({kicker,title,subtitle,action}){
- return <div className="page-header"><div>{kicker&&<span className="page-kicker">{kicker}</span>}<h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>;
+export function PageHeader({kicker,title,subtitle,action,children}){
+ return <div className="page-header"><div>{kicker&&<span className="page-kicker">{kicker}</span>}<h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{action||children}</div>;
 }
 export function StatCard({label,value,hint,tone='',onClick}){
  const Tag=onClick?'button':'div';
@@ -183,87 +183,195 @@ export function SearchableMultiSelect({label,value=[],onChange,options=[],placeh
     </button>}</div>{menu}</div>;
 }
 
-export function ImageField({label,value,onChange,optional=true,cameraLabel='Take photo'}){
- const deviceRef=useRef(null),videoRef=useRef(null),canvasRef=useRef(null);
- const [cameraOpen,setCameraOpen]=useState(false),[cameraBusy,setCameraBusy]=useState(false),[cameraError,setCameraError]=useState('');
- const phone=typeof window!=='undefined'&&(window.matchMedia('(max-width:800px), (pointer:coarse)').matches||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||''));
- const stopCamera=()=>{const stream=videoRef.current?.srcObject;if(stream?.getTracks)stream.getTracks().forEach(t=>t.stop());if(videoRef.current)videoRef.current.srcObject=null;setCameraOpen(false);setCameraBusy(false)};
- useEffect(()=>()=>{const stream=videoRef.current?.srcObject;if(stream?.getTracks)stream.getTracks().forEach(t=>t.stop())},[]);
- const openCamera=async()=>{
-  setCameraError('');
-  if(!navigator.mediaDevices?.getUserMedia){setCameraError('Camera is not supported in this browser. Use Choose from device.');setCameraOpen(true);return;}
-  setCameraOpen(true);setCameraBusy(true);
-  try{
-   let stream;
-   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});}
-   catch(first){stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});}
-   if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play().catch(()=>{});}
-   setCameraBusy(false);
-  }catch(err){
-   const denied=err?.name==='NotAllowedError'||err?.name==='PermissionDeniedError';
-   setCameraError(denied?'Camera access is blocked. Allow camera permission, or use Choose from device.':err?.message||'Unable to open the camera.');
-   setCameraBusy(false);
+function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
+ const videoRef=useRef(null),canvasRef=useRef(null),fileFallbackRef=useRef(null);
+ const [busy,setBusy]=useState(false),[error,setError]=useState(''),[facing,setFacing]=useState('environment');
+ useEffect(()=>{
+  if(!open)return;
+  let activeStream=null;setError('');setBusy(true);
+  async function initCamera(){
+   if(!navigator.mediaDevices?.getUserMedia){
+    setError('Live camera preview requires HTTPS or mobile support. Tap below to capture with your device camera:');
+    setBusy(false);return;
+   }
+   try{
+    let stream;
+    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},audio:false});}
+    catch(_){stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});}
+    activeStream=stream;
+    if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play().catch(()=>{});}
+    setBusy(false);
+   }catch(err){
+    const denied=err?.name==='NotAllowedError'||err?.name==='PermissionDeniedError';
+    setError(denied?'Camera access was denied. Allow camera permissions or use device camera below.':(err?.message||'Unable to open camera.'));
+    setBusy(false);
+   }
   }
- };
- const capture=async()=>{
+  initCamera();
+  return()=>{
+   if(activeStream?.getTracks)activeStream.getTracks().forEach(t=>t.stop());
+   if(videoRef.current)videoRef.current.srcObject=null;
+  };
+ },[open,facing]);
+ const snap=()=>{
   const video=videoRef.current;if(!video||video.readyState<2)return;
   const canvas=canvasRef.current||document.createElement('canvas');canvasRef.current=canvas;
-  const max=1280,scale=Math.min(1,max/Math.max(video.videoWidth||1280,video.videoHeight||720));canvas.width=Math.max(1,Math.round((video.videoWidth||1280)*scale));canvas.height=Math.max(1,Math.round((video.videoHeight||720)*scale));
-  const ctx=canvas.getContext('2d');if(!ctx){setCameraError('Camera capture is unavailable.');return;}ctx.drawImage(video,0,0,canvas.width,canvas.height);let data=canvas.toDataURL('image/jpeg',.72);if(data.length>1450000){data=canvas.toDataURL('image/jpeg',.58)}onChange(data);stopCamera();
+  const max=1280,scale=Math.min(1,max/Math.max(video.videoWidth||1280,video.videoHeight||720));
+  canvas.width=Math.max(1,Math.round((video.videoWidth||1280)*scale));canvas.height=Math.max(1,Math.round((video.videoHeight||720)*scale));
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  let data=canvas.toDataURL('image/jpeg',.72);if(data.length>1450000)data=canvas.toDataURL('image/jpeg',.58);
+  onCapture(data);onClose();
  };
- const readFile=async(file)=>{
+ const handleFallbackFile=async e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  try{
+   const data=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+     const img=new Image();
+     img.onload=()=>{
+      const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));
+      const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));
+      ctx.drawImage(img,0,0,c.width,c.height);
+      let out=c.toDataURL('image/jpeg',.72);if(out.length>1450000)out=c.toDataURL('image/jpeg',.58);resolve(out);
+     };
+     img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');
+    };
+    reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file);
+   });
+   onCapture(data);onClose();
+  }catch(err){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read image'}}));}
+  e.target.value='';
+ };
+ if(!open)return null;
+ return <div className="camera-modal-backdrop" onPointerDown={e=>{if(e.target===e.currentTarget)onClose()}}>
+  <div className="camera-modal" onPointerDown={e=>e.stopPropagation()}>
+   <div className="camera-modal-head"><strong>{cameraLabel}</strong><button type="button" className="icon-btn" onClick={onClose}>×</button></div>
+   {error?<div className="camera-error" style={{padding:'20px 14px',textAlign:'center'}}>
+    <p style={{margin:'0 0 14px',fontSize:'13px',color:'#b42318'}}>{error}</p>
+    <button type="button" className="primary-btn" onClick={()=>fileFallbackRef.current?.click()}>📷 Take photo with device camera</button>
+   </div>:<div className="camera-preview-wrap"><video ref={videoRef} playsInline muted autoPlay/><span className="camera-frame"/></div>}
+   <input ref={fileFallbackRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleFallbackFile}/>
+   <div className="camera-actions" style={{display:'flex',gap:'8px',justifyContent:'space-between',flexWrap:'wrap',alignItems:'center'}}>
+    <div style={{display:'flex',gap:'8px'}}>
+     {!error&&<button type="button" className="small-btn" onClick={()=>setFacing(f=>f==='environment'?'user':'environment')}>🔄 Flip camera</button>}
+     <button type="button" className="small-btn" onClick={()=>fileFallbackRef.current?.click()}>📷 Native camera</button>
+    </div>
+    <div style={{display:'flex',gap:'8px'}}>
+     <button type="button" className="ghost-btn" onClick={onClose}>Cancel</button>
+     {!error&&<button type="button" className="primary-btn" disabled={busy} onClick={snap}>{busy?'Starting…':'Capture photo'}</button>}
+    </div>
+   </div>
+  </div>
+ </div>;
+}
+
+export function ImageField({label,value,onChange,optional=true,cameraLabel='Take photo'}){
+ const deviceRef=useRef(null),nativeCameraRef=useRef(null);
+ const [cameraOpen,setCameraOpen]=useState(false);
+ const readFile=async file=>{
   if(!file)return;
   if(!file.type.startsWith('image/')){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Please select an image file.'}}));return;}
   if(file.size>12*1024*1024){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Image must be smaller than 12 MB.'}}));return;}
-  const data=await new Promise((resolve,reject)=>{const img=new Image(),reader=new FileReader();reader.onload=()=>{img.onload=()=>{const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));ctx.drawImage(img,0,0,c.width,c.height);let out=c.toDataURL('image/jpeg',.72);if(out.length>1450000)out=c.toDataURL('image/jpeg',.58);resolve(out);};img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');};reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file)});
-  return data;
+  return new Promise((resolve,reject)=>{
+   const img=new Image(),reader=new FileReader();
+   reader.onload=()=>{
+    img.onload=()=>{
+     const max=1280,scale=Math.min(1,max/Math.max(img.width,img.height));
+     const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));
+     const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));
+     ctx.drawImage(img,0,0,c.width,c.height);
+     let out=c.toDataURL('image/jpeg',.72);if(out.length>1450000)out=c.toDataURL('image/jpeg',.58);resolve(out);
+    };
+    img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');
+   };
+   reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file);
+  });
  };
  const read=async e=>{
   const input=e.currentTarget,file=input.files?.[0];
-  try{if(file){onChange(await readFile(file));if(cameraOpen)stopCamera();}}
+  try{if(file){onChange(await readFile(file));}}
   catch(err){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read this image.'}}));}
   input.value='';
+ };
+ const handleCameraClick=()=>{
+  if(!navigator.mediaDevices?.getUserMedia){
+   nativeCameraRef.current?.click();
+  }else{
+   setCameraOpen(true);
+  }
  };
  return <div className="image-field">
   <div className="section-label">{label}{optional?' (optional)':''}</div>
   <div className="image-input-actions">
-   {phone
-    ? <label className="upload-btn camera-upload">📷 {cameraLabel}<input className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label>
-    : <button type="button" className="upload-btn camera-upload" onClick={openCamera}>📷 {cameraLabel}</button>}
-   <label className="upload-btn secondary-upload">📁 Choose from device<input ref={deviceRef} className="image-file-input-native" type="file" accept="image/*" onChange={read}/></label>
+   <button type="button" className="upload-btn camera-upload" onClick={handleCameraClick}>📷 {cameraLabel}</button>
+   <button type="button" className="upload-btn secondary-upload" onClick={()=>deviceRef.current?.click()}>📁 Choose from device</button>
+   <input ref={nativeCameraRef} className="image-file-input-native" type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={read}/>
+   <input ref={deviceRef} className="image-file-input-native" type="file" accept="image/*" style={{display:'none'}} onChange={read}/>
   </div>
   {value&&<div className="image-preview"><img src={value} alt={`${label} preview`}/><button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button></div>}
-  {cameraOpen&&<div className="camera-modal-backdrop" onPointerDown={e=>{if(e.target===e.currentTarget)stopCamera()}}><div className="camera-modal" onPointerDown={e=>e.stopPropagation()}><div className="camera-modal-head"><strong>{cameraLabel}</strong><button type="button" className="icon-btn" onClick={stopCamera}>×</button></div>{cameraError?<div className="camera-error">{cameraError}</div>:<div className="camera-preview-wrap"><video ref={videoRef} playsInline muted autoPlay/><span className="camera-frame"/></div>}<div className="camera-actions"><label className="camera-fallback-btn">📷 Use phone camera<input className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label><button type="button" className="ghost-btn" onClick={stopCamera}>Cancel</button><button type="button" className="primary-btn" disabled={cameraBusy||!!cameraError} onClick={capture}>{cameraBusy?'Opening camera…':'Capture photo'}</button></div></div></div>}
+  <CameraModal open={cameraOpen} onClose={()=>setCameraOpen(false)} onCapture={data=>onChange(data)} cameraLabel={cameraLabel}/>
  </div>;
 }
 
-export function MultiImageField({label,values=[],onChange,optional=true,max=6,cameraLabel='Open camera'}){
- const deviceRef=useRef(null);
+export function MultiImageField({label,values=[],onChange,optional=true,max=5,cameraLabel='Open camera'}){
+ const deviceRef=useRef(null),nativeCameraRef=useRef(null);
+ const [cameraOpen,setCameraOpen]=useState(false);
  const photos=(values||[]).filter(Boolean).slice(0,max);
- const phone=typeof window!=='undefined'&&(window.matchMedia('(max-width:800px), (pointer:coarse)').matches||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||''));
  const add=async files=>{
   const list=Array.from(files||[]).filter(f=>f&&f.type&&f.type.startsWith('image/'));
-  if(!list.length) return;
+  if(!list.length)return;
   const next=[...photos];
   for(const file of list){
-   if(next.length>=max) break;
+   if(next.length>=max)break;
    if(file.size>12*1024*1024){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Each image must be smaller than 12 MB.'}}));continue;}
-   const data=await new Promise((resolve,reject)=>{const img=new Image(),reader=new FileReader();reader.onload=()=>{img.onload=()=>{const scale=Math.min(1,1100/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));ctx.drawImage(img,0,0,c.width,c.height);let out=c.toDataURL('image/jpeg',.62);if(out.length>1200000)out=c.toDataURL('image/jpeg',.5);resolve(out);};img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');};reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file)});
+   const data=await new Promise((resolve,reject)=>{
+    const img=new Image(),reader=new FileReader();
+    reader.onload=()=>{
+     img.onload=()=>{
+      const scale=Math.min(1,1100/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));
+      const ctx=c.getContext('2d');if(!ctx)return reject(new Error('Canvas unavailable'));
+      ctx.drawImage(img,0,0,c.width,c.height);
+      let out=c.toDataURL('image/jpeg',.62);if(out.length>1200000)out=c.toDataURL('image/jpeg',.5);resolve(out);
+     };
+     img.onerror=()=>reject(new Error('Image decode failed'));img.src=String(reader.result||'');
+    };
+    reader.onerror=()=>reject(new Error('File read failed'));reader.readAsDataURL(file);
+   });
    next.push(data);
   }
   onChange(next);
  };
- const read=async e=>{try{await add(e.currentTarget.files);}catch(err){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read this image.'}}));}e.currentTarget.value='';};
+ const read=async e=>{
+  try{await add(e.currentTarget.files);}
+  catch(err){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read this image.'}}));}
+  e.currentTarget.value='';
+ };
+ const handleCameraClick=()=>{
+  if(photos.length>=max){
+   window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:`Maximum ${max} photos reached.`}}));
+   return;
+  }
+  if(!navigator.mediaDevices?.getUserMedia){
+   nativeCameraRef.current?.click();
+  }else{
+   setCameraOpen(true);
+  }
+ };
  return <div className="image-field">
   <div className="section-label">{label}{optional?' (optional)':''}{photos.length?` · ${photos.length}/${max}`:''}</div>
   <div className="image-input-actions">
-   {phone
-    ? <label className="upload-btn camera-upload">📷 {cameraLabel}<input className="image-file-input-native" type="file" accept="image/*" capture="environment" onChange={read}/></label>
-    : <button type="button" className="upload-btn camera-upload" onClick={()=>deviceRef.current?.click()}>📷 {cameraLabel}</button>}
-   <label className="upload-btn secondary-upload">📁 Choose from device<input ref={deviceRef} className="image-file-input-native" type="file" accept="image/*" multiple onChange={read}/></label>
+   <button type="button" className="upload-btn camera-upload" onClick={handleCameraClick}>{cameraLabel}</button>
+   <button type="button" className="upload-btn secondary-upload" onClick={()=>deviceRef.current?.click()}>Choose from device</button>
+   <input ref={nativeCameraRef} className="image-file-input-native" type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={read}/>
+   <input ref={deviceRef} className="image-file-input-native" type="file" accept="image/*" multiple style={{display:'none'}} onChange={read}/>
   </div>
   {photos.length>0&&<div className="image-preview-grid">{photos.map((src,i)=><div className="image-preview" key={`${i}-${src.slice(-12)}`}><img src={src} alt={`${label} ${i+1}`}/><button type="button" className="small-btn danger" onClick={()=>onChange(photos.filter((_,idx)=>idx!==i))}>Remove</button></div>)}</div>}
-  {photos.length<max&&<p className="muted" style={{marginTop:8}}>Add more than one photo if needed (up to {max}).</p>}
+  {photos.length<max&&<p className="muted" style={{marginTop:8}}>Add photos of the problem (up to {max} photos).</p>}
+  <CameraModal open={cameraOpen} onClose={()=>setCameraOpen(false)} onCapture={data=>{if(photos.length<max)onChange([...photos,data]);}} cameraLabel={cameraLabel}/>
  </div>;
 }
 

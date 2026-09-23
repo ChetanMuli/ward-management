@@ -22,6 +22,7 @@ const chat=require('../controllers/chat.controller');
 const election=require('../controllers/election.controller');
 const stakeholder=require('../controllers/stakeholder.controller');
 const wardActivation=require('../controllers/wardActivation.controller');
+const schedule=require('../controllers/schedule.controller');
 const multer=require('multer');
 const voterListUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:100*1024*1024},fileFilter:(req,file,cb)=>{const ext=require('path').extname(file.originalname||'').toLowerCase();cb(null,['.pdf','.xlsx','.csv'].includes(ext));}});
 const router=express.Router();
@@ -188,5 +189,12 @@ router.delete('/schemes/:id',requirePermission('DELETE_SCHEMES'),schemes.remove)
 router.get('/export/:type',requirePermission('EXPORT_DATA'),exporter.exportData);
 router.get('/recycle-bin',requirePermission('VIEW_RECYCLE_BIN'),recycle.list);
 router.post('/recycle-bin/:entity/:id/restore',requirePermission('RESTORE_RECYCLE_BIN'),recycle.restore);
+
+// Nagarsevak Daily Schedule & Action Plan
+router.get('/schedules',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.list);
+router.post('/schedules',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.create);
+router.patch('/schedules/:id',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.update);
+router.patch('/schedules/:id/status',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.updateStatus);
+router.delete('/schedules/:id',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.remove);
 
 module.exports=router;

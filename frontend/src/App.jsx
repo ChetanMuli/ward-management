@@ -6,8 +6,20 @@ import {initLanguage,setLanguage as applyLanguage,switchLanguage} from './langua
 import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Shops from './pages/Shops'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
 import Stakeholders from './pages/Stakeholders';
 import Groups from './pages/Groups'; import Deaths from './pages/Deaths'; import SubAdmins from './pages/SubAdmins'; import WardUpdates from './pages/WardUpdates'; import UserPanel from './pages/UserPanel'; import UserComplaints from './pages/UserComplaints'; import ElectionData from './pages/ElectionData'; import WardActivation from './pages/WardActivation'; import NagarsevakSubscriptions from './pages/NagarsevakSubscriptions';
+import Schedules from './pages/Schedules';
 import {Modal,PaginationBar,ProfileAvatar,FaceAvatar,CirclePhotoField,scrollMainToTop} from './components/Ui';
 import {notificationTarget} from './utils/notificationTarget';
+
+function ScheduleNavIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: '-1.5px' }}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  );
+}
 
 const navSections=[
  {id:'overview',en:'Overview',mr:'आढावा',items:[
@@ -26,7 +38,8 @@ const navSections=[
   ['/users','Registered Users','●','USERS']
  ]},
  {id:'work',en:'Daily work',mr:'दैनंदिन काम',items:[
-  ['/complaints','Complaints','⚑','COMPLAINTS'],
+   ['/schedules','Daily Schedule',<ScheduleNavIcon key="sched-icon" />,'SCHEDULES'],
+   ['/complaints','Complaints','⚑','COMPLAINTS'],
   ['__WARD_UPDATES__','Ward Updates & Events','▣','WARD_UPDATES_GROUP'],
   ['/schemes','Schemes & Benefits','◇','SCHEMES'],
   ['/birthdays','Birthdays','★','BIRTHDAYS'],
@@ -50,9 +63,9 @@ const navSections=[
   ['/recycle-bin','Recycle Bin','♻','RECYCLE']
  ]}
 ];
-const mrNav={'All chat & Groups':'ऑल चॅट व गट','Groups & Chat':'गट व चॅट',Dashboard:'डॅशबोर्ड','Wards & Areas':'वॉर्ड व परिसर','Ward Information':'वॉर्डची संपूर्ण माहिती','Nagarsevak & Employees':'नगरसेवक व कर्मचारी','Ward activation':'वॉर्ड सक्रियता','Nagarsevak subscriptions':'नगरसेवक सदस्यता','Community Members':'समुदाय सदस्य','Registered Users':'नोंदणीकृत वापरकर्ते','Sub Master Admins':'सब मास्टर अ‍ॅडमिन','Houses':'घरे','Families':'कुटुंबे','Shops & Offices':'दुकाने व कार्यालये','All Citizens':'सर्व नागरिक','Voter / Non-Voter':'मतदार / अमतदार','Government Voter Lists':'शासकीय मतदार यादी','Election Data':'निवडणूक माहिती','Birthdays':'वाढदिवस','18+ Follow-up':'१८+ फॉलो-अप','Death Records':'मृत्यू नोंद','Complaints':'तक्रारी','Schemes & Benefits':'योजना व लाभ','Reports & Export':'अहवाल व एक्सपोर्ट','Audit Logs':'ऑडिट लॉग','Ward Updates & Events':'वॉर्ड अपडेट्स व कार्यक्रम','All Ward Updates':'सर्व वॉर्ड अपडेट्स','New Update / Event':'नवीन अपडेट / कार्यक्रम','Recycle Bin':'रिसायकल बिन'};
+const mrNav={'Daily Schedule':'दैनिक वेळापत्रक','All chat & Groups':'ऑल चॅट व गट','Groups & Chat':'गट व चॅट',Dashboard:'डॅशबोर्ड','Wards & Areas':'वॉर्ड व परिसर','Ward Information':'वॉर्डची संपूर्ण माहिती','Nagarsevak & Employees':'नगरसेवक व कर्मचारी','Ward activation':'वॉर्ड सक्रियता','Nagarsevak subscriptions':'नगरसेवक सदस्यता','Community Members':'समुदाय सदस्य','Registered Users':'नोंदणीकृत वापरकर्ते','Sub Master Admins':'सब मास्टर अ‍ॅडमिन','Houses':'घरे','Families':'कुटुंबे','Shops & Offices':'दुकाने व कार्यालये','All Citizens':'सर्व नागरिक','Voter / Non-Voter':'मतदार / अमतदार','Government Voter Lists':'शासकीय मतदार यादी','Election Data':'निवडणूक माहिती','Birthdays':'वाढदिवस','18+ Follow-up':'१८+ फॉलो-अप','Death Records':'मृत्यू नोंद','Complaints':'तक्रारी','Schemes & Benefits':'योजना व लाभ','Reports & Export':'अहवाल व एक्सपोर्ट','Audit Logs':'ऑडिट लॉग','Ward Updates & Events':'वॉर्ड अपडेट्स व कार्यक्रम','All Ward Updates':'सर्व वॉर्ड अपडेट्स','New Update / Event':'नवीन अपडेट / कार्यक्रम','Recycle Bin':'रिसायकल बिन'};
 const pageTitles={
- '/':'Dashboard','/login':'Resident login','/register':'Resident registration','/admin':'Admin login','/dashboard':'Dashboard','/wards':'Wards & Areas','/ward-information':'Ward Information','/staff':'Nagarsevak & Employees','/ward-activation':'Ward activation','/nagarsevak-subscriptions':'Nagarsevak subscriptions','/stakeholders':'Community Members','/users':'Registered Ward Users','/sub-admins':'Sub Master Admins','/houses':'Houses','/families':'Families','/shops':'Shops & Offices','/people':'All Citizens','/voters':'Voter / Non-Voter','/government-voter-lists':'Government Voter Lists','/election-data':'Election Data','/ward-updates':'Ward Updates & Events','/ward-updates/new':'Create Ward Update / Event','/birthdays':'Birthdays','/follow-up-18':'18+ Follow-up','/deaths':'Death Records','/complaints':'Complaints','/schemes':'Schemes & Benefits','/reports':'Reports & Export','/groups':'All chat & Groups','/recycle-bin':'Recycle Bin'
+ '/':'Dashboard','/login':'Resident login','/register':'Resident registration','/admin':'Admin login','/dashboard':'Dashboard','/schedules':'Daily Schedule & Action Plan','/wards':'Wards & Areas','/ward-information':'Ward Information','/staff':'Nagarsevak & Employees','/ward-activation':'Ward activation','/nagarsevak-subscriptions':'Nagarsevak subscriptions','/stakeholders':'Community Members','/users':'Registered Ward Users','/sub-admins':'Sub Master Admins','/houses':'Houses','/families':'Families','/shops':'Shops & Offices','/people':'All Citizens','/voters':'Voter / Non-Voter','/government-voter-lists':'Government Voter Lists','/election-data':'Election Data','/ward-updates':'Ward Updates & Events','/ward-updates/new':'Create Ward Update / Event','/birthdays':'Birthdays','/follow-up-18':'18+ Follow-up','/deaths':'Death Records','/complaints':'Complaints','/schemes':'Schemes & Benefits','/reports':'Reports & Export','/groups':'All chat & Groups','/recycle-bin':'Recycle Bin'
 };
 const pageTitle=(path,user)=>{
  if(path==='/staff' && !(isMaster(user)||isSubMaster(user))) return 'Employees';
@@ -65,6 +78,7 @@ const pageHelp={
  '/':'See ward numbers, people and complaint work at a glance.',
  '/admin':'Sign in to the staff workspace.',
  '/dashboard':'See ward numbers, people and complaint work at a glance.',
+ '/schedules':'Nagarsevak daily schedule, site visits, meetings, and action plan.',
  '/wards':'Create wards and colonies. Exact home location is saved when a team member visits the house.',
  '/houses':'When you visit a home, save GPS at the door. Tap the location later to open maps and get directions.',
  '/families':'Each family lives at a house. Open directions from the house location.',
@@ -96,7 +110,7 @@ const roleName=u=>String(u?.role||u?.roleName||'').toUpperCase();
 const NAV_VIEW={
  DASHBOARD:['VIEW_DASHBOARD'],
  WARDS:['VIEW_WARDS'],
- WARD_INFORMATION:['VIEW_WARD_INFORMATION','VIEW_WARDS'],
+ WARD_INFORMATION:['VIEW_WARD_INFORMATION'],
  HOUSES:['VIEW_HOUSES'],
  FAMILIES:['VIEW_FAMILIES'],
  SHOPS:['VIEW_HOUSES'],
@@ -116,9 +130,11 @@ const NAV_VIEW={
  RECYCLE:['VIEW_RECYCLE_BIN'],
  GOVERNMENT_VOTER_LISTS:['VIEW_GOVERNMENT_VOTER_LISTS'],
  ELECTION_DATA:['VIEW_ELECTION_DATA'],
- NOTIFICATIONS:['VIEW_NOTIFICATIONS']
+ NOTIFICATIONS:['VIEW_NOTIFICATIONS'],
+ SCHEDULES:['VIEW_DASHBOARD','VIEW_STAFF','VIEW_COMPLAINTS']
 };
 const allowed=(key,u)=>{
+ if(!u) return false;
  if(isMaster(u)) return true;
  if(key==='SUBADMINS') return false;
  if(key==='WARD_ACTIVATION') return false;
@@ -126,6 +142,7 @@ const allowed=(key,u)=>{
  if(key==='STAKEHOLDERS') return false;
  if(key==='USERS' && isEmployee(u)) return false;
  if(key==='STAFF' && isEmployee(u)) return false;
+ if(key==='SCHEDULES') return isMaster(u) || isSubMaster(u) || isNagarsevak(u) || isEmployee(u);
  const needed=NAV_VIEW[key];
  if(needed) return needed.some(p=>can(p,u));
  return canModule(key,'VIEW',u);
@@ -167,9 +184,10 @@ function CitizenShell({children}){
  const [chatUnread,setChatUnread]=useState(0);
  const accountRef=React.useRef(null);
  const notificationRef=useRef(null);
+ const mobileMenuRef=useRef(null);
  const seenNotes=useRef(new Set());
  const primedNotes=useRef(false);
- useEffect(()=>{const close=e=>{if(accountRef.current&&!accountRef.current.contains(e.target))setMenu(false);if(notificationRef.current&&!notificationRef.current.contains(e.target))setShowNotifications(false);if(!e.target.closest('.user-mobile-menu')&&!e.target.closest('.user-nav'))setMobileNav(false)};document.addEventListener('pointerdown',close,true);return()=>document.removeEventListener('pointerdown',close,true)},[]);
+ useEffect(()=>{const close=e=>{if(accountRef.current&&!accountRef.current.contains(e.target))setMenu(false);if(notificationRef.current&&!notificationRef.current.contains(e.target))setShowNotifications(false);if(mobileMenuRef.current&&!mobileMenuRef.current.contains(e.target))setMobileNav(false)};document.addEventListener('pointerdown',close,true);return()=>document.removeEventListener('pointerdown',close,true)},[]);
  useEffect(()=>{
   let live=true;
   const load=()=>api.notifications().then(r=>{
@@ -247,7 +265,7 @@ function CitizenShell({children}){
     <button className={`user-nav-link ${location.pathname.startsWith('/my-complaints')?'active':''}`} onClick={()=>go('/my-complaints')}>{language==='mr'?'माझ्या तक्रारी':'My Complaints'}</button>
     <button className={`user-nav-link ${location.pathname.startsWith('/groups')?'active':''}`} onClick={()=>go('/groups')}><span className="user-nav-link-text">{language==='mr'?'गट व चॅट':'Groups & Chat'}</span>{chatUnread>0&&<span className="user-nav-badge chat-unread notranslate" translate="no">{chatUnread>99?'99+':chatUnread}</span>}</button>
    </nav>
-   <div className="user-actions"><button type="button" className="user-language-btn notranslate" translate="no" onClick={toggleLanguage}>{language==='en'?'मराठी':'English'}</button><div className="user-notification-wrap" ref={notificationRef}><button type="button" className="user-icon-btn" onClick={()=>{setMenu(false);setMobileNav(false);setShowNotifications(v=>!v)}} aria-label="Notifications">🔔{unread>0&&<span className="user-notification-dot">{unread>9?'9+':unread}</span>}</button>{showNotifications&&<div className="user-notification-popover"><div className="user-notification-head"><strong>{language==='mr'?'सूचना':'Notifications'}</strong><div>{unread>0&&<button type="button" onClick={markAllNotifications}>{language==='mr'?'सर्व वाचले':'Mark all read'}</button>}<button type="button" onClick={clearAllNotifications}>{language==='mr'?'साफ करा':'Clear'}</button></div></div>{!notifications.length?<div className="user-notification-empty">{language==='mr'?'कोणत्याही सूचना नाहीत':'No notifications'}</div>:notifications.map(n=><button type="button" key={n.id} className={`user-notification-item ${n.isRead?'read':''}`} onClick={()=>openNotification(n)}><strong>{n.title||'Notification'}</strong><span>{n.message||''}</span><small>{n.sender?.name?`From: ${n.sender.name} · `:''}{n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}</div>}</div><div className="user-account-wrap" ref={accountRef}><button className="user-account" onClick={()=>{setMobileNav(false);setMenu(v=>!v)}}><ProfileAvatar name={user?.name} size="sm"/><span className="user-account-text"><b>{user?.name}</b><small>{user?.ward?.wardNumber||'My Ward'}</small></span></button>{menu&&<div className="user-account-menu"><div className="user-menu-summary"><strong>{user?.name}</strong><span>{user?.email}</span><small>{user?.ward?.wardNumber}{user?.ward?.name?` · ${user.ward.name}`:''}</small></div><button onClick={()=>{setMenu(false);setAccountOpen(true)}}>My profile</button><button onClick={logout} className="danger-link">Sign out</button></div>}</div><button className="user-mobile-menu" onClick={()=>{setMenu(false);setMobileNav(v=>!v)}} aria-label="Open menu">☰</button></div>
+   <div className="user-actions"><button type="button" className="user-language-btn notranslate" translate="no" onClick={toggleLanguage}>{language==='en'?'मराठी':'English'}</button><div className="user-notification-wrap" ref={notificationRef}><button type="button" className="user-icon-btn" onClick={()=>{setMenu(false);setMobileNav(false);setShowNotifications(v=>!v)}} aria-label="Notifications">🔔{unread>0&&<span className="user-notification-dot">{unread>9?'9+':unread}</span>}</button>{showNotifications&&<div className="user-notification-popover"><div className="user-notification-head"><strong>{language==='mr'?'सूचना':'Notifications'}</strong><div>{unread>0&&<button type="button" onClick={markAllNotifications}>{language==='mr'?'सर्व वाचले':'Mark all read'}</button>}<button type="button" onClick={clearAllNotifications}>{language==='mr'?'साफ करा':'Clear'}</button></div></div>{!notifications.length?<div className="user-notification-empty">{language==='mr'?'कोणत्याही सूचना नाहीत':'No notifications'}</div>:notifications.map(n=><button type="button" key={n.id} className={`user-notification-item ${n.isRead?'read':''}`} onClick={()=>openNotification(n)}><strong>{n.title||'Notification'}</strong><span>{n.message||''}</span><small>{n.sender?.name?`From: ${n.sender.name} · `:''}{n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}</div>}</div><div className="user-account-wrap" ref={accountRef}><button className="user-account" onClick={()=>{setMobileNav(false);setMenu(v=>!v)}}><ProfileAvatar name={user?.name} size="sm"/><span className="user-account-text"><b>{user?.name}</b><small>{user?.ward?.wardNumber||'My Ward'}</small></span></button>{menu&&<div className="user-account-menu"><div className="user-menu-summary"><strong>{user?.name}</strong><span>{user?.email}</span><small>{user?.ward?.wardNumber}{user?.ward?.name?` · ${user.ward.name}`:''}</small></div><button onClick={()=>{setMenu(false);setAccountOpen(true)}}>My profile</button><button onClick={logout} className="danger-link">Sign out</button></div>}</div><div className="user-mobile-menu-wrap" ref={mobileMenuRef}><button type="button" className={`user-mobile-menu ${mobileNav?'is-active':''}`} onClick={()=>{setMenu(false);setShowNotifications(false);setMobileNav(v=>!v)}} aria-label="Open navigation menu" aria-expanded={mobileNav}>{mobileNav?'✕':'☰'}</button>{mobileNav&&<div className="user-quick-menu-popover" role="menu"><div className="user-quick-menu-header"><ProfileAvatar name={user?.name} size="sm"/><div className="user-quick-menu-user"><strong>{user?.name||'Citizen'}</strong><span>{user?.email||user?.mobile||'Registered resident'}</span><small>{user?.ward?.wardNumber?`${user.ward.wardNumber}${user.ward.name?` · ${user.ward.name}`:''}`:'Ward Citizen'}</small></div></div><div className="user-quick-menu-links"><button type="button" className={`user-quick-menu-item ${location.pathname==='/'?'active':''}`} onClick={()=>go('/')}><span className="quick-icon">🏠</span><span className="quick-text">{language==='mr'?'मुख्यपृष्ठ':'Home'}</span></button><button type="button" className={`user-quick-menu-item ${location.pathname.startsWith('/ward-updates')?'active':''}`} onClick={()=>go('/ward-updates')}><span className="quick-icon">📢</span><span className="quick-text">{language==='mr'?'वॉर्ड अपडेट्स':'Updates & Events'}</span></button><button type="button" className={`user-quick-menu-item ${location.pathname.startsWith('/schemes')?'active':''}`} onClick={()=>go('/schemes')}><span className="quick-icon">📜</span><span className="quick-text">{language==='mr'?'शासकीय योजना':'Government Schemes'}</span></button><button type="button" className={`user-quick-menu-item ${location.pathname.startsWith('/my-complaints')?'active':''}`} onClick={()=>go('/my-complaints')}><span className="quick-icon">📝</span><span className="quick-text">{language==='mr'?'माझ्या तक्रारी':'My Complaints'}</span></button><button type="button" className={`user-quick-menu-item ${location.pathname.startsWith('/groups')?'active':''}`} onClick={()=>go('/groups')}><span className="quick-icon">💬</span><span className="quick-text">{language==='mr'?'गट व चॅट':'Groups & Chat'}</span>{chatUnread>0&&<span className="user-nav-badge chat-unread notranslate" translate="no">{chatUnread>99?'99+':chatUnread}</span>}</button></div><div className="user-quick-menu-divider"/><div className="user-quick-menu-actions"><button type="button" className="user-quick-menu-item" onClick={()=>{setMobileNav(false);setAccountOpen(true);}}><span className="quick-icon">👤</span><span className="quick-text">{language==='mr'?'माझे प्रोफाइल':'My Profile'}</span></button><button type="button" className="user-quick-menu-item" onClick={()=>{setMobileNav(false);setShowNotifications(true);}}><span className="quick-icon">🔔</span><span className="quick-text">{language==='mr'?'सूचना':'Notifications'}</span>{unread>0&&<span className="user-nav-badge notranslate" translate="no">{unread>9?'9+':unread}</span>}</button><button type="button" className="user-quick-menu-item notranslate" translate="no" onClick={()=>{toggleLanguage();setMobileNav(false);}}><span className="quick-icon">🌐</span><span className="quick-text">{language==='en'?'मराठी मध्ये बदला':'Switch to English'}</span></button><button type="button" className="user-quick-menu-item danger-link" onClick={()=>{setMobileNav(false);logout();}}><span className="quick-icon">🚪</span><span className="quick-text">{language==='mr'?'लॉग आउट':'Sign Out'}</span></button></div></div>}</div></div>
   </header>
   <main className="user-main user-page-main">{children}</main>
   {noteToast&&<div className={`global-toast ${noteToast.type==='error'?'global-toast-error':'global-toast-success'}`} role={noteToast.type==='error'?'alert':'status'}><div><strong>{noteToast.title}</strong><div>{noteToast.message}</div></div><button type="button" onClick={()=>setNoteToast(null)} aria-label="Close">×</button></div>}
@@ -407,20 +425,42 @@ function Shell({children}){
  useEffect(()=>{document.title=`${pageTitle(location.pathname,user)} · WardDesk`},[location.pathname,user]);
  useEffect(()=>{
   let live=true;
-  api.me().then(r=>{
-   if(!live) return;
-   const next=r?.data?.user;
-   const cur=getUser();
-   if(!next||!cur) return;
-   localStorage.setItem('ward_user',JSON.stringify({
-    ...cur,
-    permissions:next.permissions||cur.permissions,
-    role:next.roleName||next.role||cur.role,
-    roleName:next.roleName||cur.roleName||cur.role
-   }));
-   setUserVersion(v=>v+1);
-  }).catch(()=>{});
-  return()=>{live=false};
+  const syncUser=()=>{
+   api.me().then(r=>{
+    if(!live) return;
+    const next=r?.data?.user;
+    const cur=getUser();
+    if(!next||!cur) return;
+    const prevPerms=JSON.stringify(cur.permissions||[]);
+    const nextPerms=JSON.stringify(next.permissions||[]);
+    const updated={
+     ...cur,
+     ...next,
+     permissions:next.permissions??cur.permissions,
+     role:next.roleName||next.role||cur.role,
+     roleName:next.roleName||next.roleName||cur.role
+    };
+    localStorage.setItem('ward_user',JSON.stringify(updated));
+    if(prevPerms!==nextPerms||cur.name!==next.name||cur.role!==(next.roleName||next.role)){
+     setUserVersion(v=>v+1);
+    }
+   }).catch(()=>{});
+  };
+  syncUser();
+  const t=setInterval(syncUser,10000);
+  const onFocus=()=>syncUser();
+  const onPermChange=()=>syncUser();
+  const onVis=()=>{if(document.visibilityState==='visible')syncUser();};
+  window.addEventListener('focus',onFocus);
+  window.addEventListener('ward:permissions-updated',onPermChange);
+  document.addEventListener('visibilitychange',onVis);
+  return()=>{
+   live=false;
+   clearInterval(t);
+   window.removeEventListener('focus',onFocus);
+   window.removeEventListener('ward:permissions-updated',onPermChange);
+   document.removeEventListener('visibilitychange',onVis);
+  };
  },[]);
  useEffect(()=>{
   let live=true;
@@ -430,7 +470,7 @@ function Shell({children}){
    if(!live)return;
    const rows=(r.data||[]).filter(n=>n.direction!=='SENT');
    if(primed){
-    const fresh=rows.find(n=>!n.isRead && !seen.has(n.id) && /COMPLAINT|SCHEME|NAGARSEVAK_ACTIVATED|WARD_|DEATH_|BIRTHDAY_/.test(String(n.type||'').toUpperCase()));
+    const fresh=rows.find(n=>!n.isRead && !seen.has(n.id) && /COMPLAINT|SCHEME|NAGARSEVAK_ACTIVATED|WARD_|DEATH_|BIRTHDAY_|SCHEDULE/.test(String(n.type||'').toUpperCase()));
     if(fresh) window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'success',message:`${fresh.title}: ${fresh.message}`}}));
    }
    primed=true;
@@ -523,7 +563,7 @@ function Shell({children}){
  const sectionName=pageSection(location.pathname,language);
  const chipName=String(user?.name||'').trim()||pretty;
  const chipRole=chipName.toLowerCase()===String(pretty||'').trim().toLowerCase()?'':pretty;
- return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className={`sidebar ${open?'open':''}`}><div className="brand"><div className="brand-mark notranslate" translate="no">W</div><div><strong className="notranslate" translate="no">WardDesk</strong><span>Municipal workspace</span></div></div><nav ref={navRef} aria-label="Main">{visibleSections.map(section=><div className="nav-section" key={section.id}><div className="nav-section-label">{language==='mr'?section.mr:section.en}</div>{section.items.map(([to,label,icon,key])=><AdminNavItem key={key} to={to} label={label} icon={icon} itemKey={key} language={language} user={user} updatesOpen={updatesOpen} setUpdatesOpen={setUpdatesOpen} navRef={navRef} sidebarScrollKey={sidebarScrollKey} sidebarGo={sidebarGo} chatUnread={chatUnread}/>)}</div>)}</nav><div className="sidebar-footer"><button className="logout-btn" onClick={logout}>Sign out</button></div></aside>{open&&<button className="scrim" onClick={()=>setOpen(false)}/>}<main className="main"><header className="topbar"><div className="admin-mobile-brand notranslate" translate="no" aria-hidden="true">W</div><button className="menu-btn" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-context"><div className="eyebrow">{sectionName}</div><div className="topbar-title">{pageTitle(location.pathname)}</div><div className="topbar-workspace">{help}</div></div><div className="topbar-actions"><button type="button" className="language-btn notranslate" translate="no" onClick={()=>switchLanguage(language==='en'?'mr':'en')} title="Change language">{language==='en'?'मराठी':'English'}</button><div className="notification-wrap"><button className="notification-btn" onClick={()=>setShowNotifications(v=>!v)}>🔔{receivedNotifications.filter(n=>!n.isRead).length>0&&<span className="notification-count">{receivedNotifications.filter(n=>!n.isRead).length}</span>}</button>{showNotifications&&<div className="notification-popover"><div className="notification-popover-head"><strong>Notifications</strong>{notifications.length>0&&<div className="card-actions">{notifications.some(n=>!n.isRead)&&<button type="button" className="small-btn" onClick={async()=>{await api.markAllNotificationsRead();setNotifications(x=>x.map(a=>a.direction==='SENT'?a:{...a,isRead:true}))}}>Mark all read</button>}<button type="button" className="small-btn danger" onClick={async()=>{if(!window.confirm('Clear all notifications?'))return;await api.clearNotifications();setNotifications([])}}>Clear</button></div>}</div>{!notifications.length?<div className="muted notification-empty">No notifications</div>:notifications.map(n=><button key={n.id} className={`notification-item ${n.isRead?'read':''}`} onClick={()=>openNotification(n)}><strong>{n.title}</strong><span>{n.message}</span><small>From: {n.sender?.name||'System'} · {n.type?.replaceAll('_',' ')||'Notification'} · {n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}</div>}</div><button className="user-chip user-chip-button" onClick={()=>setShowProfile(true)} aria-label="Open profile"><FaceAvatar name={chipName} photo={user?.photo} className="user-chip-face"/><div className="user-text notranslate" translate="no"><strong>{chipName}</strong>{chipRole?<span>{chipRole}</span>:null}</div></button></div></header><div className="content" id="main-content">{children}<GlobalPagination/></div><footer className="app-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>Secure administration workspace · {pretty}</span></footer>{toast&&<div className={`global-toast ${toast.type==='error'?'global-toast-error':'global-toast-success'}`} role={toast.type==='error'?'alert':'status'}><div><strong>{toast.type==='error'?'Action failed':'Success'}</strong><div>{toast.message}</div></div><button type="button" onClick={()=>setToast(null)} aria-label="Close">×</button></div>}{showProfile&&<div className="modal-backdrop" onPointerDown={()=>setShowProfile(false)}><div className="modal profile-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header profile-modal-header"><div><h2>My profile</h2><span>Update your photo, contact details and password</span></div><button type="button" className="icon-btn" onClick={()=>setShowProfile(false)}>×</button></div><ProfileEditor user={user} role={role} onClose={()=>setShowProfile(false)} onSaved={(u)=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setShowProfile(false);window.location.reload()}}/></div></div>}</main></div>
+  return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><aside className={`sidebar ${open?'open':''}`}><div className="brand"><div className="brand-mark notranslate" translate="no">W</div><div><strong className="notranslate" translate="no">WardDesk</strong><span>Municipal workspace</span></div></div><nav ref={navRef} aria-label="Main">{visibleSections.map(section=><div className="nav-section" key={section.id}><div className="nav-section-label">{language==='mr'?section.mr:section.en}</div>{section.items.map(([to,label,icon,key])=><AdminNavItem key={key} to={to} label={label} icon={icon} itemKey={key} language={language} user={user} updatesOpen={updatesOpen} setUpdatesOpen={setUpdatesOpen} navRef={navRef} sidebarScrollKey={sidebarScrollKey} sidebarGo={sidebarGo} chatUnread={chatUnread}/>)}</div>)}</nav><div className="sidebar-footer"><button className="logout-btn" onClick={logout}>Sign out</button></div></aside>{open&&<button className="scrim" onClick={()=>setOpen(false)}/>}<main className="main"><header className="topbar"><div className="admin-mobile-brand notranslate" translate="no" aria-hidden="true">W</div><button className="menu-btn" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-context"><div className="eyebrow">{sectionName}</div><div className="topbar-title">{pageTitle(location.pathname)}</div></div><div className="topbar-actions"><button type="button" className="language-btn notranslate" translate="no" onClick={()=>switchLanguage(language==='en'?'mr':'en')} title="Change language">{language==='en'?'मराठी':'English'}</button><div className="notification-wrap"><button className="notification-btn" onClick={()=>setShowNotifications(v=>!v)}>🔔{receivedNotifications.filter(n=>!n.isRead).length>0&&<span className="notification-count">{receivedNotifications.filter(n=>!n.isRead).length}</span>}</button>{showNotifications&&<div className="notification-popover"><div className="notification-popover-head"><strong>Notifications</strong>{notifications.length>0&&<div className="card-actions">{notifications.some(n=>!n.isRead)&&<button type="button" className="small-btn" onClick={async()=>{await api.markAllNotificationsRead();setNotifications(x=>x.map(a=>a.direction==='SENT'?a:{...a,isRead:true}))}}>Mark all read</button>}<button type="button" className="small-btn danger" onClick={async()=>{if(!window.confirm('Clear all notifications?'))return;await api.clearNotifications();setNotifications([])}}>Clear</button></div>}</div>{!notifications.length?<div className="muted notification-empty">No notifications</div>:notifications.map(n=><button key={n.id} className={`notification-item ${n.isRead?'read':''} ${/SCHEDULE/.test(n.type)?'notification-item-schedule':''}`} onClick={()=>openNotification(n)}><div className="notification-item-title-row"><strong>{n.title}</strong>{/SCHEDULE/.test(n.type)&&<span className="notification-schedule-tag">Schedule</span>}</div><span>{n.message}</span><small>From: {n.sender?.name||'System'} · {n.type?.replaceAll('_',' ')||'Notification'} · {n.createdAt?new Date(n.createdAt).toLocaleString('en-IN'):''}</small></button>)}</div>}</div><button className="user-chip user-chip-button" onClick={()=>setShowProfile(true)} aria-label="Open profile"><FaceAvatar name={chipName} photo={user?.photo} className="user-chip-face"/><div className="user-text notranslate" translate="no"><strong>{chipName}</strong>{chipRole?<span>{chipRole}</span>:null}</div></button></div></header><div className="content" id="main-content">{children}<GlobalPagination/></div><footer className="app-footer"><span>© {new Date().getFullYear()} Kairo IT Solutions PVT LTD</span><span>Secure administration workspace · {pretty}</span></footer>{toast&&<div className={`global-toast ${toast.type==='error'?'global-toast-error':'global-toast-success'}`} role={toast.type==='error'?'alert':'status'}><div><strong>{toast.type==='error'?'Action failed':'Success'}</strong><div>{toast.message}</div></div><button type="button" onClick={()=>setToast(null)} aria-label="Close">×</button></div>}{showProfile&&<div className="modal-backdrop" onPointerDown={()=>setShowProfile(false)}><div className="modal profile-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-header profile-modal-header"><div><h2>My profile</h2><span>Update your photo, contact details and password</span></div><button type="button" className="icon-btn" onClick={()=>setShowProfile(false)}>×</button></div><ProfileEditor user={user} role={role} onClose={()=>setShowProfile(false)} onSaved={(u)=>{localStorage.setItem('ward_user',JSON.stringify({...user,...u}));setShowProfile(false);window.location.reload()}}/></div></div>}</main></div>
 }
 function CitizenOnly({children}){const u=getUser();if(!u)return <Navigate to="/login" replace/>;if(String(u.role||'').toUpperCase()!=='CITIZEN')return <Navigate to="/dashboard" replace/>;return <CitizenShell>{children}</CitizenShell>}
 function Guard({permission,children}){
@@ -611,9 +651,9 @@ export default function App(){
   <Route path="/register" element={getUser()?<Navigate to="/" replace/>:<Register/>}/>
 
   {/* Shared URLs: the same path serves the citizen portal for citizens and the administration page for staff. */}
-  <Route path="/ward-updates" element={<RolePage citizen={<CitizenShell><WardUpdates/></CitizenShell>} admin={<AdminOnly><WardUpdates/></AdminOnly>}/>} />
-  <Route path="/ward-updates/new" element={<AdminOnly><WardUpdates autoOpen/></AdminOnly>}/>
-  <Route path="/schemes" element={<RolePage citizen={<CitizenShell><Schemes/></CitizenShell>} admin={<AdminOnly><Schemes/></AdminOnly>}/>} />
+  <Route path="/ward-updates" element={<RolePage citizen={<CitizenShell><WardUpdates/></CitizenShell>} admin={<AdminOnly><Guard permission="WARD_UPDATES"><WardUpdates/></Guard></AdminOnly>}/>} />
+  <Route path="/ward-updates/new" element={<AdminOnly><Guard permission="WARD_UPDATES"><WardUpdates autoOpen/></Guard></AdminOnly>}/>
+  <Route path="/schemes" element={<RolePage citizen={<CitizenShell><Schemes/></CitizenShell>} admin={<AdminOnly><Guard permission="SCHEMES"><Schemes/></Guard></AdminOnly>}/>} />
   <Route path="/messages" element={<Navigate to="/groups" replace/>}/>
   <Route path="/groups" element={<RolePage citizen={<CitizenShell><Groups/></CitizenShell>} admin={<AdminOnly><Guard permission="CHAT"><Groups/></Guard></AdminOnly>}/>} />
   <Route path="/my-complaints" element={<CitizenOnly><UserComplaints language={(localStorage.getItem('ward_language')||'en')}/></CitizenOnly>}/>
@@ -621,15 +661,16 @@ export default function App(){
 
   {/* Administration */}
   <Route path="/dashboard" element={<AdminOnly><Dashboard/></AdminOnly>}/>
+  <Route path="/schedules" element={<AdminOnly><Guard permission="SCHEDULES"><Schedules/></Guard></AdminOnly>}/>
   <Route path="/wards" element={<AdminOnly><Guard permission="WARDS"><Wards/></Guard></AdminOnly>}/>
-  <Route path="/ward-information" element={<AdminOnly><WardInformation/></AdminOnly>}/>
-  <Route path="/election-data" element={<AdminOnly><ElectionData/></AdminOnly>}/>
-  <Route path="/stakeholders" element={<AdminOnly><Guard permission="STAKEHOLDERS"><Stakeholders/></Guard></AdminOnly>}/>
+  <Route path="/ward-information" element={<AdminOnly><Guard permission="WARD_INFORMATION"><WardInformation/></Guard></AdminOnly>}/>
+  <Route path="/election-data" element={<AdminOnly><Guard permission="ELECTION_DATA"><ElectionData/></Guard></AdminOnly>}/>
+  <Route path="/stakeholders" element={<AdminOnly>{isMaster(getUser()) ? <Stakeholders/> : <Navigate to="/dashboard" replace/>}</AdminOnly>}/>
   <Route path="/staff" element={<AdminOnly><Guard permission="STAFF"><Staff/></Guard></AdminOnly>}/>
-  <Route path="/ward-activation" element={<AdminOnly><WardActivation/></AdminOnly>}/>
+  <Route path="/ward-activation" element={<AdminOnly>{isMaster(getUser()) ? <WardActivation/> : <Navigate to="/dashboard" replace/>}</AdminOnly>}/>
   <Route path="/nagarsevak-subscriptions" element={<AdminOnly><Guard permission="NAGARSEVAK_SUBSCRIPTIONS"><NagarsevakSubscriptions/></Guard></AdminOnly>}/>
   <Route path="/users" element={<AdminOnly><Guard permission="USERS"><Users/></Guard></AdminOnly>}/>
-  <Route path="/sub-admins" element={<AdminOnly><SubAdmins/></AdminOnly>}/>
+  <Route path="/sub-admins" element={<AdminOnly>{isMaster(getUser()) ? <SubAdmins/> : <Navigate to="/dashboard" replace/>}</AdminOnly>}/>
   <Route path="/houses" element={<AdminOnly><Guard permission="HOUSES"><Houses/></Guard></AdminOnly>}/>
   <Route path="/families" element={<AdminOnly><Guard permission="FAMILIES"><Families/></Guard></AdminOnly>}/>
   <Route path="/shops" element={<AdminOnly><Guard permission="SHOPS"><Shops/></Guard></AdminOnly>}/>

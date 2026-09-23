@@ -134,7 +134,10 @@ async function loadTodayWardEvents(wardIds) {
   const [birthdays, observances] = await Promise.all([
     PersonBirthday.findAll({
       where: { status: 'ACTIVE', birthMonth: month, birthDay, ...wardFilter },
-      include: houseInclude(),
+      include: [
+        ...houseInclude(),
+        { model: Person, as: 'person', required: false, attributes: ['id', 'fullName', 'mobile', 'alternateMobile'] },
+      ],
       order: [['fullName', 'ASC']],
     }),
     DeathObservance.findAll({
@@ -145,16 +148,18 @@ async function loadTodayWardEvents(wardIds) {
       },
       include: [
         ...houseInclude(),
-        { model: Person, as: 'person', required: false, attributes: ['id', 'fullName'] },
+        { model: Person, as: 'person', required: false, attributes: ['id', 'fullName', 'mobile', 'alternateMobile'] },
       ],
       order: [['tenthDayOn', 'ASC']],
     }),
   ]);
   const items = birthdays.map((row) => ({
     id: `bday-${row.personId}`,
+    personId: row.personId,
     kind: 'BIRTHDAY',
     label: 'Birthday',
     name: row.fullName,
+    mobile: row.person?.mobile || row.person?.alternateMobile || null,
     house: row.house?.houseNumber || null,
     address: row.house?.address || null,
     latitude: row.house?.latitude || null,
@@ -163,9 +168,12 @@ async function loadTodayWardEvents(wardIds) {
   }));
   for (const row of observances) {
     const name = row.person?.fullName || row.fullName || 'Citizen';
+    const mobile = row.person?.mobile || row.person?.alternateMobile || null;
     const house = row.house?.houseNumber || null;
     const loc = {
+      personId: row.personId || row.person?.id || null,
       house,
+      mobile,
       address: row.house?.address || null,
       latitude: row.house?.latitude || null,
       longitude: row.house?.longitude || null,

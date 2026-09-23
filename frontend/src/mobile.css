@@ -4432,3 +4432,264 @@ html body .person-form .form-section-title strong{
     grid-template-columns:1fr !important;
   }
 }
+
+/* ================================================================
+   Mobile Daily Schedule & Notifications (Ergonomic Phone Layout)
+   ================================================================ */
+@media (max-width: 800px) {
+  html body .dash-schedule-section {
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .schedule-section-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  html body .schedule-header-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  html body .schedule-metrics-pills {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+
+  html body .schedule-metrics-pills .metric-pill {
+    justify-content: center !important;
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+  }
+
+  html body .schedule-header-btn-group {
+    display: flex !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+
+  html body .schedule-header-btn-group button,
+  html body .schedule-export-btn,
+  html body .schedule-add-btn,
+  html body .schedule-view-all-btn {
+    flex: 1 1 0 !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    justify-content: center !important;
+    font-size: 12px !important;
+    padding: 0 4px !important;
+    white-space: nowrap !important;
+  }
+
+  html body .dashboard-pending-alert-banner {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 12px 14px !important;
+  }
+
+  html body .dashboard-pending-alert-banner .pending-alert-action-btn {
+    width: 100% !important;
+    height: 40px !important;
+    justify-content: center !important;
+    font-size: 13px !important;
+  }
+
+  html body .schedule-filter-tabs-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 12px !important;
+  }
+
+  html body .schedule-filter-tabs {
+    display: flex !important;
+    width: 100% !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+  }
+
+  html body .schedule-tab {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  html body .schedule-tab .tab-badge {
+    font-size: 10px !important;
+    padding: 1px 5px !important;
+  }
+
+  /* Schedule Cards - thumb-friendly horizontal action bar */
+  html body .schedule-card {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    padding: 12px 14px !important;
+    gap: 10px !important;
+    border-radius: 12px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  html body .schedule-card-left {
+    flex: 0 0 34px !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    padding-top: 2px !important;
+  }
+
+  html body .schedule-check-toggle {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 15px !important;
+  }
+
+  html body .schedule-card-content {
+    flex: 1 1 calc(100% - 46px) !important;
+    min-width: 0 !important;
+  }
+
+  html body .schedule-card-tags {
+    gap: 4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  html body .schedule-item-title {
+    font-size: 14.5px !important;
+    margin-bottom: 4px !important;
+  }
+
+  html body .schedule-card-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    gap: 8px !important;
+    border-top: 1px solid #f1f5f9 !important;
+    padding-top: 10px !important;
+    margin-top: 6px !important;
+  }
+
+  html body .schedule-card-actions .schedule-btn-toggle,
+  html body .schedule-card-actions .schedule-action-btn.btn-done,
+  html body .schedule-card-actions .schedule-action-btn.btn-reopen {
+    flex: 1.5 !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    justify-content: center !important;
+  }
+
+  html body .schedule-card-actions .schedule-btn-move,
+  html body .schedule-card-actions .schedule-action-btn.btn-move-today {
+    flex: 1.5 !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    justify-content: center !important;
+  }
+
+  html body .schedule-card-actions .schedule-btn-edit,
+  html body .schedule-card-actions .schedule-btn-delete,
+  html body .schedule-card-actions .schedule-icon-btn {
+    flex: 1 !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    justify-content: center !important;
+  }
+
+  html body .schedule-workflow-pills-bar {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  html body .workflow-pills-label {
+    grid-column: 1 / -1 !important;
+    margin-bottom: 2px !important;
+  }
+
+  html body .workflow-pill-btn {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: 8px 10px !important;
+    gap: 3px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    min-height: 52px !important;
+    border-radius: 8px !important;
+  }
+
+  /* PDF Export Modal mobile overrides */
+  html body .pdf-report-cards-grid,
+  html body .pdf-style-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  html body .pdf-modal-footer {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  html body .pdf-modal-footer button {
+    width: 100% !important;
+    height: 44px !important;
+    justify-content: center !important;
+    font-size: 13px !important;
+  }
+
+  /* Form modal mobile ergonomics */
+  html body .prof-input,
+  html body .prof-select,
+  html body .prof-textarea {
+    font-size: 16px !important;
+    min-height: 42px !important;
+  }
+
+  html body .prof-modal-actions {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  html body .prof-modal-actions button {
+    width: 100% !important;
+    height: 44px !important;
+    justify-content: center !important;
+  }
+
+  /* Notification items on mobile */
+  html body .notification-item-schedule {
+    border-left: 3.5px solid #2563eb !important;
+    background: #f0f7ff !important;
+  }
+
+  html body .notification-item-schedule.read {
+    background: #ffffff !important;
+    border-left-color: #cbd5e1 !important;
+  }
+}

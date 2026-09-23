@@ -37,6 +37,7 @@ const DeathObservance = require('./deathObservance.model');
 const WardSubscriptionEvent = require('./wardSubscriptionEvent.model');
 const EmployeeAreaAssignment = require('./employeeAreaAssignment.model');
 const ComplaintAttachment = require('./complaintAttachment.model');
+const NagarsevakSchedule = require('./nagarsevakSchedule.model');
 const {
   AdminUser,
   SubAdminUser,
@@ -268,6 +269,12 @@ registerNormalizedHooks({
   DeathRecord,
 });
 
+NagarsevakSchedule.belongsTo(User, { foreignKey: 'nagarsevakUserId', as: 'nagarsevak' });
+NagarsevakSchedule.belongsTo(User, { foreignKey: 'createdByUserId', as: 'creator' });
+NagarsevakSchedule.belongsTo(User, { foreignKey: 'completedByUserId', as: 'completedBy' });
+NagarsevakSchedule.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+User.hasMany(NagarsevakSchedule, { foreignKey: 'nagarsevakUserId', as: 'schedules' });
+
 module.exports = {
   sequelize,
   Role,
@@ -313,4 +320,5 @@ module.exports = {
   WardSubscriptionEvent,
   EmployeeAreaAssignment,
   ComplaintAttachment,
+  NagarsevakSchedule,
 };

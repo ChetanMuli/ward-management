@@ -49,10 +49,13 @@ function normalisePermissions(value) {
 }
 
 function resolveFieldPermissions(roleName, stored) {
+  // If stored is strictly undefined or null (brand-new account), provide standard role default
+  if (stored === null || stored === undefined) {
+    const core = roleName === 'NAGARSEVAK' ? NAGARSEVAK_CORE : roleName === 'EMPLOYEE' ? EMPLOYEE_CORE : [];
+    return [...core];
+  }
   const saved = normalisePermissions(stored);
-  const core = roleName === 'NAGARSEVAK' ? NAGARSEVAK_CORE : roleName === 'EMPLOYEE' ? EMPLOYEE_CORE : [];
-  const onlyLanding = !saved.length || (saved.length === 1 && saved[0] === 'VIEW_DASHBOARD');
-  let permissions = onlyLanding ? [...core] : saved;
+  let permissions = [...saved];
   if (roleName === 'EMPLOYEE') {
     permissions = permissions.filter((p) => !['VIEW_USERS','EDIT_USERS','DELETE_USERS','VIEW_STAFF','CREATE_STAFF','EDIT_STAFF','DELETE_STAFF'].includes(p));
   }

@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { User, Ward, Role, ChatUserState } = require('../../models');
+const { User, Ward, Role, ChatUserState, Employee } = require('../../models');
 const Chat = require('../../services/chat.store');
 const ApiError = require('../../utils/ApiError');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -131,21 +131,29 @@ async function nagarsevakRoleId() {
   return role?.id || null;
 }
 
-function memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, employeeRoleId) {
+function memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, employeeRoleId, employeeManagerMap = new Map()) {
   const visible = new Set((visibleNagarsevakIds || []).map(String));
-  const notEmployee = (u) => !employeeRoleId || String(u.roleId) !== String(employeeRoleId);
   if (group.type === 'NAGARSEVAK' && nagarRoleId) {
     const ownerVisible = visible.has(String(group.nagarsevakUserId));
     if (!ownerVisible) {
       return users.filter(u => String(u.id) === String(group.nagarsevakUserId)).map(u => u.id);
     }
     return users
-      .filter(u => notEmployee(u) && (String(u.roleId) !== String(nagarRoleId) || String(u.id) === String(group.nagarsevakUserId)))
+      .filter(u => {
+        if (String(u.roleId) === String(nagarRoleId)) {
+          return String(u.id) === String(group.nagarsevakUserId);
+        }
+        if (employeeRoleId && String(u.roleId) === String(employeeRoleId)) {
+          const mgrId = employeeManagerMap.get(String(u.id));
+          return !mgrId || String(mgrId) === String(group.nagarsevakUserId);
+        }
+        return true;
+      })
       .map(u => u.id);
   }
   if (group.type === 'WARD' && nagarRoleId) {
     return users
-      .filter(u => notEmployee(u) && (String(u.roleId) !== String(nagarRoleId) || visible.has(String(u.id))))
+      .filter(u => (String(u.roleId) !== String(nagarRoleId) || visible.has(String(u.id))))
       .map(u => u.id);
   }
   return users.map(u => u.id);
@@ -166,7 +174,9 @@ async function employeeRoleId() {
 
 async function syncGroupMembers(group, users, nagarRoleId, visibleNagarsevakIds) {
   const empRole = await employeeRoleId();
-  const allowedUserIds = memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, empRole);
+  const empRows = await Employee.findAll({ attributes: ['userId', 'managerUserId'] }).catch(() => []);
+  const employeeManagerMap = new Map(empRows.map(e => [String(e.userId), e.managerUserId]));
+  const allowedUserIds = memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, empRole, employeeManagerMap);
   await Chat.Member.reconcile(group.id, allowedUserIds);
 }
 
@@ -251,6 +261,12 @@ async function ensureMembership(groupId, userId, roleName = null) {
   if (group.type === 'NAGARSEVAK' && roleName === 'NAGARSEVAK' && String(group.nagarsevakUserId) !== String(userId)) {
     throw new ApiError(403, 'You can access only your Nagarsevak group and the ward community.');
   }
+  if (group.type === 'NAGARSEVAK' && roleName === 'EMPLOYEE') {
+    const emp = reqLike.user?.employeeProfile || await Employee.findOne({ where: { userId } }).catch(() => null);
+    if (emp?.managerUserId && String(group.nagarsevakUserId) !== String(emp.managerUserId)) {
+      throw new ApiError(403, 'You can access only your managing Nagarsevak group and the ward community.');
+    }
+  }
   const member = await ensureMembershipRow(groupId, userId);
   return { group, member };
 }
@@ -300,7 +316,16 @@ async function ensureUserGroups(user) {
     await syncWardCommunityMembership(user.wardId);
     return;
   }
-  if (user.roleName === 'EMPLOYEE') return;
+  if (user.roleName === 'EMPLOYEE') {
+    const wardGroup = await Chat.findOne({ where: { wardId: user.wardId, type: 'WARD', isActive: true } });
+    if (wardGroup) await ensureMembershipRow(wardGroup.id, user.id);
+    const emp = user.employeeProfile || await Employee.findOne({ where: { userId: user.id } }).catch(() => null);
+    if (emp?.managerUserId) {
+      const nagarGroup = await Chat.findOne({ where: { nagarsevakUserId: emp.managerUserId, type: 'NAGARSEVAK', isActive: true } });
+      if (nagarGroup) await ensureMembershipRow(nagarGroup.id, user.id);
+    }
+    return;
+  }
   const wardGroup = await Chat.findOne({ where: { wardId: user.wardId, type: 'WARD', isActive: true } });
   if (wardGroup) await ensureMembershipRow(wardGroup.id, user.id);
   if (user.roleName === 'NAGARSEVAK') await ensureNagarsevakGroup(user.id);
@@ -379,6 +404,15 @@ const listGroups = asyncHandler(async (req, res) => {
     if (req.user.roleName === 'NAGARSEVAK') {
       return g.type === 'WARD' || (g.type === 'NAGARSEVAK' && String(g.nagarsevakUserId) === String(req.user.id));
     }
+    if (req.user.roleName === 'EMPLOYEE') {
+      if (String(g.wardId) !== String(req.user.wardId)) return false;
+      if (g.type === 'WARD') return true;
+      const managerId = req.user.employeeProfile?.managerUserId;
+      if (g.type === 'NAGARSEVAK') {
+        return !managerId || String(g.nagarsevakUserId) === String(managerId);
+      }
+      return g.type === 'CUSTOM';
+    }
     if (req.user.roleName === 'CITIZEN') {
       if (String(g.wardId) !== String(req.user.wardId)) return false;
       if (g.type === 'WARD') return true;
@@ -392,6 +426,15 @@ const listGroups = asyncHandler(async (req, res) => {
   const ids = new Set(memberships.map(x => x.groupId));
   if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN') {
     visibleRows.forEach((g) => ids.add(g.id));
+  }
+  if (req.user.roleName === 'EMPLOYEE') {
+    const managerId = req.user.employeeProfile?.managerUserId;
+    visibleRows.forEach((g) => {
+      if (g.type === 'WARD') ids.add(g.id);
+      if (g.type === 'NAGARSEVAK' && (!managerId || String(g.nagarsevakUserId) === String(managerId))) {
+        ids.add(g.id);
+      }
+    });
   }
   const observer = req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN';
   const unreadEntries = await Promise.all(visibleRows.map(async (g) => {
@@ -598,6 +641,12 @@ const joinGroup = asyncHandler(async (req, res) => {
   }
   if (group.type === 'NAGARSEVAK' && req.user.roleName === 'NAGARSEVAK' && String(group.nagarsevakUserId) !== String(req.user.id)) {
     throw new ApiError(403, 'You can access only your Nagarsevak group and the ward community.');
+  }
+  if (group.type === 'NAGARSEVAK' && req.user.roleName === 'EMPLOYEE') {
+    const emp = req.user.employeeProfile || await Employee.findOne({ where: { userId: req.user.id } }).catch(() => null);
+    if (emp?.managerUserId && String(group.nagarsevakUserId) !== String(emp.managerUserId)) {
+      throw new ApiError(403, 'You can access only your managing Nagarsevak group and the ward community.');
+    }
   }
   await Chat.Member.findOrCreate({ where: { groupId: group.id, userId: req.user.id }, defaults: { joinedAt: new Date() } });
   return success(res, { message: 'Joined group' });

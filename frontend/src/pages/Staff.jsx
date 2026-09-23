@@ -32,6 +32,7 @@ import {
 } from '../rbac';
 
 import PasswordResetModal from '../components/PasswordResetModal';
+import PermissionEditor, { ALL_PERMISSIONS } from '../components/PermissionEditor';
 
 
 const empty = {
@@ -51,134 +52,7 @@ const empty = {
   status: 'ACTIVE'
 };
 
-
-const permissionMap = {
-  DASHBOARD: [
-    'VIEW_DASHBOARD'
-  ],
-
-  WARD_INFORMATION: [
-    'VIEW_WARD_INFORMATION'
-  ],
-
-  ELECTION_DATA: [
-    'VIEW_ELECTION_DATA'
-  ],
-
-  WARD_UPDATES: [
-    'VIEW_WARD_UPDATES'
-  ],
-
-  NOTIFICATIONS: [
-    'VIEW_NOTIFICATIONS'
-  ],
-
-  CHAT: [
-    'VIEW_CHAT',
-    'SEND_CHAT',
-    'CREATE_CHAT_GROUP',
-    'MANAGE_CHAT_GROUP'
-  ],
-
-  USERS: [
-    'VIEW_USERS',
-    'EDIT_USERS',
-    'DELETE_USERS'
-  ],
-
-  WARDS: [
-    'VIEW_WARDS',
-    'CREATE_WARDS',
-    'EDIT_WARDS',
-    'DELETE_WARDS'
-  ],
-
-  STAFF: [
-    'VIEW_STAFF',
-    'CREATE_STAFF',
-    'EDIT_STAFF',
-    'DELETE_STAFF'
-  ],
-
-  HOUSES: [
-    'VIEW_HOUSES',
-    'CREATE_HOUSES',
-    'EDIT_HOUSES',
-    'DELETE_HOUSES'
-  ],
-
-  FAMILIES: [
-    'VIEW_FAMILIES',
-    'CREATE_FAMILIES',
-    'EDIT_FAMILIES',
-    'DELETE_FAMILIES'
-  ],
-
-  PEOPLE: [
-    'VIEW_CITIZENS',
-    'CREATE_CITIZENS',
-    'EDIT_CITIZENS',
-    'DELETE_CITIZENS'
-  ],
-
-  VOTERS: [
-    'VIEW_VOTERS',
-    'EDIT_VOTERS'
-  ],
-
-  GOVERNMENT_VOTER_LISTS: [
-    'VIEW_GOVERNMENT_VOTER_LISTS',
-    'CREATE_GOVERNMENT_VOTER_LISTS'
-  ],
-
-  BIRTHDAYS: [
-    'VIEW_BIRTHDAYS'
-  ],
-
-  FOLLOWUP: [
-    'VIEW_18PLUS',
-    'EDIT_18PLUS'
-  ],
-
-  COMPLAINTS: [
-    'VIEW_COMPLAINTS',
-    'CREATE_COMPLAINTS',
-    'EDIT_COMPLAINTS',
-    'DELETE_COMPLAINTS'
-  ],
-
-  REPORTS: [
-    'EXPORT_DATA'
-  ],
-
-  AUDIT: [
-    'VIEW_AUDIT'
-  ],
-
-  RECYCLE: [
-    'VIEW_RECYCLE_BIN',
-    'RESTORE_RECYCLE_BIN'
-  ],
-
-  SCHEMES: [
-    'VIEW_SCHEMES',
-    'CREATE_SCHEMES',
-    'EDIT_SCHEMES',
-    'DELETE_SCHEMES'
-  ],
-
-  DEATH: [
-    'VIEW_DEATH_RECORDS',
-    'CREATE_DEATH_RECORDS'
-  ]
-};
-
-
-const allPermissions = [
-  ...new Set(
-    Object.values(permissionMap).flat()
-  )
-];
+const allPermissions = ALL_PERMISSIONS;
 
 
 export default function Staff() {
@@ -251,6 +125,7 @@ export default function Staff() {
 
   const [perm, setPerm] = useState(null);
   const [permValues, setPermValues] = useState([]);
+  const [areasModal, setAreasModal] = useState(null);
 
   const [resetUser, setResetUser] = useState(null);
   const [convertTarget, setConvertTarget] = useState(null);
@@ -515,6 +390,53 @@ export default function Staff() {
 
   }, [wards]);
 
+  const allAreasMap = useMemo(() => {
+    const map = new Map();
+    (wards || []).forEach(w => {
+      (w.areas || []).forEach(a => {
+        if (a && a.id) {
+          map.set(String(a.id), a.name || a.areaName || `Area #${a.id}`);
+        }
+      });
+    });
+    (areas || []).forEach(a => {
+      if (a && a.id) {
+        map.set(String(a.id), a.name || a.areaName || `Area #${a.id}`);
+      }
+    });
+    (employees || []).forEach(e => {
+      if (Array.isArray(e.assignedAreas)) {
+        e.assignedAreas.forEach(a => {
+          if (a && a.id) {
+            map.set(String(a.id), a.name || a.areaName || `Area #${a.id}`);
+          }
+        });
+      }
+    });
+    return map;
+  }, [wards, areas, employees]);
+
+  function parseAreaIds(val) {
+    if (Array.isArray(val)) return val.map(String);
+    if (typeof val === 'string' && val.trim()) {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  function getEmployeeAreaLabel(e) {
+    const ids = parseAreaIds(e.assignedAreaIds);
+    if (!ids.length) return 'All ward areas';
+    const names = ids.map(id => allAreasMap.get(String(id)) || `Area #${id}`);
+    if (names.length <= 2) return names.join(', ');
+    return `${names.slice(0, 2).join(', ')} (+${names.length - 2} more)`;
+  }
+
 
   const wardForForm =
     wardOptions.find(
@@ -633,12 +555,10 @@ export default function Staff() {
           'Ward Employee',
 
         assignedAreaIds:
-          record.assignedAreaIds ||
-          [],
+          parseAreaIds(record.assignedAreaIds),
 
         permissions:
-          record.permissions ||
-          [],
+          Array.isArray(record.permissions) ? record.permissions : parseAreaIds(record.permissions),
 
         managerUserId:
           record.managerUserId ||
@@ -777,7 +697,7 @@ export default function Staff() {
       try { sessionStorage.removeItem('ward_staff_draft'); sessionStorage.removeItem('ward_staff_edit'); } catch {}
 
       await load();
-
+      window.dispatchEvent(new CustomEvent('ward:permissions-updated'));
 
       window.dispatchEvent(
         new CustomEvent(
@@ -1255,9 +1175,9 @@ export default function Staff() {
 
           <>
 
-            <div className="panel table-wrap staff-table-scroll">
+            <div className="panel table-wrap staff-table">
 
-              <table className="staff-data-table staff-nagar-table">
+              <table>
 
                 <thead>
 
@@ -1412,17 +1332,17 @@ export default function Staff() {
 
           <>
 
-            <div className="panel table-wrap staff-table-scroll">
+            <div className="panel table-wrap staff-table">
 
-              <table className="staff-data-table">
+              <table>
 
                 <thead>
 
                   <tr>
                     <th>Employee</th>
-                    <th>Ward</th>
-                    <th>Managing Nagarsevak</th>
-                    <th>Areas</th>
+                    {(master || sub) && <th>Ward</th>}
+                    {(master || sub) && <th>Managing Nagarsevak</th>}
+                    <th>Assigned Areas</th>
                     <th>Login</th>
                     <th>Status</th>
                     <th />
@@ -1434,79 +1354,100 @@ export default function Staff() {
                 <tbody>
 
                   {visibleE.map(
-                    e => (
+                    e => {
+                      const ids = parseAreaIds(e.assignedAreaIds);
+                      return (
+                        <tr key={e.id}>
 
-                      <tr key={e.id}>
-
-                        <td data-label="Employee">
-
-                          <strong>
-                            {e.User?.name ||
-                              e.name ||
-                              '—'}
-                          </strong>
-
-                          <div className="muted">
-                            {e.designation ||
-                              'Employee'}
-                          </div>
-
-                        </td>
-
-
-                        <td data-label="Ward">
-                          {e.ward?.wardNumber ||
-                            e.wardId ||
-                            '—'}
-                        </td>
+                          <td data-label="Employee">
+                            <strong className="plain-cell">
+                              {e.User?.name ||
+                                e.name ||
+                                '—'}
+                            </strong>
+                            <div className="muted">
+                              {e.designation ||
+                                'Field Employee'}
+                              {(e.mobile || e.User?.mobile) ? ` · ${e.mobile || e.User?.mobile}` : ''}
+                            </div>
+                          </td>
 
 
-                        <td data-label="Managing Nagarsevak">
-                          {e.manager?.name ||
-                            '—'}
-                        </td>
+                          {(master || sub) && (
+                            <td data-label="Ward">
+                              {e.ward?.wardNumber ||
+                                e.wardId ||
+                                '—'}
+                              {e.ward?.name ? <div className="muted">{e.ward.name}</div> : null}
+                            </td>
+                          )}
 
 
-                        <td data-label="Areas">
-                          {(e.assignedAreaIds || [])
-                            .length
-                            ? (e.assignedAreaIds || [])
-                                .length
-                            : 'All assigned'}
-                        </td>
+                          {(master || sub) && (
+                            <td data-label="Managing Nagarsevak">
+                              {e.manager?.name ||
+                                '—'}
+                              {e.manager?.mobile ? <div className="muted">{e.manager.mobile}</div> : null}
+                            </td>
+                          )}
 
 
-                        <td data-label="Login">
-                          {e.User?.email ||
-                            e.email ||
-                            '—'}
-                        </td>
+                          <td data-label="Assigned Areas">
+                            <button
+                              type="button"
+                              className="staff-area-btn"
+                              onClick={() => {
+                                setAreasModal({
+                                  employeeName: e.User?.name || e.name || 'Employee',
+                                  areas: ids.map(id => allAreasMap.get(String(id)) || `Area #${id}`),
+                                  allAssigned: ids.length === 0,
+                                  wardNumber: e.ward?.wardNumber || e.wardId || ''
+                                });
+                              }}
+                              title="Click to view all assigned areas"
+                            >
+                              <span className="staff-area-text">{getEmployeeAreaLabel(e)}</span>
+                            </button>
+                            <div className="muted">
+                              {ids.length === 0
+                                ? 'All areas in ward'
+                                : `${ids.length} colony/area${ids.length > 1 ? 's' : ''}`}
+                            </div>
+                          </td>
 
 
-                        <td data-label="Status">
+                          <td data-label="Login">
+                            <span>
+                              {e.User?.email ||
+                                e.email ||
+                                '—'}
+                            </span>
+                            <div className="muted">{e.role || 'FIELD_STAFF'}</div>
+                          </td>
 
-                          <StatusPill>
-                            {e.User?.status ||
-                              e.status ||
-                              'ACTIVE'}
-                          </StatusPill>
 
-                        </td>
+                          <td data-label="Status">
+                            <StatusPill>
+                              {e.User?.status ||
+                                e.status ||
+                                'ACTIVE'}
+                            </StatusPill>
+                          </td>
 
 
-                        <td data-label="Actions" className="staff-actions">
-                          <RowMenu items={[
-                            {label:'View details',onClick:()=>setDetail({kind:'EMPLOYEE',data:e})},
-                            master&&{label:'Reset password',onClick:()=>setResetUser(e.User||e)},
-                            canStaff&&{label:'Edit',onClick:()=>openEmployee(e)},
-                            (master||sub||councillor)&&{label:'Permissions',onClick:()=>{setPerm({kind:'EMPLOYEE',data:e});setPermValues(e.permissions||[])}},
-                            canStaff&&{label:'Delete',danger:true,onClick:()=>deleteAccount('EMPLOYEE',e)}
-                          ]}/>
-                        </td>
+                          <td data-label="Actions">
+                            <RowMenu items={[
+                              {label:'View details',onClick:()=>setDetail({kind:'EMPLOYEE',data:e})},
+                              master&&{label:'Reset password',onClick:()=>setResetUser(e.User||e)},
+                              canStaff&&{label:'Edit',onClick:()=>openEmployee(e)},
+                              (master||sub||councillor)&&{label:'Permissions',onClick:()=>{setPerm({kind:'EMPLOYEE',data:e});setPermValues(e.permissions||[])}},
+                              canStaff&&{label:'Delete',danger:true,onClick:()=>deleteAccount('EMPLOYEE',e)}
+                            ]}/>
+                          </td>
 
-                      </tr>
-
-                    )
+                        </tr>
+                      );
+                    }
                   )}
 
                 </tbody>
@@ -1676,11 +1617,19 @@ export default function Staff() {
 
 
                   <p>
-                    <b>Assigned areas:</b>{' '}
-                    {(detail.data.assignedAreaIds ||
-                      []).length ||
-                      'All assigned'}
+                    <b>Assigned areas:</b>
                   </p>
+                  <div className="assigned-areas-chip-grid" style={{ marginTop: '6px' }}>
+                    {(() => {
+                      const ids = parseAreaIds(detail.data.assignedAreaIds);
+                      if (!ids.length) return <span className="assigned-colony-chip all">All ward areas assigned</span>;
+                      const names = ids.map(id => allAreasMap.get(String(id))).filter(Boolean);
+                      if (!names.length) return <span className="assigned-colony-chip">{ids.length} area(s) assigned</span>;
+                      return names.map((name, i) => (
+                        <span key={i} className="assigned-colony-chip">{name}</span>
+                      ));
+                    })()}
+                  </div>
                 </>
 
               )}
@@ -1978,8 +1927,26 @@ export default function Staff() {
 
                 <div className="span-2">
 
-                  <div className="section-label">
-                    Assigned areas / colonies
+                  <div className="section-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span>Assigned areas / colonies</span>
+                    {formAreas.length > 0 && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="small-btn"
+                          onClick={() => setForm({ ...form, assignedAreaIds: formAreas.map(a => String(a.id)) })}
+                        >
+                          Select all areas
+                        </button>
+                        <button
+                          type="button"
+                          className="small-btn"
+                          onClick={() => setForm({ ...form, assignedAreaIds: [] })}
+                        >
+                          Clear (all ward)
+                        </button>
+                      </div>
+                    )}
                   </div>
 
 
@@ -1998,16 +1965,15 @@ export default function Staff() {
                             <input
                               type="checkbox"
                               checked={
-                                (
-                                  form.assignedAreaIds ||
-                                  []
+                                parseAreaIds(
+                                  form.assignedAreaIds
                                 ).includes(
-                                  area.id
+                                  String(area.id)
                                 )
                               }
                               onChange={() =>
                                 toggleArea(
-                                  area.id
+                                  String(area.id)
                                 )
                               }
                             />
@@ -2036,8 +2002,28 @@ export default function Staff() {
 
                 </div>
 
+                <div className="span-2" style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                  <PermissionEditor
+                    role="EMPLOYEE"
+                    values={form.permissions || []}
+                    onChange={perms => setForm({ ...form, permissions: perms })}
+                    isMasterAdmin={master}
+                  />
+                </div>
+
               </>
 
+            )}
+
+            {tab === 'NAGARSEVAK' && master && (
+              <div className="span-2" style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                <PermissionEditor
+                  role="NAGARSEVAK"
+                  values={form.permissions || []}
+                  onChange={perms => setForm({ ...form, permissions: perms })}
+                  isMasterAdmin={master}
+                />
+              </div>
             )}
 
           </form>
@@ -2264,10 +2250,10 @@ export default function Staff() {
         >
 
           <PermissionEditor
+            role={perm.kind === 'EMPLOYEE' ? 'EMPLOYEE' : 'NAGARSEVAK'}
             values={permValues}
-            onChange={
-              setPermValues
-            }
+            onChange={setPermValues}
+            isMasterAdmin={master}
           />
 
 
@@ -2328,7 +2314,7 @@ export default function Staff() {
                   setPerm(null);
 
                   await load();
-
+                  window.dispatchEvent(new CustomEvent('ward:permissions-updated'));
 
                   window.dispatchEvent(
                     new CustomEvent(
@@ -2370,6 +2356,42 @@ export default function Staff() {
 
       )}
 
+      {/* Assigned Areas Modal */}
+      {areasModal && (
+        <Modal
+          title={`Assigned Areas · ${areasModal.employeeName}`}
+          onClose={() => setAreasModal(null)}
+        >
+          <div className="assigned-areas-modal-content">
+            <p className="muted" style={{ marginBottom: '14px', fontSize: '13px' }}>
+              {areasModal.allAssigned
+                ? 'This employee is assigned to all areas and colonies across the entire ward.'
+                : `Showing all ${areasModal.areas.length} assigned areas/colonies:`}
+            </p>
+            {areasModal.allAssigned ? (
+              <div className="all-ward-areas-notice">
+                <strong>All Ward Areas</strong>
+                <span>Full coverage across all colonies and streets in the ward.</span>
+              </div>
+            ) : (
+              <div className="assigned-areas-chip-grid">
+                {areasModal.areas.map((colony, idx) => (
+                  <div key={idx} className="assigned-colony-chip">
+                    <span className="colony-dot"></span>
+                    <span className="colony-name">{colony}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="modal-actions" style={{ marginTop: '20px' }}>
+              <button className="primary-btn" onClick={() => setAreasModal(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }
@@ -2400,251 +2422,5 @@ function StaffPagination({
       onPage={setPage}
       onLimit={setLimit}
     />
-  );
-}
-
-
-/*
- * PERMISSION EDITOR
- */
-
-function PermissionEditor({
-  values,
-  onChange
-}) {
-
-  const safeValues =
-    values || [];
-
-
-  function togglePermission(
-    permission
-  ) {
-
-    if (
-      safeValues.includes(
-        permission
-      )
-    ) {
-
-      onChange(
-        safeValues.filter(
-          p =>
-            p !== permission
-        )
-      );
-
-      return;
-
-    }
-
-
-    onChange([
-      ...safeValues,
-      permission
-    ]);
-
-  }
-
-
-  function toggleGroup(
-    permissions
-  ) {
-
-    const allSelected =
-      permissions.every(
-        permission =>
-          safeValues.includes(
-            permission
-          )
-      );
-
-
-    if (allSelected) {
-
-      onChange(
-        safeValues.filter(
-          permission =>
-            !permissions.includes(
-              permission
-            )
-        )
-      );
-
-      return;
-
-    }
-
-
-    onChange([
-      ...new Set([
-        ...safeValues,
-        ...permissions
-      ])
-    ]);
-
-  }
-
-
-  const allSelected =
-    allPermissions.length > 0 &&
-    allPermissions.every(
-      permission =>
-        safeValues.includes(
-          permission
-        )
-    );
-
-
-  function toggleAll() {
-
-    if (allSelected) {
-
-      onChange([]);
-
-    } else {
-
-      onChange([
-        ...allPermissions
-      ]);
-
-    }
-
-  }
-
-
-  return (
-
-    <div className="permission-editor">
-
-      <div className="permission-editor-head">
-
-        <div>
-
-          <strong>
-            Section permissions
-          </strong>
-
-          <span>
-            Select exactly what this
-            account can access.
-          </span>
-
-        </div>
-
-
-        <button
-          type="button"
-          className="small-btn"
-          onClick={
-            toggleAll
-          }
-        >
-          {allSelected
-            ? 'Clear all'
-            : 'Select all'}
-        </button>
-
-      </div>
-
-
-      <div className="permission-grid permission-grid-cards">
-
-        {Object.entries(
-          permissionMap
-        ).map(
-          ([module, permissions]) => {
-
-            const complete =
-              permissions.every(
-                permission =>
-                  safeValues.includes(
-                    permission
-                  )
-              );
-
-
-            return (
-
-              <section
-                key={module}
-                className="permission-card"
-              >
-
-                <div className="permission-card-head">
-
-                  <label>
-
-                    <input
-                      type="checkbox"
-                      checked={
-                        complete
-                      }
-                      onChange={() =>
-                        toggleGroup(
-                          permissions
-                        )
-                      }
-                    />
-
-                    <strong>
-                      {module
-                        .replaceAll(
-                          '_',
-                          ' '
-                        )}
-                    </strong>
-
-                  </label>
-
-                </div>
-
-
-                <div className="permission-items">
-
-                  {permissions.map(
-                    permission => (
-
-                      <label
-                        key={permission}
-                        className="permission-item"
-                      >
-
-                        <input
-                          type="checkbox"
-                          checked={
-                            safeValues.includes(
-                              permission
-                            )
-                          }
-                          onChange={() =>
-                            togglePermission(
-                              permission
-                            )
-                          }
-                        />
-
-                        <span>
-                          {permission}
-                        </span>
-
-                      </label>
-
-                    )
-                  )}
-
-                </div>
-
-              </section>
-
-            );
-
-          }
-        )}
-
-      </div>
-
-    </div>
-
   );
 }

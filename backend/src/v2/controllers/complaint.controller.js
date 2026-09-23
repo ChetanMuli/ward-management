@@ -33,6 +33,7 @@ async function attachNagarPhotos(rows) {
     const extra = photos.get(String(j.assignedNagarsevak?.id || j.assignedNagarsevakUserId || ''));
     if (j.assignedNagarsevak && extra?.photo) j.assignedNagarsevak.photo = extra.photo;
     j.reportedImages = parseImageList(j.reportedImage);
+    j.resolutionImages = parseImageList(j.resolutionImage);
     return j;
   });
   return Array.isArray(rows) ? mapped : mapped[0];
@@ -46,12 +47,21 @@ function prettyStatus(status){
 }
 function cleanImage(value){
   if(value==null||value==='')return null;
-  if(typeof value!=='string'||value.length>1500000) throw new ApiError(400,'Image is too large. Please upload a smaller image (max about 1.5 MB).');
-  if(!/^data:image\/(jpeg|jpg|png|webp);base64,/.test(value)) throw new ApiError(400,'Only JPG, PNG or WEBP images are supported.');
-  return value;
+  if(typeof value!=='string') return null;
+  const s=value.trim();
+  if(!s) return null;
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('/')||s.startsWith('./')) return s;
+  if(s.length>1500000) throw new ApiError(400,'Image is too large. Please upload a smaller image (max about 1.5 MB).');
+  if(!/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(s)) throw new ApiError(400,'Only JPG, PNG or WEBP images are supported.');
+  return s;
 }
 function cleanReportedImages(body){
   const raw=body?.reportedImages!=null?body.reportedImages:body?.reportedImage;
+  return packImageList(raw, cleanImage);
+}
+function cleanResolutionImages(body){
+  const raw=body?.resolutionImages!==undefined?body.resolutionImages:body?.resolutionImage;
+  if(raw===undefined) return undefined;
   return packImageList(raw, cleanImage);
 }
 
@@ -287,11 +297,13 @@ const updateStatus = asyncHandler(async(req,res)=>{
 
   if(status==='RESOLVED'&&!String(resolutionNote||'').trim())throw new ApiError(400,'Resolution note is mandatory when resolving');
 
-  const image=status==='RESOLVED'?cleanImage(resolutionImage):undefined;
+  const image=(status==='RESOLVED' || req.body.resolutionImages!==undefined || req.body.resolutionImage!==undefined)
+    ? cleanResolutionImages(req.body)
+    : undefined;
   const oldStatus=complaint.status;
   await complaint.update({
     status,
-    resolutionNote:resolutionNote||complaint.resolutionNote,
+    resolutionNote:resolutionNote!==undefined?resolutionNote:complaint.resolutionNote,
     resolutionImage:image===undefined?complaint.resolutionImage:image,
     resolvedAt:status==='RESOLVED'?new Date():status==='REOPENED'?null:complaint.resolvedAt
   });
