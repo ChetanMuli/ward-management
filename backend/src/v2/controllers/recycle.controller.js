@@ -1,10 +1,10 @@
 const { Op }=require('sequelize');
-const { Ward,Area,House,Family,Person,VoterProfile,Complaint,GovernmentVoterList,User,Role,Shop }=require('../../models');
+const { Ward,Area,House,Family,Person,VoterProfile,Complaint,GovernmentVoterList,User,Role,Shop,NagarsevakSchedule }=require('../../models');
 const {success}=require('../../utils/apiResponse');
 const asyncHandler=require('../../utils/asyncHandler');
 const ApiError=require('../../utils/ApiError');
 const {getScope,allowedWardIds,isWardAllowed}=require('../services/wardScope');
-const registry={Ward,Area,House,Family,Person,VoterProfile,Complaint,GovernmentVoterList,User,Shop};
+const registry={Ward,Area,House,Family,Person,VoterProfile,Complaint,GovernmentVoterList,User,Shop,NagarsevakSchedule};
 const list=asyncHandler(async(req,res)=>{
  const type=req.query.type;
  const entries=type&&registry[type]?[[type,registry[type]]]:Object.entries(registry);
@@ -15,7 +15,8 @@ const list=asyncHandler(async(req,res)=>{
  const areaIds=allowed===null?null:(await Area.findAll({where:{wardId:{[Op.in]:wardIds}},attributes:['id']})).map(a=>a.id);
  const scopedAreaIds=areaIds?.length?areaIds:['00000000-0000-0000-0000-000000000000'];
  for(const [entity,Model] of entries){
-  let where={deletedAt:{[Op.ne]:null}};
+  const deletedCol=Model.options.deletedAt||Model.rawAttributes.deletedAt?.field||'deletedAt';
+  let where={[deletedCol]:{[Op.ne]:null}};
   let include=[];
   if(allowed!==null){
    if(entity==='Ward') where.id={[Op.in]:wardIds};
@@ -26,6 +27,7 @@ const list=asyncHandler(async(req,res)=>{
    else if(entity==='Person') include=[{model:Family,as:'family',include:[{model:House,as:'house',include:[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}],required:true}],required:true}];
    else if(entity==='VoterProfile') include=[{model:Person,as:'Person',required:true,include:[{model:Family,as:'family',required:true,include:[{model:House,as:'house',required:true,include:[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}]}]}]}];
    else if(entity==='Complaint') include=[{model:House,as:'house',where:{areaId:{[Op.in]:scopedAreaIds}},required:true}];
+   else if(entity==='NagarsevakSchedule') where.wardId={[Op.in]:wardIds};
    else if(entity==='User') include=[{model:Role,where:{name:'CITIZEN'},required:true}];
    else if(entity==='GovernmentVoterList') continue; // No ward relation is stored for uploaded government files.
   }
@@ -42,7 +44,7 @@ const list=asyncHandler(async(req,res)=>{
     if(!definition.deleted_at)continue;
    }catch(e){continue;}
   }
-  const records=await Model.findAll({where,paranoid:false,include,order:[['deletedAt','DESC']],limit:100});
+  const records=await Model.findAll({where,paranoid:false,include,order:[[deletedCol,'DESC']],limit:100});
   records.forEach(record=>out.push({entity,record}));
  }
  out.sort((a,b)=>new Date(b.record.deletedAt)-new Date(a.record.deletedAt));
@@ -64,6 +66,7 @@ const restore=asyncHandler(async(req,res)=>{
    if(entity==='Person'){ const f=await row.getFamily({include:[{model:House,as:'house',include:[{model:Area,as:'area'}]}]}); if(!isWardAllowed(req,f?.house?.area?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
    if(entity==='VoterProfile'){ const person=await row.getPerson({include:[{model:Family,as:'family',include:[{model:House,as:'house',include:[{model:Area,as:'area'}]}]}]}); if(!isWardAllowed(req,person?.family?.house?.area?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
    if(entity==='Complaint'){ const h=await row.getHouse({include:[{model:Area,as:'area'}]}); if(!isWardAllowed(req,row.wardId||h?.area?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
+   if(entity==='NagarsevakSchedule' && !isWardAllowed(req,row.wardId)) throw new ApiError(403,'Cross-ward access denied');
    if(entity==='User'){ const citizenRole=await Role.findOne({where:{name:'CITIZEN'}}); if(!citizenRole||String(row.roleId)!==String(citizenRole.id)||!isWardAllowed(req,row.wardId))throw new ApiError(403,'Cross-ward access denied'); }
  }
  await row.restore();

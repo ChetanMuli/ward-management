@@ -125,6 +125,13 @@ function houseInclude() {
   return [{ model: House, as: 'house', required: false, attributes: ['id', 'houseNumber', 'latitude', 'longitude', 'address'] }];
 }
 
+function dateOnly(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value.slice(0, 10);
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
 async function loadTodayWardEvents(wardIds) {
   const today = todayStamp();
   const [year, month, day] = today.split('-').map(Number);
@@ -178,7 +185,7 @@ async function loadTodayWardEvents(wardIds) {
       latitude: row.house?.latitude || null,
       longitude: row.house?.longitude || null,
     };
-    if (row.tenthDayOn === today) {
+    if (dateOnly(row.tenthDayOn) === today) {
       items.push({
         id: `dahava-${row.deathRecordId}`,
         kind: 'DAHAVA',
@@ -188,7 +195,7 @@ async function loadTodayWardEvents(wardIds) {
         date: row.tenthDayOn,
       });
     }
-    if (row.firstYearOn === today) {
+    if (dateOnly(row.firstYearOn) === today) {
       items.push({
         id: `year-${row.deathRecordId}`,
         kind: 'ANNIVERSARY',

@@ -69,6 +69,17 @@ const NagarsevakSchedule = sequelize.define('NagarsevakSchedule', {
     allowNull: true,
     field: 'completed_by_user_id',
   },
+  assignedEmployeeUserId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    field: 'assigned_employee_user_id',
+  },
+  assignedToType: {
+    type: DataTypes.ENUM('NAGARSEVAK', 'EMPLOYEE'),
+    allowNull: false,
+    defaultValue: 'NAGARSEVAK',
+    field: 'assigned_to_type',
+  },
   completionNote: {
     type: DataTypes.TEXT,
     allowNull: true,

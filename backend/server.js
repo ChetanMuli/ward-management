@@ -5,6 +5,7 @@ require('./src/models'); // ensures all associations are registered before first
 
 const PORT = process.env.PORT || 4000;
 const { cleanupAuditLogs, cleanupRecycleBin } = require('./src/v2/controllers/maintenance.controller');
+const { archiveOldSchedules } = require('./src/v2/controllers/schedule.controller');
 const { cleanupOldMessages } = require('./src/v2/controllers/chat.controller');
 const { notifyExpiredNagarsevakSubscriptions } = require('./src/services/wardActivation.service');
 const { notifyTodayDeathReminders, notifyTodayBirthdays } = require('./src/services/wardDay.service');
@@ -22,12 +23,13 @@ async function start() {
         try {
           const a=await cleanupAuditLogs(2);
           const r=await cleanupRecycleBin(30);
+          const sched=await archiveOldSchedules().catch(()=>0);
           const c=await cleanupOldMessages();
           const s=await notifyExpiredNagarsevakSubscriptions().catch(()=>0);
           const d=await notifyTodayDeathReminders().catch(()=>0);
           const b=await notifyTodayBirthdays().catch(()=>0);
           const closed=await closeResolvedOvernight().catch(()=>0);
-          if(a||r||c||s||d||b||closed) console.log(`[MAINTENANCE] removed audit=${a}, recycle=${r}, chat=${c||0}, subscriptions-notified=${s||0}, death-reminders=${d||0}, birthday-reminders=${b||0}, auto-closed=${closed||0}`);
+          if(a||r||c||s||d||b||closed||sched) console.log(`[MAINTENANCE] removed audit=${a}, recycle=${r}, schedule-archive=${sched||0}, chat=${c||0}, subscriptions-notified=${s||0}, death-reminders=${d||0}, birthday-reminders=${b||0}, auto-closed=${closed||0}`);
         } catch(e) { console.error('[MAINTENANCE FAILURE]',e.message); }
       };
       runMaintenance();

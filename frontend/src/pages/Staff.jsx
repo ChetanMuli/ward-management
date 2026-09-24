@@ -2242,7 +2242,7 @@ export default function Staff() {
         <Modal
           wide
           title={
-            `Permissions · ${perm.data.User?.name || perm.data.name || ''}`
+            `Access for ${perm.data.User?.name || perm.data.name || (perm.kind === 'EMPLOYEE' ? 'employee' : 'Nagarsevak')}`
           }
           onClose={() =>
             setPerm(null)
@@ -2347,7 +2347,7 @@ export default function Staff() {
             >
               {busy
                 ? 'Saving...'
-                : 'Save permissions'}
+                : 'Save access'}
             </button>
 
           </div>

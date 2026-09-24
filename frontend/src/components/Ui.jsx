@@ -501,13 +501,13 @@ export function ProfileAvatar({name='User',size='md',className=''}){
  );
 }
 
-export function RowMenu({items=[]}){
+export function RowMenu({items=[], menuOnly=false}){
  const [open,setOpen]=useState(false);
  const ref=useRef(null);
  const toggleRef=useRef(null);
  const popRef=useRef(null);
  const visible=(items||[]).filter(Boolean);
- const rest=visible.slice(1);
+ const rest=menuOnly?visible:visible.slice(1);
  function place(){
   const btn=toggleRef.current;
   const pop=popRef.current;
@@ -575,9 +575,11 @@ export function RowMenu({items=[]}){
  if(!visible.length)return null;
  const [primary]=visible;
  return (
-  <div className={`row-menu ${open?'is-open':''}`} ref={ref}>
-   <button type="button" className={primary.danger?'small-btn danger':'small-btn view-btn'} onClick={primary.onClick}>{primary.label}</button>
-   {rest.length>0&&(
+  <div className={`row-menu ${open?'is-open':''} ${menuOnly?'is-menu-only':''}`} ref={ref}>
+   {!menuOnly && primary ? (
+     <button type="button" className={primary.danger?'small-btn danger':(primary.className||'small-btn view-btn')} onClick={primary.onClick}>{primary.label}</button>
+   ) : null}
+   {(menuOnly || rest.length>0)&&(
     <>
      <button type="button" ref={toggleRef} className="small-btn row-menu-toggle" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>More</button>
      {open&&createPortal(

@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Navigate,NavLink,Route,Routes,useLocation,useNavigate} from 'react-router-dom';
 import {api,clearSession,getUser} from './services/api';
-import {can,isMaster,isSubMaster,isNagarsevak,isEmployee,roleOf,canModule} from './rbac';
+import {can,isMaster,isSubMaster,isNagarsevak,isEmployee,roleOf,canModule,permissionsOf} from './rbac';
 import {initLanguage,setLanguage as applyLanguage,switchLanguage} from './language';
 import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Shops from './pages/Shops'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
 import Stakeholders from './pages/Stakeholders';
@@ -131,7 +131,7 @@ const NAV_VIEW={
  GOVERNMENT_VOTER_LISTS:['VIEW_GOVERNMENT_VOTER_LISTS'],
  ELECTION_DATA:['VIEW_ELECTION_DATA'],
  NOTIFICATIONS:['VIEW_NOTIFICATIONS'],
- SCHEDULES:['VIEW_DASHBOARD','VIEW_STAFF','VIEW_COMPLAINTS']
+ SCHEDULES:['VIEW_SCHEDULES']
 };
 const allowed=(key,u)=>{
  if(!u) return false;
@@ -142,7 +142,15 @@ const allowed=(key,u)=>{
  if(key==='STAKEHOLDERS') return false;
  if(key==='USERS' && isEmployee(u)) return false;
  if(key==='STAFF' && isEmployee(u)) return false;
- if(key==='SCHEDULES') return isMaster(u) || isSubMaster(u) || isNagarsevak(u) || isEmployee(u);
+ if(key==='SCHEDULES') {
+  if (isSubMaster(u)) return true;
+  if (isNagarsevak(u) || isEmployee(u)) {
+    const ps = permissionsOf(u).map((p) => String(p).toUpperCase());
+    const hasScheduleKeys = ps.some((p) => p.includes('SCHEDULES'));
+    return hasScheduleKeys ? can('VIEW_SCHEDULES', u) : true;
+  }
+  return false;
+ }
  const needed=NAV_VIEW[key];
  if(needed) return needed.some(p=>can(p,u));
  return canModule(key,'VIEW',u);

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, getUser } from '../services/api';
-import { ErrorBox, Loading, Modal, PageHeader, StatCard, StatusPill, FaceAvatar, Field, MultiImageField } from '../components/Ui';
+import { ErrorBox, Loading, Modal, PageHeader, StatCard, StatusPill, FaceAvatar, Field, MultiImageField, RowMenu } from '../components/Ui';
 import { parseComplaintImages, packComplaintImages } from '../complaintMedia';
 import WardFilter from '../components/WardFilter';
-import { isEmployee, isMaster, isSubMaster, isNagarsevak, can } from '../rbac';
+import { isEmployee, isMaster, isSubMaster, isNagarsevak, can, permissionsOf } from '../rbac';
 import { useWardFilter } from '../wardFilter';
 import { exportScheduleToPdf } from '../schedulePdf';
 const complaintLabels = ['SUBMITTED', 'PENDING', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
@@ -40,6 +40,11 @@ function getCategoryMeta(catKey) {
 
 function getPriorityMeta(priKey) {
   return SCHEDULE_PRIORITIES.find((p) => p.key === priKey) || SCHEDULE_PRIORITIES[2];
+}
+
+function scheduleAssigneeText(item) {
+  if (item?.assignedEmployee?.name) return `Assigned to employee: ${item.assignedEmployee.name}`;
+  return item?.nagarsevak?.name ? `Assigned to Nagarsevak: ${item.nagarsevak.name}` : 'Assigned to Nagarsevak';
 }
 
 function getTodayDateStr() {
@@ -250,11 +255,19 @@ export default function Dashboard() {
     category: 'VISIT',
     priority: 'MEDIUM',
     description: '',
-    nagarsevakUserId: ''
+    nagarsevakUserId: '',
+    assignTo: 'NAGARSEVAK',
+    assignedEmployeeUserId: '',
   });
   const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleEmployees, setScheduleEmployees] = useState([]);
+  const [scheduleAssign, setScheduleAssign] = useState({ open: false, item: null, assignTo: 'EMPLOYEE', assignedEmployeeUserId: '' });
+  const [scheduleAssigning, setScheduleAssigning] = useState(false);
 
-  const canViewSchedule = isNagarsevak(user) || isEmployee(user);
+  const canViewSchedule = (isNagarsevak(user) || isEmployee(user)) && (
+    can('VIEW_SCHEDULES') ||
+    !permissionsOf(user).some((p) => String(p).toUpperCase().includes('SCHEDULES'))
+  );
 
   const loadSchedules = React.useCallback(async () => {
     if (!canViewSchedule) return;
@@ -274,6 +287,20 @@ export default function Dashboard() {
       setScheduleLoading(false);
     }
   }, [canViewSchedule, selected, scheduleFilter]);
+
+  useEffect(() => {
+    if (!canViewSchedule) return;
+    api.wardTeam(selected || user?.wardId)
+      .then((r) => {
+        const list = r?.data?.employees || [];
+        setScheduleEmployees(list.map((e) => ({
+          id: e.id,
+          name: e.name,
+          managerUserId: e.employeeProfile?.managerUserId,
+        })));
+      })
+      .catch(() => setScheduleEmployees([]));
+  }, [canViewSchedule, selected, user?.wardId]);
 
   const handleExportDashboardSchedulePdf = () => {
     const filterLabel =
@@ -345,7 +372,11 @@ export default function Dashboard() {
 
   const openAddScheduleModal = () => {
     const defaultDate =
-      scheduleFilter === 'yesterday'
+      scheduleFilter === 'tomorrow'
+        ? (scheduleSummary?.tomorrowStr || getTodayDateStr())
+        : scheduleFilter === 'day_after'
+        ? (scheduleSummary?.dayAfterStr || getTodayDateStr())
+        : scheduleFilter === 'yesterday' || scheduleFilter === 'yesterday_remaining'
         ? (scheduleSummary?.yesterdayStr || getTodayDateStr())
         : (scheduleSummary?.todayStr || getTodayDateStr());
     let defaultNagarId = '';
@@ -364,6 +395,8 @@ export default function Dashboard() {
       priority: 'MEDIUM',
       description: '',
       nagarsevakUserId: defaultNagarId,
+      assignTo: isEmployee(user) ? 'NAGARSEVAK' : (scheduleEmployees.length ? 'EMPLOYEE' : 'NAGARSEVAK'),
+      assignedEmployeeUserId: '',
     });
     setScheduleModal({ isOpen: true, mode: 'create', item: null });
   };
@@ -378,6 +411,8 @@ export default function Dashboard() {
       priority: item.priority || 'MEDIUM',
       description: item.description || '',
       nagarsevakUserId: item.nagarsevakUserId || '',
+      assignTo: item.assignedEmployeeUserId ? 'EMPLOYEE' : 'NAGARSEVAK',
+      assignedEmployeeUserId: item.assignedEmployeeUserId || '',
     });
     setScheduleModal({ isOpen: true, mode: 'edit', item });
   };
@@ -400,6 +435,14 @@ export default function Dashboard() {
       );
       return;
     }
+    if (scheduleForm.assignTo === 'EMPLOYEE' && !scheduleForm.assignedEmployeeUserId) {
+      window.dispatchEvent(
+        new CustomEvent('ward:toast', {
+          detail: { type: 'error', message: 'Select an employee, or assign this work to Nagarsevak.' }
+        })
+      );
+      return;
+    }
 
     setScheduleSaving(true);
     try {
@@ -411,6 +454,8 @@ export default function Dashboard() {
           description: scheduleForm.description ? scheduleForm.description.trim() : undefined,
           scheduledTime: scheduleForm.scheduledTime ? scheduleForm.scheduledTime.trim() : undefined,
           nagarsevakUserId: scheduleForm.nagarsevakUserId || undefined,
+          assignTo: scheduleForm.assignTo || 'NAGARSEVAK',
+          assignedEmployeeUserId: scheduleForm.assignTo === 'EMPLOYEE' ? (scheduleForm.assignedEmployeeUserId || null) : null,
           wardId: selected || undefined,
         };
         await api.createSchedule(payload);
@@ -421,6 +466,8 @@ export default function Dashboard() {
           location: scheduleForm.location ? scheduleForm.location.trim() : null,
           description: scheduleForm.description ? scheduleForm.description.trim() : null,
           scheduledTime: scheduleForm.scheduledTime ? scheduleForm.scheduledTime.trim() : null,
+          assignTo: scheduleForm.assignTo || 'NAGARSEVAK',
+          assignedEmployeeUserId: scheduleForm.assignTo === 'EMPLOYEE' ? (scheduleForm.assignedEmployeeUserId || null) : null,
         };
         await api.updateSchedule(scheduleModal.item.id, payload);
       }
@@ -439,7 +486,7 @@ export default function Dashboard() {
 
   const handleDeleteSchedule = async (item) => {
     if (!item?.id) return;
-    if (!window.confirm(`Delete "${item.title}" from the daily schedule?`)) {
+    if (!window.confirm(`Move "${item.title}" to recycle bin?`)) {
       return;
     }
     try {
@@ -451,6 +498,49 @@ export default function Dashboard() {
           detail: { type: 'error', message: err.message || 'Failed to delete schedule item' }
         })
       );
+    }
+  };
+
+  const openScheduleAssign = (item) => {
+    if (item.wardId) {
+      api.wardTeam(item.wardId)
+        .then((r) => {
+          const list = r?.data?.employees || [];
+          setScheduleEmployees(list.map((e) => ({
+            id: e.id,
+            name: e.name,
+            managerUserId: e.employeeProfile?.managerUserId,
+          })));
+        })
+        .catch(() => {});
+    }
+    setScheduleAssign({
+      open: true,
+      item,
+      assignTo: item.assignedEmployeeUserId ? 'EMPLOYEE' : (scheduleEmployees.length ? 'EMPLOYEE' : 'NAGARSEVAK'),
+      assignedEmployeeUserId: item.assignedEmployeeUserId || '',
+    });
+  };
+
+  const handleSaveScheduleAssign = async (e) => {
+    e?.preventDefault();
+    if (!scheduleAssign.item) return;
+    if (scheduleAssign.assignTo === 'EMPLOYEE' && !scheduleAssign.assignedEmployeeUserId) {
+      window.dispatchEvent(new CustomEvent('ward:toast', { detail: { type: 'error', message: 'Select an employee to move this work.' } }));
+      return;
+    }
+    setScheduleAssigning(true);
+    try {
+      await api.assignSchedule(scheduleAssign.item.id, {
+        assignTo: scheduleAssign.assignTo,
+        assignedEmployeeUserId: scheduleAssign.assignTo === 'EMPLOYEE' ? scheduleAssign.assignedEmployeeUserId : null,
+      });
+      setScheduleAssign({ open: false, item: null, assignTo: 'EMPLOYEE', assignedEmployeeUserId: '' });
+      loadSchedules();
+    } catch (err) {
+      window.dispatchEvent(new CustomEvent('ward:toast', { detail: { type: 'error', message: err.message || 'Could not reassign work' } }));
+    } finally {
+      setScheduleAssigning(false);
     }
   };
 
@@ -723,10 +813,10 @@ export default function Dashboard() {
     : 'Field Employee Duty Workspace';
 
   const subtitle = master
-    ? 'Comprehensive municipal administration, people directory, and complaint metrics.'
+    ? 'City-wide counts, staff, and ward health at a glance.'
     : nagar
-    ? 'Your official ward desk: citizens, daily house visits, complaints pipeline, and field team.'
-    : 'Your daily field operations: assigned colony visits, complaint resolution, and team contacts.';
+    ? 'Today’s work, complaints, and field team for this ward.'
+    : 'Assigned areas, complaints, and today’s schedule.';
 
   const scopeText = data.ward
     ? `${data.ward.wardNumber} · ${data.ward.name || 'Municipal Ward'}`
@@ -746,8 +836,8 @@ export default function Dashboard() {
   const myEmployees = data.myEmployees || [];
 
   return (
-    <div className="admin-dashboard-page">
-      {/* Top Header */}
+    <div className={`admin-dashboard-page ${field ? 'is-field-desk' : 'is-admin-desk'}`}>
+      {!field && (
       <div className="dash-top-bar">
         <div>
           <div className="dash-kicker">MUNICIPAL DESK · OVERVIEW</div>
@@ -764,6 +854,7 @@ export default function Dashboard() {
           {refreshing && <span className="scope-syncing">Syncing…</span>}
         </div>
       </div>
+      )}
 
       <ErrorBox error={error} />
 
@@ -771,12 +862,9 @@ export default function Dashboard() {
       {canSelect && (
         <section className="panel dashboard-scope-panel">
           <div className="dashboard-scope-copy">
-            <span className="eyebrow">WARD SELECTION FILTER</span>
-            <h3>Filter metrics by ward</h3>
-            <p>
-              Select a ward to view its houses, citizens, voter lists, and active complaints.
-              The selected ward persists across modules.
-            </p>
+            <span className="eyebrow">WARD</span>
+            <h3>Choose a ward</h3>
+            <p>Numbers below follow this ward. Leave as all wards for the full city view.</p>
           </div>
           <div className="dashboard-scope-control">
             <WardFilter label="Select ward" />
@@ -795,14 +883,14 @@ export default function Dashboard() {
                 className="dash-hero-avatar"
               />
               <span className={`dash-role-badge ${nagar ? 'badge-nagar' : 'badge-emp'}`}>
-                {nagar ? 'NAGARSEVAK' : 'FIELD EMPLOYEE'}
+                {nagar ? 'Nagarsevak' : 'Employee'}
               </span>
             </div>
 
             <div className="dash-hero-details">
               <div className="dash-hero-title-row">
                 <h2>{data.user?.name || user?.name}</h2>
-                <span className="dash-status-pill">Active on Duty</span>
+                <span className="dash-status-pill">On duty</span>
               </div>
 
               <div className="dash-meta-pills">
@@ -865,70 +953,27 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="dash-quick-actions">
-            {can('VIEW_CHAT') && (
-              <button
-                type="button"
-                className="dash-action-btn action-chat"
-                onClick={() => openTo('/groups')}
-              >
-                Ward Chat
-                {chatUnread > 0 && <span className="action-badge">{chatUnread}</span>}
-              </button>
-            )}
-
-            {can('CREATE_COMPLAINTS') && (
-              <button
-                type="button"
-                className="dash-action-btn action-complaint"
-                onClick={() => openTo('/complaints')}
-              >
-                New Complaint
-              </button>
-            )}
-
-            {can('VIEW_CITIZENS') && (
-              <button
-                type="button"
-                className="dash-action-btn"
-                onClick={() => openTo('/people')}
-              >
-                Citizen Directory
-              </button>
-            )}
-
+          <div className="dash-duty-strip" aria-label="Today at a glance">
             {canViewSchedule && (
-              <button
-                type="button"
-                className="dash-action-btn action-schedule"
-                onClick={() => openTo('/schedules')}
-                title="View full Schedule and Action Plan"
-              >
-                Daily Schedule
-                {Number(scheduleSummary?.todayPending || 0) > 0 && (
-                  <span className="action-badge badge-amber">{scheduleSummary.todayPending}</span>
-                )}
+              <button type="button" className="dash-duty-tile" onClick={() => openTo('/schedules')}>
+                <span className="dash-duty-value">{Number(scheduleSummary?.todayPending || 0)}</span>
+                <span className="dash-duty-label">Pending work</span>
               </button>
             )}
-
-            {can('VIEW_HOUSES') && (
-              <button
-                type="button"
-                className="dash-action-btn"
-                onClick={() => openTo('/houses')}
-              >
-                Houses & Survey
+            <button type="button" className="dash-duty-tile" onClick={() => document.querySelector('.dash-agenda-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <span className="dash-duty-value">{birthdays.length + dahava.length + varsha.length}</span>
+              <span className="dash-duty-label">Field agenda</span>
+            </button>
+            {can('VIEW_COMPLAINTS') && (
+              <button type="button" className="dash-duty-tile" onClick={() => openTo('/complaints')}>
+                <span className="dash-duty-value">{Number(data.openComplaints || 0)}</span>
+                <span className="dash-duty-label">Open complaints</span>
               </button>
             )}
-
-            {can('VIEW_WARD_INFORMATION') && (
-              <button
-                type="button"
-                className="dash-action-btn"
-                onClick={() => openTo('/ward-information')}
-              >
-                Ward Profile
+            {can('VIEW_CHAT') && (
+              <button type="button" className="dash-duty-tile" onClick={() => openTo('/groups')}>
+                <span className="dash-duty-value">{chatUnread}</span>
+                <span className="dash-duty-label">Unread chat</span>
               </button>
             )}
           </div>
@@ -994,8 +1039,8 @@ export default function Dashboard() {
               <h3 className="schedule-title">Daily Schedule</h3>
               <p className="schedule-subtitle">
                 {employee
-                  ? 'Today and yesterday’s ward tasks. Tick a box when work is done.'
-                  : 'Plan today’s work and clear yesterday’s pending tasks. Tick when complete.'}
+                  ? 'Today and yesterday’s ward tasks. Tick when done, or move work to Nagarsevak.'
+                  : 'Plan today, tomorrow and the day after. Assign work to staff or keep it with Nagarsevak. Tick when complete.'}
               </p>
             </div>
 
@@ -1048,15 +1093,31 @@ export default function Dashboard() {
                 className={`schedule-tab ${scheduleFilter === 'today' ? 'active' : ''}`}
                 onClick={() => setScheduleFilter('today')}
               >
-                <span className="tab-label">Today's Agenda</span>
+                <span className="tab-label">Today</span>
                 <span className="tab-badge">{scheduleSummary?.todayTotal ?? 0}</span>
+              </button>
+              <button
+                type="button"
+                className={`schedule-tab ${scheduleFilter === 'tomorrow' ? 'active' : ''}`}
+                onClick={() => setScheduleFilter('tomorrow')}
+              >
+                <span className="tab-label">Tomorrow</span>
+                <span className="tab-badge">{scheduleSummary?.tomorrowTotal ?? 0}</span>
+              </button>
+              <button
+                type="button"
+                className={`schedule-tab ${scheduleFilter === 'day_after' ? 'active' : ''}`}
+                onClick={() => setScheduleFilter('day_after')}
+              >
+                <span className="tab-label">Day after</span>
+                <span className="tab-badge">{scheduleSummary?.dayAfterTotal ?? 0}</span>
               </button>
               <button
                 type="button"
                 className={`schedule-tab ${scheduleFilter === 'yesterday_remaining' ? 'active' : ''}`}
                 onClick={() => setScheduleFilter('yesterday_remaining')}
               >
-                <span className="tab-label">Yesterday's Pending</span>
+                <span className="tab-label">Yesterday pending</span>
                 <span className={`tab-badge ${Number(scheduleSummary?.yesterdayRemaining || 0) > 0 ? 'badge-warning-pulse' : ''}`}>
                   {scheduleSummary?.yesterdayRemaining ?? 0}
                 </span>
@@ -1066,7 +1127,7 @@ export default function Dashboard() {
                 className={`schedule-tab ${scheduleFilter === 'yesterday' ? 'active' : ''}`}
                 onClick={() => setScheduleFilter('yesterday')}
               >
-                <span className="tab-label">Yesterday (All)</span>
+                <span className="tab-label">Yesterday</span>
                 <span className="tab-badge">{scheduleSummary?.yesterdayTotal ?? 0}</span>
               </button>
             </div>
@@ -1104,6 +1165,10 @@ export default function Dashboard() {
                     ? 'No remaining tasks from yesterday'
                     : scheduleFilter === 'yesterday'
                     ? 'No work logged yesterday'
+                    : scheduleFilter === 'tomorrow'
+                    ? 'No tasks for tomorrow'
+                    : scheduleFilter === 'day_after'
+                    ? 'No tasks for the day after tomorrow'
                     : 'No tasks for today'}
                 </h4>
                 <p>
@@ -1127,10 +1192,6 @@ export default function Dashboard() {
                   const priMeta = getPriorityMeta(item.priority);
                   const isMarking = scheduleMarkingId === item.id;
                   const canEdit = nagar || employee || item.createdByUserId === user.id;
-                  const creatorRole = item.creator?.Role?.name || item.creator?.role?.name || '';
-                  const isSelfAdded =
-                    String(item.createdByUserId) === String(item.nagarsevakUserId) ||
-                    creatorRole === 'NAGARSEVAK';
                   const isPastOverdue =
                     !isCompleted &&
                     scheduleSummary?.todayStr &&
@@ -1141,6 +1202,7 @@ export default function Dashboard() {
                       key={item.id}
                       className={`schedule-card ${isCompleted ? 'card-completed' : ''} ${isPastOverdue ? 'card-overdue' : ''}`}
                     >
+                      <div className="schedule-card-main">
                       <div className="schedule-card-left">
                         <button
                           type="button"
@@ -1205,13 +1267,8 @@ export default function Dashboard() {
 
                         <div className="schedule-item-footer">
                           <div className="attribution-line">
-                            {isSelfAdded ? (
-                              <span className="attr-self">Added by Nagarsevak</span>
-                            ) : (
-                              <span className="attr-emp">
-                                Added by {item.creator?.name || 'staff'}
-                              </span>
-                            )}
+                            {scheduleAssigneeText(item)}
+                            {item.creator?.name ? ` · Added by ${item.creator.name}` : ''}
                           </div>
                           {isCompleted && item.completedBy?.name ? (
                             <div className="completion-info">
@@ -1220,49 +1277,28 @@ export default function Dashboard() {
                           ) : null}
                         </div>
                       </div>
+                      </div>
 
                       <div className="schedule-card-actions">
-                        <button
-                          type="button"
-                          className={`schedule-btn-toggle ${isCompleted ? 'btn-reopen' : 'btn-done'}`}
-                          onClick={() => handleToggleScheduleStatus(item)}
-                          disabled={isMarking}
-                          title={isCompleted ? 'Mark as Incomplete' : 'Mark as Completed'}
-                        >
-                          {isCompleted ? 'Reopen' : 'Mark Done'}
-                        </button>
-
-                        {canEdit && !isCompleted && item.scheduledDate < (scheduleSummary?.todayStr || getTodayDateStr()) && (
-                          <button
-                            type="button"
-                            className="schedule-btn-move"
-                            onClick={() => handleMoveToToday(item)}
-                            title="Move this pending task to Today's Agenda"
-                          >
-                            Move to Today
-                          </button>
-                        )}
-
-                        {canEdit && (
-                          <button
-                            type="button"
-                            className="schedule-btn-edit"
-                            onClick={() => openEditScheduleModal(item)}
-                            title="Edit"
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {canEdit && (
-                          <button
-                            type="button"
-                            className="schedule-btn-delete"
-                            onClick={() => handleDeleteSchedule(item)}
-                            title="Delete"
-                          >
-                            Delete
-                          </button>
-                        )}
+                        <RowMenu
+                          items={[
+                            {
+                              label: isCompleted ? 'Reopen' : 'Mark done',
+                              className: `small-btn ${isCompleted ? 'ghost-btn' : 'view-btn'}`,
+                              onClick: () => handleToggleScheduleStatus(item),
+                            },
+                            canEdit && !isCompleted && item.scheduledDate < (scheduleSummary?.todayStr || getTodayDateStr()) && {
+                              label: 'Move to today',
+                              onClick: () => handleMoveToToday(item),
+                            },
+                            canEdit && !isCompleted && {
+                              label: 'Reassign / Move',
+                              onClick: () => openScheduleAssign(item),
+                            },
+                            canEdit && { label: 'Edit', onClick: () => openEditScheduleModal(item) },
+                            canEdit && { label: 'Delete', danger: true, onClick: () => handleDeleteSchedule(item) },
+                          ].filter(Boolean)}
+                        />
                       </div>
                     </article>
                   );
@@ -1273,8 +1309,8 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* COMPLAINT RESOLUTION PIPELINE */}
-      {can('VIEW_COMPLAINTS') && (
+      {/* COMPLAINT RESOLUTION PIPELINE — Nagarsevak & Employee only */}
+      {field && can('VIEW_COMPLAINTS') && (
         <section className="dash-pipeline-section panel">
           <div className="panel-title">
             <div>
@@ -1316,7 +1352,7 @@ export default function Dashboard() {
       <section className="panel dashboard-info-panel">
         <div className="panel-title">
           <div>
-            <h3>Ward Overview & Demographics</h3>
+            <h3>{field ? 'This ward' : 'City & ward counts'}</h3>
           </div>
         </div>
 
@@ -2211,6 +2247,43 @@ export default function Dashboard() {
               </div>
             </div>
 
+            <div className="form-field-group">
+              <label htmlFor="modal-sched-assign-to">
+                <span className="field-title">Assign this work to</span>
+              </label>
+              <select
+                id="modal-sched-assign-to"
+                className="prof-select"
+                value={scheduleForm.assignTo || 'NAGARSEVAK'}
+                onChange={(e) => setScheduleForm({
+                  ...scheduleForm,
+                  assignTo: e.target.value,
+                  assignedEmployeeUserId: e.target.value === 'EMPLOYEE' ? scheduleForm.assignedEmployeeUserId : '',
+                })}
+              >
+                <option value="NAGARSEVAK">Nagarsevak</option>
+                <option value="EMPLOYEE">Employee</option>
+              </select>
+            </div>
+            {scheduleForm.assignTo === 'EMPLOYEE' && (
+              <div className="form-field-group">
+                <label htmlFor="modal-sched-assign">
+                  <span className="field-title">Employee</span>
+                </label>
+                <select
+                  id="modal-sched-assign"
+                  className="prof-select"
+                  value={scheduleForm.assignedEmployeeUserId || ''}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, assignedEmployeeUserId: e.target.value })}
+                >
+                  <option value="">{scheduleEmployees.length ? 'Select employee' : 'No employees in this ward'}</option>
+                  {scheduleEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Priority and Location Row */}
             <div className="prof-grid-2">
               <div className="form-field-group">
@@ -2278,6 +2351,51 @@ export default function Dashboard() {
               >
                 {scheduleSaving ? 'Saving…' : scheduleModal.mode === 'create' ? 'Add to Schedule' : 'Save Changes'}
               </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {scheduleAssign.open && (
+        <Modal
+          title="Reassign / Move work"
+          onClose={() => setScheduleAssign({ open: false, item: null, assignTo: 'EMPLOYEE', assignedEmployeeUserId: '' })}
+        >
+          <form onSubmit={handleSaveScheduleAssign} className="schedule-modal-professional">
+            <p className="field-subtitle">{scheduleAssign.item?.title}</p>
+            <div className="form-field-group">
+              <label>
+                <span className="field-title">Move to</span>
+              </label>
+              <select
+                className="prof-select"
+                value={scheduleAssign.assignTo}
+                onChange={(e) => setScheduleAssign({ ...scheduleAssign, assignTo: e.target.value })}
+              >
+                <option value="NAGARSEVAK">Nagarsevak</option>
+                <option value="EMPLOYEE">Employee</option>
+              </select>
+            </div>
+            {scheduleAssign.assignTo === 'EMPLOYEE' && (
+              <div className="form-field-group">
+                <label>
+                  <span className="field-title">Employee</span>
+                </label>
+                <select
+                  className="prof-select"
+                  value={scheduleAssign.assignedEmployeeUserId}
+                  onChange={(e) => setScheduleAssign({ ...scheduleAssign, assignedEmployeeUserId: e.target.value })}
+                >
+                  <option value="">{scheduleEmployees.length ? 'Select employee' : 'No employees in this ward'}</option>
+                  {scheduleEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="prof-modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setScheduleAssign({ open: false, item: null, assignTo: 'EMPLOYEE', assignedEmployeeUserId: '' })}>Cancel</button>
+              <button type="submit" className="primary-btn" disabled={scheduleAssigning}>{scheduleAssigning ? 'Moving…' : 'Move work'}</button>
             </div>
           </form>
         </Modal>

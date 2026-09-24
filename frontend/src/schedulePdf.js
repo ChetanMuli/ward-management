@@ -112,8 +112,9 @@ export function exportScheduleToPdf(items, {
     { key: 'priority', title: 'Priority', weight: 18, halign: 'center', enabled: columns.priority },
     { key: 'location', title: 'Location / Area', weight: 32, halign: 'left', enabled: columns.location },
     { key: 'status', title: 'Status', weight: 22, halign: 'center', enabled: columns.status },
-    { key: 'creator', title: 'Added By', weight: 28, halign: 'left', enabled: columns.creator },
-    { key: 'completion', title: 'Completion Details', weight: 34, halign: 'left', enabled: columns.completion },
+    { key: 'creator', title: 'Added By', weight: 24, halign: 'left', enabled: columns.creator },
+    { key: 'assigned', title: 'Assigned To', weight: 24, halign: 'left', enabled: columns.assigned !== false },
+    { key: 'completion', title: 'Completion Details', weight: 30, halign: 'left', enabled: columns.completion },
   ];
 
   const activeCols = colDefs.filter(c => c.always || c.enabled);
@@ -184,6 +185,9 @@ export function exportScheduleToPdf(items, {
           break;
         case 'creator':
           row.push(addedByStr);
+          break;
+        case 'assigned':
+          row.push(it.assignedEmployee?.name || '—');
           break;
         case 'completion':
           row.push(completionStr);

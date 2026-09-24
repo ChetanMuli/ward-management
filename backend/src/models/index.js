@@ -38,6 +38,7 @@ const WardSubscriptionEvent = require('./wardSubscriptionEvent.model');
 const EmployeeAreaAssignment = require('./employeeAreaAssignment.model');
 const ComplaintAttachment = require('./complaintAttachment.model');
 const NagarsevakSchedule = require('./nagarsevakSchedule.model');
+const NagarsevakScheduleAssignment = require('./nagarsevakScheduleAssignment.model');
 const {
   AdminUser,
   SubAdminUser,
@@ -272,8 +273,14 @@ registerNormalizedHooks({
 NagarsevakSchedule.belongsTo(User, { foreignKey: 'nagarsevakUserId', as: 'nagarsevak' });
 NagarsevakSchedule.belongsTo(User, { foreignKey: 'createdByUserId', as: 'creator' });
 NagarsevakSchedule.belongsTo(User, { foreignKey: 'completedByUserId', as: 'completedBy' });
+NagarsevakSchedule.belongsTo(User, { foreignKey: 'assignedEmployeeUserId', as: 'assignedEmployee' });
 NagarsevakSchedule.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+NagarsevakSchedule.hasMany(NagarsevakScheduleAssignment, { foreignKey: 'scheduleId', as: 'assignments' });
+NagarsevakScheduleAssignment.belongsTo(NagarsevakSchedule, { foreignKey: 'scheduleId', as: 'schedule' });
+NagarsevakScheduleAssignment.belongsTo(User, { foreignKey: 'assignedByUserId', as: 'assignedBy' });
+NagarsevakScheduleAssignment.belongsTo(User, { foreignKey: 'toUserId', as: 'toUser' });
 User.hasMany(NagarsevakSchedule, { foreignKey: 'nagarsevakUserId', as: 'schedules' });
+User.hasMany(NagarsevakSchedule, { foreignKey: 'assignedEmployeeUserId', as: 'assignedSchedules' });
 
 module.exports = {
   sequelize,
@@ -321,4 +328,5 @@ module.exports = {
   EmployeeAreaAssignment,
   ComplaintAttachment,
   NagarsevakSchedule,
+  NagarsevakScheduleAssignment,
 };

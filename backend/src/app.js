@@ -59,7 +59,8 @@ app.use(errorHandler);
 // Lightweight housekeeping: audit logs older than 2 days and recycle-bin data older than 30 days are removed automatically.
 try {
   const { cleanupAuditLogs, cleanupRecycleBin } = require('./v2/controllers/maintenance.controller');
-  const runMaintenance=()=>Promise.all([cleanupAuditLogs(2),cleanupRecycleBin(30)]).catch(()=>{});
+  const { archiveOldSchedules } = require('./v2/controllers/schedule.controller');
+  const runMaintenance=()=>Promise.all([cleanupAuditLogs(2),cleanupRecycleBin(30),archiveOldSchedules()]).catch(()=>{});
   runMaintenance();
   setInterval(runMaintenance,24*60*60*1000).unref?.();
 } catch (_) {}

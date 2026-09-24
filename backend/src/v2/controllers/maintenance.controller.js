@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { AuditLog, Ward, Area, House, Family, Person, VoterProfile, Complaint, GovernmentVoterList } = require('../../models');
+const { AuditLog, Ward, Area, House, Family, Person, VoterProfile, Complaint, GovernmentVoterList, NagarsevakSchedule } = require('../../models');
 const fs=require('fs');
 const path=require('path');
 const GOV_STORAGE=path.resolve(__dirname,'../../../storage/government-voter-lists');
@@ -13,8 +13,9 @@ async function cleanupAuditLogs(days=2){
 async function cleanupRecycleBin(days=30){
   const cutoff=new Date(Date.now()-days*24*60*60*1000);
   let total=0;
-  for(const Model of [Ward,Area,House,Family,Person,VoterProfile,Complaint]){
-    total += await Model.destroy({where:{deletedAt:{[Op.lt]:cutoff}},paranoid:false});
+  for(const Model of [Ward,Area,House,Family,Person,VoterProfile,Complaint,NagarsevakSchedule]){
+    const deletedCol=Model.options.deletedAt||Model.rawAttributes.deletedAt?.field||'deletedAt';
+    total += await Model.destroy({where:{[deletedCol]:{[Op.lt]:cutoff}},paranoid:false});
   }
   const gov=await GovernmentVoterList.findAll({where:{deletedAt:{[Op.lt]:cutoff}},paranoid:false});
   for(const row of gov){try{await fs.promises.unlink(path.join(GOV_STORAGE,row.storedFileName));}catch(_){ } await row.destroy({force:true}); total+=1;}

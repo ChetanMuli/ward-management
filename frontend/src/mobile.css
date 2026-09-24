@@ -4597,6 +4597,7 @@ html body .person-form .form-section-title strong{
   }
 
   html body .schedule-card-actions .schedule-btn-move,
+  html body .schedule-card-actions .schedule-btn-reassign,
   html body .schedule-card-actions .schedule-action-btn.btn-move-today {
     flex: 1.5 !important;
     height: 40px !important;
@@ -4691,5 +4692,80 @@ html body .person-form .form-section-title strong{
   html body .notification-item-schedule.read {
     background: #ffffff !important;
     border-left-color: #cbd5e1 !important;
+  }
+
+  html body .schedules-page .sched-scope,
+  html body .schedules-page .sched-period-row,
+  html body .schedules-page .sched-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body .schedules-page .sched-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html body .schedules-page .sched-tabs {
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+  }
+
+  html body .schedules-page .sched-tab {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body .schedules-page .sched-card {
+    grid-template-columns: 32px minmax(0, 1fr) !important;
+    width: 100% !important;
+  }
+
+  html body .schedules-page .sched-card-actions {
+    grid-column: 1 / -1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+  }
+
+  html body .schedules-page .sched-act {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+
+  html body .schedules-page .page-header,
+  html body .schedules-page .sched-head-actions {
+    width: 100% !important;
+  }
+
+  html body .schedules-page .sched-scope {
+    grid-template-columns: 1fr !important;
+  }
+  html body .schedules-page .sched-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html body .admin-dashboard-page.is-field-desk .dash-duty-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  html body .admin-dashboard-page.is-field-desk .dash-hero-content {
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+  html body .schedules-page .sched-card-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+  }
+  html body .schedules-page .sched-act.act-done,
+  html body .schedules-page .sched-act.act-reopen {
+    flex: 1 1 100% !important;
+  }
+  html body .schedules-page .sched-act.act-move,
+  html body .schedules-page .sched-act.act-edit,
+  html body .schedules-page .sched-act.act-del {
+    flex: 1 1 calc(33.33% - 8px) !important;
+    min-width: 0 !important;
+  }
+  html body .perm-v2-item-tile {
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 }

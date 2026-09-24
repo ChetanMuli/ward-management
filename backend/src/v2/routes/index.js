@@ -195,6 +195,7 @@ router.get('/schedules',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEV
 router.post('/schedules',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.create);
 router.patch('/schedules/:id',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.update);
 router.patch('/schedules/:id/status',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.updateStatus);
+router.patch('/schedules/:id/assign',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.assign);
 router.delete('/schedules/:id',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.remove);
 
 module.exports=router;

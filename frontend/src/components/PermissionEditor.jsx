@@ -22,8 +22,20 @@ export const PERMISSION_MODULES = [
       { id: 'VIEW_COMPLAINTS', label: 'View Complaints', desc: 'Browse and search all complaints filed in the ward', scope: 'READ' },
       { id: 'CREATE_COMPLAINTS', label: 'Register Complaints', desc: 'File new complaints on behalf of ward citizens', scope: 'WRITE' },
       { id: 'EDIT_COMPLAINTS', label: 'Update & Resolve', desc: 'Change progress status, add notes and upload proof photos', scope: 'WRITE' },
-      { id: 'ASSIGN_COMPLAINTS', label: 'Assign Staff', desc: 'Delegate complaints to specific field employees', scope: 'ADMIN' },
-      { id: 'DELETE_COMPLAINTS', label: 'Delete Complaints', desc: 'Permanently remove duplicate, invalid or spam complaints', scope: 'DELETE' },
+      { id: 'ASSIGN_COMPLAINTS', label: 'Give work to staff', desc: 'Assign a complaint to an employee', scope: 'ADMIN' },
+      { id: 'DELETE_COMPLAINTS', label: 'Delete complaints', desc: 'Remove duplicate or invalid complaints', scope: 'DELETE' },
+    ],
+  },
+  {
+    id: 'SCHEDULES',
+    title: 'Daily Schedule',
+    icon: '📅',
+    description: 'Today’s ward work: visits, meetings, and tasks assigned between Nagarsevak and employees.',
+    items: [
+      { id: 'VIEW_SCHEDULES', label: 'Open Daily Schedule', desc: 'See today’s work list on dashboard and the schedule page', scope: 'READ' },
+      { id: 'CREATE_SCHEDULES', label: 'Add work', desc: 'Create a new visit, meeting or task', scope: 'WRITE' },
+      { id: 'EDIT_SCHEDULES', label: 'Edit, complete & reassign', desc: 'Tick done, change date, and move work to Nagarsevak or employee', scope: 'WRITE' },
+      { id: 'DELETE_SCHEDULES', label: 'Delete work', desc: 'Move a schedule item to recycle bin', scope: 'DELETE' },
     ],
   },
   {
@@ -90,9 +102,9 @@ export const PERMISSION_MODULES = [
   },
   {
     id: 'ADMINISTRATION',
-    title: 'Administration & System Control',
+    title: 'Staff, reports & recycle bin',
     icon: '⚙️',
-    description: 'Staff delegation, registered accounts, reports export, audit and bin.',
+    description: 'Employees under this Nagarsevak, Excel export, and restoring deleted records.',
     adminOnly: true,
     items: [
       { id: 'VIEW_STAFF', label: 'View Ward Staff', desc: 'Browse ward employees, staff list, and assignments', scope: 'READ', adminOnly: true },
@@ -119,9 +131,9 @@ export const ALL_PERMISSIONS = [...new Set(PERMISSION_MODULES.flatMap(m => m.ite
 export const PRESETS = {
   EMPLOYEE_FIELD: {
     id: 'EMPLOYEE_FIELD',
-    label: '⚡ Field Staff (Standard)',
+    label: 'Field staff',
     badge: 'Recommended',
-    description: 'Everyday ward worker: Houses, Families, Citizens, Complaints, Voter Search, Chat & Schemes',
+    description: 'Houses, families, citizens, complaints, daily schedule, voters and chat',
     perms: [
       'VIEW_DASHBOARD', 'VIEW_WARD_INFORMATION', 'VIEW_WARD_UPDATES', 'VIEW_NOTIFICATIONS',
       'VIEW_HOUSES', 'CREATE_HOUSES', 'EDIT_HOUSES',
@@ -129,26 +141,28 @@ export const PRESETS = {
       'VIEW_CITIZENS', 'CREATE_CITIZENS', 'EDIT_CITIZENS',
       'VIEW_VOTERS', 'VIEW_18PLUS', 'VIEW_BIRTHDAYS',
       'VIEW_COMPLAINTS', 'CREATE_COMPLAINTS', 'EDIT_COMPLAINTS',
+      'VIEW_SCHEDULES', 'CREATE_SCHEDULES', 'EDIT_SCHEDULES',
       'VIEW_SCHEMES', 'VIEW_DEATH_RECORDS', 'CREATE_DEATH_RECORDS',
       'VIEW_CHAT', 'SEND_CHAT', 'VIEW_RECYCLE_BIN', 'VIEW_WARDS', 'VIEW_ELECTION_DATA'
     ],
   },
   EMPLOYEE_COMPLAINTS: {
     id: 'EMPLOYEE_COMPLAINTS',
-    label: '🛠️ Complaints Resolver',
+    label: 'Complaints only',
     badge: 'Focused',
-    description: 'Handles citizen grievances, field inspection, status updates, photos and chat only',
+    description: 'Complaints, daily schedule and chat — no full survey access',
     perms: [
       'VIEW_DASHBOARD', 'VIEW_WARD_INFORMATION', 'VIEW_NOTIFICATIONS',
       'VIEW_COMPLAINTS', 'CREATE_COMPLAINTS', 'EDIT_COMPLAINTS',
+      'VIEW_SCHEDULES', 'CREATE_SCHEDULES', 'EDIT_SCHEDULES',
       'VIEW_CHAT', 'SEND_CHAT', 'VIEW_WARDS'
     ],
   },
   EMPLOYEE_SURVEY: {
     id: 'EMPLOYEE_SURVEY',
-    label: '📋 Voter Survey & Census',
-    badge: 'Data Collection',
-    description: 'Door-to-door surveying, voter registry, 18+ new voters, birthdays and house surveys',
+    label: 'Survey & voters',
+    badge: 'Data',
+    description: 'Door-to-door houses, families, citizens, voters and 18+ follow-up',
     perms: [
       'VIEW_DASHBOARD', 'VIEW_WARD_INFORMATION', 'VIEW_NOTIFICATIONS',
       'VIEW_HOUSES', 'CREATE_HOUSES', 'EDIT_HOUSES',
@@ -156,20 +170,39 @@ export const PRESETS = {
       'VIEW_CITIZENS', 'CREATE_CITIZENS', 'EDIT_CITIZENS',
       'VIEW_VOTERS', 'EDIT_VOTERS', 'VIEW_18PLUS', 'EDIT_18PLUS',
       'VIEW_BIRTHDAYS', 'VIEW_GOVERNMENT_VOTER_LISTS',
+      'VIEW_SCHEDULES', 'CREATE_SCHEDULES',
       'VIEW_CHAT', 'SEND_CHAT', 'VIEW_WARDS'
+    ],
+  },
+  NAGARSEVAK_WORK: {
+    id: 'NAGARSEVAK_WORK',
+    label: 'Ward desk (recommended)',
+    badge: 'Recommended',
+    description: 'Daily schedule, complaints, citizens, houses, chat — everything needed to run the ward',
+    perms: [
+      'VIEW_DASHBOARD', 'VIEW_WARD_INFORMATION', 'VIEW_WARD_UPDATES', 'VIEW_NOTIFICATIONS',
+      'VIEW_HOUSES', 'CREATE_HOUSES', 'EDIT_HOUSES',
+      'VIEW_FAMILIES', 'CREATE_FAMILIES', 'EDIT_FAMILIES',
+      'VIEW_CITIZENS', 'CREATE_CITIZENS', 'EDIT_CITIZENS',
+      'VIEW_VOTERS', 'VIEW_COMPLAINTS', 'ASSIGN_COMPLAINTS', 'EDIT_COMPLAINTS', 'CREATE_COMPLAINTS',
+      'VIEW_SCHEDULES', 'CREATE_SCHEDULES', 'EDIT_SCHEDULES',
+      'VIEW_18PLUS', 'VIEW_BIRTHDAYS', 'VIEW_SCHEMES',
+      'VIEW_DEATH_RECORDS', 'CREATE_DEATH_RECORDS', 'VIEW_CHAT', 'SEND_CHAT',
+      'VIEW_STAFF', 'VIEW_ELECTION_DATA',
     ],
   },
   NAGARSEVAK_FULL: {
     id: 'NAGARSEVAK_FULL',
-    label: '🏛️ Full Ward Administration',
-    badge: 'Complete Access',
-    description: 'Complete suite of ward representative operations, complaints assignment and staff management',
+    label: 'Full ward access',
+    badge: 'All',
+    description: 'Everything in the recommended desk, plus staff management, recycle bin and exports',
     perms: [
       'VIEW_DASHBOARD', 'VIEW_WARD_INFORMATION', 'VIEW_WARD_UPDATES', 'VIEW_NOTIFICATIONS',
       'VIEW_HOUSES', 'CREATE_HOUSES', 'EDIT_HOUSES',
       'VIEW_FAMILIES', 'CREATE_FAMILIES', 'EDIT_FAMILIES',
       'VIEW_CITIZENS', 'CREATE_CITIZENS', 'EDIT_CITIZENS',
       'VIEW_VOTERS', 'VIEW_COMPLAINTS', 'ASSIGN_COMPLAINTS', 'EDIT_COMPLAINTS',
+      'VIEW_SCHEDULES', 'CREATE_SCHEDULES', 'EDIT_SCHEDULES', 'DELETE_SCHEDULES',
       'VIEW_18PLUS', 'VIEW_BIRTHDAYS', 'EXPORT_DATA', 'VIEW_SCHEMES',
       'VIEW_DEATH_RECORDS', 'CREATE_DEATH_RECORDS', 'VIEW_CHAT', 'SEND_CHAT',
       'VIEW_RECYCLE_BIN', 'RESTORE_RECYCLE_BIN', 'VIEW_USERS', 'VIEW_WARDS',
@@ -190,13 +223,18 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
 
   const isEmp = role === 'EMPLOYEE';
   const isNagar = role === 'NAGARSEVAK';
+  const hideForField = new Set([
+    'VIEW_WARDS', 'CREATE_WARDS', 'EDIT_WARDS', 'DELETE_WARDS',
+    'VIEW_AUDIT', 'CREATE_STAKEHOLDERS', 'EDIT_STAKEHOLDERS', 'DELETE_STAKEHOLDERS',
+  ]);
+  const hideForNagar = new Set([...hideForField, 'VIEW_USERS', 'EDIT_USERS', 'DELETE_USERS']);
 
   // Filter modules and items according to the active role
   const visibleModules = useMemo(() => {
     return PERMISSION_MODULES.map(mod => {
       const items = mod.items.filter(item => {
-        if (isEmp && (item.adminOnly || item.masterOnly)) return false;
-        if (isNagar && item.masterOnly) return false;
+        if (isEmp && (item.adminOnly || item.masterOnly || hideForField.has(item.id))) return false;
+        if (isNagar && (item.masterOnly || hideForNagar.has(item.id))) return false;
         if (!isMasterAdmin && item.masterOnly) return false;
         return true;
       });
@@ -315,17 +353,17 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
         <div className="perm-v2-header-top">
           <div className="perm-v2-title-box">
             <div className="perm-v2-role-tag">
-              {isEmp ? '👷‍♂️ FIELD EMPLOYEE' : isNagar ? '🏛️ NAGARSEVAK REPRESENTATIVE' : '🛡️ ADMINISTRATION ACCOUNT'}
+              {isEmp ? 'Employee' : isNagar ? 'Nagarsevak' : 'Account'}
             </div>
             <h3 className="perm-v2-title">
-              {isEmp ? 'Employee Field Permissions' : isNagar ? 'Nagarsevak Ward Permissions' : 'Account Access Controls'}
+              {isEmp ? 'What this employee can use' : isNagar ? 'What this Nagarsevak can use' : 'Account access'}
             </h3>
             <p className="perm-v2-desc">
               {isEmp
-                ? 'Field employees operate under their managing Nagarsevak. Toggle permissions below to grant or restrict specific modules, data records, and field tasks.'
+                ? 'Turn ON only the screens this field staff should open. OFF means that menu is hidden for them.'
                 : isNagar
-                ? 'Ward representatives have primary authority over citizen grievances, surveys, census data, and staff delegation.'
-                : 'Configure fine-grained module access, edit privileges, and administrative controls for this account.'}
+                ? 'Turn ON the ward tools this Nagarsevak needs. Daily Schedule, complaints and citizens are the usual set.'
+                : 'Turn ON each screen this account is allowed to open.'}
             </p>
           </div>
 
@@ -334,7 +372,7 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
               <span className="perm-v2-stat-granted">{grantedCount}</span>
               <span className="perm-v2-stat-total"> / {allAvailablePermissions.length}</span>
             </div>
-            <div className="perm-v2-stat-label">Active Permissions ({percentGranted}%)</div>
+            <div className="perm-v2-stat-label">Switched on ({percentGranted}%)</div>
             <div className="perm-v2-progress-track">
               <div
                 className="perm-v2-progress-fill"
@@ -344,11 +382,17 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
           </div>
         </div>
 
+        <ol className="perm-howto">
+          <li>Pick a job profile, or skip and use the switches.</li>
+          <li><b>ON</b> = they can open that screen. <b>OFF</b> = it is hidden.</li>
+          <li>Press <b>Save access</b> at the bottom. They see it after the next login.</li>
+        </ol>
+
         {/* 2. One-Click Quick Presets */}
         <div className="perm-v2-presets-section">
           <div className="perm-v2-presets-title">
-            <span>⚡ Quick Role Presets:</span>
-            <small className="perm-v2-presets-hint">Click a preset to instantly apply standard permission sets</small>
+            <span>Quick job profile</span>
+            <small className="perm-v2-presets-hint">One tap fills the switches below. You can still change any item.</small>
           </div>
           <div className="perm-v2-presets-list">
             {isEmp && (
@@ -359,8 +403,7 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
                   onClick={() => applyPreset('EMPLOYEE_FIELD')}
                   title={PRESETS.EMPLOYEE_FIELD.description}
                 >
-                  <span className="perm-v2-pill-icon">⚡</span>
-                  <strong>Field Staff (Standard)</strong>
+                  <strong>Field staff</strong>
                   <span className="perm-v2-pill-badge">Recommended</span>
                 </button>
 
@@ -370,8 +413,7 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
                   onClick={() => applyPreset('EMPLOYEE_COMPLAINTS')}
                   title={PRESETS.EMPLOYEE_COMPLAINTS.description}
                 >
-                  <span className="perm-v2-pill-icon">🛠️</span>
-                  <strong>Complaints Resolver</strong>
+                  <strong>Complaints only</strong>
                 </button>
 
                 <button
@@ -380,23 +422,31 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
                   onClick={() => applyPreset('EMPLOYEE_SURVEY')}
                   title={PRESETS.EMPLOYEE_SURVEY.description}
                 >
-                  <span className="perm-v2-pill-icon">📋</span>
-                  <strong>Voter & Survey Census</strong>
+                  <strong>Survey & voters</strong>
                 </button>
               </>
             )}
 
             {isNagar && (
-              <button
-                type="button"
-                className={`perm-v2-preset-pill ${activePresetKey === 'NAGARSEVAK_FULL' ? 'is-active' : ''}`}
-                onClick={() => applyPreset('NAGARSEVAK_FULL')}
-                title={PRESETS.NAGARSEVAK_FULL.description}
-              >
-                <span className="perm-v2-pill-icon">🏛️</span>
-                <strong>Full Ward Administration</strong>
-                <span className="perm-v2-pill-badge">All Powers</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={`perm-v2-preset-pill ${activePresetKey === 'NAGARSEVAK_WORK' ? 'is-active' : ''}`}
+                  onClick={() => applyPreset('NAGARSEVAK_WORK')}
+                  title={PRESETS.NAGARSEVAK_WORK.description}
+                >
+                  <strong>Ward desk</strong>
+                  <span className="perm-v2-pill-badge">Recommended</span>
+                </button>
+                <button
+                  type="button"
+                  className={`perm-v2-preset-pill ${activePresetKey === 'NAGARSEVAK_FULL' ? 'is-active' : ''}`}
+                  onClick={() => applyPreset('NAGARSEVAK_FULL')}
+                  title={PRESETS.NAGARSEVAK_FULL.description}
+                >
+                  <strong>Full ward access</strong>
+                </button>
+              </>
             )}
 
             <button
@@ -406,17 +456,17 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
               title="Grant all available permissions to this account"
             >
               <span>✓</span>
-              <strong>Grant All</strong>
+              <strong>Turn all on</strong>
             </button>
 
             <button
               type="button"
               className="perm-v2-preset-pill action-revoke"
               onClick={clearAll}
-              title="Revoke all permissions except default dashboard landing"
+              title="Keep only the dashboard"
             >
               <span>✕</span>
-              <strong>Revoke All</strong>
+              <strong>Dashboard only</strong>
             </button>
           </div>
         </div>
@@ -429,7 +479,7 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
           <input
             type="search"
             className="perm-v2-search-input"
-            placeholder="Search permissions (e.g. complaints, voters, chat, delete, export)…"
+            placeholder="Search a screen: schedule, complaints, houses, chat…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -459,14 +509,14 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
             className={`perm-v2-filter-tab is-granted ${filterMode === 'GRANTED' ? 'is-active' : ''}`}
             onClick={() => setFilterMode('GRANTED')}
           >
-            ✓ Allowed ({grantedCount})
+            On ({grantedCount})
           </button>
           <button
             type="button"
             className={`perm-v2-filter-tab is-restricted ${filterMode === 'RESTRICTED' ? 'is-active' : ''}`}
             onClick={() => setFilterMode('RESTRICTED')}
           >
-            ✕ Restricted ({restrictedCount})
+            Off ({restrictedCount})
           </button>
         </div>
 
@@ -548,11 +598,11 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
                     {/* Status Pill */}
                     <span className={`perm-v2-status-pill ${allActive ? 'is-full' : activeInMod > 0 ? 'is-part' : 'is-off'}`}>
                       {allActive ? (
-                        <>✓ All {mod.items.length} Allowed</>
+                        <>All on</>
                       ) : activeInMod > 0 ? (
-                        <>{activeInMod} of {mod.items.length} Allowed</>
+                        <>{activeInMod} on</>
                       ) : (
-                        <>Restricted (0/{mod.items.length})</>
+                        <>All off</>
                       )}
                     </span>
 
@@ -563,7 +613,7 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
                       onClick={() => toggleModule(mod)}
                       title={allActive ? 'Disable all permissions in this module' : 'Enable all permissions in this module'}
                     >
-                      {allActive ? 'Disable All' : 'Enable All'}
+                      {allActive ? 'Turn all off' : 'Turn all on'}
                     </button>
 
                     {/* Expand/Collapse Caret */}
@@ -607,7 +657,7 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
                               <p className="perm-v2-item-desc">{item.desc}</p>
                               {isDashboard && (
                                 <div className="perm-v2-locked-note">
-                                  <span>🔒</span> Mandatory default permission for system login
+                                  <span>Always on — needed to open WardDesk</span>
                                 </div>
                               )}
                             </div>
@@ -624,7 +674,7 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
                                 <span className="perm-v2-slider" />
                               </label>
                               <span className={`perm-v2-toggle-state ${isGranted ? 'state-allowed' : 'state-restricted'}`}>
-                                {isGranted ? 'ALLOWED' : 'RESTRICTED'}
+                                {isGranted ? 'ON' : 'OFF'}
                               </span>
                             </div>
                           </div>

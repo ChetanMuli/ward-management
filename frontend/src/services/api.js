@@ -184,5 +184,6 @@ archiveWardUpdate:id=>v2Request(`/ward-updates/${id}/archive`,{method:'PATCH'}),
  createSchedule:d=>v2Request('/schedules',{method:'POST',body:JSON.stringify(d)}),
  updateSchedule:(id,d)=>v2Request(`/schedules/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
  updateScheduleStatus:(id,d)=>v2Request(`/schedules/${id}/status`,{method:'PATCH',body:JSON.stringify(d)}),
+ assignSchedule:(id,d)=>v2Request(`/schedules/${id}/assign`,{method:'PATCH',body:JSON.stringify(d)}),
  deleteSchedule:id=>v2Request(`/schedules/${id}`,{method:'DELETE'}),
 };
