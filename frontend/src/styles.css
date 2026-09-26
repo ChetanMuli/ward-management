@@ -1249,7 +1249,7 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
 
 /* V8 final reliability + mobile UX */
 .searchable-menu-portal{max-width:420px!important}
-@media(max-width:800px){.searchable-menu-portal{width:min(420px,calc(100vw - 20px))!important;max-height:55dvh!important}.searchable-options{min-height:0}.sidebar{z-index:30!important}.scrim{z-index:25!important}.notification-popover{z-index:300!important}.global-toast,.error-toast,.success-toast{position:fixed!important;left:auto!important;right:18px!important;top:82px!important;bottom:auto!important;z-index:50000!important;max-width:min(430px,calc(100vw - 36px))!important}.user-account-menu{z-index:500!important}.user-nav{z-index:500!important}}
+@media(max-width:800px){.searchable-menu-portal{width:min(420px,calc(100vw - 20px))!important;max-height:55dvh!important}.searchable-options{min-height:0}.sidebar{z-index:1200!important}.scrim{z-index:1100!important}.notification-popover{z-index:300!important}.global-toast,.error-toast,.success-toast{position:fixed!important;left:auto!important;right:18px!important;top:82px!important;bottom:auto!important;z-index:50000!important;max-width:min(430px,calc(100vw - 36px))!important}.user-account-menu{z-index:500!important}.user-nav{z-index:500!important}}
 @media(max-width:560px){.global-toast,.error-toast,.success-toast{left:12px!important;right:12px!important;top:72px!important;bottom:auto!important;max-width:none!important}.ward-team-user-grid-four{grid-template-columns:1fr 1fr!important}.ward-team-person{padding:9px!important;gap:8px!important}.ward-team-person .user-avatar{width:30px;height:30px}.complaint-user-team-card{grid-template-columns:1fr!important}.complaint-team-mini{grid-template-columns:1fr 1fr!important}.complaint-team-mini>div{min-width:0}.user-complaint-filterbar{display:grid!important;grid-template-columns:1fr auto!important;align-items:end!important}.user-complaint-filterbar select{width:100%!important}.camera-modal{width:100%!important;border-radius:16px 16px 0 0!important;align-self:end!important}.camera-preview-wrap video{max-height:58dvh!important}}
 .ward-team-user-grid-four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .user-account-arrow{display:none!important}
@@ -2190,11 +2190,13 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
    Keep the desktop data tables intact, but turn operational tables into readable
    stacked cards on phones. This prevents clipped columns and inaccessible actions. */
 .admin-mobile-brand{display:none}
+.sidebar-close-btn{display:none}
+.brand-header-left{display:flex;align-items:center;gap:12px;min-width:0}
 @media(max-width:700px){
   html,body,#root{overflow-x:hidden!important;width:100%!important;max-width:100%!important}
   .main{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
   .topbar{height:64px!important;padding:0 9px!important;gap:7px!important;box-shadow:0 3px 16px rgba(15,27,48,.06);z-index:100}
-  .admin-mobile-brand{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border-radius:9px;background:#111b2b;color:#fff;font-weight:900;font-size:16px}
+  .admin-mobile-brand{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:10px;background:#ffffff;border:1px solid #e1e6ee;box-shadow:0 1px 3px rgba(15,23,42,.08);overflow:hidden}
   .menu-btn{width:34px!important;height:34px!important;font-size:18px!important;border-radius:9px!important}
   .topbar-context{flex:1 1 auto;min-width:0;max-width:none}
   .topbar-title{font-size:13px!important;line-height:1.15!important}

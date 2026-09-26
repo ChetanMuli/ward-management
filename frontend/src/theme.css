@@ -805,8 +805,10 @@ html body .user-portal .user-topbar{
   backdrop-filter:none;
 }
 html body .user-portal .user-brand-mark{
-  background:#0b1624 !important;color:#fff !important;border-radius:12px !important;
+  background:#fff !important;color:#0b1624 !important;border-radius:12px !important;
   width:44px !important;height:44px !important;min-width:44px !important;
+  border:1px solid #e1e6ee !important;
+  box-shadow:0 1px 3px rgba(15,23,42,0.08) !important;
   display:grid !important;place-items:center !important;
   flex:0 0 44px !important;
 }
@@ -1113,12 +1115,16 @@ html body .detail-grid .span-2{grid-column:1 / -1}
   html body .ward-grid,html body .family-grid,html body .stat-grid,html body .two-col,html body .detail-grid{grid-template-columns:1fr !important}
   html body .app-shell aside.sidebar,
   html body .app-shell .sidebar{
-    width:min(300px,88vw) !important;
+    width:min(310px,86vw) !important;
     height:100dvh !important;
     max-height:100dvh !important;
-    overflow:hidden !important;
-    overflow-y:hidden !important;
-    padding:12px 10px max(10px, env(safe-area-inset-bottom,0px)) !important;
+    z-index:1200 !important;
+    background:#0f172a !important;
+    box-shadow:14px 0 40px rgba(0,0,0,.5) !important;
+    padding:max(16px, env(safe-area-inset-top,0px)) 12px max(12px, env(safe-area-inset-bottom,0px)) 12px !important;
+  }
+  html body .scrim{
+    z-index:1100 !important;
   }
   html body .app-shell .sidebar nav{padding-bottom:8px !important;flex:1 1 0% !important;min-height:0 !important}
   html body .app-shell .sidebar-footer{margin-top:0 !important;position:relative !important;flex:0 0 auto !important}
@@ -2606,6 +2612,11 @@ html body .user-brand-mark,
 html body .admin-mobile-brand,
 html body .groups-page .wa-avatar.community{
   font-family:inherit !important;
+}
+html body .admin-mobile-brand{
+  background:#ffffff !important;
+  border:1px solid #e1e6ee !important;
+  box-shadow:0 1px 3px rgba(15,23,42,.08) !important;
 }
 @media (max-width:800px){
   html body .app-shell .topbar{height:56px !important;min-height:56px !important;}

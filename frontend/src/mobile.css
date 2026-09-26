@@ -86,13 +86,16 @@ html {
   .admin-mobile-brand {
     display: grid !important;
     place-items: center !important;
-    width: 40px !important;
-    height: 40px !important;
-    flex: 0 0 40px !important;
-    border-radius: 11px !important;
-    background: #111b2b !important;
-    color: #fff !important;
-    font-weight: 900 !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    flex: 0 0 38px !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    border: 1px solid #e1e6ee !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
   }
 
   .menu-btn {
@@ -936,11 +939,119 @@ html {
     width: auto !important;
   }
 
-  /* ----- Sidebar overlay ----- */
+  /* ----- Sidebar overlay & mobile drawer ----- */
   .sidebar {
-    width: min(300px, 88vw) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: min(310px, 86vw) !important;
     height: 100dvh !important;
-    padding-top: max(16px, env(safe-area-inset-top, 0px)) !important;
+    max-height: 100dvh !important;
+    padding: max(16px, env(safe-area-inset-top, 0px)) 12px max(16px, env(safe-area-inset-bottom, 0px)) 12px !important;
+    box-sizing: border-box !important;
+    background: #0f172a !important;
+    z-index: 1200 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: 14px 0 40px rgba(0, 0, 0, 0.5) !important;
+    transform: translateX(-105%) !important;
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .sidebar.open {
+    transform: translateX(0) !important;
+  }
+
+  .scrim {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(2px) !important;
+    -webkit-backdrop-filter: blur(2px) !important;
+    z-index: 1100 !important;
+    border: 0 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .sidebar .brand {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding: 6px 4px 16px 4px !important;
+    margin: 0 0 10px 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    flex: 0 0 auto !important;
+    min-height: 58px !important;
+    box-sizing: border-box !important;
+  }
+
+  .brand-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .sidebar .brand .brand-mark {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    flex: 0 0 44px !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    display: grid !important;
+    place-items: center !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.28) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  }
+
+  .sidebar .brand strong {
+    display: block !important;
+    color: #ffffff !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.025em !important;
+    line-height: 1.2 !important;
+  }
+
+  .sidebar .brand span {
+    display: block !important;
+    color: #94a3b8 !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    margin-top: 2px !important;
+  }
+
+  .sidebar-close-btn {
+    display: grid !important;
+    place-items: center !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    flex: 0 0 34px !important;
+    border-radius: 9px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    color: #cbd5e1 !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    transition: background 0.15s, color 0.15s !important;
+  }
+
+  .sidebar-close-btn:hover,
+  .sidebar-close-btn:active {
+    background: rgba(255, 255, 255, 0.16) !important;
+    color: #ffffff !important;
   }
 
   .app-footer,
