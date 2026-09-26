@@ -5,6 +5,29 @@ const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { notifyUser } = require('../../services/notify.service');
 const { isWardAllowed, allowedWardIds } = require('../services/wardScope');
+const { ensureDatabaseSchema } = require('../../services/schemaSync.service');
+
+async function executeWithSchemaHealing(queryFn) {
+  try {
+    return await queryFn();
+  } catch (err) {
+    const msg = String(err?.message || '');
+    if (
+      msg.includes('assigned_employee_user_id') ||
+      msg.includes('assigned_to_type') ||
+      msg.includes('completion_note') ||
+      msg.includes('nagarsevak_schedules') ||
+      msg.includes('nagarsevak_schedule_assignments')
+    ) {
+      console.warn('[SCHEDULE-CONTROLLER] Schema discrepancy detected. Triggering self-healing...', msg);
+      if (NagarsevakSchedule.sequelize) {
+        await ensureDatabaseSchema(NagarsevakSchedule.sequelize);
+      }
+      return await queryFn();
+    }
+    throw err;
+  }
+}
 
 const CATEGORIES = ['VISIT', 'MEETING', 'INSPECTION', 'EVENT', 'CITIZEN_HEARING', 'OTHER'];
 const PRIORITIES = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
@@ -340,14 +363,16 @@ const list = asyncHandler(async (req, res) => {
     ['created_at', 'ASC'],
   ];
 
-  const { rows, count } = await NagarsevakSchedule.findAndCountAll({
-    where,
-    include,
-    order,
-    limit,
-    offset,
-    distinct: true,
-  });
+  const { rows, count } = await executeWithSchemaHealing(() =>
+    NagarsevakSchedule.findAndCountAll({
+      where,
+      include,
+      order,
+      limit,
+      offset,
+      distinct: true,
+    })
+  );
 
   // Calculate summary counts for quick navigation cards and reports
   const [
@@ -372,31 +397,33 @@ const list = asyncHandler(async (req, res) => {
     nextWeekTotal,
     lastMonthTotal,
     assignedToMe,
-  ] = await Promise.all([
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: todayStr } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: todayStr, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: todayStr, status: 'COMPLETED' } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: yesterdayStr } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: yesterdayStr, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: yesterdayStr, status: 'COMPLETED' } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfWeek, endOfWeek] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfWeek, endOfWeek] }, status: 'COMPLETED' } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfWeek, endOfWeek] }, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfLastWeek, endOfLastWeek] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfLastWeek, endOfLastWeek] }, status: 'COMPLETED' } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfLastWeek, endOfLastWeek] }, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [monthStart, monthEnd] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [monthStart, monthEnd] }, status: 'COMPLETED' } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [monthStart, monthEnd] }, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.lt]: todayStr }, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: tomorrowStr } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: dayAfterStr } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfNextWeek, endOfNextWeek] } } }),
-    NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [lastMonthStart, lastMonthEnd] } } }),
-    role === 'EMPLOYEE'
-      ? NagarsevakSchedule.count({ where: { ...baseScopeWhere, assignedEmployeeUserId: req.user.id, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } })
-      : Promise.resolve(0),
-  ]);
+  ] = await executeWithSchemaHealing(() =>
+    Promise.all([
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: todayStr } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: todayStr, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: todayStr, status: 'COMPLETED' } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: yesterdayStr } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: yesterdayStr, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: yesterdayStr, status: 'COMPLETED' } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfWeek, endOfWeek] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfWeek, endOfWeek] }, status: 'COMPLETED' } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfWeek, endOfWeek] }, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfLastWeek, endOfLastWeek] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfLastWeek, endOfLastWeek] }, status: 'COMPLETED' } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfLastWeek, endOfLastWeek] }, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [monthStart, monthEnd] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [monthStart, monthEnd] }, status: 'COMPLETED' } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [monthStart, monthEnd] }, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.lt]: todayStr }, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: tomorrowStr } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: dayAfterStr } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [startOfNextWeek, endOfNextWeek] } } }),
+      NagarsevakSchedule.count({ where: { ...baseScopeWhere, scheduledDate: { [Op.between]: [lastMonthStart, lastMonthEnd] } } }),
+      role === 'EMPLOYEE'
+        ? NagarsevakSchedule.count({ where: { ...baseScopeWhere, assignedEmployeeUserId: req.user.id, status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } })
+        : Promise.resolve(0),
+    ])
+  );
 
   return success(res, {
     data: rows,
@@ -549,7 +576,9 @@ const create = asyncHandler(async (req, res) => {
     }).catch(() => {});
   }
 
-  const full = await NagarsevakSchedule.findByPk(item.id, { include: scheduleIncludes() });
+  const full = await executeWithSchemaHealing(() =>
+    NagarsevakSchedule.findByPk(item.id, { include: scheduleIncludes() })
+  );
 
   return success(res, { statusCode: 201, data: full, message: 'Schedule item added successfully' });
 });
@@ -711,7 +740,9 @@ const update = asyncHandler(async (req, res) => {
     }).catch(() => {});
   }
 
-  const full = await NagarsevakSchedule.findByPk(item.id, { include: scheduleIncludes() });
+  const full = await executeWithSchemaHealing(() =>
+    NagarsevakSchedule.findByPk(item.id, { include: scheduleIncludes() })
+  );
 
   return success(res, { data: full, message: 'Schedule updated successfully' });
 });
@@ -785,7 +816,9 @@ const assign = asyncHandler(async (req, res) => {
     }).catch(() => {});
   }
 
-  const full = await NagarsevakSchedule.findByPk(item.id, { include: scheduleIncludes() });
+  const full = await executeWithSchemaHealing(() =>
+    NagarsevakSchedule.findByPk(item.id, { include: scheduleIncludes() })
+  );
   return success(res, { data: full, message: nextEmp ? 'Work moved to employee' : 'Work assigned to Nagarsevak' });
 });
 

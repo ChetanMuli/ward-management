@@ -10992,13 +10992,15 @@ html body .schedules-page .searchable-control input {
   line-height: 1.3;
 }
 
-.admin-dashboard-page.is-admin-desk .dash-top-bar {
-  align-items: flex-end;
-  margin-bottom: 16px;
-}
-.admin-dashboard-page.is-admin-desk .dashboard-scope-panel {
-  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.8fr) !important;
-  align-items: center;
+@media (min-width: 801px) {
+  .admin-dashboard-page.is-admin-desk .dash-top-bar {
+    align-items: flex-end;
+    margin-bottom: 16px;
+  }
+  .admin-dashboard-page.is-admin-desk .dashboard-scope-panel {
+    grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.8fr) !important;
+    align-items: center;
+  }
 }
 
 /* ===== Unified Equal-Height Schedule Cards ===== */

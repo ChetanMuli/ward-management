@@ -10,11 +10,13 @@ const { cleanupOldMessages } = require('./src/v2/controllers/chat.controller');
 const { notifyExpiredNagarsevakSubscriptions } = require('./src/services/wardActivation.service');
 const { notifyTodayDeathReminders, notifyTodayBirthdays } = require('./src/services/wardDay.service');
 const { closeResolvedOvernight } = require('./src/v2/controllers/complaint.controller');
+const { ensureDatabaseSchema } = require('./src/services/schemaSync.service');
 
 async function start() {
   try {
     await sequelize.authenticate();
     console.log('MySQL connection established.');
+    await ensureDatabaseSchema(sequelize);
 
     app.listen(PORT, () => {
       console.log(`Ward Management API listening on port ${PORT} (${process.env.NODE_ENV || 'development'})`);

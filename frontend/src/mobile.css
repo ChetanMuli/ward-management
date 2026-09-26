@@ -4772,5 +4772,133 @@ html body .person-form .form-section-title strong{
     align-items: flex-start !important;
     gap: 8px !important;
   }
+
+  /* Admin Dashboard Mobile Upper Header & Ward Scope Panel */
+  html body .admin-dashboard-page.is-admin-desk .dash-top-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin-bottom: 14px !important;
+    padding-bottom: 14px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dash-kicker {
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+    color: #2563eb !important;
+    margin-bottom: 4px !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dash-heading {
+    font-size: 21px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    color: #0f172a !important;
+    margin: 0 0 4px 0 !important;
+    letter-spacing: -0.01em !important;
+    word-break: break-word !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dash-subheading {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    color: #64748b !important;
+    margin: 0 !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dash-scope-badge {
+    display: inline-flex !important;
+    align-self: flex-start !important;
+    align-items: center !important;
+    gap: 10px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 7px 14px !important;
+    border-radius: 24px !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05) !important;
+    box-sizing: border-box !important;
+    margin-top: 2px !important;
+    max-width: 100% !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dash-scope-badge .scope-dot {
+    width: 9px !important;
+    height: 9px !important;
+    flex-shrink: 0 !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dash-scope-badge .scope-title {
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em !important;
+    color: #64748b !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dash-scope-badge strong {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 16px !important;
+    width: 100% !important;
+    margin-bottom: 16px !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-copy {
+    width: 100% !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-copy .eyebrow {
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    color: #64748b !important;
+    letter-spacing: 0.06em !important;
+    display: block !important;
+    margin-bottom: 3px !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-copy h3 {
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin: 0 0 4px 0 !important;
+    line-height: 1.25 !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-copy p {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    color: #64748b !important;
+    margin: 0 !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-control {
+    width: 100% !important;
+  }
+
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-control .ward-filter,
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-control .searchable-control,
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-control .searchable-select,
+  html body .admin-dashboard-page.is-admin-desk .dashboard-scope-control select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
 }
+
 
