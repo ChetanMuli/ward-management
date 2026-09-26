@@ -48,7 +48,7 @@ export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,li
 }
 
 export function PageHeader({kicker,title,subtitle,action,children}){
- return <div className="page-header"><div>{kicker&&<span className="page-kicker">{kicker}</span>}<h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{action||children}</div>;
+ return <div className="page-header"><div className="page-header-title-box">{kicker&&<span className="page-kicker">{kicker}</span>}<h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{action||children}</div>;
 }
 export function StatCard({label,value,hint,tone='',onClick}){
  const Tag=onClick?'button':'div';

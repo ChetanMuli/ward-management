@@ -403,9 +403,7 @@ export default function Schedules() {
   return (
     <div className="schedules-page">
       <PageHeader
-        kicker="Daily work"
         title="Daily Schedule"
-        subtitle="Nagarsevak and employees can assign work to each other. After 60 days, items move to Recycle bin."
         action={
           <div className="sched-head-actions">
             <button type="button" className="ghost-btn" onClick={() => { setPdfType(filter === 'all' ? 'today' : filter); setPdfOpen(true); }}>Export PDF</button>

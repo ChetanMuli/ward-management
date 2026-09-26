@@ -8,11 +8,11 @@ export default function ElectionData(){
  const user=getUser(); const role=roleOf(user);
  const [data,setData]=useState(null),[error,setError]=useState('');
  useEffect(()=>{api.electionData().then(r=>setData(r.data||r)).catch(e=>setError(e.message||'Unable to load election data.'));},[]);
- if(!data) return <div className="admin-data-page election-data-page"><PageHeader title={mr?'निवडणूक माहिती':'Election data'} subtitle={mr?'अधिकृत निवडणूक माहिती.':'Official election information.'}/>{error?<ErrorBox error={error}/>:<Loading/>}</div>;
+ if(!data) return <div className="admin-data-page election-data-page"><PageHeader title={mr?'निवडणूक माहिती':'Election data'}/>{error?<ErrorBox error={error}/>:<Loading/>}</div>;
  const rows=data.rows||[]; const total=rows.reduce((n,r)=>n+Number(r.count||0),0);
  const ownWard=String(user?.ward?.wardNumber||user?.wardNumber||'').replace(/^W-?/i,'').padStart(2,'0');
  return <div>
-  <PageHeader title={mr?'निवडणूक माहिती':'Election data'} subtitle={mr?'अधिकृत अहिल्यानगर महानगरपालिका आणि SIR 2026 स्रोतांवर आधारित मतदार माहिती.':'Official voter and election information from Ahilyanagar Municipal Corporation and SIR 2026 sources.'}/>
+  <PageHeader title={mr?'निवडणूक माहिती':'Election data'}/>
   <ErrorBox error={error}/>
   <div className="election-source-grid">
    <section className="panel election-source-card"><span className="eyebrow">SIR 2026</span><h2>{mr?'विशेष सखोल पुनरीक्षण':'Special Intensive Revision'}</h2><p>{mr?'अधिकृत ASDD यादी.':'Official ASDD list for Assembly Constituency 225, Ahmednagar City.'}</p><div className="card-actions"><a className="primary-btn" href={data.sirUrl} target="_blank" rel="noreferrer">Open SIR 2026 ASDD list</a><a className="small-btn" href={data.sirDistrictUrl} target="_blank" rel="noreferrer">Official District Election Office</a></div></section>

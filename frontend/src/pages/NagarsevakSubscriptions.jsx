@@ -100,11 +100,11 @@ export default function NagarsevakSubscriptions(){
   };
  },[rows]);
 
- if(!canManage) return <div className="admin-data-page nagarsevak-sub-page"><PageHeader kicker="Team & access" title="Nagarsevak subscriptions" subtitle="Only Master Admin and Sub Master Admin can review subscription dates."/><Empty>Admin desk access is required.</Empty></div>;
+ if(!canManage) return <div className="admin-data-page nagarsevak-sub-page"><PageHeader kicker="Team & access" title="Nagarsevak subscriptions"/><Empty>Admin desk access is required.</Empty></div>;
 
  return (
   <div className="admin-data-page nagarsevak-sub-page">
-   <PageHeader kicker="Team & access" title="Nagarsevak subscriptions" subtitle="The 1-year clock starts only when you activate a Nagarsevak. When the year ends, login stays open until you deactivate the panel yourself."/>
+   <PageHeader kicker="Team & access" title="Nagarsevak subscriptions"/>
    <ErrorBox error={error}/>
    <div className="stat-grid sub-stat-grid">
     <div className="stat-card"><span>All</span><strong>{counts.all}</strong></div>

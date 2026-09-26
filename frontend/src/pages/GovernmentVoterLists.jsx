@@ -119,7 +119,7 @@ export default function GovernmentVoterLists(){
  useEffect(()=>{if(detailPage!==safePage)setDetailPage(safePage)},[detailPage,safePage]);
 
  return <div className="admin-data-page government-voter-page">
-  <PageHeader title="Government voter lists" subtitle="Upload the official Election Commission PDF for one ward. Extracted names stay in this section and are not merged into citizen records."/>
+  <PageHeader title="Government voter lists"/>
   <ErrorBox error={error}/>
 
   {canUpload&&<section className="panel government-voter-upload-panel">

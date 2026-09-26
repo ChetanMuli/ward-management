@@ -41,7 +41,7 @@ export default function People(){
  async function save(e){e.preventDefault();setBusy(true);try{const payload={...((edit||add))};delete payload.age;delete payload.voterProfile;delete payload.family;delete payload.house;delete payload.documents;delete payload.birthday;delete payload.deathObservance;delete payload.deathRecord;if(edit)await api.updatePerson(edit.id,payload);else await api.createPerson(payload);setEdit(null);setAdd(null);await load();if(detail?.id)await openPerson(detail.id)}catch(e){setError(e.message)}finally{setBusy(false)}}
  const wardFamilies=families.filter(f=>!selectedWardId||f.house?.area?.wardId===selectedWardId||f.house?.area?.ward?.id===selectedWardId);
  return <div className="admin-data-page people-page">
-  <PageHeader kicker="People & houses" title="All citizens" subtitle="Search the complete citizen register by name, mobile, job, company, business or other profile information." action={can('CREATE_CITIZENS')?<button className="primary-btn" onClick={()=>setAdd({...emptyPerson,familyId:''})}>+ Add citizen</button>:null}/>
+  <PageHeader kicker="People & houses" title="All citizens" action={can('CREATE_CITIZENS')?<button className="primary-btn" onClick={()=>setAdd({...emptyPerson,familyId:''})}>+ Add citizen</button>:null}/>
   <ErrorBox error={error}/>
   <div className="citizen-search-bar">
    <WardFilter/>

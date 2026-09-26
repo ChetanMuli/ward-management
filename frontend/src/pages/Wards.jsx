@@ -53,7 +53,7 @@ export default function Wards(){
  }
 
  return <div className="wards-page">
-  <PageHeader kicker="Ward setup" title="Wards & areas" subtitle="Create each ward and its colonies. Exact home location is captured when your team visits the house." action={master?<button className="primary-btn" onClick={()=>setCreate({...blank,areas:[{...emptyArea}]})}>+ Create ward</button>:null}/>
+  <PageHeader kicker="Ward setup" title="Wards & areas" action={master?<button className="primary-btn" onClick={()=>setCreate({...blank,areas:[{...emptyArea}]})}>+ Create ward</button>:null}/>
   <ErrorBox error={error}/>
   <Toolbar><WardFilter/><input className="grow" placeholder="Search ward or colony…" value={search} onChange={e=>setSearch(e.target.value)}/></Toolbar>
   {!wards?<Loading/>:<div className="ward-grid">{visible.map(w=>{

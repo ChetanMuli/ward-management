@@ -114,7 +114,7 @@ export default function WardUpdates({autoOpen=false}){
     navigate('/ward-updates',{replace:true});
   };
   return <div className="ward-updates-page">
-    <PageHeader title="Ward Updates & Events" subtitle={isCitizen?`Ward information and events published for registered users of your ward.`:`Publish important ward information, events and notifications. Showing ${scopeLabel}.`} action={canManage?<div className="card-actions"><button className="primary-btn" onClick={openCreate}>＋ New update / event</button></div>:null}/>
+    <PageHeader title="Ward Updates & Events" action={canManage?<div className="card-actions"><button className="primary-btn" onClick={openCreate}>＋ New update / event</button></div>:null}/>
     <ErrorBox error={error}/>
     <div className="ward-updates-filter-bar">
       {canManage&&<WardFilter/>}

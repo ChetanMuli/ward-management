@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {api,getUser} from '../services/api';
 import {ErrorBox,FaceAvatar,Loading,Modal,PageHeader,SearchableSelect,initialsOf} from '../components/Ui';
+import BrandIcon from '../components/BrandIcon';
 import {can,isMaster,isSubMaster,isNagarsevak,roleOf} from '../rbac';
 import {useWardFilter} from '../wardFilter';
 
@@ -24,7 +25,7 @@ function lastPreview(m){
   return m.content||'Message';
 }
 function GroupFace({g}){
-  if(isAllChat(g)) return <span className="wa-avatar community notranslate" translate="no">W</span>;
+  if(isAllChat(g)) return <span className="wa-avatar community notranslate" translate="no"><BrandIcon size={28} variant="dark" /></span>;
   if(g.type==='NAGARSEVAK') return <FaceAvatar name={g.nagarsevak?.name||groupTitle(g)} photo={g.nagarsevak?.photo} className="wa-avatar nagar"/>;
   return <span className="wa-avatar notranslate" translate="no">{initialsOf(groupTitle(g))}</span>;
 }
@@ -192,7 +193,7 @@ function GroupPage(){
  if(!groups)return <div className="groups-page"><PageHeader kicker="Chat" title="All chat & Groups"/><Loading/></div>;
  if(error&&!groups.length)return <div className="groups-page"><PageHeader kicker="Chat" title="All chat & Groups"/><ErrorBox error={error}/><button type="button" className="small-btn" onClick={()=>{setError('');setGroups(null);loadGroups()}}>Try again</button></div>;
  return <div className={`groups-page ${chatOpen?'chat-open':''}`}>
-  <PageHeader kicker="Chat" title="All chat & Groups" subtitle={citizen?(accessibleGroups.some(g=>g.type==='NAGARSEVAK')?'Ward All chat and your Nagarsevak group.':'All chat is available. Your Nagarsevak group will appear here when your ward representative is available.'):isEmp?'Your ward All chat and your managing Nagarsevak group.':councillor?'Your ward All chat and your personal Nagarsevak group. Other Nagarsevak chats stay private to them.':'All chat includes everyone in the ward. Groups are Nagarsevak and custom chats.'} action={canCreate?<button className="primary-btn" onClick={()=>setCreate(true)}>+ Create group</button>:null}/>
+  <PageHeader kicker="Chat" title="All chat & Groups" action={canCreate?<button className="primary-btn" onClick={()=>setCreate(true)}>+ Create group</button>:null}/>
   <ErrorBox error={error}/>
 
  {!citizen&&!councillor&&!isEmp&&<><div className="group-filters">

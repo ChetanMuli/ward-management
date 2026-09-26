@@ -86,7 +86,7 @@ export default function Shops(){
  }
 
  return <div className="admin-data-page shops-page">
-  <PageHeader kicker="People & houses" title="Shops & offices" subtitle="Register shops and offices in the ward, with owner details and the exact map pin." action={canAdd?<button className="primary-btn" onClick={openAdd}>+ Add shop / office</button>:null}/>
+  <PageHeader kicker="People & houses" title="Shops & offices" action={canAdd?<button className="primary-btn" onClick={openAdd}>+ Add shop / office</button>:null}/>
   <ErrorBox error={error}/>
   <Toolbar>
    <WardFilter/>

@@ -1142,11 +1142,6 @@ export default function Dashboard() {
                   <strong>{scheduleSummary?.todayTotal ?? 0}</strong>
                 </div>
               </div>
-              <p className="schedule-subtitle">
-                {employee
-                  ? 'Today and yesterday’s ward tasks. Tick when done, or move work to Nagarsevak.'
-                  : 'Plan today, tomorrow and the day after. Assign work to staff or keep it with Nagarsevak. Tick when complete.'}
-              </p>
             </div>
 
             <div className="schedule-header-actions">

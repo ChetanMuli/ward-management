@@ -73,7 +73,6 @@ export default function Schemes(){
   <PageHeader
    kicker={isCitizen?'Your ward':'Daily work'}
    title={isCitizen?'Schemes for you':'Schemes & benefits'}
-   subtitle={isCitizen?'Government and local benefits published for residents of your registered ward.':'Publish government and local schemes with clear eligibility so residents can discover what applies to them.'}
    action={canEdit?<button className="primary-btn" onClick={openCreate}>+ Add scheme</button>:null}
   />
   <ErrorBox error={error}/>

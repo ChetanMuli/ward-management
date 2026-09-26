@@ -149,7 +149,7 @@ export default function Houses(){
   }catch(e){setError(e.message)}
  }
  return <div className="admin-data-page houses-page">
-  <PageHeader kicker="People & houses" title="Houses" subtitle="Register independent houses or flats. GPS saves only the map pin — it does not fill address." action={(canAdd||canAddApt)?<div className="card-actions houses-header-actions">{canAddApt&&<button type="button" className="ghost-btn" onClick={()=>openAddApartment(false)}>+ Add apartment</button>}{canAdd&&<button type="button" className="primary-btn" onClick={openAdd}>+ Add house</button>}</div>:null}/>
+  <PageHeader kicker="People & houses" title="Houses" action={(canAdd||canAddApt)?<div className="card-actions houses-header-actions">{canAddApt&&<button type="button" className="ghost-btn" onClick={()=>openAddApartment(false)}>+ Add apartment</button>}{canAdd&&<button type="button" className="primary-btn" onClick={openAdd}>+ Add house</button>}</div>:null}/>
   <ErrorBox error={error}/>
   <Toolbar>
    <WardFilter/>

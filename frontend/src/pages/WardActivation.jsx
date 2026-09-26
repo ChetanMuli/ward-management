@@ -56,7 +56,7 @@ export default function WardActivation(){
  }
 
  if(!master){
-  return <div className="admin-data-page"><PageHeader kicker="Team & access" title="Ward activation" subtitle="Only Master Admin can activate wards and Nagarsevaks."/><div className="empty">You do not have access to this section.</div></div>;
+  return <div className="admin-data-page"><PageHeader kicker="Team & access" title="Ward activation"/><div className="empty">You do not have access to this section.</div></div>;
  }
 
  return (
@@ -64,7 +64,6 @@ export default function WardActivation(){
    <PageHeader
     kicker="Team & access"
     title="Ward activation"
-    subtitle="Open a ward first. Then activate each Nagarsevak who should appear to residents and be able to sign in with their employees."
     action={<button className="ghost-btn" onClick={load}>Refresh</button>}
    />
    <ErrorBox error={error}/>

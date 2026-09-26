@@ -190,17 +190,25 @@ html body .login-page-v2.auth-simple .auth-page-tag{
 html body .login-page-v2.auth-simple.admin-login .auth-page-tag{
   background:#eff6ff !important;color:#1e4a73 !important;
 }
+html body .login-page-v2.auth-simple .auth-simple-logo{
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:13px !important;
+  margin-bottom:14px !important;
+}
 html body .login-page-v2.auth-simple .auth-simple-logo .brand-mark,
 html body .login-page-v2.auth-simple.admin-login .auth-simple-logo .brand-mark{
-  width:28px !important;height:28px !important;border-radius:9px !important;
+  width:46px !important;height:46px !important;min-width:46px !important;border-radius:13px !important;
   display:grid !important;place-items:center !important;
-  background:#111827 !important;color:#fff !important;font-weight:900 !important;font-size:13px !important;
+  background:#ffffff !important;color:#0b1624 !important;font-weight:900 !important;
+  box-shadow:0 3px 12px rgba(15,23,42,.08), 0 0 0 1px #e2e8f0 !important;
+  flex:0 0 46px !important;
 }
 html body .login-page-v2.auth-simple.admin-login .auth-simple-logo .brand-mark{
-  background:#111827 !important;
+  background:#ffffff !important;
 }
 html body .login-page-v2.auth-simple .auth-simple-logo strong{
-  font-size:22px !important;color:#1f2937 !important;letter-spacing:-.03em !important;font-weight:800 !important;
+  font-size:26px !important;color:#0f172a !important;letter-spacing:-.03em !important;font-weight:900 !important;
 }
 html body .login-page-v2.auth-simple .auth-panel-pill{display:none !important}
 html body .login-page-v2.auth-simple h1,
@@ -480,19 +488,21 @@ html body .app-shell .main{
 }
 html body .app-shell .brand{
   flex:0 0 auto !important;
-  padding:6px 8px 14px !important;
+  padding:8px 8px 16px !important;
   margin:0 0 6px !important;
-  gap:11px !important;
+  gap:12px !important;
   align-items:center !important;
   border-bottom:1px solid rgba(255,255,255,.08) !important;
 }
 html body .app-shell .brand-mark{
-  background:#fff !important;color:#0b1624 !important;border-radius:9px !important;
-  width:34px !important;height:34px !important;font-size:15px !important;font-weight:800 !important;
-  box-shadow:0 0 0 1px rgba(255,255,255,.08);
+  background:#fff !important;color:#0b1624 !important;border-radius:12px !important;
+  width:44px !important;height:44px !important;min-width:44px !important;
+  display:grid !important;place-items:center !important;
+  box-shadow:0 3px 12px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.14) !important;
+  flex:0 0 44px !important;
 }
-html body .app-shell .brand strong{color:#fff !important;font-weight:800 !important;font-size:15px !important;letter-spacing:-.02em !important}
-html body .app-shell .brand span{color:#8aa0b6 !important;font-size:11px !important;margin-top:1px !important}
+html body .app-shell .brand strong{color:#fff !important;font-weight:800 !important;font-size:18px !important;letter-spacing:-.025em !important}
+html body .app-shell .brand span{color:#94a3b8 !important;font-size:11px !important;margin-top:2px !important}
 html body .app-shell .sidebar nav{
   display:flex !important;
   flex-direction:column !important;
@@ -578,15 +588,28 @@ html body .app-footer{
   max-width:1440px;margin:0 auto;width:100%;box-sizing:border-box;font-size:12px;
 }
 html body .app-shell .page-header{
-  display:flex !important;align-items:flex-start !important;justify-content:space-between !important;
+  display:flex !important;align-items:center !important;justify-content:space-between !important;
   gap:16px !important;flex-wrap:wrap !important;margin:0 0 18px !important;
 }
-html body .app-shell .page-header > div{min-width:0;flex:1 1 auto}
+html body .app-shell .page-header > div:first-child{min-width:0;flex:1 1 auto}
 html body .app-shell .page-header h1{margin:2px 0 6px !important;line-height:1.15 !important;color:var(--admin-ink) !important;letter-spacing:-.03em !important}
 html body .app-shell .page-header p{margin:0 !important;max-width:640px;color:var(--admin-muted) !important}
-html body .app-shell .page-header .houses-header-actions{flex:0 0 auto;align-self:flex-start}
+html body .app-shell .page-header .sched-head-actions,
+html body .app-shell .page-header .card-actions,
+html body .app-shell .page-header .houses-header-actions,
+html body .app-shell .page-header > div:last-child:not(:first-child){
+  flex:0 0 auto !important;
+  margin-left:auto !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  align-self:center !important;
+}
 html body .app-shell .page-header .houses-header-actions .primary-btn,
-html body .app-shell .page-header .houses-header-actions .ghost-btn{width:auto}
+html body .app-shell .page-header .houses-header-actions .ghost-btn,
+html body .app-shell .page-header .sched-head-actions .primary-btn,
+html body .app-shell .page-header .sched-head-actions .ghost-btn{width:auto}
 html body .app-shell .panel{
   background:#fff !important;border:1px solid var(--admin-line) !important;border-radius:14px !important;
   box-shadow:0 1px 2px rgba(15,23,42,.04) !important;padding:18px !important;
@@ -781,7 +804,15 @@ html body .user-portal .user-topbar{
   border-bottom:1px solid #e2e8f0 !important;
   backdrop-filter:none;
 }
-html body .user-portal .user-brand-mark{background:#0b1624 !important;color:#fff !important;border-radius:10px !important}
+html body .user-portal .user-brand-mark{
+  background:#0b1624 !important;color:#fff !important;border-radius:12px !important;
+  width:44px !important;height:44px !important;min-width:44px !important;
+  display:grid !important;place-items:center !important;
+  flex:0 0 44px !important;
+}
+html body .user-portal .user-brand strong{
+  font-size:18px !important;letter-spacing:-.025em !important;
+}
 html body .user-portal .user-nav-link{border-radius:999px !important;color:#5b677a !important}
 html body .user-portal .user-nav-link:hover{background:#eef4fb !important;color:var(--wd-ink) !important}
 html body .user-portal .user-nav-link.active{background:#f0fdfa !important;color:#0f766e !important;font-weight:700 !important}

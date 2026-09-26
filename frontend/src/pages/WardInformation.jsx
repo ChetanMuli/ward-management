@@ -17,7 +17,7 @@ export default function WardInformation(){
  if(!wards.length)return <Loading/>;
  const areas=(selected?.areas||[]).filter(a=>String(a.status||'ACTIVE')==='ACTIVE');
  return <div>
-  <PageHeader title="Ward Information" subtitle="Official ward master information, key localities, elected representatives and the official AMC ward map."/>
+  <PageHeader title="Ward Information"/>
   <section className="ward-info-selector panel">
    <div><span className="eyebrow">WARD SELECTION</span><p className="muted">{master?'Master Admin can inspect all 17 wards.':'Select the ward available to your account.'}</p></div>
    <WardFilter label="Select ward"/>

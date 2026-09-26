@@ -1071,12 +1071,6 @@ export default function Staff() {
               ? 'Sub-admin & staff administration'
               : 'Ward employee administration'
         }
-
-        subtitle={
-          (master || sub)
-            ? 'Manage Nagarsevak and Employee access separately.'
-            : 'Manage employees for your ward.'
-        }
       />
 
 

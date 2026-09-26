@@ -86,14 +86,13 @@ html {
   .admin-mobile-brand {
     display: grid !important;
     place-items: center !important;
-    width: 34px !important;
-    height: 34px !important;
-    flex: 0 0 34px !important;
-    border-radius: 9px !important;
+    width: 40px !important;
+    height: 40px !important;
+    flex: 0 0 40px !important;
+    border-radius: 11px !important;
     background: #111b2b !important;
     color: #fff !important;
     font-weight: 900 !important;
-    font-size: 16px !important;
   }
 
   .menu-btn {
@@ -3377,14 +3376,15 @@ html body .login-page-v2.auth-simple .auth-simple-logo{
   margin-bottom:22px !important;
 }
 html body .login-page-v2.auth-simple .auth-simple-logo .brand-mark{
-  width:28px !important;height:28px !important;
-  border-radius:9px !important;
+  width:44px !important;height:44px !important;
+  border-radius:12px !important;
   display:grid !important;place-items:center !important;
-  background:#0f4c73 !important;color:#fff !important;
-  font-weight:900 !important;font-size:13px !important;
+  background:#ffffff !important;color:#0b1624 !important;
+  box-shadow:0 3px 10px rgba(15,23,42,.08), 0 0 0 1px #e2e8f0 !important;
+  flex:0 0 44px !important;
 }
 html body .login-page-v2.auth-simple.admin-login .auth-simple-logo .brand-mark{
-  background:#16324f !important;
+  background:#ffffff !important;
 }
 html body .login-page-v2.auth-simple .auth-simple-logo strong{
   font-size:22px !important;
@@ -4336,7 +4336,6 @@ html body .person-form .form-section-title strong{
   }
 
   html body .page-header,
-  html body .page-header > div,
   html body .houses-header-actions,
   html body .card-actions{
     display:flex !important;
@@ -4344,6 +4343,39 @@ html body .person-form .form-section-title strong{
     gap:8px !important;
     min-width:0 !important;
     max-width:100% !important;
+  }
+
+  html body .page-header .page-header-title-box,
+  html body .page-header > div:first-child,
+  html body .page-header > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 3px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body .page-header .page-kicker,
+  html body .page-kicker {
+    display: block !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+    color: #2563eb !important;
+    text-transform: uppercase !important;
+    margin: 0 0 2px 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  html body .page-header h1 {
+    display: block !important;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
   }
 
   html body .houses-header-actions > *,
@@ -4737,9 +4769,25 @@ html body .person-form .form-section-title strong{
     min-width: 0 !important;
   }
 
-  html body .schedules-page .page-header,
-  html body .schedules-page .sched-head-actions {
+  html body .schedules-page .page-header {
     width: 100% !important;
+  }
+
+  html body .schedules-page .sched-head-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+  }
+
+  html body .schedules-page .sched-head-actions .ghost-btn,
+  html body .schedules-page .sched-head-actions .primary-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    justify-content: center !important;
+    text-align: center !important;
   }
 
   html body .schedules-page .sched-scope {

@@ -164,6 +164,7 @@ updateUser:(id,d)=>v2Request(`/users/${id}`,{method:'PATCH',body:JSON.stringify(
 deleteUser:id=>v2Request(`/users/${id}`,{method:'DELETE'}),
 wardTeam:(wardId)=>v2('/ward-team',wardId?{wardId}:{}),
 myWard:()=>v2('/me/ward'),
+me:()=>v2('/me'),
 wardActivations:()=>v2('/ward-activations'),
 nagarsevakSubscriptions:(p={})=>v2('/nagarsevak-subscriptions',p),
 setWardActivation:(wardId,d)=>v2Request(`/ward-activations/${wardId}/ward`,{method:'PATCH',body:JSON.stringify(d)}),

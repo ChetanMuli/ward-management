@@ -1202,7 +1202,7 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
 /* V6 Professional navigation, page context and responsive polish */
 .topbar-context{min-width:0}.topbar-context .eyebrow{margin-bottom:2px}.topbar-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.topbar-workspace{font-size:10px;color:#8794a7;margin-top:1px}
 .nav-group{display:grid;gap:3px}.nav-group-toggle{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:#aebbd0;font-size:13px;font-weight:600;text-align:left}.nav-group-toggle:hover,.nav-group.open>.nav-group-toggle{background:#1c2739;color:#fff;border-color:#26354b}.nav-group-label{flex:1;min-width:0}.nav-chevron{width:8px;height:8px;border-right:1.7px solid currentColor;border-bottom:1.7px solid currentColor;transform:rotate(45deg);transition:transform .18s ease;margin-right:2px;margin-top:-4px;opacity:.8}.nav-chevron.expanded{transform:rotate(225deg);margin-top:4px}.nav-group-menu{margin:0 0 3px 35px;padding:3px 0 3px 8px;border-left:1px solid #2b394d;display:grid;gap:3px}.sidebar nav .nav-group-menu a{padding:8px 9px;font-size:11px;font-weight:600;color:#91a0b5;border-radius:7px}.sidebar nav .nav-group-menu a:hover,.sidebar nav .nav-group-menu a.active{background:#172337;color:#fff}.sidebar nav .nav-group-menu a span:first-child{width:14px;text-align:center;color:#708198}.sidebar nav .nav-group-menu a.active span:first-child{color:#fff}
-.page-header{position:relative}.page-header h1{font-weight:800}.page-header p{max-width:760px}.content{overflow-x:hidden}
+.page-header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.page-header .page-header-title-box{min-width:0;flex:1 1 auto}.page-kicker{display:block;font-size:11px;font-weight:800;letter-spacing:0.08em;color:#2563eb;text-transform:uppercase;margin-bottom:4px;line-height:1.2}.page-header h1{font-weight:800;margin:0}.page-header p{max-width:760px;margin:3px 0 0}.page-header > .primary-btn,.page-header > .ghost-btn,.page-header > .card-actions,.page-header > .sched-head-actions,.page-header > .houses-header-actions,.page-header > div:last-child:not(.page-header-title-box){flex:0 0 auto;margin-left:auto;display:inline-flex;align-items:center;justify-content:flex-end;gap:8px}.content{overflow-x:hidden}
 @media(max-width:1100px){
  .content{padding:24px 22px 42px}.topbar{padding:0 22px}.sidebar{width:250px}.main{margin-left:250px;width:calc(100% - 250px)}
  .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -10427,14 +10427,20 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
 }
 
 .schedules-page .page-header {
-  align-items: flex-start;
-  gap: 12px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: 100% !important;
 }
 
 .schedules-page .sched-head-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
 }
 
 .schedules-page .sched-head-actions .ghost-btn,
@@ -11255,6 +11261,283 @@ html body .schedule-card-actions .row-menu > .row-menu-toggle {
   }
 }
 
+/* ==========================================================================
+   Birthday Card Preview Modal & Presentation Polish
+   ========================================================================== */
+.card-preview-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(5px);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+.card-preview-modal-panel {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.55);
+  width: min(960px, 98vw);
+  height: min(92vh, 980px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.card-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+  color: #fff;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.card-preview-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #f8fafc;
+}
+.card-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.card-preview-body {
+  flex: 1;
+  overflow: auto;
+  background: #2a3447;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px;
+}
+.card-preview-iframe-wrapper {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+  transform-origin: top center;
+}
+.card-preview-iframe {
+  width: 210mm;
+  height: 297mm;
+  border: 0;
+  display: block;
+  background: #fff;
+}
+.card-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: #0f172a;
+  border-top: 1px solid #334155;
+  font-size: 12px;
+  color: #94a3b8;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.active-pill {
+  background: #2563eb !important;
+  color: #fff !important;
+  border-color: #3b82f6 !important;
+}
 
+/* ==========================================================================
+   Birthday Card Layout & Action Buttons Alignment
+   ========================================================================== */
+.birthday-card {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  position: relative !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+}
 
+.birthday-card .birthday-nagar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+}
+
+.birthday-card .birthday-nagar small {
+  display: block;
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.birthday-card .birthday-nagar strong {
+  display: block;
+  font-size: 13px;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.birthday-card .birthday-nagar .party-badge,
+.birthday-card .birthday-nagar > div > span {
+  display: inline-block !important;
+  font-size: 10px !important;
+  color: #475569 !important;
+  background: #e2e8f0 !important;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+  margin-top: 3px !important;
+  font-weight: 600 !important;
+}
+
+/* Ensure user-avatar inside birthday-nagar NEVER gets white rectangle background */
+.birthday-card .birthday-nagar .user-avatar,
+.birthday-card .birthday-nagar .user-avatar-fallback {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 50% !important;
+  background: #0b1624 !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  display: grid !important;
+  place-items: center !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+  padding: 0 !important;
+}
+
+.birthday-card .birthday-nagar .user-avatar span,
+.birthday-card .birthday-nagar .user-avatar-fallback span {
+  display: block !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+.birthday-card .birthday-nagar img.user-avatar,
+.birthday-card .birthday-nagar .user-avatar-photo {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  background: #e2e8f0 !important;
+}
+
+.birthday-card .card-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin-top: auto !important;
+  padding-top: 14px !important;
+  border-top: 1px solid #edf2f7 !important;
+  align-items: stretch !important;
+  box-sizing: border-box !important;
+}
+
+.birthday-card .card-actions > * {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  line-height: 1 !important;
+  transition: all 0.15s ease !important;
+}
+
+.birthday-card .card-actions .primary-btn {
+  background: #172033 !important;
+  color: #ffffff !important;
+  border: 1px solid #172033 !important;
+}
+
+.birthday-card .card-actions .primary-btn:hover {
+  background: #0f172a !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18) !important;
+}
+
+.birthday-card .card-actions .small-btn:not(.primary-btn) {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.birthday-card .card-actions .small-btn:not(.primary-btn):hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+.birthday-card .card-actions .primary-outline {
+  background: #ffffff !important;
+  color: #172033 !important;
+  border: 1px solid #172033 !important;
+}
+
+.birthday-card .card-actions .primary-outline:hover {
+  background: #f1f5f9 !important;
+}
+
+.birthday-card .card-actions .whatsapp-btn {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+.birthday-card .card-actions .whatsapp-btn:hover {
+  background: #d1fae5 !important;
+  border-color: #6ee7b7 !important;
+}
+
+/* If only 3 buttons (no WhatsApp), span the 3rd button across both columns */
+.birthday-card .card-actions > *:nth-child(3):last-child {
+  grid-column: 1 / -1 !important;
+}
+
+@media (max-width: 480px) {
+  .birthday-card .card-actions {
+    grid-template-columns: 1fr !important;
+  }
+  .birthday-card .card-actions > *:nth-child(3):last-child {
+    grid-column: auto !important;
+  }
+}
 

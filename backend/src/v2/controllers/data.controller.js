@@ -368,15 +368,33 @@ const birthdays = asyncHandler(async (req, res) => {
   const include = [...personInclude];
   if (areaIds) { const familyIds = await familyIdsForAreas(areaIds); where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] }; }
   const rows = await Person.findAll({ where, include });
-  const nr=await Role.findOne({where:{name:'NAGARSEVAK'}});
-  const councillorRows=nr?await User.findAll({where:{roleId:nr.id,status:'ACTIVE'},attributes:['id','name','mobile','wardId','roleId']}):[];
-  const nagarPhotos=await nagarsevakPublicByIds(councillorRows.map(u=>u.id));
-  const councillorByWard=new Map(councillorRows.map(u=>[u.wardId,u]));
+
+  // Dynamic role-based nagarsevak assignment:
+  // In every municipal ward, there are 4 Nagarsevaks (Seats A, B, C, D).
+  // 1. Admin panel (SUPER_ADMIN / SUB_MASTER_ADMIN):
+  //    No single Nagarsevak should be hardcoded. The admin panel gets `nagarsevak: null`
+  //    so the frontend renders clean '-' for Nagarsevak name.
+  // 2. Nagarsevak panel (NAGARSEVAK):
+  //    Dynamically bound to the logged-in Nagarsevak!
+  // 3. Employee panel (EMPLOYEE):
+  //    Dynamically bound to the employee's assigned Nagarsevak manager!
+  let activeNagarsevak = null;
+  const userRole = req.user?.roleName;
+  if (userRole === 'NAGARSEVAK') {
+    activeNagarsevak = req.user.nagarsevak || {
+      id: req.user.id,
+      name: req.user.name,
+      mobile: req.user.mobile,
+      wardSeat: req.user.wardSeat || null,
+      partyName: req.user.partyName || null,
+      photo: req.user.photo || null,
+    };
+  } else if (userRole === 'EMPLOYEE') {
+    activeNagarsevak = req.user.nagarsevak || null;
+  }
+
   const data = rows.filter(p => p.dob).map(p => {
-    const wardId=p.family?.house?.area?.wardId || p.family?.house?.area?.ward?.id;
-    const n=councillorByWard.get(wardId);
-    const extra=n?nagarPhotos.get(String(n.id)):null;
-    return { person:p, nagarsevak:n?{id:n.id,name:n.name,mobile:n.mobile,partyName:extra?.partyName||n.partyName||n.getDataValue?.('partyName')||null,wardSeat:extra?.wardSeat||n.wardSeat||n.getDataValue?.('wardSeat')||null,photo:extra?.photo||n.getDataValue?.('photo')||n.photo||null}:null, daysToBirthday:daysFromBirthday(p.dob) };
+    return { person: p, nagarsevak: activeNagarsevak, daysToBirthday: daysFromBirthday(p.dob) };
   }).filter(x => x.daysToBirthday >= fromDays && x.daysToBirthday <= (fromDays + days - 1)).sort((a,b)=>a.daysToBirthday-b.daysToBirthday);
   return success(res, { data });
 });

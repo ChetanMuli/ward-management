@@ -41,7 +41,6 @@ export default function Stakeholders(){
   <div className="community-page">
    <PageHeader
     title="Community Members"
-    subtitle="Create a login for a former Nagarsevak who is no longer elected, or for a Samaj Sevak (social worker) who needs WardDesk. Then choose exactly which screens they can open."
     action={<button className="primary-btn" onClick={()=>setEdit({new:true,type:'SOCIAL_WORKER',permissions:['VIEW_DASHBOARD','VIEW_CHAT']})}>+ Add community member</button>}
    />
    <ErrorBox error={error}/>

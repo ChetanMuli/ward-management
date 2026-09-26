@@ -175,7 +175,7 @@ export default function Families(){
  }
 
  return <div>
-  <PageHeader kicker="People & houses" title="Families" subtitle="Choose House or Flat first, then the house / flat number. Filter by colony to see who lives where." action={canAddFamily?<button className="primary-btn" onClick={()=>setAdd(emptyFamily())}>+ Add family</button>:null}/>
+  <PageHeader kicker="People & houses" title="Families" action={canAddFamily?<button className="primary-btn" onClick={()=>setAdd(emptyFamily())}>+ Add family</button>:null}/>
   <ErrorBox error={error}/>
   <Toolbar>
    <WardFilter/>

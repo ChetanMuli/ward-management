@@ -95,11 +95,65 @@ const login = asyncHandler(async (req, res) => {
 
   user.lastLoginAt = new Date();
   await user.save();
+
+  let nagarsevakProfile = null;
+  if (roleName === 'NAGARSEVAK') {
+    nagarsevakProfile = {
+      id: user.id,
+      name: user.name,
+      mobile: user.mobile,
+      wardSeat: user.getDataValue('wardSeat') || null,
+      partyName: user.getDataValue('partyName') || null,
+      photo: user.getDataValue('photo') || null,
+    };
+  } else if (roleName === 'EMPLOYEE') {
+    const mgr = employee?.manager;
+    let nagarData = null;
+    if (mgr?.id) {
+      const { NagarsevakUser } = require('../../models/roleLogins.model');
+      nagarData = await NagarsevakUser.findByPk(mgr.id);
+    }
+    if (nagarData) {
+      nagarsevakProfile = {
+        id: nagarData.id,
+        name: nagarData.name || mgr.name,
+        mobile: nagarData.mobile || mgr.mobile,
+        wardSeat: nagarData.wardSeat || null,
+        partyName: nagarData.partyName || null,
+        photo: nagarData.photo || null,
+      };
+    } else if (mgr) {
+      nagarsevakProfile = {
+        id: mgr.id,
+        name: mgr.name,
+        mobile: mgr.mobile,
+        wardSeat: null,
+        partyName: null,
+        photo: null,
+      };
+    }
+  }
+
   return success(res, {
     message: 'Login successful',
     data: {
       token: issueToken(user),
-      user: { id: user.id, name: user.name, email: user.email, mobile: user.mobile, role: roleName, wardId, wardIds, ward: user.ward, employeeProfile: employee || null, permissions, photo: roleName === 'NAGARSEVAK' ? (user.getDataValue('photo') || null) : null },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+        role: roleName,
+        wardId,
+        wardIds,
+        ward: user.ward,
+        employeeProfile: employee || null,
+        permissions,
+        photo: roleName === 'NAGARSEVAK' ? (user.getDataValue('photo') || null) : null,
+        wardSeat: roleName === 'NAGARSEVAK' ? (user.getDataValue('wardSeat') || null) : null,
+        partyName: roleName === 'NAGARSEVAK' ? (user.getDataValue('partyName') || null) : null,
+        nagarsevak: nagarsevakProfile,
+      },
     },
   });
 });

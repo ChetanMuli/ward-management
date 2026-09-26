@@ -89,7 +89,7 @@ export default function Complaints(){
  const selectedEmployee=employees.find(e=>e.id===assigning?.employeeId);
  const selectedCitizen=people.find(p=>p.id===form.citizenPersonId);
  return <div className="admin-data-page complaints-page">
-  <PageHeader kicker="Daily work" title="Complaints" subtitle="Complaint → ward → Nagarsevak → employee. Every assignment and status change is tracked." action={can('CREATE_COMPLAINTS')?<button className="primary-btn" onClick={()=>{setError('');setOpen(true)}}>+ New complaint</button>:null}/>
+  <PageHeader kicker="Daily work" title="Complaints" action={can('CREATE_COMPLAINTS')?<button className="primary-btn" onClick={()=>{setError('');setOpen(true)}}>+ New complaint</button>:null}/>
   <ErrorBox error={error}/>
   <section className="panel complaint-filters">
    <div className="filter-panel-head"><div><span className="eyebrow">COMPLAINTS</span><h3>Find a complaint</h3><p>Use search first. Extra filters stay collapsed on mobile.</p></div><div className="filter-actions"><button type="button" className="small-btn filter-toggle" onClick={()=>setShowFilters(v=>!v)}>{showFilters?'Hide filters':'Filters'}{(filters.status||filters.assignedEmployeeId)?' · 1+':''}</button><button type="button" className="small-btn" onClick={resetFilters}>Reset</button></div></div>

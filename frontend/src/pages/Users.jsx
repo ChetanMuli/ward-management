@@ -27,7 +27,7 @@ export default function Users(){
  async function setStatusAction(u,next){try{await api.updateUser(u.id,{status:next});await load()}catch(e){setError(e.message)}}
  const total=meta.total||0,pages=Math.max(1,meta.pages||Math.ceil(total/limit)||1);
  return <div className="admin-data-page users-page">
-  <PageHeader kicker="People & houses" title="Registered Ward Users" subtitle="Manage people who created an account in the WardDesk application. Administrative citizen records remain separate."/>
+  <PageHeader kicker="People & houses" title="Registered Ward Users"/>
   <ErrorBox error={error}/>
   <Toolbar><WardFilter/><input className="grow" placeholder="Search registered name, mobile or email…" value={search} onChange={e=>setSearch(e.target.value)}/><select value={status} onChange={e=>setStatus(e.target.value)}><option value="">All status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="SUSPENDED">Suspended</option></select><button className="small-btn" type="button" onClick={()=>{setSearch('');setStatus('');setPage(1)}}>Clear</button></Toolbar>
   <div className="users-summary-grid"><div className="users-summary-card"><span>Registered users</span><strong>{total}</strong></div><div className="users-summary-card"><span>Active</span><strong>{(rows||[]).filter(u=>u.status==='ACTIVE').length}</strong></div><div className="users-summary-card"><span>Suspended</span><strong>{(rows||[]).filter(u=>u.status==='SUSPENDED').length}</strong></div><div className="users-summary-card"><span>Scope</span><strong>{master?'All wards':sub?'Assigned wards':current?.ward?.wardNumber||'My ward'}</strong></div></div>

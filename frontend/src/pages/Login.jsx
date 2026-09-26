@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {api,getUser,setSession} from '../services/api';
+import BrandIcon from '../components/BrandIcon';
 
 export const COMPANY_NAME='Kairo IT Solutions PVT LTD';
 export const COMPANY_EMAIL='chetan.a2zithub@gmail.com';
@@ -103,7 +104,7 @@ export function AuthShell({admin,title,lead,pageLabel,register,children}){
    <div className="auth-blob auth-blob-a" aria-hidden="true"/>
    <div className="auth-blob auth-blob-b" aria-hidden="true"/>
    <div className="auth-simple-logo">
-    <span className="brand-mark notranslate" translate="no">W</span>
+    <span className="brand-mark notranslate" translate="no"><BrandIcon size={34} variant="light" /></span>
     <strong className="notranslate" translate="no">WardDesk</strong>
    </div>
    <p className="auth-page-tag">{label}</p>
