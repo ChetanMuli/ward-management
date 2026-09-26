@@ -4,7 +4,6 @@ export const PERMISSION_MODULES = [
   {
     id: 'OVERVIEW',
     title: 'Overview & Ward Info',
-    icon: '📊',
     description: 'Dashboard landing, ward profile, official announcements and alerts.',
     items: [
       { id: 'VIEW_DASHBOARD', label: 'View Dashboard', desc: 'Ward summary metrics, KPIs and daily counts', scope: 'READ', locked: true },
@@ -16,7 +15,6 @@ export const PERMISSION_MODULES = [
   {
     id: 'COMPLAINTS',
     title: 'Complaints & Daily Issues',
-    icon: '🛠️',
     description: 'Citizen grievance tracking, assignment to staff, and field resolution.',
     items: [
       { id: 'VIEW_COMPLAINTS', label: 'View Complaints', desc: 'Browse and search all complaints filed in the ward', scope: 'READ' },
@@ -29,7 +27,6 @@ export const PERMISSION_MODULES = [
   {
     id: 'SCHEDULES',
     title: 'Daily Schedule',
-    icon: '📅',
     description: 'Today’s ward work: visits, meetings, and tasks assigned between Nagarsevak and employees.',
     items: [
       { id: 'VIEW_SCHEDULES', label: 'Open Daily Schedule', desc: 'See today’s work list on dashboard and the schedule page', scope: 'READ' },
@@ -41,7 +38,6 @@ export const PERMISSION_MODULES = [
   {
     id: 'PROPERTIES',
     title: 'Houses, Families & Citizens',
-    icon: '🏠',
     description: 'Ward geographic survey, houses, apartments, family units and residents.',
     items: [
       { id: 'VIEW_HOUSES', label: 'View Houses', desc: 'Browse residential and commercial buildings', scope: 'READ' },
@@ -61,7 +57,6 @@ export const PERMISSION_MODULES = [
   {
     id: 'ELECTIONS',
     title: 'Elections & Voter Directory',
-    icon: '🗳️',
     description: 'Voter search, 18+ first-time voters, birthday records, and voter lists.',
     items: [
       { id: 'VIEW_VOTERS', label: 'Search Voters', desc: 'Search voters by EPIC number, name, booth or age', scope: 'READ' },
@@ -77,7 +72,6 @@ export const PERMISSION_MODULES = [
   {
     id: 'WELFARE',
     title: 'Welfare & Public Services',
-    icon: '🤝',
     description: 'Government schemes, beneficiaries, and public health/death registers.',
     items: [
       { id: 'VIEW_SCHEMES', label: 'View Schemes', desc: 'Browse state and central welfare schemes', scope: 'READ' },
@@ -91,7 +85,6 @@ export const PERMISSION_MODULES = [
   {
     id: 'CHAT',
     title: 'Community Chat & Messaging',
-    icon: '💬',
     description: 'Ward all-chat, direct communication, and custom announcement groups.',
     items: [
       { id: 'VIEW_CHAT', label: 'View Chat & Channels', desc: 'Access ward all-chat and community messaging channels', scope: 'READ' },
@@ -103,7 +96,6 @@ export const PERMISSION_MODULES = [
   {
     id: 'ADMINISTRATION',
     title: 'Staff, reports & recycle bin',
-    icon: '⚙️',
     description: 'Employees under this Nagarsevak, Excel export, and restoring deleted records.',
     adminOnly: true,
     items: [
@@ -475,7 +467,6 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
       {/* 3. Search & Filter Bar */}
       <div className="perm-v2-controls-bar">
         <div className="perm-v2-search-box">
-          <span className="perm-v2-search-icon">🔍</span>
           <input
             type="search"
             className="perm-v2-search-input"
@@ -545,7 +536,6 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
       <div className="perm-v2-modules-list">
         {!filteredModules.length ? (
           <div className="perm-v2-empty">
-            <span className="perm-v2-empty-icon">🔍</span>
             <h4>No permissions found</h4>
             <p>
               No permissions match your current filter{' '}
@@ -582,7 +572,6 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') toggleCollapse(mod.id); }}
                 >
                   <div className="perm-v2-card-head-left">
-                    <span className="perm-v2-card-icon">{mod.icon}</span>
                     <div className="perm-v2-card-titles">
                       <div className="perm-v2-card-title-row">
                         <h4 className="perm-v2-card-title">{mod.title}</h4>

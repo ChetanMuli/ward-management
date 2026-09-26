@@ -89,31 +89,93 @@ function snippet(text, n = 90) {
   return t.length > n ? `${t.slice(0, n)}…` : t;
 }
 
-function getGreetingPayload(ev, user, ward) {
-  const senderName = user?.name || 'Nagarsevak';
+function resolveNagarsevakName(user, data) {
+  if (isNagarsevak(user)) {
+    return data?.user?.name || user?.name || 'Nagarsevak';
+  }
+  if (data?.employee?.manager?.name) {
+    return data.employee.manager.name;
+  }
+  if (user?.employeeProfile?.manager?.name) {
+    return user.employeeProfile.manager.name;
+  }
+  if (data?.teamNagarsevaks && data.teamNagarsevaks.length > 0 && data.teamNagarsevaks[0]?.name) {
+    return data.teamNagarsevaks[0].name;
+  }
+  if (data?.ward?.nagarsevak?.name) {
+    return data.ward.nagarsevak.name;
+  }
+  if (data?.corporatorName) {
+    return data.corporatorName;
+  }
+  const wNo = data?.ward?.wardNumber || user?.ward?.wardNumber;
+  return wNo ? `नगरसेवक (प्रभाग क्र. ${wNo})` : 'नगरसेवक';
+}
+
+function getCitizenDirectionsUrl(item) {
+  if (!item) return '';
+  const lat = item.latitude || item.family?.house?.latitude || item._activeEvent?.latitude;
+  const lng = item.longitude || item.family?.house?.longitude || item._activeEvent?.longitude;
+  if (lat && lng) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+  const houseNo = item.house || item.family?.house?.houseNumber;
+  const apt = item.family?.house?.apartment?.name;
+  const addr = item.address || item.family?.house?.address;
+  const area = item.family?.house?.area?.name;
+  const wardName = item.family?.house?.area?.ward?.name;
+  const wardNo = item.family?.house?.area?.ward?.wardNumber;
+
+  const parts = [
+    houseNo ? `House ${houseNo}` : '',
+    apt,
+    addr,
+    area,
+    wardName,
+    wardNo ? `Ward ${wardNo}` : '',
+  ].filter(Boolean);
+
+  if (parts.length > 0) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`;
+  }
+  if (item.fullName || item.name) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.fullName || item.name)}`;
+  }
+  return '';
+}
+
+function getGreetingPayload(ev, user, ward, data) {
+  const nagarName = resolveNagarsevakName(user, data);
   const wardStr = ward?.wardNumber ? `वॉर्ड क्र. ${ward.wardNumber}` : '';
+  const wardTitle = wardStr ? (ward?.name ? `${wardStr} (${ward.name})` : wardStr) : '';
 
   if (ev.kind === 'BIRTHDAY') {
     return {
       title: 'Birthday Greetings',
       titleMr: 'वाढदिवसाच्या हार्दिक शुभेच्छा',
       theme: 'birthday',
+      isSolemn: false,
+      senderDisplayName: nagarName,
+      senderRole: 'नगरसेवक / Corporator',
       cardTitle: 'HAPPY BIRTHDAY',
       cardSubtitle: 'वाढदिवसाच्या मनःपूर्वक हार्दिक शुभेच्छा!',
       cardBody: `प्रिय ${ev.name} जी, आपणास वाढदिवसाच्या मनःपूर्वक हार्दिक शुभेच्छा! ईश्वर आपणास उत्तम आरोग्य, दीर्घायुष्य आणि सुख-समृद्धी लाभो हीच प्रार्थना.`,
-      defaultMessage: `सस्नेह नमस्कार ${ev.name} जी,\n\nआपणास वाढदिवसाच्या मनःपूर्वक हार्दिक शुभेच्छा!\nआपणास उत्तम आरोग्य, दीर्घायुष्य आणि भरभराटीचे जीवन लाभो हीच ईश्वरचरणी प्रार्थना.\n\n- सस्नेह शुभेच्छुक,\n${senderName}\n${wardStr ? wardStr + (ward?.name ? ' (' + ward.name + ')' : '') : ''}`
+      defaultMessage: `सस्नेह नमस्कार ${ev.name} जी,\n\nआपणास वाढदिवसाच्या मनःपूर्वक हार्दिक शुभेच्छा!\nआपणास उत्तम आरोग्य, दीर्घायुष्य आणि भरभराटीचे जीवन लाभो हीच ईश्वरचरणी प्रार्थना.\n\n- सस्नेह शुभेच्छुक,\n${nagarName}\n${wardTitle ? 'नगरसेवक, ' + wardTitle : 'नगरसेवक कार्यालय'}`
     };
   }
 
   if (ev.kind === 'DAHAVA') {
     return {
-      title: '10th Day Remembrance (दहावा)',
+      title: '10th Day Observance (दहावा)',
       titleMr: 'दहावा - भावपूर्ण श्रद्धांजली',
       theme: 'dahava',
-      cardTitle: 'IN SOLEMN REMEMBRANCE',
-      cardSubtitle: 'दहावा - भावपूर्ण श्रद्धांजली',
+      isSolemn: true,
+      senderDisplayName: nagarName,
+      senderRole: 'नगरसेवक / Corporator',
+      cardTitle: 'भावपूर्ण श्रद्धांजली',
+      cardSubtitle: 'दहावा - विनम्र आदरांजली',
       cardBody: `स्व. ${ev.name} यांच्या पवित्र स्मृतीस भावपूर्ण श्रद्धांजली. त्यांच्या आत्म्यास चिरशांती लाभो आणि कुटुंबियांना हे दुःख सहन करण्याचे बळ मिळो हीच प्रार्थना.`,
-      defaultMessage: `विनम्र आदरांजली,\n\nस्व. ${ev.name} यांच्या दहाव्या निमित्त त्यांच्या पवित्र स्मृतीस भावपूर्ण श्रद्धांजली.\nईश्वर त्यांच्या आत्म्यास चिरशांती देवो आणि कुटुंबियांना हे अतीव दुःख सहन करण्याचे बळ देवो.\n\n- शोकमग्न,\n${senderName}\n${wardStr ? wardStr : ''}`
+      defaultMessage: `भावपूर्ण श्रद्धांजली,\n\nस्व. ${ev.name} यांच्या दहाव्या निमित्त त्यांच्या पवित्र स्मृतीस विनम्र आदरांजली.\nईश्वर त्यांच्या आत्म्यास चिरशांती देवो आणि कुटुंबियांना हे अतीव दुःख सहन करण्याचे बळ देवो हीच प्रार्थना.\n\n- विनम्र अभिवादन,\n${nagarName}\n${wardTitle ? 'नगरसेवक, ' + wardTitle : 'नगरसेवक कार्यालय'}`
     };
   }
 
@@ -121,14 +183,23 @@ function getGreetingPayload(ev, user, ward) {
     title: '1st Year Remembrance (वर्षश्राद्ध)',
     titleMr: 'प्रथम पुण्यस्मरण / वर्षश्राद्ध',
     theme: 'anniversary',
-    cardTitle: 'PUNYASMARAN',
-    cardSubtitle: 'प्रथम पुण्यस्मरण - विनम्र आदरांजली',
-    cardBody: `स्व. ${ev.name} यांच्या प्रथम पुण्यस्मरण / वर्षश्राद्ध दिनी त्यांच्या पावन स्मृतीस कोटी कोटी प्रणाम व विनम्र आदरांजली.`,
-    defaultMessage: `विनम्र आदरांजली,\n\nस्व. ${ev.name} यांच्या प्रथम पुण्यस्मरण / वर्षश्राद्ध दिनी त्यांच्या पावन स्मृतीस कोटी कोटी प्रणाम व विनम्र आदरांजली.\nत्यांच्या आठवणी कायम आपल्या हृदयात अमर राहतील.\n\n- आदरपूर्वक,\n${senderName}\n${wardStr ? wardStr : ''}`
+    isSolemn: true,
+    senderDisplayName: nagarName,
+    senderRole: 'नगरसेवक / Corporator',
+    cardTitle: 'प्रथम पुण्यस्मरण',
+    cardSubtitle: 'वर्षश्राद्ध - विनम्र आदरांजली',
+    cardBody: `स्व. ${ev.name} यांच्या प्रथम पुण्यस्मरण / वर्षश्राद्ध दिनी त्यांच्या पावन स्मृतीस कोटी कोटी प्रणाम व विनम्र आदरांजली. ईश्वर त्यांच्या आत्म्यास चिरशांती देवो.`,
+    defaultMessage: `विनम्र आदरांजली,\n\nस्व. ${ev.name} यांच्या प्रथम पुण्यस्मरण / वर्षश्राद्ध दिनी त्यांच्या पावन स्मृतीस कोटी कोटी प्रणाम व विनम्र आदरांजली.\nत्यांच्या आठवणी कायम आपल्या हृदयात अमर राहतील. ईश्वर त्यांच्या आत्म्यास चिरशांती देवो हीच प्रार्थना.\n\n- विनम्र अभिवादन,\n${nagarName}\n${wardTitle ? 'नगरसेवक, ' + wardTitle : 'नगरसेवक कार्यालय'}`
   };
 }
 
-function TodayAgendaColumn({ title, count, empty, items, kind, onOpen, onSendWhatsapp, onViewDetails }) {
+function TodayAgendaColumn({ title, count, empty, items, kind, onOpen, onViewDetails }) {
+  const subtitle = kind === 'birthday'
+    ? `${count} birthday${count === 1 ? '' : 's'} today`
+    : kind === 'dahava'
+    ? `${count} 10th-day observance${count === 1 ? '' : 's'} today`
+    : `${count} 1st-year remembrance${count === 1 ? '' : 's'} today`;
+
   return (
     <div className={`dash-agenda-card agenda-${kind}`}>
       <div className="agenda-card-head">
@@ -136,7 +207,7 @@ function TodayAgendaColumn({ title, count, empty, items, kind, onOpen, onSendWha
           <span className={`agenda-kind-indicator kind-${kind}`}></span>
           <div>
             <h4>{title}</h4>
-            <span className="agenda-subtitle">{count} scheduled today</span>
+            <span className="agenda-subtitle">{subtitle}</span>
           </div>
         </div>
         <div className="agenda-count-badge">{count}</div>
@@ -176,11 +247,11 @@ function TodayAgendaColumn({ title, count, empty, items, kind, onOpen, onSendWha
                 <div className="agenda-item-actions">
                   <button
                     type="button"
-                    className="agenda-wa-btn"
-                    onClick={() => onSendWhatsapp(ev)}
-                    title="Send WhatsApp Greeting & Card"
+                    className="small-btn view-btn agenda-view-btn"
+                    onClick={() => onViewDetails && onViewDetails(ev)}
+                    title={`View full details for ${ev.name}`}
                   >
-                    Send WhatsApp
+                    View
                   </button>
                 </div>
               </li>
@@ -565,6 +636,7 @@ export default function Dashboard() {
       }
       if (!personData) {
         personData = {
+          id: ev.personId,
           fullName: ev.name,
           mobile: ev.mobile || ev.alternateMobile || '—',
           dob: ev.dob || '—',
@@ -573,10 +645,21 @@ export default function Dashboard() {
             house: {
               houseNumber: ev.house || '—',
               address: ev.address || '—',
+              latitude: ev.latitude || null,
+              longitude: ev.longitude || null,
             }
           }
         };
+      } else {
+        if (!personData.mobile && ev.mobile) personData.mobile = ev.mobile;
+        if (!personData.family) personData.family = {};
+        if (!personData.family.house) personData.family.house = {};
+        if (ev.house && !personData.family.house.houseNumber) personData.family.house.houseNumber = ev.house;
+        if (ev.address && !personData.family.house.address) personData.family.house.address = ev.address;
+        if (ev.latitude && !personData.family.house.latitude) personData.family.house.latitude = ev.latitude;
+        if (ev.longitude && !personData.family.house.longitude) personData.family.house.longitude = ev.longitude;
       }
+      personData._activeEvent = ev;
       setCitizenDetail(personData);
     } catch (err) {
       setError(err.message || 'Could not load citizen details');
@@ -584,7 +667,7 @@ export default function Dashboard() {
   };
 
   const openWhatsapp = async (ev) => {
-    const payload = getGreetingPayload(ev, user, data?.ward);
+    const payload = getGreetingPayload(ev, user, data?.ward, data);
     const initialPhone = ev.mobile || ev.alternateMobile || '';
     setWhatsappModal({ ev, payload });
     setWaPhone(initialPhone);
@@ -955,25 +1038,41 @@ export default function Dashboard() {
 
           <div className="dash-duty-strip" aria-label="Today at a glance">
             {canViewSchedule && (
-              <button type="button" className="dash-duty-tile" onClick={() => openTo('/schedules')}>
+              <button type="button" className="dash-duty-tile tile-schedule" onClick={() => openTo('/schedules')}>
+                <div className="dash-duty-tile-top">
+                  <span className="dash-duty-tag">Schedule</span>
+                  <span className="dash-duty-arrow">→</span>
+                </div>
                 <span className="dash-duty-value">{Number(scheduleSummary?.todayPending || 0)}</span>
-                <span className="dash-duty-label">Pending work</span>
+                <span className="dash-duty-label">Pending tasks today</span>
               </button>
             )}
-            <button type="button" className="dash-duty-tile" onClick={() => document.querySelector('.dash-agenda-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            <button type="button" className="dash-duty-tile tile-agenda" onClick={() => document.querySelector('.dash-agenda-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <div className="dash-duty-tile-top">
+                <span className="dash-duty-tag">Visits & Agenda</span>
+                <span className="dash-duty-arrow">↓</span>
+              </div>
               <span className="dash-duty-value">{birthdays.length + dahava.length + varsha.length}</span>
-              <span className="dash-duty-label">Field agenda</span>
+              <span className="dash-duty-label">Today's field agenda</span>
             </button>
             {can('VIEW_COMPLAINTS') && (
-              <button type="button" className="dash-duty-tile" onClick={() => openTo('/complaints')}>
+              <button type="button" className="dash-duty-tile tile-complaints" onClick={() => openTo('/complaints')}>
+                <div className="dash-duty-tile-top">
+                  <span className="dash-duty-tag">Complaints</span>
+                  <span className="dash-duty-arrow">→</span>
+                </div>
                 <span className="dash-duty-value">{Number(data.openComplaints || 0)}</span>
-                <span className="dash-duty-label">Open complaints</span>
+                <span className="dash-duty-label">Open civic issues</span>
               </button>
             )}
             {can('VIEW_CHAT') && (
-              <button type="button" className="dash-duty-tile" onClick={() => openTo('/groups')}>
+              <button type="button" className="dash-duty-tile tile-chat" onClick={() => openTo('/groups')}>
+                <div className="dash-duty-tile-top">
+                  <span className="dash-duty-tag">Ward Chat</span>
+                  <span className="dash-duty-arrow">→</span>
+                </div>
                 <span className="dash-duty-value">{chatUnread}</span>
-                <span className="dash-duty-label">Unread chat</span>
+                <span className="dash-duty-label">{chatUnread > 0 ? `${chatUnread} unread messages` : 'Team discussions'}</span>
               </button>
             )}
           </div>
@@ -988,7 +1087,7 @@ export default function Dashboard() {
               <h3>Today's Field Agenda</h3>
             </div>
             <div className="agenda-total-chip">
-              <span>Total Scheduled Today:</span>
+              <span>Today's Total:</span>
               <strong>{birthdays.length + dahava.length + varsha.length}</strong>
             </div>
           </div>
@@ -1036,7 +1135,13 @@ export default function Dashboard() {
           <div className="schedule-section-header">
             <div className="schedule-header-left">
               <div className="schedule-kicker">DAILY WORK</div>
-              <h3 className="schedule-title">Daily Schedule</h3>
+              <div className="schedule-title-wrap">
+                <h3 className="schedule-title">Daily Schedule</h3>
+                <div className="agenda-total-chip schedule-total-chip">
+                  <span>Total Scheduled Today:</span>
+                  <strong>{scheduleSummary?.todayTotal ?? 0}</strong>
+                </div>
+              </div>
               <p className="schedule-subtitle">
                 {employee
                   ? 'Today and yesterday’s ward tasks. Tick when done, or move work to Nagarsevak.'
@@ -1708,7 +1813,7 @@ export default function Dashboard() {
                 <div className="detail-card complaint-photo-block" style={{ marginTop: '14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                      <span>📸</span> Images Uploaded by Resident (Problem Photos)
+                      Images Uploaded by Resident (Problem Photos)
                     </h3>
                     <span
                       style={{
@@ -1734,7 +1839,7 @@ export default function Dashboard() {
                         >
                           <div className="photo-label">Problem Photo #{idx + 1}</div>
                           <img src={src} alt={`Problem photo ${idx + 1}`} />
-                          <div className="photo-zoom-hint">🔍 Tap to enlarge</div>
+                          <div className="photo-zoom-hint">Tap to enlarge</div>
                         </div>
                       ))}
                     </div>
@@ -1756,7 +1861,7 @@ export default function Dashboard() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                      <span>✅</span> After-Work Images (Employee / Nagarsevak)
+                      After-Work Images (Employee / Nagarsevak)
                     </h3>
                     <span
                       style={{
@@ -1784,7 +1889,7 @@ export default function Dashboard() {
                             Work Completed #{idx + 1}
                           </div>
                           <img src={src} alt={`Completed work ${idx + 1}`} />
-                          <div className="photo-zoom-hint">🔍 Tap to enlarge</div>
+                          <div className="photo-zoom-hint">Tap to enlarge</div>
                         </div>
                       ))}
                     </div>
@@ -1799,7 +1904,7 @@ export default function Dashboard() {
                           className="small-btn primary-btn"
                           onClick={() => initUpdateComplaint(detail)}
                         >
-                          📷 Upload Work Photos
+                          Upload Work Photos
                         </button>
                       )}
                     </div>
@@ -1842,7 +1947,7 @@ export default function Dashboard() {
                 style={{ background: '#2563eb', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 onClick={() => initUpdateComplaint(detail)}
               >
-                ✏️ Update Status
+                Update Status
               </button>
             )}
             <button
@@ -1971,7 +2076,7 @@ export default function Dashboard() {
                 rel="noreferrer"
                 className="small-btn primary-btn"
               >
-                Open full size in new tab ↗
+                Open full size in new tab
               </a>
               <button
                 type="button"
@@ -1986,101 +2091,228 @@ export default function Dashboard() {
       )}
 
       {/* Citizen Complete Profile Modal */}
-      {citizenDetail && (
-        <Modal
-          wide
-          title={`${citizenDetail.fullName} · Complete Citizen Profile`}
-          onClose={() => setCitizenDetail(null)}
-        >
-          <div className="detail-grid citizen-profile-grid">
-            <div className="detail-card">
-              <h3>Personal Details</h3>
-              <p><b>Full Name:</b> {citizenDetail.fullName}</p>
-              <p><b>Mobile:</b> {citizenDetail.mobile || '—'}</p>
-              {citizenDetail.alternateMobile && <p><b>Alternate Mobile:</b> {citizenDetail.alternateMobile}</p>}
-              <p><b>Date of Birth:</b> {citizenDetail.dob || '—'}</p>
-              <p><b>Age:</b> {citizenDetail.age != null ? `${citizenDetail.age} years` : '—'}</p>
-              <p><b>Gender:</b> {citizenDetail.gender || '—'}</p>
-              {citizenDetail.bloodGroup && <p><b>Blood Group:</b> {citizenDetail.bloodGroup}</p>}
-              <p><b>Email:</b> {citizenDetail.email || '—'}</p>
-              {citizenDetail.presenceStatus && (
-                <p><b>Current Residence:</b> {citizenDetail.presenceStatus === 'OUT_OF_CITY' ? `Out of city (${citizenDetail.currentCity || 'Other'})` : 'At home'}</p>
-              )}
-            </div>
+      {citizenDetail && (() => {
+        const activeEv = citizenDetail._activeEvent;
+        const isSolemn = activeEv?.kind === 'DAHAVA' || activeEv?.kind === 'ANNIVERSARY';
+        const directionsUrl = getCitizenDirectionsUrl(citizenDetail);
 
-            <div className="detail-card">
-              <h3>Residence & Ward</h3>
-              <p><b>House Number:</b> {citizenDetail.family?.house?.houseNumber || '—'}</p>
-              {citizenDetail.family?.house?.apartment?.name && (
-                <p><b>Apartment / Society:</b> {citizenDetail.family.house.apartment.name}</p>
-              )}
-              <p><b>Colony / Area:</b> {citizenDetail.family?.house?.area?.name || '—'}</p>
-              <p><b>Ward:</b> {citizenDetail.family?.house?.area?.ward?.wardNumber ? `Ward ${citizenDetail.family.house.area.ward.wardNumber}` : '—'}{citizenDetail.family?.house?.area?.ward?.name ? ` · ${citizenDetail.family.house.area.ward.name}` : ''}</p>
-              <p><b>Address:</b> {citizenDetail.family?.house?.address || '—'}</p>
-              {citizenDetail.family?.house?.landmark && (
-                <p><b>Landmark:</b> {citizenDetail.family.house.landmark}</p>
-              )}
-            </div>
+        return (
+          <Modal
+            wide
+            title={`${citizenDetail.fullName} · Complete Citizen Profile`}
+            onClose={() => setCitizenDetail(null)}
+          >
+            {activeEv && (
+              <div
+                className={`citizen-event-banner banner-${activeEv.kind?.toLowerCase()}`}
+                style={{
+                  padding: '10px 14px',
+                  marginBottom: '16px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  background: activeEv.kind === 'BIRTHDAY' ? '#eff6ff' : '#f8fafc',
+                  border: `1px solid ${activeEv.kind === 'BIRTHDAY' ? '#bfdbfe' : '#cbd5e1'}`,
+                  color: activeEv.kind === 'BIRTHDAY' ? '#1d4ed8' : '#334155',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '14px' }}>
+                  <span>
+                    {activeEv.kind === 'BIRTHDAY'
+                      ? "Today's Birthday (वाढदिवस)"
+                      : activeEv.kind === 'DAHAVA'
+                      ? "Today's 10th Day Observance · दहावा (भावपूर्ण श्रद्धांजली)"
+                      : "Today's 1st Year Remembrance · वर्षश्राद्ध (प्रथम पुण्यस्मरण)"}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    {activeEv.house ? `House ${activeEv.house}` : 'House record'}
+                  </span>
+                  {directionsUrl && (
+                    <a
+                      href={directionsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="small-btn view-btn"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        textDecoration: 'none',
+                        fontSize: '11px',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: '#ffffff',
+                      }}
+                      title="Open GPS Directions in Google Maps"
+                    >
+                      Directions
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
-            <div className="detail-card">
-              <h3>Voter & Occupation</h3>
-              <p><b>Voter Status:</b> <StatusPill>{citizenDetail.voterProfile?.status || 'NOT_SPECIFIED'}</StatusPill></p>
-              {citizenDetail.voterProfile?.officialVoterIdRef && (
-                <p><b>Voter ID / EPIC:</b> {citizenDetail.voterProfile.officialVoterIdRef}</p>
-              )}
-              {citizenDetail.voterProfile?.votingWard && (
-                <p><b>Voting Ward:</b> {citizenDetail.voterProfile.votingWard}</p>
-              )}
-              <p><b>Family Name:</b> {citizenDetail.family?.familyName || '—'}</p>
-              {citizenDetail.family?.nativeVillage && (
-                <p><b>Native Village:</b> {citizenDetail.family.nativeVillage}</p>
-              )}
-              <p><b>Occupation:</b> {citizenDetail.occupationType === 'BUSINESS' ? `Business · ${citizenDetail.businessName || '—'}` : citizenDetail.occupationType === 'SERVICE' ? `Service · ${citizenDetail.companyName || '—'}` : (citizenDetail.occupation || '—')}</p>
-            </div>
-          </div>
+            <div className="detail-grid citizen-profile-grid">
+              <div className="detail-card">
+                <h3>Personal Details</h3>
+                <p><b>Full Name:</b> {citizenDetail.fullName}</p>
+                <p><b>Mobile:</b> {citizenDetail.mobile || '—'}</p>
+                {citizenDetail.alternateMobile && <p><b>Alternate Mobile:</b> {citizenDetail.alternateMobile}</p>}
+                <p><b>Date of Birth:</b> {citizenDetail.dob || '—'}</p>
+                <p><b>Age:</b> {citizenDetail.age != null ? `${citizenDetail.age} years` : '—'}</p>
+                <p><b>Gender:</b> {citizenDetail.gender || '—'}</p>
+                {citizenDetail.bloodGroup && <p><b>Blood Group:</b> {citizenDetail.bloodGroup}</p>}
+                <p><b>Email:</b> {citizenDetail.email || '—'}</p>
+                {citizenDetail.presenceStatus && (
+                  <p><b>Current Residence:</b> {citizenDetail.presenceStatus === 'OUT_OF_CITY' ? `Out of city (${citizenDetail.currentCity || 'Other'})` : 'At home'}</p>
+                )}
+              </div>
 
-          {citizenDetail.family?.members && citizenDetail.family.members.length > 1 && (
-            <div className="detail-card" style={{ marginTop: '14px' }}>
-              <h3>Family Members ({citizenDetail.family.members.length})</h3>
-              <div className="member-grid">
-                {citizenDetail.family.members.map((m) => (
-                  <div className="member-card" key={m.id}>
-                    <strong>{m.fullName}</strong>
-                    <span>{m.age != null ? `${m.age} yrs` : ''} {m.mobile ? `· ${m.mobile}` : ''}</span>
-                    <span>{m.gender || ''} · {m.relationWithHead || 'Member'}</span>
+              <div className="detail-card">
+                <h3>Residence & Ward</h3>
+                <p><b>House Number:</b> {citizenDetail.family?.house?.houseNumber || activeEv?.house || '—'}</p>
+                {citizenDetail.family?.house?.apartment?.name && (
+                  <p><b>Apartment / Society:</b> {citizenDetail.family.house.apartment.name}</p>
+                )}
+                <p><b>Colony / Area:</b> {citizenDetail.family?.house?.area?.name || '—'}</p>
+                <p><b>Ward:</b> {citizenDetail.family?.house?.area?.ward?.wardNumber ? `Ward ${citizenDetail.family.house.area.ward.wardNumber}` : '—'}{citizenDetail.family?.house?.area?.ward?.name ? ` · ${citizenDetail.family.house.area.ward.name}` : ''}</p>
+                <p><b>Address:</b> {citizenDetail.family?.house?.address || activeEv?.address || '—'}</p>
+                {citizenDetail.family?.house?.landmark && (
+                  <p><b>Landmark:</b> {citizenDetail.family.house.landmark}</p>
+                )}
+                {(citizenDetail.family?.house?.latitude || activeEv?.latitude) && (
+                  <p><b>GPS Coordinates:</b> {citizenDetail.family?.house?.latitude || activeEv?.latitude}, {citizenDetail.family?.house?.longitude || activeEv?.longitude}</p>
+                )}
+                {directionsUrl && (
+                  <div style={{ marginTop: '10px' }}>
+                    <a
+                      href={directionsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="small-btn view-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontWeight: 600 }}
+                    >
+                      Open Location / Directions on Map
+                    </a>
                   </div>
-                ))}
+                )}
+              </div>
+
+              <div className="detail-card">
+                <h3>Voter & Occupation</h3>
+                <p><b>Voter Status:</b> <StatusPill>{citizenDetail.voterProfile?.status || 'NOT_SPECIFIED'}</StatusPill></p>
+                {citizenDetail.voterProfile?.officialVoterIdRef && (
+                  <p><b>Voter ID / EPIC:</b> {citizenDetail.voterProfile.officialVoterIdRef}</p>
+                )}
+                {citizenDetail.voterProfile?.votingWard && (
+                  <p><b>Voting Ward:</b> {citizenDetail.voterProfile.votingWard}</p>
+                )}
+                <p><b>Family Name:</b> {citizenDetail.family?.familyName || '—'}</p>
+                {citizenDetail.family?.nativeVillage && (
+                  <p><b>Native Village:</b> {citizenDetail.family.nativeVillage}</p>
+                )}
+                <p><b>Occupation:</b> {citizenDetail.occupationType === 'BUSINESS' ? `Business · ${citizenDetail.businessName || '—'}` : citizenDetail.occupationType === 'SERVICE' ? `Service · ${citizenDetail.companyName || '—'}` : (citizenDetail.occupation || '—')}</p>
               </div>
             </div>
-          )}
 
-          <div className="modal-actions" style={{ marginTop: '16px' }}>
-            <button className="ghost-btn" onClick={() => setCitizenDetail(null)}>
-              Close
-            </button>
-            <button
-              className="primary-btn"
-              style={{ background: '#059669', borderColor: '#047857' }}
-              onClick={() => {
-                const ev = {
-                  name: citizenDetail.fullName,
-                  mobile: citizenDetail.mobile,
-                  personId: citizenDetail.id,
-                  house: citizenDetail.family?.house?.houseNumber,
-                  address: citizenDetail.family?.house?.area?.name,
-                  kind: 'BIRTHDAY'
-                };
-                setCitizenDetail(null);
-                openWhatsapp(ev);
-              }}
-            >
-              Send WhatsApp Greeting
-            </button>
-          </div>
-        </Modal>
-      )}
+            {citizenDetail.family?.members && citizenDetail.family.members.length > 1 && (
+              <div className="detail-card" style={{ marginTop: '14px' }}>
+                <h3>Family Members ({citizenDetail.family.members.length})</h3>
+                <div className="member-grid">
+                  {citizenDetail.family.members.map((m) => (
+                    <div className="member-card" key={m.id}>
+                      <strong>{m.fullName}</strong>
+                      <span>{m.age != null ? `${m.age} yrs` : ''} {m.mobile ? `· ${m.mobile}` : ''}</span>
+                      <span>{m.gender || ''} · {m.relationWithHead || 'Member'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-      {/* WhatsApp Greeting Card & Message Modal */}
+            <div className="modal-actions citizen-modal-actions" style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <button type="button" className="ghost-btn" onClick={() => setCitizenDetail(null)}>
+                Close
+              </button>
+
+              {directionsUrl && (
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="small-btn view-btn citizen-directions-btn"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    border: '1px solid #0284c7',
+                    background: '#f0f9ff',
+                    color: '#0369a1',
+                  }}
+                  title="Navigate to citizen residence with Google Maps"
+                >
+                  Directions
+                </a>
+              )}
+
+              <button
+                type="button"
+                className="primary-btn citizen-wa-action-btn"
+                style={{
+                  background: isSolemn ? '#334155' : '#059669',
+                  borderColor: isSolemn ? '#1e293b' : '#047857',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                }}
+                onClick={() => {
+                  const evToSend = activeEv ? {
+                    ...activeEv,
+                    name: activeEv.name || citizenDetail.fullName,
+                    mobile: activeEv.mobile || citizenDetail.mobile || citizenDetail.alternateMobile,
+                    personId: citizenDetail.id || activeEv.personId,
+                    house: activeEv.house || citizenDetail.family?.house?.houseNumber,
+                    address: activeEv.address || citizenDetail.family?.house?.address || citizenDetail.family?.house?.area?.name,
+                    latitude: activeEv.latitude || citizenDetail.family?.house?.latitude,
+                    longitude: activeEv.longitude || citizenDetail.family?.house?.longitude,
+                  } : {
+                    name: citizenDetail.fullName,
+                    mobile: citizenDetail.mobile || citizenDetail.alternateMobile,
+                    personId: citizenDetail.id,
+                    house: citizenDetail.family?.house?.houseNumber,
+                    address: citizenDetail.family?.house?.address || citizenDetail.family?.house?.area?.name,
+                    latitude: citizenDetail.family?.house?.latitude,
+                    longitude: citizenDetail.family?.house?.longitude,
+                    kind: 'BIRTHDAY',
+                  };
+                  setCitizenDetail(null);
+                  openWhatsapp(evToSend);
+                }}
+              >
+                {isSolemn ? (
+                  activeEv?.kind === 'DAHAVA' ? 'Send Condolence Message' : 'Send Remembrance Message'
+                ) : (
+                  'Send WhatsApp Greeting'
+                )}
+              </button>
+            </div>
+          </Modal>
+        );
+      })()}
+
+      {/* WhatsApp Greeting / Solemn Tribute Card & Message Modal */}
       {whatsappModal && (
         <Modal
           wide
@@ -2088,7 +2320,7 @@ export default function Dashboard() {
           onClose={() => setWhatsappModal(null)}
         >
           <div className="wa-card-modal-content">
-            {/* Digital Greeting Card Preview */}
+            {/* Digital Greeting / Tribute Card Preview */}
             <div className={`wa-greeting-card wa-theme-${whatsappModal.payload.theme}`}>
               <div className="wa-card-header">
                 <span className="wa-card-scope">
@@ -2106,10 +2338,10 @@ export default function Dashboard() {
 
               <div className="wa-card-footer">
                 <div className="wa-card-sender">
-                  <span className="sender-from">From:</span>
-                  <strong>{data?.user?.name || user?.name}</strong>
+                  <span className="sender-from">{whatsappModal.payload.isSolemn ? 'सादर प्रणाम:' : 'From:'}</span>
+                  <strong>{whatsappModal.payload.senderDisplayName || resolveNagarsevakName(user, data)}</strong>
                   <span className="sender-role">
-                    {nagar ? 'Nagarsevak' : employee ? 'Ward Field Officer' : 'Municipal Desk'}
+                    {whatsappModal.payload.senderRole || 'नगरसेवक / Corporator'}
                   </span>
                 </div>
                 {whatsappModal.ev.house && (
@@ -2144,7 +2376,11 @@ export default function Dashboard() {
               <div className="wa-input-group">
                 <label htmlFor="wa-message-text">
                   <strong>WhatsApp Message Text</strong>
-                  <span className="field-hint">Customizable greeting text</span>
+                  <span className="field-hint">
+                    {whatsappModal.payload.isSolemn
+                      ? 'Solemn condolence text with Nagarsevak sign-off'
+                      : 'Customizable greeting text'}
+                  </span>
                 </label>
                 <textarea
                   id="wa-message-text"
@@ -2163,6 +2399,18 @@ export default function Dashboard() {
                 >
                   Close
                 </button>
+                {getCitizenDirectionsUrl(whatsappModal.ev) && (
+                  <a
+                    href={getCitizenDirectionsUrl(whatsappModal.ev)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ghost-btn"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                    title="Get directions to citizen house"
+                  >
+                    Directions
+                  </a>
+                )}
                 <button
                   type="button"
                   className="ghost-btn"
@@ -2181,9 +2429,10 @@ export default function Dashboard() {
                 <button
                   type="button"
                   className="primary-btn wa-send-btn"
+                  style={whatsappModal.payload.isSolemn ? { background: '#334155', borderColor: '#1e293b' } : {}}
                   onClick={handleSendWhatsapp}
                 >
-                  Send on WhatsApp
+                  {whatsappModal.payload.isSolemn ? 'Send Condolence on WhatsApp' : 'Send on WhatsApp'}
                 </button>
               </div>
             </div>

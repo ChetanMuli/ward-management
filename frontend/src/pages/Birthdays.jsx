@@ -20,7 +20,7 @@ const upcomingWindows=[
  {key:'custom',label:'Custom upcoming range',from:0,to:0}
 ];
 
-function birthdayMessage(name,nagarsevak){return `Happy Birthday ${name}! 🎉 Wishing you a wonderful year filled with happiness, good health and success. — ${nagarsevak||'Nagarsevak'}`}
+function birthdayMessage(name,nagarsevak){return `Happy Birthday ${name}! Wishing you a wonderful year filled with happiness, good health and success. — ${nagarsevak||'Nagarsevak'}`}
 function fmtDate(d){return d?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium'}).format(new Date(d)): '—'}
 function partyMark(party=''){const p=String(party||'').toLowerCase();if(p.includes('bharatiya janata'))return 'BJP';if(p.includes('nationalist congress'))return 'NCP';if(p.includes('congress'))return 'INC';if(p.includes('shiv sena'))return 'SS';if(p.includes('bahujan'))return 'BSP';return String(party||'Party').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'P'}
 

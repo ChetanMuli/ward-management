@@ -162,7 +162,7 @@ export default function Complaints(){
    {/* Problem Photos */}
    <div className="detail-card complaint-photo-block" style={{marginTop:'14px'}}>
      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
-       <h3 style={{margin:0,display:'flex',alignItems:'center',gap:'8px',fontSize:'14px'}}><span>📸</span> Images Uploaded by Resident (Problem Photos)</h3>
+       <h3 style={{margin:0,display:'flex',alignItems:'center',gap:'8px',fontSize:'14px'}}>Images Uploaded by Resident (Problem Photos)</h3>
        <span style={{background:parseComplaintImages(detail.reportedImages||detail.reportedImage).length?'#f0f4f8':'#f8fafc',color:parseComplaintImages(detail.reportedImages||detail.reportedImage).length?'#1e293b':'#64748b',fontWeight:700,padding:'3px 9px',borderRadius:'999px',fontSize:'11px',border:'1px solid #e2e8f0'}}>
          {parseComplaintImages(detail.reportedImages||detail.reportedImage).length?`${parseComplaintImages(detail.reportedImages||detail.reportedImage).length} photos`:'No photos attached'}
        </span>
@@ -173,7 +173,7 @@ export default function Complaints(){
            <div key={i} className="complaint-photo-item" onClick={()=>setPreviewImage({src,title:`Problem photo #${i+1} (${detail.complaintNumber})`})}>
              <div className="photo-label">Problem Photo #{i+1}</div>
              <img src={src} alt={`Reported problem ${i+1}`}/>
-             <div className="photo-zoom-hint">🔍 Tap to enlarge</div>
+             <div className="photo-zoom-hint">Tap to enlarge</div>
            </div>
          ))}
        </div>
@@ -185,7 +185,7 @@ export default function Complaints(){
    {/* After-Work Photos */}
    <div className="detail-card complaint-photo-block" style={{marginTop:'14px',borderColor:parseComplaintImages(detail.resolutionImages||detail.resolutionImage).length?'#bbf7d0':'#e2e8f0',background:parseComplaintImages(detail.resolutionImages||detail.resolutionImage).length?'#f0fdf4':'#ffffff'}}>
      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
-       <h3 style={{margin:0,display:'flex',alignItems:'center',gap:'8px',fontSize:'14px'}}><span>✅</span> After-Work Images (Employee / Nagarsevak)</h3>
+       <h3 style={{margin:0,display:'flex',alignItems:'center',gap:'8px',fontSize:'14px'}}>After-Work Images (Employee / Nagarsevak)</h3>
        <span style={{background:parseComplaintImages(detail.resolutionImages||detail.resolutionImage).length?'#dcfce7':'#f8fafc',color:parseComplaintImages(detail.resolutionImages||detail.resolutionImage).length?'#166534':'#64748b',fontWeight:700,padding:'3px 9px',borderRadius:'999px',fontSize:'11px',border:parseComplaintImages(detail.resolutionImages||detail.resolutionImage).length?'1px solid #86efac':'1px solid #e2e8f0'}}>
          {parseComplaintImages(detail.resolutionImages||detail.resolutionImage).length?`${parseComplaintImages(detail.resolutionImages||detail.resolutionImage).length} completion photos`:'Work completion pending'}
        </span>
@@ -196,7 +196,7 @@ export default function Complaints(){
            <div key={i} className="complaint-photo-item" onClick={()=>setPreviewImage({src,title:`Work Completed Photo #${i+1} (${detail.complaintNumber})`})}>
              <div className="photo-label" style={{color:'#166534',background:'#dcfce7'}}>Work Completed #{i+1}</div>
              <img src={src} alt={`Completed work ${i+1}`}/>
-             <div className="photo-zoom-hint">🔍 Tap to enlarge</div>
+             <div className="photo-zoom-hint">Tap to enlarge</div>
            </div>
          ))}
        </div>
@@ -208,7 +208,7 @@ export default function Complaints(){
    <div className="detail-card" style={{marginTop:'14px'}}><h3>Activity timeline</h3><div className="complaint-timeline">{(detail.history||[]).length?(detail.history||[]).slice().sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).map((h,i)=><div className="timeline-item" key={h.id||i}><strong>{h.newStatus?.replaceAll('_',' ')||'Updated'}</strong><small>{fmtDateTime(h.createdAt)} · {h.changedBy?.name||'System'}</small><div>{h.comment||'Status updated'}</div></div>):<div className="muted">No activity recorded.</div>}</div></div>
    <div className="modal-actions">
      <button className="ghost-btn" onClick={()=>setDetail(null)}>Close</button>
-     {can('EDIT_COMPLAINTS')&&(isEmployee(user)?detail.assignedEmployeeId===user?.employeeProfile?.id:true)&&<button type="button" className="primary-btn" style={{background:'#2563eb',color:'#fff',display:'inline-flex',alignItems:'center',gap:'6px'}} onClick={()=>{setEditing({...detail,comment:'',resolutionNote:detail.resolutionNote||'',resolutionImages:parseComplaintImages(detail.resolutionImages||detail.resolutionImage),resolutionImage:detail.resolutionImage||null});setDetail(null);}}>✏️ Update Status</button>}
+     {can('EDIT_COMPLAINTS')&&(isEmployee(user)?detail.assignedEmployeeId===user?.employeeProfile?.id:true)&&<button type="button" className="primary-btn" style={{background:'#2563eb',color:'#fff',display:'inline-flex',alignItems:'center',gap:'6px'}} onClick={()=>{setEditing({...detail,comment:'',resolutionNote:detail.resolutionNote||'',resolutionImages:parseComplaintImages(detail.resolutionImages||detail.resolutionImage),resolutionImage:detail.resolutionImage||null});setDetail(null);}}>Update Status</button>}
      {can('EDIT_COMPLAINTS')&&!isEmployee(user)&&detail.status==='RESOLVED'&&<button className="primary-btn" onClick={async()=>{try{await api.updateComplaintStatus(detail.id,{status:'CLOSED',comment:'Closed after resolution.'});setDetail(null);await load()}catch(e){setError(e.message)}}}>Mark closed</button>}
    </div>
   </Modal>}
@@ -218,7 +218,7 @@ export default function Complaints(){
       <div style={{ textAlign: 'center', padding: '12px' }}>
         <img src={previewImage.src} alt="Preview" style={{ maxWidth: '100%', maxHeight: '68vh', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 8px 30px rgba(0,0,0,0.18)' }} />
         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', gap: '12px' }}>
-          <a href={previewImage.src} target="_blank" rel="noreferrer" className="small-btn primary-btn">Open full size in new tab ↗</a>
+          <a href={previewImage.src} target="_blank" rel="noreferrer" className="small-btn primary-btn">Open full size in new tab</a>
           <button type="button" className="small-btn ghost-btn" onClick={() => setPreviewImage(null)}>Close preview</button>
         </div>
       </div>

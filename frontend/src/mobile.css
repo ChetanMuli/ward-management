@@ -818,16 +818,24 @@ html {
     overflow-wrap: anywhere !important;
   }
 
-  .modal-actions,
-  .permission-modal-actions {
+  .modal-actions {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 8px !important;
     width: 100% !important;
-    position: sticky !important;
-    bottom: -4px !important;
     background: #fff !important;
     padding-top: 10px !important;
+  }
+
+  .modal-footer .modal-actions,
+  .modal-footer .permission-modal-actions,
+  .permission-modal-actions {
+    position: static !important;
+    bottom: auto !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .modal-actions:has(> :only-child) {
@@ -4532,48 +4540,65 @@ html body .person-form .form-section-title strong{
     padding: 1px 5px !important;
   }
 
-  /* Schedule Cards - thumb-friendly horizontal action bar */
-  html body .schedule-card {
+  /* Schedule Cards - mobile layout */
+  html body .schedule-card,
+  html body .schedules-page .sched-card {
     display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    align-items: flex-start !important;
-    padding: 12px 14px !important;
-    gap: 10px !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 14px !important;
     border-radius: 12px !important;
     box-sizing: border-box !important;
-    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 10px !important;
   }
 
-  html body .schedule-card-left {
-    flex: 0 0 34px !important;
+  html body .schedule-card-main,
+  html body .schedules-page .sched-card-main {
     display: flex !important;
+    flex-direction: row !important;
     align-items: flex-start !important;
-    padding-top: 2px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+
+  html body .schedule-card-left,
+  html body .schedules-page .sched-tick {
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    height: 28px !important;
+    margin-top: 2px !important;
   }
 
   html body .schedule-check-toggle {
-    width: 34px !important;
-    height: 34px !important;
-    font-size: 15px !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
   }
 
-  html body .schedule-card-content {
-    flex: 1 1 calc(100% - 46px) !important;
+  html body .schedule-card-content,
+  html body .schedules-page .sched-card-body {
+    flex: 1 1 auto !important;
     min-width: 0 !important;
   }
 
-  html body .schedule-card-tags {
+  html body .schedule-card-tags,
+  html body .schedules-page .sched-tags {
     gap: 4px !important;
     margin-bottom: 4px !important;
   }
 
-  html body .schedule-item-title {
-    font-size: 14.5px !important;
-    margin-bottom: 4px !important;
+  html body .schedule-item-title,
+  html body .schedules-page .sched-card-body h4 {
+    font-size: 15px !important;
+    margin: 3px 0 5px 0 !important;
+    line-height: 1.35 !important;
   }
 
-  html body .schedule-card-actions {
+  html body .schedule-card-actions,
+  html body .schedules-page .sched-card-actions {
     width: 100% !important;
     display: flex !important;
     flex-direction: row !important;
@@ -4582,39 +4607,37 @@ html body .person-form .form-section-title strong{
     gap: 8px !important;
     border-top: 1px solid #f1f5f9 !important;
     padding-top: 10px !important;
-    margin-top: 6px !important;
+    margin-top: auto !important;
+    box-sizing: border-box !important;
   }
 
-  html body .schedule-card-actions .schedule-btn-toggle,
-  html body .schedule-card-actions .schedule-action-btn.btn-done,
-  html body .schedule-card-actions .schedule-action-btn.btn-reopen {
-    flex: 1.5 !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
+  html body .schedule-card-actions .row-menu,
+  html body .schedules-page .sched-card-actions .row-menu {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  html body .schedule-card-actions .row-menu > .small-btn,
+  html body .schedule-card-actions .row-menu > .view-btn,
+  html body .schedules-page .sched-card-actions .row-menu > .small-btn,
+  html body .schedules-page .sched-card-actions .row-menu > .view-btn {
+    flex: 1 1 auto !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
     justify-content: center !important;
   }
 
-  html body .schedule-card-actions .schedule-btn-move,
-  html body .schedule-card-actions .schedule-btn-reassign,
-  html body .schedule-card-actions .schedule-action-btn.btn-move-today {
-    flex: 1.5 !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    justify-content: center !important;
-  }
-
-  html body .schedule-card-actions .schedule-btn-edit,
-  html body .schedule-card-actions .schedule-btn-delete,
-  html body .schedule-card-actions .schedule-icon-btn {
-    flex: 1 !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    font-size: 12.5px !important;
-    font-weight: 700 !important;
+  html body .schedule-card-actions .row-menu > .row-menu-toggle,
+  html body .schedules-page .sched-card-actions .row-menu > .row-menu-toggle {
+    flex: 0 0 88px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
     justify-content: center !important;
   }
 
@@ -4714,23 +4737,6 @@ html body .person-form .form-section-title strong{
     min-width: 0 !important;
   }
 
-  html body .schedules-page .sched-card {
-    grid-template-columns: 32px minmax(0, 1fr) !important;
-    width: 100% !important;
-  }
-
-  html body .schedules-page .sched-card-actions {
-    grid-column: 1 / -1 !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    width: 100% !important;
-  }
-
-  html body .schedules-page .sched-act {
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-  }
-
   html body .schedules-page .page-header,
   html body .schedules-page .sched-head-actions {
     width: 100% !important;
@@ -4743,29 +4749,28 @@ html body .person-form .form-section-title strong{
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  html body .admin-dashboard-page.is-field-desk .dash-duty-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
   html body .admin-dashboard-page.is-field-desk .dash-hero-content {
     align-items: flex-start !important;
     text-align: left !important;
-  }
-  html body .schedules-page .sched-card-actions {
-    display: flex !important;
-    flex-wrap: wrap !important;
-  }
-  html body .schedules-page .sched-act.act-done,
-  html body .schedules-page .sched-act.act-reopen {
-    flex: 1 1 100% !important;
-  }
-  html body .schedules-page .sched-act.act-move,
-  html body .schedules-page .sched-act.act-edit,
-  html body .schedules-page .sched-act.act-del {
-    flex: 1 1 calc(33.33% - 8px) !important;
-    min-width: 0 !important;
   }
   html body .perm-v2-item-tile {
     flex-direction: column !important;
     align-items: stretch !important;
   }
+  html body .citizen-modal-actions {
+    flex-direction: column-reverse !important;
+    width: 100% !important;
+  }
+  html body .citizen-modal-actions > button,
+  html body .citizen-modal-actions > a {
+    width: 100% !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+  html body .citizen-event-banner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
 }
+

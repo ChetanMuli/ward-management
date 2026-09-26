@@ -1129,7 +1129,7 @@ export default function Staff() {
             className="ghost-btn"
             onClick={openNotify}
           >
-            🔔 Send notification
+            Send notification
           </button>
         )}
 
@@ -2247,6 +2247,89 @@ export default function Staff() {
           onClose={() =>
             setPerm(null)
           }
+          footer={
+            <div className="modal-actions permission-modal-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() =>
+                  setPerm(null)
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="primary-btn"
+                disabled={busy}
+                onClick={async () => {
+                  try {
+                    setBusy(true);
+                    const accountId = perm.data.id;
+
+                    if (perm.kind === 'NAGARSEVAK') {
+                      await api.updateCorporator(
+                        accountId,
+                        { permissions: permValues }
+                      );
+                    } else if (
+                      typeof api.updateEmployeePermissions ===
+                      'function'
+                    ) {
+                      await api.updateEmployeePermissions(
+                        accountId,
+                        { permissions: permValues }
+                      );
+                    } else if (
+                      typeof api.updateEmployee ===
+                      'function'
+                    ) {
+                      await api.updateEmployee(
+                        accountId,
+                        { permissions: permValues }
+                      );
+                    } else {
+                      throw new Error(
+                        'Permission update API is not available.'
+                      );
+                    }
+
+                    setPerm(null);
+
+                    await load();
+                    window.dispatchEvent(new CustomEvent('ward:permissions-updated'));
+
+                    window.dispatchEvent(
+                      new CustomEvent(
+                        'ward:toast',
+                        {
+                          detail: {
+                            type:
+                              'success',
+                            message:
+                              'Permissions saved successfully.'
+                          }
+                        }
+                      )
+                    );
+
+                  } catch (err) {
+                    setError(
+                      err?.message ||
+                      'Unable to save permissions.'
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {busy
+                  ? 'Saving...'
+                  : 'Save access'}
+              </button>
+            </div>
+          }
         >
 
           <PermissionEditor
@@ -2255,102 +2338,6 @@ export default function Staff() {
             onChange={setPermValues}
             isMasterAdmin={master}
           />
-
-
-          <div className="modal-actions permission-modal-actions">
-
-            <button
-              type="button"
-              className="ghost-btn"
-              onClick={() =>
-                setPerm(null)
-              }
-            >
-              Cancel
-            </button>
-
-
-            <button
-              type="button"
-              className="primary-btn"
-              disabled={busy}
-              onClick={async () => {
-
-                try {
-
-                  setBusy(true);
-
-                  const accountId =
-                    perm.data.id;
-
-                  if (perm.kind === 'NAGARSEVAK') {
-                    await api.updateCorporator(
-                      accountId,
-                      { permissions: permValues }
-                    );
-                  } else if (
-                    typeof api.updateEmployeePermissions ===
-                    'function'
-                  ) {
-                    await api.updateEmployeePermissions(
-                      accountId,
-                      { permissions: permValues }
-                    );
-                  } else if (
-                    typeof api.updateEmployee ===
-                    'function'
-                  ) {
-                    await api.updateEmployee(
-                      accountId,
-                      { permissions: permValues }
-                    );
-                  } else {
-                    throw new Error(
-                      'Permission update API is not available.'
-                    );
-                  }
-
-
-                  setPerm(null);
-
-                  await load();
-                  window.dispatchEvent(new CustomEvent('ward:permissions-updated'));
-
-                  window.dispatchEvent(
-                    new CustomEvent(
-                      'ward:toast',
-                      {
-                        detail: {
-                          type:
-                            'success',
-                          message:
-                            'Permissions saved successfully.'
-                        }
-                      }
-                    )
-                  );
-
-                } catch (err) {
-
-                  setError(
-                    err?.message ||
-                    'Unable to save permissions.'
-                  );
-
-                } finally {
-
-                  setBusy(false);
-
-                }
-
-              }}
-            >
-              {busy
-                ? 'Saving...'
-                : 'Save access'}
-            </button>
-
-          </div>
 
         </Modal>
 

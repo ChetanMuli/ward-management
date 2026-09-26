@@ -2620,37 +2620,66 @@ html body .user-portal .user-nav-badge.chat-unread{
   align-self:center !important;
 }
 
-/* Camera: one working control. Overlay the file input so phone capture actually opens. */
-html body .image-input-actions{
-  display:flex !important;
-  flex-wrap:wrap !important;
-  gap:8px !important;
+/* Camera: clean, reliable controls across mobile and desktop. No overlay blocking clicks. */
+html body .image-input-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  align-items: center !important;
 }
-html body .image-input-actions .upload-btn{
-  position:relative !important;
-  overflow:hidden !important;
-  display:inline-flex !important;
-  flex:1 1 140px !important;
-  min-height:42px !important;
+html body .image-input-actions .upload-btn {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  flex: 1 1 140px !important;
+  min-height: 42px !important;
+  padding: 9px 16px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
 }
-html body .image-input-actions .camera-upload,
-html body .image-input-actions .secondary-upload{
-  display:inline-flex !important;
+html body .image-input-actions .camera-upload {
+  display: inline-flex !important;
+  background: #0f766e !important;
+  color: #ffffff !important;
+  border: 1px solid #0f766e !important;
 }
-html body .image-input-actions .camera-native-upload{
-  display:none !important;
+html body .image-input-actions .camera-upload:hover {
+  background: #0d655e !important;
 }
-html body .image-file-input-native{
-  position:absolute !important;
-  inset:0 !important;
-  width:100% !important;
-  height:100% !important;
-  opacity:0 !important;
-  margin:0 !important;
-  padding:0 !important;
-  display:block !important;
-  cursor:pointer !important;
-  font-size:28px !important;
+html body .image-input-actions .secondary-upload {
+  display: inline-flex !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+html body .image-input-actions .secondary-upload:hover {
+  background: #f8fafc !important;
+}
+html body .image-input-actions .upload-btn.is-disabled {
+  opacity: 0.55 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
+html body .image-file-input-native,
+html body .camera-hidden-input {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 html body .image-preview-grid{
   display:grid;
@@ -2713,4 +2742,151 @@ html body a.loc-gmaps-btn{
   html body .houses-header-actions{width:100%}
   html body .houses-header-actions .primary-btn,
   html body .houses-header-actions .ghost-btn{flex:1;width:auto;min-width:0}
+}
+
+/* ===== Final-priority Unified Equal-Height Schedule Cards & Bottom-Locked Buttons ===== */
+html body .schedules-page .sched-list,
+html body .schedule-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html body .schedules-page .sched-card,
+html body .schedule-card {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+  border-radius: 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  padding: 16px !important;
+  position: relative !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+html body .schedules-page .sched-card-main,
+html body .schedule-card-main {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+
+html body .schedules-page .sched-card-body,
+html body .schedule-card-content {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+html body .schedules-page .sched-card-actions,
+html body .schedule-card-actions {
+  display: flex !important;
+  margin-top: auto !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  width: 100% !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+}
+
+html body .schedules-page .sched-card-actions .row-menu,
+html body .schedule-card-actions .row-menu {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  width: auto !important;
+}
+
+html body .schedules-page .sched-card-actions .row-menu > .small-btn,
+html body .schedule-card-actions .row-menu > .small-btn,
+html body .schedules-page .sched-card-actions .row-menu > .view-btn,
+html body .schedule-card-actions .row-menu > .view-btn {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  min-width: 100px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html body .schedules-page .sched-card-actions .row-menu > .row-menu-toggle,
+html body .schedule-card-actions .row-menu > .row-menu-toggle {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  min-width: 76px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+@media (max-width: 800px) {
+  html body .schedules-page .sched-list,
+  html body .schedule-list {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  html body .schedules-page .sched-card,
+  html body .schedule-card {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+  html body .schedules-page .sched-card-actions,
+  html body .schedule-card-actions {
+    width: 100% !important;
+    justify-content: stretch !important;
+  }
+  html body .schedules-page .sched-card-actions .row-menu,
+  html body .schedule-card-actions .row-menu {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+  }
+  html body .schedules-page .sched-card-actions .row-menu > .small-btn,
+  html body .schedule-card-actions .row-menu > .small-btn,
+  html body .schedules-page .sched-card-actions .row-menu > .view-btn,
+  html body .schedule-card-actions .row-menu > .view-btn {
+    flex: 1 1 auto !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    font-size: 14px !important;
+    justify-content: center !important;
+  }
+  html body .schedules-page .sched-card-actions .row-menu > .row-menu-toggle,
+  html body .schedule-card-actions .row-menu > .row-menu-toggle {
+    flex: 0 0 88px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    font-size: 14px !important;
+    justify-content: center !important;
+  }
 }
