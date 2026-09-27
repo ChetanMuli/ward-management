@@ -291,7 +291,7 @@ html,body,#root{max-width:100%;overflow-x:hidden}
  .permission-buttons{display:grid;grid-template-columns:1fr 1fr}
  .permission-btn{width:100%;text-align:left}
  .password-change-grid{grid-template-columns:1fr}
- .modal-actions{position:sticky;bottom:-15px;background:#fff;padding:10px 0 0;z-index:4}
+ .modal-actions{position:static!important;bottom:auto!important;background:transparent;padding:14px 0 0;margin-top:16px;border-top:1px solid #edf1f5}
 }
 @media(min-width:801px){.filter-toolbar{display:flex;align-items:flex-end;gap:12px}.filter-toolbar>.searchable-select{flex:0 1 260px}}
 
@@ -1220,7 +1220,7 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
  .table-wrap{margin:0 -13px;padding:0 13px}.table-wrap table{min-width:760px}
  .modal-backdrop{padding:10px}.modal,.modal-wide{width:100%;max-width:none;max-height:94vh;border-radius:13px;padding:14px}
  .modal-header{align-items:flex-start}.modal-header h2{font-size:16px}
- .form-grid{gap:10px}.modal-actions{position:sticky;bottom:-14px;background:#fff;padding:10px 0 0}
+ .form-grid{gap:10px}.modal-actions{position:static!important;bottom:auto!important;background:transparent;padding:14px 0 0;margin-top:14px;border-top:1px solid #edf1f5}
  .login-panel{padding:14px}.login-card{padding:22px 18px;border-radius:13px}.login-card h2{font-size:24px}
 }
 @media(max-width:520px){
@@ -1339,8 +1339,7 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
  .user-update-body p{font-size:9px!important}
  .user-profile-card{padding:14px!important}
  .user-footer{padding:0 10px 18px!important}
- .user-nav{left:8px!important;right:8px!important;top:70px!important;border-radius:12px!important;padding:7px!important;box-shadow:0 18px 45px rgba(12,25,45,.16)!important}
- .user-nav-link{padding:11px 12px!important;font-size:11px!important}
+ .user-nav, .user-nav.is-open{display:none!important}
  .user-complaint-filterbar{grid-template-columns:1fr 1fr!important;display:grid!important;gap:8px!important;padding:10px!important}
  .user-complaint-filterbar label{min-width:0!important}
  .user-complaint-filterbar label:first-child{grid-column:1/-1}
@@ -1512,8 +1511,7 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
   .user-profile-row strong{font-size:11px!important}
   .user-profile-row span,.user-profile-row small{font-size:8px!important}
   .user-footer{padding:0 10px 18px!important}
-  .user-nav{top:66px!important;left:8px!important;right:8px!important}
-  .user-nav-link{min-height:42px!important}
+  .user-nav, .user-nav.is-open{display:none!important}
   .user-account-menu{top:43px!important;right:0!important;width:min(270px,calc(100vw - 18px))!important}
 }
 
@@ -2272,7 +2270,7 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
   .card-actions .small-btn,.card-actions .primary-btn,.card-actions a{min-height:40px!important}
   .modal-backdrop{padding:8px!important;align-items:flex-end!important}
   .modal,.modal-wide{width:100%!important;max-width:100%!important;max-height:94dvh!important;border-radius:16px 16px 0 0!important;padding:14px!important}
-  .modal-actions{display:grid!important;grid-template-columns:1fr!important;gap:7px!important;position:sticky!important;bottom:-14px!important;background:#fff!important;padding:10px 0 0!important}
+  .modal-actions{display:grid!important;grid-template-columns:1fr!important;gap:7px!important;position:static!important;bottom:auto!important;background:transparent!important;padding:14px 0 0!important;margin-top:14px!important;border-top:1px solid #edf1f5!important}
   .modal-actions>*{width:100%!important;min-height:42px!important}
 
   /* User portal header mirrors the same clean mobile header language as admin. */
@@ -2280,9 +2278,7 @@ body{height:auto!important;position:static!important;-webkit-overflow-scrolling:
   .user-brand{min-width:0!important;flex:1 1 auto!important}
   .user-brand span{display:none!important}
   .user-brand strong{font-size:14px!important}
-  .user-nav{top:67px!important;left:8px!important;right:8px!important;border-radius:12px!important;box-shadow:0 18px 45px rgba(12,25,45,.16)!important}
-  .user-nav.is-open{display:grid!important;grid-template-columns:1fr!important}
-  .user-nav-link{min-height:42px!important;padding:11px 12px!important;font-size:11px!important}
+  .user-nav, .user-nav.is-open{display:none!important}
   .user-language-btn,.user-icon-btn,.user-mobile-menu{height:34px!important;min-height:34px!important}
   .user-account{width:34px!important;height:34px!important;padding:3px!important}
   .user-account .user-avatar{width:28px!important;height:28px!important}
