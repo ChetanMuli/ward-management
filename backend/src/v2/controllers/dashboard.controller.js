@@ -90,8 +90,11 @@ const summary = asyncHandler(async (req, res) => {
   ));
   statusResults.forEach(([status,count])=>{statusCounts[status]=count;});
 
+  const recentWhere=whereWith({
+    status: { [Op.in]: ['SUBMITTED','OPEN','PENDING','ASSIGNED','IN_PROGRESS','REOPENED'] }
+  });
   const recent=await Complaint.findAll({
-    where:complaintScope,
+    where:recentWhere,
     include:[
       { model:Person, as:'citizen', required:false, attributes:['id','fullName','mobile'] },
       { model:User, as:'submittedBy', required:false, attributes:['id','name','email','mobile'] },
@@ -100,7 +103,7 @@ const summary = asyncHandler(async (req, res) => {
       { model:Employee, as:'assignedEmployee', required:false, include:[{model:User,as:'User',attributes:['id','name','mobile']},{model:User,as:'manager',attributes:['id','name','mobile']}] },
       ...houseAreaInclude(),
     ],
-    order:[['createdAt','DESC']], limit:8, subQuery:false,
+    order:[['createdAt','DESC']], limit:20, subQuery:false,
   });
   const recentPhotos=await nagarsevakPublicByIds(recent.map(c=>c.assignedNagarsevakUserId||c.assignedNagarsevak?.id));
   const recentData=recent.map(c=>{

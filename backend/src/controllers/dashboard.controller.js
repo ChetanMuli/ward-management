@@ -29,7 +29,11 @@ const summary = asyncHandler(async (req,res)=>{
     VoterProfile.findAll({attributes:['status'],include:[{model:Person,required:true,include:personInclude}]}),
     Complaint.findAll({attributes:['status'],include:complaintInclude}),
     Complaint.findAll({
-      limit:8,order:[['createdAt','DESC']],include:[
+      where: {
+        ...(wardId ? { wardId } : {}),
+        status: { [Op.in]: ['SUBMITTED', 'OPEN', 'PENDING', 'ASSIGNED', 'IN_PROGRESS', 'REOPENED'] }
+      },
+      limit:20,order:[['createdAt','DESC']],include:[
         {model:Person,as:'citizen',attributes:['fullName','mobile']},
         {model:House,as:'house',include:[wardInclude(wardId)]}
       ]

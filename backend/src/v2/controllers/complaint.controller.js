@@ -66,11 +66,20 @@ function cleanResolutionImages(body){
 }
 
 const list = asyncHandler(async(req,res)=>{
+  archiveOldComplaints(60).catch(() => {});
   const page=Math.max(Number(req.query.page)||1,1);
   const limit=Math.min(Math.max(Number(req.query.limit)||25,1),100);
   const offset=(page-1)*limit;
   const where={};
-  for(const k of ['status','priority','category','assignedEmployeeId','assignedNagarsevakUserId']) if(req.query[k]) where[k]=req.query[k];
+  for(const k of ['priority','category','assignedEmployeeId','assignedNagarsevakUserId']) if(req.query[k]) where[k]=req.query[k];
+  if(req.query.status){
+    const s = String(req.query.status).trim().toUpperCase();
+    if(s === 'OPEN' || s === 'SUBMITTED'){
+      where.status = { [Op.in]: ['SUBMITTED', 'OPEN'] };
+    } else {
+      where.status = req.query.status;
+    }
+  }
 
   if(req.user.roleName==='CITIZEN'){
     where.submittedByUserId=req.user.id;
@@ -136,14 +145,20 @@ async function notifyComplaintCitizen(complaint, type, title, message, senderUse
 }
 
 const create = asyncHandler(async(req,res)=>{
-  const {houseId,category,description,priority='MEDIUM',citizenPersonId,assignedNagarsevakUserId,location}=req.body;
+  const {houseId,category,description,priority='MEDIUM',citizenPersonId,assignedNagarsevakUserId,location,customCategory}=req.body;
   const reportedImage=cleanReportedImages(req.body);
+
+  const cleanCategory = (category === 'OTHER' && customCategory)
+    ? String(customCategory).trim()
+    : String(category || 'OTHER').trim();
+
+  const cleanDescription = String(description || '').trim()
+    || (customCategory ? String(customCategory).trim() : cleanCategory.replaceAll('_', ' '));
 
   if(req.user.roleName==='CITIZEN'){
     const wardId=req.user.wardId;
     if(!wardId) throw new ApiError(400,'Your account is not assigned to a ward');
-    if(!category || !STATUSES.includes('SUBMITTED')) throw new ApiError(400,'Complaint category is required');
-    if(!String(description||'').trim()) throw new ApiError(400,'Complaint description is required');
+    if(!cleanCategory) throw new ApiError(400,'Complaint category is required');
 
     let nagarsevak=null;
     const { isNagarsevakVisibleInWard, getVisibleNagarsevaks } = require('../../services/wardActivation.service');
@@ -161,7 +176,7 @@ const create = asyncHandler(async(req,res)=>{
     const ward=await Ward.findByPk(wardId,{attributes:['id','wardNumber','name']});
     const complaint=await Complaint.create({
       complaintNumber:complaintNo(ward?.wardNumber),submittedByUserId:req.user.id,wardId,citizenPersonId:null,houseId:null,
-      assignedNagarsevakUserId:nagarsevak?.id||null,category,description:String(description).trim(),location:String(location||'').trim()||null,
+      assignedNagarsevakUserId:nagarsevak?.id||null,category:cleanCategory,description:cleanDescription,location:String(location||'').trim()||null,
       priority,status:'SUBMITTED',slaDueAt:new Date(Date.now()+(SLA_HOURS[priority]||72)*3600000),reportedImage
     });
     await ComplaintHistory.create({complaintId:complaint.id,newStatus:'SUBMITTED',changedByUserId:req.user.id,comment:'Complaint submitted by registered ward user'});
@@ -193,7 +208,7 @@ const create = asyncHandler(async(req,res)=>{
     if(!nagarsevak) throw new ApiError(400,'Selected Nagarsevak is not active in this ward');
   }
   const ward=await Ward.findByPk(wardId,{attributes:['id','wardNumber','name']});
-  const complaint=await Complaint.create({complaintNumber:complaintNo(ward?.wardNumber),citizenPersonId:citizenId,houseId,wardId,assignedNagarsevakUserId:nagarsevak?.id||null,category,description,location:String(location||'').trim()||null,priority,status:'SUBMITTED',slaDueAt:new Date(Date.now()+(SLA_HOURS[priority]||72)*3600000),reportedImage});
+  const complaint=await Complaint.create({complaintNumber:complaintNo(ward?.wardNumber),citizenPersonId:citizenId,houseId,wardId,assignedNagarsevakUserId:nagarsevak?.id||null,category:cleanCategory,description:cleanDescription,location:String(location||'').trim()||null,priority,status:'SUBMITTED',slaDueAt:new Date(Date.now()+(SLA_HOURS[priority]||72)*3600000),reportedImage});
   await ComplaintHistory.create({complaintId:complaint.id,newStatus:'SUBMITTED',changedByUserId:req.user.id,comment:'Complaint created'});
   await notifyComplaintCitizen(complaint,'COMPLAINT_NEW','A complaint was registered',`${complaint.complaintNumber} has been submitted for you.`,req.user.id);
   const { notifyMastersAndWardStaff } = require('../../services/notify.service');
@@ -235,7 +250,7 @@ const assign = asyncHandler(async(req,res)=>{
   const oldStatus=complaint.status;
   await complaint.update({
     assignedEmployeeId:employee?.id||null,
-    assignedNagarsevakUserId:nagarsevak?.id||complaint.assignedNagarsevakUserId||null,
+    assignedNagarsevakUserId:assignToSelf ? req.user.id : (complaint.assignedNagarsevakUserId || nagarsevak?.id || null),
     status:'ASSIGNED'
   });
   await ComplaintHistory.create({
@@ -279,15 +294,15 @@ const updateStatus = asyncHandler(async(req,res)=>{
     if(current==='ASSIGNED'&&status==='RESOLVED') throw new ApiError(400,'Start the work with IN PROGRESS before resolving it');
   } else if(management){
     const allowedTransitions={
-      SUBMITTED:['PENDING','ASSIGNED','IN_PROGRESS'],
-      PENDING:['ASSIGNED','IN_PROGRESS'],
-      ASSIGNED:['IN_PROGRESS','RESOLVED','REOPENED'],
-      IN_PROGRESS:['RESOLVED','REOPENED'],
+      SUBMITTED:['PENDING','ASSIGNED','IN_PROGRESS','RESOLVED'],
+      PENDING:['ASSIGNED','IN_PROGRESS','RESOLVED'],
+      ASSIGNED:['IN_PROGRESS','RESOLVED','PENDING','REOPENED'],
+      IN_PROGRESS:['RESOLVED','PENDING','REOPENED'],
       RESOLVED:['CLOSED','REOPENED'],
-      REOPENED:['ASSIGNED','IN_PROGRESS'],
+      REOPENED:['ASSIGNED','IN_PROGRESS','RESOLVED'],
       CLOSED:['REOPENED']
     };
-    if(!allowedTransitions[current]?.includes(status)){
+    if(status!==current && !allowedTransitions[current]?.includes(status)){
       throw new ApiError(400,`Cannot change complaint from ${current.replaceAll('_',' ')} to ${status.replaceAll('_',' ')}`);
     }
     if(status==='CLOSED'&&current!=='RESOLVED') throw new ApiError(400,'A complaint can be closed only after it is resolved');
@@ -362,4 +377,22 @@ const detail = asyncHandler(async(req,res)=>{
   return success(res,{data});
 });
 
-module.exports={list,create,assign,updateStatus,detail,closeResolvedOvernight};
+const archiveOldComplaints = async (days = 60) => {
+  try {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    // Complaint has paranoid: true, so destroy() soft-deletes (sets deletedAt),
+    // automatically moving complaints older than 60 days to Recycle Bin!
+    const count = await Complaint.destroy({
+      where: {
+        createdAt: { [Op.lt]: cutoff }
+      }
+    });
+    if (count) console.log(`[COMPLAINT ARCHIVE] moved ${count} complaint(s) older than ${days} days to recycle bin`);
+    return count;
+  } catch (err) {
+    console.error('Archive old complaints error:', err.message);
+    return 0;
+  }
+};
+
+module.exports={list,create,assign,updateStatus,detail,closeResolvedOvernight,archiveOldComplaints};

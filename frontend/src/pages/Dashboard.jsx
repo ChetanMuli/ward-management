@@ -83,6 +83,38 @@ function wardLabel(row) {
   return name ? `${number} · ${name}` : number;
 }
 
+const CAT_MAP = {
+  WATER: 'Water Supply',
+  ROADS: 'Roads & Potholes',
+  STREET_LIGHTS: 'Street Lights',
+  GARBAGE: 'Garbage & Waste',
+  DRAINAGE: 'Drainage & Sewage',
+  SANITATION: 'Sanitation',
+  HEALTH: 'Health & Hygiene',
+  PARKS_TREES: 'Parks & Trees',
+  ENCROACHMENT: 'Encroachment',
+  STRAY_ANIMALS: 'Stray Animals',
+  POLLUTION: 'Pollution',
+  PROPERTY_TAX: 'Property Tax',
+  OTHER: 'Other'
+};
+
+function categoryLabel(cat) {
+  if (!cat) return '';
+  return CAT_MAP[cat] || String(cat).replaceAll('_', ' ');
+}
+
+function formatShortDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  const now = new Date();
+  const isToday = dt.toDateString() === now.toDateString();
+  if (isToday) {
+    return `Today, ${dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
 function snippet(text, n = 90) {
   const t = String(text || '').replace(/\s+/g, ' ').trim();
   if (!t) return 'No problem description';
@@ -730,6 +762,8 @@ export default function Dashboard() {
   });
   const [updateBusy, setUpdateBusy] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  const [complaintTab, setComplaintTab] = useState('OPEN');
+  const [showAllRecent, setShowAllRecent] = useState(false);
 
   const canUpdateComplaint = (complaint) => {
     if (!complaint) return false;
@@ -744,12 +778,12 @@ export default function Dashboard() {
     const current = complaint.status || 'SUBMITTED';
     let defaultStatus = current;
     if (isEmployee(user)) {
-      if (current === 'ASSIGNED') defaultStatus = 'IN_PROGRESS';
-      else if (current === 'IN_PROGRESS') defaultStatus = 'RESOLVED';
+      if (current === 'IN_PROGRESS') defaultStatus = 'RESOLVED';
+      else defaultStatus = 'IN_PROGRESS';
     } else {
-      if (current === 'SUBMITTED' || current === 'PENDING') defaultStatus = 'ASSIGNED';
-      else if (current === 'ASSIGNED') defaultStatus = 'IN_PROGRESS';
+      if (current === 'SUBMITTED' || current === 'PENDING' || current === 'ASSIGNED') defaultStatus = 'IN_PROGRESS';
       else if (current === 'IN_PROGRESS') defaultStatus = 'RESOLVED';
+      else if (current === 'RESOLVED') defaultStatus = 'CLOSED';
     }
 
     setUpdateForm({
@@ -763,19 +797,15 @@ export default function Dashboard() {
 
   const getAllowedStatuses = (currentStatus) => {
     if (isEmployee(user)) {
-      if (currentStatus === 'ASSIGNED') return ['ASSIGNED', 'IN_PROGRESS'];
       return ['IN_PROGRESS', 'RESOLVED'];
     }
-    const transitions = {
-      SUBMITTED: ['SUBMITTED', 'PENDING', 'ASSIGNED', 'IN_PROGRESS'],
-      PENDING: ['PENDING', 'ASSIGNED', 'IN_PROGRESS'],
-      ASSIGNED: ['ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'REOPENED'],
-      IN_PROGRESS: ['IN_PROGRESS', 'RESOLVED', 'REOPENED'],
-      RESOLVED: ['RESOLVED', 'CLOSED', 'REOPENED'],
-      REOPENED: ['REOPENED', 'ASSIGNED', 'IN_PROGRESS'],
-      CLOSED: ['CLOSED', 'REOPENED']
-    };
-    return transitions[currentStatus] || ['SUBMITTED', 'PENDING', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+    if (currentStatus === 'RESOLVED') {
+      return ['RESOLVED', 'CLOSED', 'REOPENED'];
+    }
+    if (currentStatus === 'CLOSED') {
+      return ['CLOSED', 'REOPENED'];
+    }
+    return ['IN_PROGRESS', 'RESOLVED', 'PENDING'];
   };
 
   const loadDashboard = React.useCallback(() => {
@@ -907,6 +937,22 @@ export default function Dashboard() {
 
   const openTo = (path) => navigate(path);
   const recent = data.recentComplaints || [];
+  const openCount = recent.filter(c => isEmployee(user) ? c.status === 'ASSIGNED' : (c.status === 'SUBMITTED' || c.status === 'OPEN')).length;
+  const inProgCount = recent.filter(c => c.status === 'IN_PROGRESS' || (!isEmployee(user) && c.status === 'ASSIGNED')).length;
+  const allActiveCount = recent.filter(c => c.status !== 'CLOSED' && c.status !== 'RESOLVED').length;
+
+  const filteredRecent = recent.filter((c) => {
+    if (c.status === 'CLOSED' || c.status === 'RESOLVED') return false;
+    if (complaintTab === 'OPEN') {
+      return isEmployee(user) ? c.status === 'ASSIGNED' : (c.status === 'SUBMITTED' || c.status === 'OPEN');
+    }
+    if (complaintTab === 'IN_PROGRESS') {
+      return c.status === 'IN_PROGRESS' || (!isEmployee(user) && c.status === 'ASSIGNED');
+    }
+    return true;
+  });
+
+  const visibleRecent = showAllRecent ? filteredRecent : filteredRecent.slice(0, 3);
   const allEvents = data.todayEvents || [];
   const events = allEvents.filter((ev) => !sentGreetingIds.includes(String(ev.id)));
   const birthdays = events.filter((ev) => ev.kind === 'BIRTHDAY');
@@ -1565,51 +1611,113 @@ export default function Dashboard() {
       {/* LOWER SECTION: RECENT COMPLAINTS & TEAM */}
       <div className="two-col dashboard-lower">
         {/* Recent Complaints Stream */}
-        <section className="panel">
-          <div className="panel-title">
+        <section className="panel dash-complaints-panel">
+          <div className="panel-title dash-recent-header">
             <div>
-              <h3>Recent Complaints</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0 }}>Recent Complaints</h3>
+                {openCount > 0 && <span className="dash-open-badge">{openCount} {isEmployee(user) ? 'Assigned' : 'Open'}</span>}
+              </div>
             </div>
-            {can('VIEW_COMPLAINTS') && (
-              <button
-                type="button"
-                className="small-btn"
-                onClick={() => openTo('/complaints')}
-              >
-                View all
-              </button>
-            )}
+
+            <div className="dash-recent-header-right">
+              <div className="dash-filter-pills" role="tablist">
+                <button
+                  type="button"
+                  className={`dash-pill-btn ${complaintTab === 'OPEN' ? 'active' : ''}`}
+                  onClick={() => { setComplaintTab('OPEN'); setShowAllRecent(false); }}
+                >
+                  {isEmployee(user) ? 'Assigned' : 'Open (New)'} {openCount > 0 ? `(${openCount})` : ''}
+                </button>
+                <button
+                  type="button"
+                  className={`dash-pill-btn ${complaintTab === 'IN_PROGRESS' ? 'active' : ''}`}
+                  onClick={() => { setComplaintTab('IN_PROGRESS'); setShowAllRecent(false); }}
+                >
+                  In Progress {inProgCount > 0 ? `(${inProgCount})` : ''}
+                </button>
+                <button
+                  type="button"
+                  className={`dash-pill-btn ${complaintTab === 'ALL' ? 'active' : ''}`}
+                  onClick={() => { setComplaintTab('ALL'); setShowAllRecent(false); }}
+                >
+                  All Active {allActiveCount > 0 ? `(${allActiveCount})` : ''}
+                </button>
+              </div>
+
+              {can('VIEW_COMPLAINTS') && (
+                <button
+                  type="button"
+                  className="small-btn dash-view-all-btn"
+                  onClick={() => openTo('/complaints')}
+                >
+                  View all ↗
+                </button>
+              )}
+            </div>
           </div>
 
-          {!recent.length ? (
-            <p className="muted" style={{ padding: '20px', textAlign: 'center' }}>
-              No complaints filed in this ward scope yet.
-            </p>
+          {!filteredRecent.length ? (
+            <div className="dash-recent-empty">
+              <p className="muted" style={{ padding: '24px 16px', textAlign: 'center', margin: 0 }}>
+                {complaintTab === 'OPEN'
+                  ? (isEmployee(user) ? 'No newly assigned complaints. You are all caught up!' : 'No new open complaints in this ward scope. All caught up!')
+                  : complaintTab === 'IN_PROGRESS'
+                  ? 'No complaints currently in progress.'
+                  : 'No active complaints in this ward scope.'}
+              </p>
+            </div>
           ) : (
-            <div className="status-list dashboard-recent">
-              {recent.map((c) => (
-                <div className="status-row recent-row" key={c.id}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <strong>{c.complaintNumber}</strong>
+            <div className="dash-compact-list">
+              {visibleRecent.map((c) => (
+                <div
+                  className="dash-compact-row"
+                  key={c.id}
+                  onClick={async () => {
+                    try {
+                      setDetail((await api.complaint(c.id)).data);
+                    } catch (e) {
+                      setError(e.message);
+                    }
+                  }}
+                >
+                  <div className="dash-compact-main">
+                    <div className="dash-compact-head">
+                      <strong className="dash-compact-num">{c.complaintNumber}</strong>
+                      {c.category && (
+                        <span className="dash-compact-cat">
+                          {categoryLabel(c.category)}
+                        </span>
+                      )}
                       {c.priority && (
                         <span className={`priority-tag priority-${String(c.priority).toLowerCase()}`}>
                           {c.priority}
                         </span>
                       )}
+                      <span className="dash-compact-date">
+                        {formatShortDate(c.createdAt)}
+                      </span>
                     </div>
-                    <span>
-                      {c.citizen?.fullName || c.submittedBy?.name || 'Citizen'} · {wardLabel(c)}
-                    </span>
-                    <small className="recent-problem">{snippet(c.description)}</small>
-                    <small className="recent-assign">
-                      Nagarsevak: {c.assignedNagarsevak?.name || c.assignedEmployee?.manager?.name || 'Not assigned'} ·
-                      Employee: {c.assignedEmployee?.User?.name || 'Not assigned'}
-                    </small>
+                    <div className="dash-compact-sub">
+                      <span className="dash-compact-citizen">
+                        👤 {c.citizen?.fullName || c.submittedBy?.name || 'Citizen'}
+                      </span>
+                      {(c.location || wardLabel(c)) && (
+                        <span className="dash-compact-loc">
+                          · 📍 {c.location || wardLabel(c)}
+                        </span>
+                      )}
+                      {c.description && (
+                        <span className="dash-compact-desc" title={c.description}>
+                          · {snippet(c.description, 65)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="recent-actions">
+                  <div className="dash-compact-actions" onClick={(e) => e.stopPropagation()}>
                     <StatusPill>{c.status}</StatusPill>
                     <button
+                      type="button"
                       className="small-btn view-btn"
                       onClick={async () => {
                         try {
@@ -1624,6 +1732,20 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
+
+              {filteredRecent.length > 3 && (
+                <div className="dash-more-wrap">
+                  <button
+                    type="button"
+                    className="dash-more-toggle-btn"
+                    onClick={() => setShowAllRecent((v) => !v)}
+                  >
+                    {showAllRecent
+                      ? '▲ Show less'
+                      : `▼ Show more (${filteredRecent.length - 3} more)`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -1790,7 +1912,7 @@ export default function Dashboard() {
                 {detail.assignedNagarsevak?.name || detail.assignedEmployee?.manager?.name || 'Not assigned'}
               </p>
               <p>
-                <b>Employee:</b> {detail.assignedEmployee?.User?.name || 'Not assigned'}
+                <b>Employee:</b> {detail.assignedEmployee?.User?.name || 'Not assigned'}{(isMaster(user) || isNagarsevak(user) || isSubMaster(user)) && !['RESOLVED', 'CLOSED'].includes(detail.status) && <button type="button" className="badge-action-btn" onClick={() => { setDetail(null); navigate(`/complaints?open=${detail.id}`); }}>{detail.assignedEmployeeId ? '🔄 Reassign' : '👤 Assign'}</button>}
               </p>
               <p>
                 <b>Resolution:</b> {detail.resolutionNote || '—'}
@@ -1974,18 +2096,21 @@ export default function Dashboard() {
               </span>
             </div>
 
-            <Field label="New Status *">
-              <select
-                value={updateForm.status}
-                onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}
-                required
-              >
-                {getAllowedStatuses(updatingComplaint.status).map((st) => (
-                  <option key={st} value={st}>
-                    {st.replaceAll('_', ' ')}
-                  </option>
-                ))}
-              </select>
+            <Field label="New status" className="span-2">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <select
+                  value={updateForm.status}
+                  onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}
+                  style={{ maxWidth: '320px', fontWeight: 600 }}
+                >
+                  {getAllowedStatuses(updatingComplaint.status).map((x) => (
+                    <option key={x} value={x}>
+                      {x === 'IN_PROGRESS' ? 'In Progress' : x.charAt(0) + x.slice(1).toLowerCase()}
+                    </option>
+                  ))}
+                </select>
+                <StatusPill>{updateForm.status}</StatusPill>
+              </div>
             </Field>
 
             <Field className="span-2" label="Progress note / comment">

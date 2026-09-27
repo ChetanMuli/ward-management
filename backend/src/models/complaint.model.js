@@ -11,10 +11,11 @@ const Complaint = sequelize.define('Complaint', {
   assignedNagarsevakUserId: { type: DataTypes.UUID, allowNull: true },
   location: { type: DataTypes.STRING(500), allowNull: true },
   category: {
-    type: DataTypes.ENUM('WATER', 'ROADS', 'STREET_LIGHTS', 'GARBAGE', 'DRAINAGE', 'SANITATION', 'HEALTH', 'OTHER'),
+    type: DataTypes.STRING(100),
     allowNull: false,
+    defaultValue: 'OTHER',
   },
-  description: { type: DataTypes.TEXT, allowNull: false },
+  description: { type: DataTypes.TEXT, allowNull: true },
   attachmentKey: DataTypes.STRING,
   reportedImage: DataTypes.TEXT('long'),
   resolutionImage: DataTypes.TEXT('long'),

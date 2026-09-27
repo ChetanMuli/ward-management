@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Navigate,NavLink,Route,Routes,useLocation,useNavigate} from 'react-router-dom';
 import {api,clearSession,getUser} from './services/api';
 import {can,isMaster,isSubMaster,isNagarsevak,isEmployee,roleOf,canModule,permissionsOf} from './rbac';
-import {initLanguage,setLanguage as applyLanguage,switchLanguage} from './language';
+import {initLanguage,setLanguage as applyLanguage,switchLanguage,ensureCurrentLanguage} from './language';
 import Login from './pages/Login'; import WardInformation from './pages/WardInformation'; import Register from './pages/Register'; import Users from './pages/Users'; import GovernmentVoterLists from './pages/GovernmentVoterLists'; import Dashboard from './pages/Dashboard'; import Houses from './pages/Houses'; import People from './pages/People'; import Families from './pages/Families'; import Shops from './pages/Shops'; import Voters from './pages/Voters'; import Complaints from './pages/Complaints'; import Birthdays from './pages/Birthdays'; import FollowUp18 from './pages/FollowUp18'; import Wards from './pages/Wards'; import Reports from './pages/Reports'; import RecycleBin from './pages/RecycleBin'; import Schemes from './pages/Schemes'; import Staff from './pages/Staff';
 import Stakeholders from './pages/Stakeholders';
 import Groups from './pages/Groups'; import Deaths from './pages/Deaths'; import SubAdmins from './pages/SubAdmins'; import WardUpdates from './pages/WardUpdates'; import UserPanel from './pages/UserPanel'; import UserComplaints from './pages/UserComplaints'; import ElectionData from './pages/ElectionData'; import WardActivation from './pages/WardActivation'; import NagarsevakSubscriptions from './pages/NagarsevakSubscriptions';
@@ -248,6 +248,7 @@ function CitizenShell({children}){
  useEffect(()=>{
   setMobileNav(false);setMenu(false);setShowNotifications(false);
   scrollMainToTop();
+  ensureCurrentLanguage();
   const t=setTimeout(scrollMainToTop,80);
   return()=>clearTimeout(t);
  },[location.pathname]);
@@ -415,6 +416,7 @@ function Shell({children}){
   setUpdatesOpen(location.pathname.startsWith('/ward-updates'));
   setOpen(false);setShowNotifications(false);setShowProfile(false);
   scrollMainToTop();
+  ensureCurrentLanguage();
   const restore=()=>{
    if(!navRef.current)return;
    let value=0; try{value=Number(sessionStorage.getItem(sidebarScrollKey)||0)}catch{}

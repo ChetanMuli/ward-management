@@ -9,7 +9,7 @@ const { archiveOldSchedules } = require('./src/v2/controllers/schedule.controlle
 const { cleanupOldMessages } = require('./src/v2/controllers/chat.controller');
 const { notifyExpiredNagarsevakSubscriptions } = require('./src/services/wardActivation.service');
 const { notifyTodayDeathReminders, notifyTodayBirthdays } = require('./src/services/wardDay.service');
-const { closeResolvedOvernight } = require('./src/v2/controllers/complaint.controller');
+const { closeResolvedOvernight, archiveOldComplaints } = require('./src/v2/controllers/complaint.controller');
 const { ensureDatabaseSchema } = require('./src/services/schemaSync.service');
 
 async function start() {
@@ -31,7 +31,8 @@ async function start() {
           const d=await notifyTodayDeathReminders().catch(()=>0);
           const b=await notifyTodayBirthdays().catch(()=>0);
           const closed=await closeResolvedOvernight().catch(()=>0);
-          if(a||r||c||s||d||b||closed||sched) console.log(`[MAINTENANCE] removed audit=${a}, recycle=${r}, schedule-archive=${sched||0}, chat=${c||0}, subscriptions-notified=${s||0}, death-reminders=${d||0}, birthday-reminders=${b||0}, auto-closed=${closed||0}`);
+          const compArchived=await archiveOldComplaints(60).catch(()=>0);
+          if(a||r||c||s||d||b||closed||sched||compArchived) console.log(`[MAINTENANCE] removed audit=${a}, recycle=${r}, schedule-archive=${sched||0}, complaint-archive=${compArchived||0}, chat=${c||0}, subscriptions-notified=${s||0}, death-reminders=${d||0}, birthday-reminders=${b||0}, auto-closed=${closed||0}`);
         } catch(e) { console.error('[MAINTENANCE FAILURE]',e.message); }
       };
       runMaintenance();

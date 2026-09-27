@@ -12,9 +12,68 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>WardDesk · Digital Ward Management</title>
+    <style>
+      /* Complete hiding of Google Translate banner / toolbar */
+      .skiptranslate,
+      iframe.skiptranslate,
+      .goog-te-banner-frame,
+      iframe.goog-te-banner-frame,
+      #goog-gt-tt,
+      .goog-te-balloon-frame {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        pointer-events: none !important;
+      }
+      body {
+        top: 0 !important;
+        position: static !important;
+      }
+      #google_translate_element {
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        width: 1px !important;
+        height: 1px !important;
+        overflow: hidden !important;
+      }
+    </style>
+    <script>
+      (function(){
+        try {
+          var lang = localStorage.getItem('ward_language') || 'en';
+          document.documentElement.lang = lang;
+          document.documentElement.dataset.lang = lang;
+          var val = lang === 'mr' ? '/en/mr' : '/en/en';
+          var expires = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
+          document.cookie = 'googtrans=' + val + ';path=/;expires=' + expires;
+          if (lang !== 'mr') {
+            document.cookie = 'googtrans=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
+    <div id="google_translate_element" class="notranslate" translate="no" aria-hidden="true"></div>
     <div id="root"></div>
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        if (window.google && window.google.translate) {
+          new window.google.translate.TranslateElement({
+            pageLanguage: 'en',
+            includedLanguages: 'en,mr',
+            autoDisplay: false
+          }, 'google_translate_element');
+        }
+      }
+    </script>
+    <script type="text/javascript" id="google-translate-script" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

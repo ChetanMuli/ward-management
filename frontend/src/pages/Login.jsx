@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {api,getUser,setSession} from '../services/api';
 import BrandIcon from '../components/BrandIcon';
+import {switchLanguage} from '../language';
 
 export const COMPANY_NAME='Kairo IT Solutions PVT LTD';
 export const COMPANY_EMAIL='chetan.a2zithub@gmail.com';
@@ -96,8 +97,12 @@ function AuthAbout({admin}){
 
 export function AuthShell({admin,title,lead,pageLabel,register,children}){
  const label=pageLabel||(admin?'Admin login':'Resident login');
+ const currentLang=localStorage.getItem('ward_language')||'en';
  useEffect(()=>{document.title=`${label} · WardDesk`},[label]);
  return <div className={`login-page-v2 auth-simple ${admin?'admin-login':'citizen-login'}${register?' register-page':''}`} data-auth={admin?'admin-login':(register?'user-register':'user-login')}>
+  <button type="button" className="language-btn login-language-btn notranslate" translate="no" onClick={()=>switchLanguage(currentLang==='en'?'mr':'en')} title="Change language">
+   {currentLang==='en'?'मराठी':'English'}
+  </button>
   <div className="auth-blob auth-blob-c" aria-hidden="true"/>
   <div className="auth-blob auth-blob-d" aria-hidden="true"/>
   <div className="auth-simple-wrap">

@@ -50,7 +50,7 @@ const create = asyncHandler(async (req, res) => {
 
   const complaint = await Complaint.create({
     complaintNumber: generateComplaintNumber(),
-    citizenPersonId, houseId, category, description, priority,
+    citizenPersonId, houseId, category: category || 'OTHER', description: description || category || 'Civic Issue', priority,
     status: 'SUBMITTED',
     slaDueAt,
   });

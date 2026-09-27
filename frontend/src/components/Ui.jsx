@@ -69,8 +69,13 @@ export function ErrorBox({error}){
  },[error]);
  return null;
 }
-export function SuccessBox({message,onClose}){if(!message)return null;return <div className="success-toast" role="status"><div><strong>Success</strong><div>{message}</div></div><button onClick={onClose} aria-label="Close">×</button></div>}
-export function StatusPill({children}){const k=String(children||'').toLowerCase().replaceAll('_','-');return <span className={`pill pill-${k}`}>{String(children||'—').replaceAll('_',' ')}</span>}
+export function StatusPill({children}){
+  const raw=String(children||'').trim().toUpperCase();
+  const isSubmitted=raw==='SUBMITTED'||raw==='OPEN';
+  const label=isSubmitted?'Open':String(children||'—').replaceAll('_',' ');
+  const k=isSubmitted?'open':raw.toLowerCase().replaceAll('_','-');
+  return <span className={`pill pill-${k}`}>{label}</span>;
+}
 export function Modal({title,onClose,children,wide=false,layer=1,footer}){
  useEffect(()=>{document.body.classList.add('modal-open');return()=>document.body.classList.remove('modal-open')},[]);
  const z=Number(layer)>1?280:210;
@@ -231,6 +236,7 @@ export async function compressImageFile(file, maxDimension=1280, quality=0.72){
 
 function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
  const videoRef=useRef(null),canvasRef=useRef(null);
+ const deviceCamRef=useRef(null),fileInputRef=useRef(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[facing,setFacing]=useState('environment');
  const [hasStream,setHasStream]=useState(false);
 
@@ -306,14 +312,12 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
     <div className="camera-error" style={{padding:'24px 16px',textAlign:'center'}}>
      <p style={{margin:'0 0 16px',fontSize:'13px',color:'#b42318',lineHeight:'1.5'}}>{error}</p>
      <div style={{display:'flex',gap:'10px',justifyContent:'center',flexWrap:'wrap'}}>
-      <label className="primary-btn" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',minHeight:'42px',padding:'8px 16px'}}>
-       <input type="file" accept="image/*" capture="environment" className="camera-hidden-input" onChange={handleFileCapture}/>
+      <button type="button" className="primary-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>deviceCamRef.current?.click()}>
        Take photo with device camera
-      </label>
-      <label className="ghost-btn" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',minHeight:'42px',padding:'8px 16px'}}>
-       <input type="file" accept="image/*" className="camera-hidden-input" onChange={handleFileCapture}/>
+      </button>
+      <button type="button" className="ghost-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
        Choose from device
-      </label>
+      </button>
      </div>
     </div>
    ) : (
@@ -329,14 +333,12 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
        Switch camera
       </button>
      )}
-     <label className="small-btn" style={{cursor:'pointer',display:'inline-flex',alignItems:'center'}}>
-      <input type="file" accept="image/*" capture="environment" className="camera-hidden-input" onChange={handleFileCapture}/>
+     <button type="button" className="small-btn" onClick={()=>deviceCamRef.current?.click()}>
       Device camera
-     </label>
-     <label className="small-btn" style={{cursor:'pointer',display:'inline-flex',alignItems:'center'}}>
-      <input type="file" accept="image/*" className="camera-hidden-input" onChange={handleFileCapture}/>
+     </button>
+     <button type="button" className="small-btn" onClick={()=>fileInputRef.current?.click()}>
       Choose file
-     </label>
+     </button>
     </div>
     <div style={{display:'flex',gap:'8px'}}>
      <button type="button" className="ghost-btn" onClick={onClose}>Cancel</button>
@@ -347,6 +349,8 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
      )}
     </div>
    </div>
+   <input ref={deviceCamRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleFileCapture}/>
+   <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFileCapture}/>
   </div>
  </div>;
 }
@@ -354,6 +358,8 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
 export function ImageField({label,value,onChange,optional=true,cameraLabel='Take photo'}){
  const [cameraOpen,setCameraOpen]=useState(false);
  const isMobile=isMobileOrTouch();
+ const cameraInputRef=useRef(null);
+ const fileInputRef=useRef(null);
 
  const handleFile=async e=>{
   const file=e.target.files?.[0];
@@ -367,28 +373,27 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
   e.target.value='';
  };
 
- const openDesktopCamera=()=>{
-  setCameraOpen(true);
+ const handleCameraClick=()=>{
+  const canUseWebcam = !isMobile && typeof navigator!=='undefined' && !!navigator.mediaDevices?.getUserMedia && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if(canUseWebcam){
+   setCameraOpen(true);
+  } else {
+   cameraInputRef.current?.click();
+  }
  };
 
  return (
   <div className="image-field">
    <div className="section-label">{label}{optional?' (optional)':''}</div>
    <div className="image-input-actions">
-    {isMobile ? (
-     <label className="upload-btn camera-upload">
-      <input type="file" accept="image/*" capture="environment" className="camera-hidden-input" onChange={handleFile}/>
-      <span>{cameraLabel}</span>
-     </label>
-    ) : (
-     <button type="button" className="upload-btn camera-upload" onClick={openDesktopCamera}>
-      <span>{cameraLabel}</span>
-     </button>
-    )}
-    <label className="upload-btn secondary-upload">
-     <input type="file" accept="image/*" className="camera-hidden-input" onChange={handleFile}/>
+    <button type="button" className="upload-btn camera-upload" onClick={handleCameraClick}>
+     <span>{cameraLabel}</span>
+    </button>
+    <button type="button" className="upload-btn secondary-upload" onClick={()=>fileInputRef.current?.click()}>
      <span>Choose from device</span>
-    </label>
+    </button>
+    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleFile}/>
+    <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFile}/>
    </div>
    {value && (
     <div className="image-preview">
@@ -404,6 +409,8 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
 export function MultiImageField({label,values=[],onChange,optional=true,max=5,cameraLabel='Open camera'}){
  const [cameraOpen,setCameraOpen]=useState(false);
  const isMobile=isMobileOrTouch();
+ const cameraInputRef=useRef(null);
+ const fileInputRef=useRef(null);
  const photos=(values||[]).filter(Boolean).slice(0,max);
 
  const addFiles=async files=>{
@@ -429,12 +436,17 @@ export function MultiImageField({label,values=[],onChange,optional=true,max=5,ca
   e.target.value='';
  };
 
- const handleDesktopCameraClick=()=>{
+ const handleCameraClick=()=>{
   if(photos.length>=max){
    window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:`Maximum ${max} photos reached.`}}));
    return;
   }
-  setCameraOpen(true);
+  const canUseWebcam = !isMobile && typeof navigator!=='undefined' && !!navigator.mediaDevices?.getUserMedia && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if(canUseWebcam){
+   setCameraOpen(true);
+  } else {
+   cameraInputRef.current?.click();
+  }
  };
 
  const isMax=photos.length>=max;
@@ -445,20 +457,14 @@ export function MultiImageField({label,values=[],onChange,optional=true,max=5,ca
     {label}{optional?' (optional)':''}{photos.length?` · ${photos.length}/${max}`:''}
    </div>
    <div className="image-input-actions">
-    {isMobile ? (
-     <label className={`upload-btn camera-upload ${isMax?'is-disabled':''}`}>
-      <input type="file" accept="image/*" capture="environment" disabled={isMax} className="camera-hidden-input" onChange={handleNativeCapture}/>
-      <span>{cameraLabel}</span>
-     </label>
-    ) : (
-     <button type="button" className={`upload-btn camera-upload ${isMax?'is-disabled':''}`} disabled={isMax} onClick={handleDesktopCameraClick}>
-      <span>{cameraLabel}</span>
-     </button>
-    )}
-    <label className={`upload-btn secondary-upload ${isMax?'is-disabled':''}`}>
-     <input type="file" accept="image/*" multiple disabled={isMax} className="camera-hidden-input" onChange={handleNativeCapture}/>
+    <button type="button" className={`upload-btn camera-upload ${isMax?'is-disabled':''}`} disabled={isMax} onClick={handleCameraClick}>
+     <span>{cameraLabel}</span>
+    </button>
+    <button type="button" className={`upload-btn secondary-upload ${isMax?'is-disabled':''}`} disabled={isMax} onClick={()=>fileInputRef.current?.click()}>
      <span>Choose from device</span>
-    </label>
+    </button>
+    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" disabled={isMax} style={{display:'none'}} onChange={handleNativeCapture}/>
+    <input ref={fileInputRef} type="file" accept="image/*" multiple disabled={isMax} style={{display:'none'}} onChange={handleNativeCapture}/>
    </div>
    {photos.length>0&&(
     <div className="image-preview-grid">
@@ -495,7 +501,7 @@ export function FaceAvatar({name='User',photo,className=''}){
  return <div className={`user-avatar user-avatar-fallback notranslate ${className}`.trim()} aria-hidden="true" translate="no"><span>{initialsOf(name)}</span></div>;
 }
 export function CirclePhotoField({label='Profile photo',name,value,onChange,optional=true}){
- const fileRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
+ const fileRef=useRef(null),cameraRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
  const STAGE=Math.min(280, typeof window==='undefined'?280:Math.max(220, Math.min(280, window.innerWidth-56)));
  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false);
  const cover=STAGE/Math.min(nat.w||1,nat.h||1);
@@ -581,16 +587,16 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
    <div className="circle-photo-row">
     <FaceAvatar name={name||'User'} photo={value} className="staff-face-lg"/>
     <div className="circle-photo-actions">
-     <label className="small-btn" style={{cursor:'pointer',display:'inline-flex',alignItems:'center'}}>
-      <input type="file" accept="image/*" capture="user" className="camera-hidden-input" onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
+     <button type="button" className="small-btn" onClick={()=>cameraRef.current?.click()}>
       Take photo
-     </label>
+     </button>
      <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{value?'Change photo':'Choose photo'}</button>
      {value?<button type="button" className="small-btn" onClick={()=>openCrop(value)}>Adjust photo</button>:null}
      {value?<button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button>:null}
      <p className="muted">Crop the face into the circle. This photo is used on the ward dashboard and birthday card.</p>
     </div>
-    <input ref={fileRef} className="image-file-input-native" type="file" accept="image/*" onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
+    <input ref={cameraRef} type="file" accept="image/*" capture="user" style={{display:'none'}} onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
+    <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
    </div>
    {typeof document!=='undefined'&&node?createPortal(node,document.body):node}
   </div>

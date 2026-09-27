@@ -2554,32 +2554,65 @@ html body .user-portal .user-language-btn{
 }
 html body .ward-gt-host,
 html body #google_translate_element{
-  position:absolute !important;
+  position:fixed !important;
+  top:-9999px !important;
   left:-9999px !important;
   width:1px !important;
   height:1px !important;
   overflow:hidden !important;
-  opacity:0 !important;
+  opacity:0.01 !important;
   pointer-events:none !important;
+  z-index:-9999 !important;
 }
-html body .goog-te-banner-frame,
-html body .goog-te-balloon-frame,
-html body .goog-tooltip,
-html body #goog-gt-tt,
-html body .goog-te-gadget{
-  display:none !important;
-  visibility:hidden !important;
-  height:0 !important;
-  width:0 !important;
+/* Universal complete suppression of all Google Translate bars, frames, toolbars and balloons */
+.skiptranslate,
+div.skiptranslate,
+iframe.skiptranslate,
+.goog-te-banner-frame,
+iframe.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  z-index: -99999 !important;
+}
+
+html body .ward-gt-host,
+html body #google_translate_element{
+  position:fixed !important;
+  top:-9999px !important;
+  left:-9999px !important;
+  width:1px !important;
+  height:1px !important;
   overflow:hidden !important;
+  opacity:0.01 !important;
+  pointer-events:none !important;
+  z-index:-9999 !important;
 }
-html body iframe.skiptranslate{
-  display:none !important;
-  visibility:hidden !important;
-  height:0 !important;
-  border:0 !important;
+
+html body .goog-text-highlight{
+  background-color:transparent !important;
+  box-shadow:none !important;
+  border:none !important;
 }
-html body{top:0 !important;}
+
+html,
+body,
+html body{
+  top:0 !important;
+  position:static !important;
+}
 html body .groups-page .wa-avatar,
 html body .user-portal .groups-page .wa-avatar,
 html body .user-portal .groups-page .user-avatar.wa-avatar,
@@ -2711,17 +2744,23 @@ html body .image-input-actions .upload-btn.is-disabled {
 }
 html body .image-file-input-native,
 html body .camera-hidden-input {
-  position: absolute !important;
+  position: fixed !important;
+  top: -10000px !important;
+  left: -10000px !important;
   width: 1px !important;
   height: 1px !important;
   padding: 0 !important;
   margin: -1px !important;
   overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
   opacity: 0 !important;
-  pointer-events: none !important;
+  pointer-events: auto !important;
+}
+html body .pill-open,
+html body .pill-submitted {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+  font-weight: 700 !important;
 }
 html body .image-preview-grid{
   display:grid;
@@ -2930,5 +2969,199 @@ html body .schedule-card-actions .row-menu > .row-menu-toggle {
     min-height: 42px !important;
     font-size: 14px !important;
     justify-content: center !important;
+  }
+}
+
+/* Compact Dashboard Recent Complaints */
+html body .dash-recent-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid #eef2f6 !important;
+}
+html body .dash-open-badge {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+}
+html body .dash-recent-header-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+html body .dash-filter-pills {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #f1f5f9 !important;
+  padding: 3px !important;
+  border-radius: 8px !important;
+  gap: 3px !important;
+}
+html body .dash-pill-btn {
+  border: none !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+html body .dash-pill-btn:hover {
+  color: #1e293b !important;
+  background: #e2e8f0 !important;
+}
+html body .dash-pill-btn.active {
+  background: #fff !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+html body .dash-view-all-btn {
+  font-size: 11px !important;
+  padding: 5px 10px !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+  font-weight: 700 !important;
+}
+html body .dash-view-all-btn:hover {
+  background: #dbeafe !important;
+}
+html body .dash-compact-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+}
+html body .dash-compact-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+html body .dash-compact-row:hover {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+html body .dash-compact-main {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+html body .dash-compact-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+html body .dash-compact-num {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em !important;
+}
+html body .dash-compact-cat {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  background: #e0e7ff !important;
+  color: #3730a3 !important;
+  padding: 2px 7px !important;
+  border-radius: 6px !important;
+}
+html body .dash-compact-date {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  margin-left: auto !important;
+  font-weight: 500 !important;
+}
+html body .dash-compact-sub {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 11px !important;
+  color: #64748b !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+html body .dash-compact-citizen {
+  font-weight: 600 !important;
+  color: #334155 !important;
+  flex-shrink: 0 !important;
+}
+html body .dash-compact-loc {
+  flex-shrink: 0 !important;
+  color: #64748b !important;
+}
+html body .dash-compact-desc {
+  color: #475569 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+html body .dash-compact-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+html body .dash-more-wrap {
+  text-align: center !important;
+  padding: 6px 0 !important;
+}
+html body .dash-more-toggle-btn {
+  background: #fff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  padding: 6px 16px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+html body .dash-more-toggle-btn:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+@media (max-width: 640px) {
+  html body .dash-recent-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  html body .dash-recent-header-right {
+    justify-content: space-between !important;
+  }
+  html body .dash-compact-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  html body .dash-compact-actions {
+    width: 100% !important;
+    justify-content: space-between !important;
+    margin-top: 6px !important;
+    padding-top: 6px !important;
+    border-top: 1px solid #f1f5f9 !important;
+  }
+  html body .dash-compact-date {
+    margin-left: 0 !important;
   }
 }

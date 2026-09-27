@@ -113,7 +113,11 @@ async function ensureDatabaseSchema(sequelize) {
       await queryInterface.addIndex('nagarsevak_schedule_assignments', ['to_user_id'], { name: 'idx_sched_assign_to' }).catch(() => {});
     }
 
-    // 3. Register migrations in SequelizeMeta table if present
+    // 3. Ensure complaints category is VARCHAR(100) and description is nullable
+    await sequelize.query("ALTER TABLE complaints MODIFY COLUMN category VARCHAR(100) NOT NULL DEFAULT 'OTHER'").catch(() => {});
+    await sequelize.query("ALTER TABLE complaints MODIFY COLUMN description TEXT NULL").catch(() => {});
+
+    // 4. Register migrations in SequelizeMeta table if present
     if (tables.includes('sequelizemeta')) {
       const migrationsToRegister = [
         '20260922000064-nagarsevak-daily-schedule.js',
