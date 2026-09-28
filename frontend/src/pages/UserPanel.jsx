@@ -36,7 +36,7 @@ export default function UserPanel(){
    const rows=n.value?.data||[];
    if(primedNotes.current){
     const fresh=rows.find(x=>x.direction!=='SENT'&&!x.isRead&&!seenNotes.current.has(x.id)&&/COMPLAINT|SCHEME|NAGARSEVAK_ACTIVATED|WARD_/.test(String(x.type||'').toUpperCase()));
-    if(fresh) setToast({type:'success',title:fresh.title||'Update',message:fresh.message||''});
+    // Background toast suppressed to prevent unwanted popups
    }
    primedNotes.current=true;
    seenNotes.current=new Set(rows.map(x=>x.id));

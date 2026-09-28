@@ -89,7 +89,7 @@ export function StatusPill({children}){
 }
 export function Modal({title,onClose,children,wide=false,layer=1,footer}){
  useEffect(()=>{document.body.classList.add('modal-open');return()=>document.body.classList.remove('modal-open')},[]);
- const z=Number(layer)>1?280:210;
+ const z = 100000 + (Number(layer) || 1) * 10;
  const node=<div className={`modal-backdrop ${layer>1?'modal-backdrop-stack':''}`} ref={el=>{if(el)el.style.setProperty('z-index',String(z),'important')}} onPointerDown={onClose}><div className={`modal ${wide?'modal-wide':''} ${footer?'modal-with-footer':''}`} onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{title}</h2></div><button type="button" className="icon-btn" onClick={onClose}>×</button></div>{footer?(<><div className="modal-body">{children}</div><div className="modal-footer">{footer}</div></>):children}</div></div>;
  return typeof document!=='undefined'?createPortal(node,document.body):node;
 }

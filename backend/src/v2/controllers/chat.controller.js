@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { User, Ward, Role, ChatUserState, Employee } = require('../../models');
+const { User, Ward, Role, ChatUserState, Employee, Person, Family, House, Area, VoterProfile } = require('../../models');
 const Chat = require('../../services/chat.store');
 const ApiError = require('../../utils/ApiError');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -14,34 +14,24 @@ const { notifyUsers } = require('../../services/notify.service');
 
 const uploadDir = path.resolve(process.env.CHAT_UPLOAD_DIR || path.join(__dirname, '..', '..', '..', 'uploads', 'chat'));
 try { fs.mkdirSync(uploadDir, { recursive: true }); } catch (_) {}
-const RETENTION_DAYS = 40;
+const RETENTION_DAYS = 75;
 
-async function cleanupOldMessages() {
-  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  let removed = 0;
-  for (let batch = 0; batch < 20; batch += 1) {
-    const old = await Chat.Message.findAll({
+// Automatically moves chat messages older than 75 days to the Recycle Bin (soft delete)
+async function archiveOldChats(days = 75) {
+  try {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const removed = await Chat.Message.destroy({
       where: { createdAt: { [Op.lt]: cutoff } },
-      attributes: ['id', 'imagePath'],
-      limit: 500,
     });
-    if (!old.length) break;
-    for (const row of old) {
-      if (row.imagePath) {
-        const file = path.join(uploadDir, path.basename(row.imagePath));
-        try { if (fs.existsSync(file)) fs.unlinkSync(file); } catch (_) {}
-      }
-    }
-    await Chat.Message.destroy({ where: { id: { [Op.in]: old.map((x) => x.id) } } });
-    removed += old.length;
-    if (old.length < 500) break;
+    if (removed) console.info(`[CHAT ARCHIVE] moved ${removed} chat message(s) older than ${days} days to recycle bin`);
+    return removed;
+  } catch (err) {
+    console.error('Archive old chats error:', err.message);
+    return 0;
   }
-  if (removed) console.info(`[CHAT] removed ${removed} messages older than ${RETENTION_DAYS} days`);
-  return removed;
 }
 
-// Opportunistic cleanup keeps both DB rows and uploaded images under control.
-setInterval(() => cleanupOldMessages().catch(() => {}), 6 * 60 * 60 * 1000).unref();
+const cleanupOldMessages = archiveOldChats;
 
 function asDate(value) {
   if (!value) return null;
@@ -72,9 +62,15 @@ async function saveChatState(groupId, userId, patch) {
   }
 }
 
-async function clearedAtFor(groupId, userId, member) {
+async function clearedAtFor(groupId, userId, member = null) {
   const state = await loadChatState(groupId, userId);
-  const dates = [asDate(state?.lastClearedAt), asDate(member?.lastClearedAt)].filter(Boolean);
+  let mem = member;
+  if (!mem) {
+    try {
+      mem = await Chat.Member.findOne({ where: { groupId, userId } });
+    } catch (_) {}
+  }
+  const dates = [asDate(state?.lastClearedAt), asDate(mem?.lastClearedAt)].filter(Boolean);
   if (!dates.length) return null;
   return dates.sort((a, b) => a.getTime() - b.getTime()).pop();
 }
@@ -353,7 +349,7 @@ async function unreadCountForGroup(groupId, userId, options = {}) {
       await saveChatState(groupId, userId, { lastReadAt: new Date() });
       return 0;
     }
-    since = asDate(member?.joinedAt);
+    since = asDate(member?.joinedAt) || asDate(options.userCreatedAt) || null;
     if (!since) return 0;
   }
   return Message.count({
@@ -365,22 +361,26 @@ async function unreadCountForGroup(groupId, userId, options = {}) {
   });
 }
 
+// Run cleanup once on module load and every 6 hours in background
+cleanupOldMessages().catch((err) => console.error('[CHAT CLEANUP]', err.message));
+setInterval(() => cleanupOldMessages().catch(() => {}), 1000 * 60 * 60 * 6);
+
 const listGroups = asyncHandler(async (req, res) => {
-  cleanupOldMessages().catch((err) => console.error('[CHAT CLEANUP]', err.message));
-  await ensureUserGroups(req.user);
   const allowedForGroups = allowedWardIds(req);
   const requestedWard = String(req.query.wardId || '').trim();
-  const focusWardId = requestedWard || req.user.wardId || '';
-  if (focusWardId && (req.user.roleName === 'SUPER_ADMIN' || isWardAllowed(req, focusWardId))) {
-    try {
-      await ensureWardGroup(focusWardId);
-      await ensureAllNagarsevakGroups(focusWardId);
-    } catch (err) {
-      console.error('[CHAT ENSURE]', err.message);
-    }
+  const isSuperOrSub = req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN';
+  const focusWardId = requestedWard || (!isSuperOrSub ? (req.user.wardId || '') : '');
+
+  // Scope query where possible to avoid full database scans
+  const chatWhere = { isActive: true };
+  if (focusWardId) {
+    chatWhere.wardId = focusWardId;
+  } else if (!isSuperOrSub && allowedForGroups && allowedForGroups.length) {
+    chatWhere.wardId = { [Op.in]: allowedForGroups };
   }
-  const rows = await Chat.findAll({
-    where: { isActive: true },
+
+  let rows = await Chat.findAll({
+    where: chatWhere,
     include: [
       { model: Ward, as: 'ward', attributes: ['id', 'wardNumber', 'name'] },
       { model: User, as: 'nagarsevak', attributes: ['id', 'name', 'mobile', 'roleId'] },
@@ -388,6 +388,26 @@ const listGroups = asyncHandler(async (req, res) => {
     ],
     order: [['type', 'ASC'], ['name', 'ASC']],
   });
+
+  // Fallback: If a focused ward has no groups at all, initialize ward group once
+  if (focusWardId && rows.length === 0 && (req.user.roleName === 'SUPER_ADMIN' || isWardAllowed(req, focusWardId))) {
+    try {
+      await ensureWardGroup(focusWardId);
+      await ensureAllNagarsevakGroups(focusWardId);
+      rows = await Chat.findAll({
+        where: chatWhere,
+        include: [
+          { model: Ward, as: 'ward', attributes: ['id', 'wardNumber', 'name'] },
+          { model: User, as: 'nagarsevak', attributes: ['id', 'name', 'mobile', 'roleId'] },
+          { model: User, as: 'createdBy', attributes: ['id', 'name'] },
+        ],
+        order: [['type', 'ASC'], ['name', 'ASC']],
+      });
+    } catch (err) {
+      console.error('[CHAT ENSURE]', err.message);
+    }
+  }
+
   const wardIds = [...new Set(rows.map(g => g.wardId).filter(Boolean))];
   const visibleMap = await visibleIdsByWard(wardIds);
   const citizenVisible = req.user.roleName === 'CITIZEN' && req.user.wardId
@@ -421,10 +441,10 @@ const listGroups = asyncHandler(async (req, res) => {
     }
     return true;
   });
-  await syncActiveWardMembers(visibleRows).catch((err) => console.error('[CHAT SYNC MEMBERS]', err.message));
+
   const memberships = await Chat.Member.findAll({ where: { userId: req.user.id }, attributes: ['groupId'] });
   const ids = new Set(memberships.map(x => x.groupId));
-  if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN') {
+  if (req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN' || req.user.roleName === 'CITIZEN' || req.user.roleName === 'NAGARSEVAK') {
     visibleRows.forEach((g) => ids.add(g.id));
   }
   if (req.user.roleName === 'EMPLOYEE') {
@@ -437,15 +457,37 @@ const listGroups = asyncHandler(async (req, res) => {
     });
   }
   const observer = req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN';
-  const unreadEntries = await Promise.all(visibleRows.map(async (g) => {
-    try {
-      return [g.id, await unreadCountForGroup(g.id, req.user.id, { observer })];
-    } catch (err) {
-      console.error('[CHAT UNREAD]', err.message);
-      return [g.id, 0];
-    }
-  }));
+  const [unreadEntries, lastMessageEntries] = await Promise.all([
+    Promise.all(visibleRows.map(async (g) => {
+      try {
+        return [g.id, await unreadCountForGroup(g.id, req.user.id, { observer, userCreatedAt: req.user.createdAt })];
+      } catch (err) {
+        console.error('[CHAT UNREAD]', err.message);
+        return [g.id, 0];
+      }
+    })),
+    Promise.all(visibleRows.map(async (g) => {
+      try {
+        const kind = await Chat.resolveKind(g.id);
+        const Message = kind === 'all' ? Chat.AllChatMessage : Chat.GroupChatMessage;
+        const clearedAt = await clearedAtFor(g.id, req.user.id);
+        const where = { groupId: g.id };
+        if (clearedAt) {
+          where.createdAt = { [Op.gt]: clearedAt };
+        }
+        const msg = await Message.findOne({
+          where,
+          order: [['createdAt', 'DESC']],
+          attributes: ['id', 'groupId', 'senderUserId', 'messageType', 'content', 'createdAt'],
+        });
+        return [g.id, msg ? (msg.toJSON ? msg.toJSON() : msg) : null];
+      } catch (err) {
+        return [g.id, null];
+      }
+    })),
+  ]);
   const unreadMap = Object.fromEntries(unreadEntries);
+  const lastMessageMap = Object.fromEntries(lastMessageEntries);
   const nagarProfiles = await nagarsevakPublicByIds(visibleRows.map(g => g.nagarsevakUserId || g.nagarsevak?.id));
   const data = visibleRows.map(g => {
     const row = g.toJSON();
@@ -461,6 +503,7 @@ const listGroups = asyncHandler(async (req, res) => {
     }
     return {
       ...row,
+      lastMessage: lastMessageMap[g.id] || null,
       unreadCount: Number(unreadMap[g.id] || 0),
       isMember: ids.has(g.id),
       canClear: true,
@@ -530,7 +573,15 @@ const listMessages = asyncHandler(async (req, res) => {
   }
   const rows = await Chat.Message.findAll({
     where,
-    include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile', 'roleId'] }],
+    include: [{
+      model: User,
+      as: 'sender',
+      attributes: ['id', 'name', 'mobile', 'roleId', 'personId'],
+      include: [
+        { model: Role, attributes: ['name'] },
+        { model: Person, as: 'person', attributes: ['id', 'fullName', 'mobile', 'gender'] },
+      ],
+    }],
     order: [['createdAt', 'DESC']],
     limit,
   });
@@ -539,7 +590,12 @@ const listMessages = asyncHandler(async (req, res) => {
   const data = rows.map(m => {
     const json = typeof m.toJSON === 'function' ? m.toJSON() : m;
     const extra = senderPhotos.get(String(m.senderUserId));
-    if (json.sender && extra?.photo) json.sender.photo = extra.photo;
+    if (json.sender) {
+      if (extra?.photo) json.sender.photo = extra.photo;
+      if (!json.sender.name && json.sender.person?.fullName) {
+        json.sender.name = json.sender.person.fullName;
+      }
+    }
     return json;
   });
   return success(res, { data });
@@ -593,11 +649,26 @@ const sendMessage = asyncHandler(async (req, res) => {
     imageMime: imageMime || null,
     imagePath: imagePath || null
   });
-  const full = await Chat.Message.findByPk(row.id, { include: [{ model: User, as: 'sender', attributes: ['id', 'name', 'mobile', 'roleId'] }] });
+  const full = await Chat.Message.findByPk(row.id, {
+    include: [{
+      model: User,
+      as: 'sender',
+      attributes: ['id', 'name', 'mobile', 'roleId', 'personId'],
+      include: [
+        { model: Role, attributes: ['name'] },
+        { model: Person, as: 'person', attributes: ['id', 'fullName', 'mobile', 'gender'] },
+      ]
+    }]
+  });
   const json = typeof full?.toJSON === 'function' ? full.toJSON() : full;
   const senderPhotos = await nagarsevakPublicByIds([req.user.id]);
   const extra = senderPhotos.get(String(req.user.id));
-  if (json?.sender) json.sender.photo = extra?.photo || req.user.photo || json.sender.photo || null;
+  if (json?.sender) {
+    json.sender.photo = extra?.photo || req.user.photo || json.sender.photo || null;
+    if (!json.sender.name && json.sender.person?.fullName) {
+      json.sender.name = json.sender.person.fullName;
+    }
+  }
   if (group.wardId) {
     await reconcileWardGroupMembers(group.wardId).catch(() => {});
   }
@@ -663,8 +734,10 @@ const leaveGroup = asyncHandler(async (req, res) => {
 
 const clearChat = asyncHandler(async (req, res) => {
   const { group, member } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
-  const now = new Date();
-  await member.update({ lastClearedAt: now, lastReadAt: now });
+  const now = new Date(Date.now() + 1000);
+  if (member) {
+    await member.update({ lastClearedAt: now, lastReadAt: now });
+  }
   await Chat.Member.update(
     { lastClearedAt: now, lastReadAt: now },
     { where: { groupId: group.id, userId: req.user.id } }
@@ -678,7 +751,110 @@ const markRead = asyncHandler(async (req, res) => {
   const now = new Date();
   await member.update({ lastReadAt: now });
   await saveChatState(group.id, req.user.id, { lastReadAt: now });
-  return success(res, { message: 'Chat marked as read' });
+  return success(res, { success: true });
 });
 
-module.exports = { listGroups, createGroup, deleteGroup, listMessages, sendMessage, image, clearChat, markRead, joinGroup, leaveGroup, cleanupOldMessages, ensureNagarsevakGroup, archiveNagarsevakGroup, reconcileWardGroupMembers, ensureWardGroup, archiveWardGroups, ensureAllNagarsevakGroups };
+const getResidentDetails = asyncHandler(async (req, res) => {
+  const allowedRoles = ['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'];
+  if (!allowedRoles.includes(String(req.user.roleName || '').toUpperCase())) {
+    throw new ApiError(403, 'Access denied. Only ward officials and staff can view full resident details.');
+  }
+
+  const { userId } = req.params;
+  const targetUser = await User.findByPk(userId, {
+    attributes: ['id', 'name', 'email', 'mobile', 'roleId', 'personId', 'wardId', 'status', 'createdAt'],
+    include: [
+      { model: Role, attributes: ['name'] },
+      { model: Ward, as: 'ward', attributes: ['id', 'wardNumber', 'name'] },
+      {
+        model: Person,
+        as: 'person',
+        include: [
+          {
+            model: Family,
+            as: 'family',
+            include: [{ model: House, as: 'house', include: [{ model: Area, as: 'area' }] }]
+          },
+          { model: VoterProfile, as: 'voterProfile' }
+        ]
+      }
+    ]
+  });
+
+  if (!targetUser) throw new ApiError(404, 'Resident account not found');
+
+  let person = targetUser.person;
+  if (!person && targetUser.mobile) {
+    person = await Person.findOne({
+      where: { mobile: targetUser.mobile },
+      include: [
+        {
+          model: Family,
+          as: 'family',
+          include: [{ model: House, as: 'house', include: [{ model: Area, as: 'area' }] }]
+        },
+        { model: VoterProfile, as: 'voterProfile' }
+      ]
+    });
+  }
+
+  const data = {
+    userId: targetUser.id,
+    name: person?.fullName || targetUser.name,
+    mobile: targetUser.mobile || person?.mobile || '',
+    email: targetUser.email || person?.email || '',
+    role: targetUser.Role?.name || 'CITIZEN',
+    ward: targetUser.ward || (person?.family?.house?.wardId ? { id: person.family.house.wardId } : null),
+    status: targetUser.status,
+    registeredAt: targetUser.createdAt,
+    person: person ? {
+      id: person.id,
+      fullName: person.fullName,
+      gender: person.gender,
+      dob: person.dob,
+      age: person.age,
+      mobile: person.mobile,
+      alternateMobile: person.alternateMobile,
+      email: person.email,
+      occupation: person.occupation,
+      occupationType: person.occupationType,
+      companyName: person.companyName,
+      businessName: person.businessName,
+      businessAddress: person.businessAddress,
+      relationshipToHead: person.relationshipToHead,
+      residenceStatus: person.residenceStatus,
+      presenceStatus: person.presenceStatus,
+      currentCity: person.currentCity,
+      status: person.status,
+      verificationStatus: person.verificationStatus,
+      family: person.family ? {
+        id: person.family.id,
+        familyName: person.family.familyName,
+        nativeVillage: person.family.nativeVillage,
+        nativeTaluka: person.family.nativeTaluka,
+        nativeDistrict: person.family.nativeDistrict,
+        nativeState: person.family.nativeState,
+      } : null,
+      house: person.family?.house ? {
+        id: person.family.house.id,
+        houseNumber: person.family.house.houseNumber,
+        address: person.family.house.address,
+        area: person.family.house.area?.name,
+        pinCode: person.family.house.pinCode || person.family.house.pincode,
+      } : null,
+      voterProfile: person.voterProfile ? {
+        id: person.voterProfile.id,
+        status: person.voterProfile.status,
+        epicNumber: person.voterProfile.epicNumber,
+        constituency: person.voterProfile.constituency,
+        votingWard: person.voterProfile.votingWard,
+        voterCenter: person.voterProfile.voterCenter,
+        voterRoom: person.voterProfile.voterRoom,
+      } : null,
+    } : null,
+  };
+
+  return success(res, { data });
+});
+
+module.exports = { listGroups, createGroup, deleteGroup, listMessages, sendMessage, image, clearChat, markRead, joinGroup, leaveGroup, archiveOldChats, cleanupOldMessages, ensureNagarsevakGroup, archiveNagarsevakGroup, reconcileWardGroupMembers, ensureWardGroup, archiveWardGroups, ensureAllNagarsevakGroups, getResidentDetails };

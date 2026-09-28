@@ -484,7 +484,20 @@ const listWardTeam = asyncHandler(async(req,res)=>{
   const ward=await Ward.findByPk(wardId,{attributes:['id','wardNumber','name','status']});
   if(!ward)throw new ApiError(404,'Ward not found');
   const residentFacing=req.user.roleName==='CITIZEN';
-  const employees=residentFacing?[]:await User.findAll({where:{roleId:er.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId'],include:[{model:Employee,as:'employeeProfile',attributes:['designation','managerUserId']}] ,order:[['name','ASC']]});
+  const employeeRows = await User.findAll({
+    where:{roleId:er.id,wardId,status:'ACTIVE'},
+    attributes:['id','name','email','mobile','wardId'],
+    include:[{model:Employee,as:'employeeProfile',attributes:['designation','managerUserId']}],
+    order:[['name','ASC']]
+  });
+  const employees = employeeRows.map(e => ({
+    id: e.id,
+    name: e.name,
+    email: residentFacing ? undefined : e.email,
+    mobile: e.mobile || null,
+    designation: e.employeeProfile?.designation || 'Ward Worker',
+    managerUserId: e.employeeProfile?.managerUserId || null,
+  }));
   let nagarsevaks;
   if(residentFacing){
     nagarsevaks = isWardActive(ward) ? await decorateNagarsevakPhotos((await getVisibleNagarsevaks(wardId)).map(publicNagarsevak)) : [];
@@ -493,7 +506,31 @@ const listWardTeam = asyncHandler(async(req,res)=>{
     const rows=await User.findAll({where:{roleId:nr.id,wardId,status:'ACTIVE'},attributes:['id','name','email','mobile','wardId','roleId'],order:[['name','ASC']]});
     nagarsevaks=await decorateNagarsevakPhotos(rows.map(publicNagarsevak));
   }
-  return success(res,{data:{ward,nagarsevaks,employees:residentFacing?[]:employees,nagarsevakCount:nagarsevaks.length,employeeCount:residentFacing?0:employees.length,wardStatus:ward.status}});
+  const adminRoles = await Role.findAll({ where: { name: ['SUPER_ADMIN', 'SUB_MASTER_ADMIN'] }, attributes: ['id', 'name'] }).catch(() => []);
+  const adminRoleIds = adminRoles.map(r => r.id);
+  const adminRows = adminRoleIds.length ? await User.findAll({
+    where: { roleId: { [Op.in]: adminRoleIds }, status: 'ACTIVE' },
+    attributes: ['id', 'name', 'email', 'mobile', 'roleId'],
+    include: [{ model: Role, attributes: ['name'] }],
+    order: [['name', 'ASC']]
+  }).catch(() => []) : [];
+  const admins = adminRows.map(a => ({
+    id: a.id,
+    name: a.name,
+    email: a.email,
+    mobile: a.mobile || null,
+    roleName: a.Role?.name || 'ADMIN',
+  }));
+  return success(res,{data:{
+    ward,
+    admins,
+    nagarsevaks,
+    employees,
+    nagarsevakCount:nagarsevaks.length,
+    employeeCount:employees.length,
+    adminCount:admins.length,
+    wardStatus:ward.status
+  }});
 });
 
 const permissions = asyncHandler(async(req,res)=>success(res,{data:{permissions:ALL_PERMISSIONS}}));

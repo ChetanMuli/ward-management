@@ -1707,7 +1707,8 @@ html body .ward-more-btn:hover{background:#eff6ff !important;border-color:#93c5f
     min-height:40px !important;
     height:40px !important;
   }
-  html body .groups-page:not(.chat-open) .group-chat-panel{
+  html body .groups-page:not(.chat-open) .group-chat-panel,
+  html body .groups-page:not(.chat-open) .wa-conversation-panel{
     display:none !important;
     height:0 !important;
     min-height:0 !important;
@@ -1719,31 +1720,55 @@ html body .ward-more-btn:hover{background:#eff6ff !important;border-color:#93c5f
   html body .groups-page:not(.chat-open) .wa-chat,
   html body .user-page-main .groups-page:not(.chat-open) .group-layout,
   html body .user-portal .groups-page:not(.chat-open) .group-layout{
-    height:auto !important;
-    min-height:0 !important;
-    max-height:none !important;
+    height:calc(100dvh - 120px) !important;
+    min-height:calc(100dvh - 120px) !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
     background:#fff !important;
-    display:block !important;
-    overflow:visible !important;
+    border:none !important;
+    border-radius:0 !important;
+    box-shadow:none !important;
   }
   html body .groups-page:not(.chat-open) .group-list,
+  html body .groups-page:not(.chat-open) .wa-sidebar,
   html body .user-page-main .groups-page:not(.chat-open) .group-list{
-    display:block !important;
-    height:auto !important;
-    min-height:0 !important;
-    max-height:none !important;
-    overflow:visible !important;
-    background:#fff !important;
-  }
-  html body .groups-page:not(.chat-open) .wa-item{
-    width:100% !important;
-  }
-  html body .groups-page.chat-open .group-chat-panel{
     display:flex !important;
     flex-direction:column !important;
     height:100% !important;
     min-height:0 !important;
+    overflow:hidden !important;
+    background:#fff !important;
+    width:100% !important;
+    border-right:none !important;
+  }
+  html body .groups-page:not(.chat-open) .wa-items-container{
+    flex:1 1 0% !important;
+    min-height:0 !important;
+    height:0 !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch !important;
+  }
+  html body .groups-page:not(.chat-open) .wa-item{
+    width:100% !important;
+  }
+  html body .groups-page.chat-open .group-chat-panel,
+  html body .groups-page.chat-open .wa-conversation-panel{
+    display:flex !important;
+    flex-direction:column !important;
+    position:fixed !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    width:100vw !important;
+    height:100dvh !important;
+    height:100vh !important;
+    max-height:100dvh !important;
+    z-index:1500 !important;
     background:#efeae2 !important;
+    margin:0 !important;
+    padding:0 !important;
   }
 }
 
@@ -2284,10 +2309,10 @@ html body .user-portal .row-menu-pop{
   -webkit-overflow-scrolling:touch !important;
 }
 html body .modal-backdrop{
-  z-index:210 !important;
+  z-index:100000 !important;
 }
 html body .modal-backdrop-stack{
-  z-index:280 !important;
+  z-index:100010 !important;
 }
 html body .ward-area-editor{
   display:flex;
@@ -2611,29 +2636,66 @@ html body{
 html body .groups-page .wa-avatar,
 html body .user-portal .groups-page .wa-avatar,
 html body .user-portal .groups-page .user-avatar.wa-avatar,
-html body .app-shell .groups-page .user-avatar.wa-avatar{
-  width:44px !important;
-  height:44px !important;
-  min-width:44px !important;
-  min-height:44px !important;
-  font-size:13px !important;
+html body .app-shell .groups-page .user-avatar.wa-avatar,
+html body .groups-page .wa-sidebar-avatar,
+html body .user-portal .groups-page .wa-sidebar-avatar,
+html body .app-shell .groups-page .wa-sidebar-avatar,
+html body .groups-page .wa-sidebar-user .user-avatar{
+  width:36px !important;
+  height:36px !important;
+  min-width:36px !important;
+  min-height:36px !important;
+  max-width:36px !important;
+  max-height:36px !important;
+  font-size:11px !important;
+  border-radius:50% !important;
+  overflow:hidden !important;
 }
+html body .groups-page .wa-bubble-avatar,
+html body .user-portal .groups-page .wa-bubble-avatar,
+html body .app-shell .groups-page .wa-bubble-avatar,
+html body .groups-page .wa-bubble-head .user-avatar,
+html body .user-portal .groups-page .wa-bubble-head .user-avatar,
+html body .app-shell .groups-page .wa-bubble-head .user-avatar,
 html body .groups-page .chat-sender-face,
 html body .groups-page .group-bubble-head .user-avatar,
 html body .user-portal .groups-page .chat-sender-face,
 html body .user-portal .groups-page .group-bubble-head .user-avatar,
 html body .app-shell .groups-page .chat-sender-face{
-  width:28px !important;
-  height:28px !important;
-  min-width:28px !important;
-  min-height:28px !important;
-  font-size:10px !important;
-  background:#0b1624 !important;
-  color:#fff !important;
-}
-html body .user-portal .groups-page .chat-sender-face,
-html body .user-portal .groups-page .group-bubble-head .user-avatar{
+  width:22px !important;
+  height:22px !important;
+  min-width:22px !important;
+  min-height:22px !important;
+  max-width:22px !important;
+  max-height:22px !important;
+  font-size:9.5px !important;
   background:#0f766e !important;
+  color:#fff !important;
+  border-radius:50% !important;
+  overflow:hidden !important;
+  flex:0 0 22px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+html body .groups-page .wa-bubble-avatar span,
+html body .user-portal .groups-page .wa-bubble-avatar span,
+html body .groups-page .wa-bubble-head .user-avatar span,
+html body .user-portal .groups-page .wa-bubble-head .user-avatar span{
+  font-size:9.5px !important;
+  line-height:22px !important;
+  font-weight:700 !important;
+}
+html body .groups-page .wa-chat-header .wa-avatar,
+html body .user-portal .groups-page .wa-chat-header .wa-avatar,
+html body .app-shell .groups-page .wa-chat-header .wa-avatar{
+  width:34px !important;
+  height:34px !important;
+  min-width:34px !important;
+  min-height:34px !important;
+  max-width:34px !important;
+  max-height:34px !important;
+  font-size:11px !important;
+  flex:0 0 34px !important;
 }
 html body .brand-mark,
 html body .user-brand-mark,

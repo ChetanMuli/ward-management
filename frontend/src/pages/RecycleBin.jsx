@@ -42,11 +42,11 @@ export default function RecycleBin(){
   <PageHeader title="Recycle bin" action={isMaster(user)?<button className="ghost-btn danger" onClick={async()=>{if(!confirm('Permanently clear all records currently in the recycle bin? This cannot be undone.'))return;try{await api.clearRecycleBin();setRows([]);window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'success',message:'Recycle bin cleared permanently.'}}))}catch(e){setError(e.message)}}}>Clear recycle bin</button>:null}/>
   <ErrorBox error={error}/>
   <section className="panel recycle-filter-panel">
-    <div className="recycle-retention-banner" style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 16px',background:'var(--bg-subtle,#f8fafc)',borderRadius:'10px',border:'1px solid var(--border-color,#e2e8f0)',marginBottom:'16px'}}>
-      <span style={{fontSize:'22px'}}>🛡️</span>
+    <div className="recycle-retention-banner" style={{display:'flex',alignItems:'center',gap:'14px',padding:'14px 18px',background:'var(--bg-subtle,#f8fafc)',borderRadius:'10px',border:'1px solid var(--border-color,#e2e8f0)',marginBottom:'16px'}}>
+      <span style={{fontSize:'24px'}}>🛡️</span>
       <div style={{fontSize:'13px',lineHeight:'1.5'}}>
-        <strong style={{display:'block',color:'var(--text-primary,#0f172a)',fontWeight:'600'}}>60-Day Safety Retention Policy</strong>
-        <span style={{color:'var(--text-muted,#64748b)'}}>All deleted ward records are securely preserved in the Recycle Bin for 60 days. After 60 days, expired records are automatically and permanently purged by the system.</span>
+        <strong style={{display:'block',color:'var(--text-primary,#0f172a)',fontWeight:'600',marginBottom:'2px'}}>30-Day Safety Retention & 75-Day Auto-Archive Policy (३० दिवसांचे धारणा धोरण)</strong>
+        <span style={{color:'var(--text-muted,#64748b)'}}>All deleted records across all sections (Houses, Families, Citizens, Shops, Complaints, Daily Tasks/Schedules, etc.) are safely preserved in the Recycle Bin for <strong>30 days</strong> before permanent deletion. Active daily tasks and complaints automatically move to the Recycle Bin after <strong>75 days</strong>. Note: Chats are automatically permanently deleted after <strong>75 days</strong> (do not enter the Recycle Bin for privacy).</span>
       </div>
     </div>
     <div className="filter-panel-head"><div><span className="eyebrow">RECOVERABLE DATA</span><h3>Find deleted records</h3><p>Review complete record information before restoring.</p></div><span className="auto-filter-badge">● Auto updated</span></div>

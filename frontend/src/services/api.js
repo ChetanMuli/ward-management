@@ -40,7 +40,7 @@ async function request(path,options={}){
   const message=[payload?.message||payload?.error||statusText||`Request failed (${response.status})`,detail].filter(Boolean).join(': ');
   throw new Error(message);
  }
- if(options.method && ['POST','PATCH','DELETE'].includes(String(options.method).toUpperCase()) && !path.includes('/auth/')){
+ if(!options.silent && options.method && ['POST','PATCH','DELETE'].includes(String(options.method).toUpperCase()) && !path.includes('/auth/') && !path.includes('/chat/') && !path.endsWith('/read')){
    const message=payload?.message||actionSuccessMessage(path,String(options.method).toUpperCase());
    window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'success',message}}));
  }
@@ -142,8 +142,9 @@ export const api={
  chatMessages:(id,params={})=>v2(`/chat/groups/${id}/messages`,params),
  sendChatMessage:(id,d)=>v2Request(`/chat/groups/${id}/messages`,{method:'POST',body:JSON.stringify(d)}),
  chatImageUrl:(groupId,messageId)=>`${API_BASE_URL}/v2/chat/groups/${groupId}/messages/${messageId}/image`,
- chatAttachmentBlob:async(groupId,messageId)=>{const token=getToken();const r=await fetch(`${API_BASE_URL}/v2/chat/groups/${groupId}/messages/${messageId}/image`,{headers:token?{Authorization:`Bearer ${token}`}:{}});if(!r.ok)throw new Error((await r.json().catch(()=>null))?.message||`Attachment unavailable (${r.status})`);return URL.createObjectURL(await r.blob());}, clearChat:(id)=>v2Request(`/chat/groups/${id}/clear`,{method:'PATCH'}),
- markChatRead:(id)=>v2Request(`/chat/groups/${id}/read`,{method:'PATCH'}),
+ chatAttachmentBlob:async(groupId,messageId)=>{const token=getToken();const r=await fetch(`${API_BASE_URL}/v2/chat/groups/${groupId}/messages/${messageId}/image`,{headers:token?{Authorization:`Bearer ${token}`}:{}});if(!r.ok)throw new Error((await r.json().catch(()=>null))?.message||`Attachment unavailable (${r.status})`);const ct=r.headers.get('content-type')||'application/octet-stream';const raw=await r.blob();return URL.createObjectURL(new Blob([raw],{type:ct}));}, clearChat:(id)=>v2Request(`/chat/groups/${id}/clear`,{method:'PATCH',silent:true}),
+ markChatRead:(id)=>v2Request(`/chat/groups/${id}/read`,{method:'PATCH',silent:true}),
+ chatResidentDetails:(userId)=>v2(`/chat/resident-details/${userId}`),
  notificationRecipients:(audience,wardId)=>v2('/notifications/recipients',{audience,wardId}),
  markNotificationRead:id=>v2Request(`/notifications/${id}/read`,{method:'PATCH'}),
  markAllNotificationsRead:()=>v2Request('/notifications/read-all',{method:'PATCH'}),

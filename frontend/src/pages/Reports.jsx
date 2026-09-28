@@ -43,4 +43,33 @@ export default function Reports(){const {selectedWardId,wards}=useWardFilter();c
  }
  const areaOptions=[{value:'',label:selectedWardId?'All colonies':'All colonies / areas'},...areas.map(a=>({value:a.id,label:`${a.wardNumber?a.wardNumber+' · ':''}${a.name}`}))];
  const typeOptions=Object.entries(configs).map(([k,v])=>({value:k,label:v.title}));
- return <div><PageHeader kicker="Tools" title="Reports & export"/><ErrorBox error={error}/><section className="panel report-panel"><Toolbar><WardFilter/><SearchableSelect label="Colony / Area" value={areaId} onChange={setAreaId} options={areaOptions} placeholder="Search colony…"/><SearchableSelect label="Report" value={type} onChange={setType} options={typeOptions} placeholder="Search report type…"/></Toolbar><div className="report-scope-note">Scope: <b>{selectedWardId?(ward?.wardNumber||'Selected ward'):'All wards'}</b> · <b>{areaId?(areas.find(a=>a.id===areaId)?.name||'Selected colony'):'All colonies'}</b></div><div className="export-actions"><button className="primary-btn" disabled={busy} onClick={excel}>{busy?'Preparing…':'⇩ Export Excel'}</button><button className="ghost-btn" disabled={busy} onClick={pdf}>{busy?'Preparing…':'▣ Export PDF'}</button></div></section></div>}
+ return <div><PageHeader kicker="Tools" title="Reports & export"/><ErrorBox error={error}/>
+  <section className="panel" style={{marginBottom:'20px',background:'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',color:'#fff',padding:'20px 24px',borderRadius:'12px',boxShadow:'0 4px 16px rgba(15,23,42,0.15)'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'16px'}}>
+      <div>
+        <span style={{fontSize:'11px',fontWeight:'700',color:'#10b981',letterSpacing:'1.5px',textTransform:'uppercase'}}>PROJECT MATERIALS & EXECUTIVE DOSSIER</span>
+        <h3 style={{margin:'4px 0 6px',fontSize:'18px',color:'#fff',fontWeight:'700'}}>Client Presentation & Detailed Documentation</h3>
+        <p style={{margin:0,fontSize:'13px',color:'#cbd5e1',maxWidth:'650px',lineHeight:'1.5'}}>
+          Download the official project PowerPoint presentation (PPTX) and in-depth architectural & functional specification document (PDF) prepared for municipal clients, corporators, and administrative leadership.
+        </p>
+      </div>
+      <div style={{display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center'}}>
+        <div style={{display:'flex',gap:'8px'}}>
+          <a href="/api/v2/docs/download/presentation-mr" download="Ward_Management_System_Client_Presentation_Marathi.pptx" className="primary-btn" style={{display:'inline-flex',alignItems:'center',gap:'6px',textDecoration:'none',background:'#d97706',color:'#fff',padding:'9px 14px',borderRadius:'8px',fontWeight:'600',fontSize:'12.5px'}}>
+            <span>📊</span> मराठी सादरीकरण (PPTX)
+          </a>
+          <a href="/api/v2/docs/download/pdf-mr" download="Ward_Management_System_Complete_Documentation_Marathi.pdf" className="ghost-btn" style={{display:'inline-flex',alignItems:'center',gap:'6px',textDecoration:'none',background:'rgba(255,255,255,0.15)',color:'#fff',border:'1px solid rgba(255,255,255,0.3)',padding:'9px 14px',borderRadius:'8px',fontWeight:'600',fontSize:'12.5px'}}>
+            <span>📄</span> संपूर्ण अहवाल (PDF)
+          </a>
+        </div>
+        <div style={{display:'flex',gap:'8px'}}>
+          <a href="/api/v2/docs/download/presentation" download="Ward_Management_System_Client_Presentation.pptx" className="primary-btn" style={{display:'inline-flex',alignItems:'center',gap:'6px',textDecoration:'none',background:'#059669',color:'#fff',padding:'9px 14px',borderRadius:'8px',fontWeight:'600',fontSize:'12.5px'}}>
+            <span>📊</span> English PPTX
+          </a>
+          <a href="/api/v2/docs/download/pdf" download="Ward_Management_System_Complete_Documentation.pdf" className="ghost-btn" style={{display:'inline-flex',alignItems:'center',gap:'6px',textDecoration:'none',background:'rgba(255,255,255,0.1)',color:'#fff',border:'1px solid rgba(255,255,255,0.25)',padding:'9px 14px',borderRadius:'8px',fontWeight:'600',fontSize:'12.5px'}}>
+            <span>📄</span> English PDF
+          </a>
+        </div>
+      </div>
+    </div>
+  </section><section className="panel report-panel"><Toolbar><WardFilter/><SearchableSelect label="Colony / Area" value={areaId} onChange={setAreaId} options={areaOptions} placeholder="Search colony…"/><SearchableSelect label="Report" value={type} onChange={setType} options={typeOptions} placeholder="Search report type…"/></Toolbar><div className="report-scope-note">Scope: <b>{selectedWardId?(ward?.wardNumber||'Selected ward'):'All wards'}</b> · <b>{areaId?(areas.find(a=>a.id===areaId)?.name||'Selected colony'):'All colonies'}</b></div><div className="export-actions"><button className="primary-btn" disabled={busy} onClick={excel}>{busy?'Preparing…':'⇩ Export Excel'}</button><button className="ghost-btn" disabled={busy} onClick={pdf}>{busy?'Preparing…':'▣ Export PDF'}</button></div></section></div>}

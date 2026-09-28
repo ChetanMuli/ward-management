@@ -345,14 +345,14 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
         <div className="perm-v2-header-top">
           <div className="perm-v2-title-box">
             <div className="perm-v2-role-tag">
-              {isEmp ? 'Employee' : isNagar ? 'Nagarsevak' : 'Account'}
+              {isEmp ? 'Ward Worker / Staff (under Nagarsevak)' : isNagar ? 'Nagarsevak' : 'Account'}
             </div>
             <h3 className="perm-v2-title">
-              {isEmp ? 'What this employee can use' : isNagar ? 'What this Nagarsevak can use' : 'Account access'}
+              {isEmp ? 'What this ward worker / assistant can use' : isNagar ? 'What this Nagarsevak can use' : 'Account access'}
             </h3>
             <p className="perm-v2-desc">
               {isEmp
-                ? 'Turn ON only the screens this field staff should open. OFF means that menu is hidden for them.'
+                ? 'Turn ON only the screens this Nagarsevak field worker/assistant should open. OFF means that menu is hidden for them.'
                 : isNagar
                 ? 'Turn ON the ward tools this Nagarsevak needs. Daily Schedule, complaints and citizens are the usual set.'
                 : 'Turn ON each screen this account is allowed to open.'}

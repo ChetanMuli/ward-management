@@ -10,4 +10,9 @@ module.exports = sequelize.define('AllChatMessage', {
   content: { type: DataTypes.TEXT, allowNull: true },
   imageMime: { type: DataTypes.STRING, allowNull: true, field: 'image_mime' },
   imagePath: { type: DataTypes.STRING(500), allowNull: true, field: 'image_path' },
-}, { tableName: 'all_chat_messages', underscored: true });
+}, {
+  tableName: 'all_chat_messages',
+  underscored: true,
+  paranoid: true,
+  deletedAt: 'deletedAt',
+});

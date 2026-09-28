@@ -22,10 +22,14 @@ const {
   EmployeeUser,
   CitizenUser,
   CommunityUser,
+  AllChatMessage,
+  GroupChatMessage,
+  WardChatMessage,
 } = require('../../models');
 const fs = require('fs');
 const path = require('path');
 const GOV_STORAGE = path.resolve(__dirname, '../../../storage/government-voter-lists');
+const CHAT_STORAGE = path.resolve(process.env.CHAT_UPLOAD_DIR || path.join(__dirname, '../../../uploads/chat'));
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 
@@ -34,7 +38,9 @@ async function cleanupAuditLogs(days = 2) {
   return AuditLog.destroy({ where: { createdAt: { [Op.lt]: cutoff } } });
 }
 
-async function cleanupRecycleBin(days = 60) {
+// Any data moved to the Recycle Bin (manual delete or 75-day auto-archive)
+// is permanently deleted after staying in the Recycle Bin for 30 days.
+async function cleanupRecycleBin(days = 30) {
   const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   let total = 0;
   const models = [
@@ -58,11 +64,33 @@ async function cleanupRecycleBin(days = 60) {
     EmployeeUser,
     CitizenUser,
     CommunityUser,
+    AllChatMessage,
+    GroupChatMessage,
+    WardChatMessage,
   ];
 
   for (const Model of models) {
+    if (!Model) continue;
     try {
-      const deletedCol = Model.options.deletedAt || Model.rawAttributes?.deletedAt?.field || 'deletedAt';
+      const deletedCol = Model.options?.deletedAt || Model.rawAttributes?.deletedAt?.field || 'deletedAt';
+      // Clean up chat attachments if applicable
+      if ([AllChatMessage, GroupChatMessage, WardChatMessage].includes(Model)) {
+        try {
+          const expiredMsgs = await Model.findAll({
+            where: { [deletedCol]: { [Op.lt]: cutoff } },
+            paranoid: false,
+            attributes: ['id', 'imagePath'],
+            limit: 500,
+          });
+          for (const row of expiredMsgs) {
+            if (row.imagePath) {
+              const file = path.join(CHAT_STORAGE, path.basename(row.imagePath));
+              try { if (fs.existsSync(file)) fs.unlinkSync(file); } catch (_) {}
+            }
+          }
+        } catch (_) {}
+      }
+
       const count = await Model.destroy({
         where: { [deletedCol]: { [Op.lt]: cutoff } },
         paranoid: false,

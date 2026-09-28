@@ -53,6 +53,21 @@ app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 2000, standardHeaders
 
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+// Public client presentation and documentation download routes
+const docFolder = require('path').resolve(__dirname, '../../documentation');
+app.get(['/download/presentation', '/api/v2/docs/download/presentation'], (req, res) => {
+  res.download(require('path').join(docFolder, 'Ward_Management_System_Client_Presentation.pptx'), 'Ward_Management_System_Client_Presentation.pptx');
+});
+app.get(['/download/pdf', '/download/documentation', '/api/v2/docs/download/pdf'], (req, res) => {
+  res.download(require('path').join(docFolder, 'Ward_Management_System_Complete_Documentation.pdf'), 'Ward_Management_System_Complete_Documentation.pdf');
+});
+app.get(['/download/presentation-mr', '/download/presentation-marathi', '/api/v2/docs/download/presentation-mr'], (req, res) => {
+  res.download(require('path').join(docFolder, 'Ward_Management_System_Client_Presentation_Marathi.pptx'), 'Ward_Management_System_Client_Presentation_Marathi.pptx');
+});
+app.get(['/download/pdf-mr', '/download/documentation-marathi', '/download/documentation-mr', '/api/v2/docs/download/pdf-mr'], (req, res) => {
+  res.download(require('path').join(docFolder, 'Ward_Management_System_Complete_Documentation_Marathi.pdf'), 'Ward_Management_System_Complete_Documentation_Marathi.pdf');
+});
+
 app.use('/api', routes);
 app.use('/api/v2', require('./v2/routes'));
 
@@ -63,7 +78,7 @@ const frontendDist = path.resolve(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/download')) {
       return next();
     }
     res.sendFile(path.join(frontendDist, 'index.html'));
@@ -73,13 +88,28 @@ if (fs.existsSync(frontendDist)) {
 app.use(notFound);
 app.use(errorHandler);
 
-// Lightweight housekeeping: audit logs older than 2 days and recycle-bin data older than 60 days are removed automatically.
+// Automated 2-stage data lifecycle:
+// Stage 1: Active daily tasks/schedules, complaints, and chats older than 75 days are moved to the Recycle Bin.
+// Stage 2: Any records in the Recycle Bin (manual deletions across all sections or 75-day auto-archived records) are permanently deleted after 30 days.
+// Audit logs older than 2 days are also cleared.
 try {
   const { cleanupAuditLogs, cleanupRecycleBin } = require('./v2/controllers/maintenance.controller');
   const { archiveOldSchedules } = require('./v2/controllers/schedule.controller');
-  const runMaintenance=()=>Promise.all([cleanupAuditLogs(2),cleanupRecycleBin(60),archiveOldSchedules()]).catch(()=>{});
+  const { archiveOldComplaints } = require('./v2/controllers/complaint.controller');
+  const { archiveOldChats } = require('./v2/controllers/chat.controller');
+
+  const runMaintenance = () => Promise.all([
+    cleanupAuditLogs(2),
+    archiveOldChats(75),
+    archiveOldComplaints(75),
+    archiveOldSchedules(75),
+    cleanupRecycleBin(30),
+  ]).catch((err) => {
+    console.error('[MAINTENANCE ERROR]', err.message);
+  });
+
   runMaintenance();
-  setInterval(runMaintenance,24*60*60*1000).unref?.();
+  setInterval(runMaintenance, 24 * 60 * 60 * 1000).unref?.();
 } catch (_) {}
 
 module.exports = app;

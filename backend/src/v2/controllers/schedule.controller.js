@@ -185,17 +185,17 @@ async function resolveAssignedEmployee(userId, wardId) {
   return emp;
 }
 
-// Active work stays 60 days, then moves to recycle bin. Recycle bin is purged after 30 days.
-async function archiveOldSchedules() {
+// Active work stays 75 days, then moves to recycle bin. Recycle bin is purged after 30 days.
+async function archiveOldSchedules(days = 75) {
   try {
     const todayStr = getKolkataDateString();
-    const sixtyDaysAgo = shiftIsoDate(todayStr, -60);
+    const cutoffDateStr = shiftIsoDate(todayStr, -days);
     const count = await NagarsevakSchedule.destroy({
       where: {
-        scheduledDate: { [Op.lt]: sixtyDaysAgo },
+        scheduledDate: { [Op.lt]: cutoffDateStr },
       },
     });
-    if (count) console.log(`[SCHEDULE ARCHIVE] moved ${count} item(s) older than 60 days to recycle bin`);
+    if (count) console.log(`[SCHEDULE ARCHIVE] moved ${count} item(s) older than ${days} days to recycle bin`);
     return count;
   } catch (err) {
     console.error('Archive old schedules error:', err.message);

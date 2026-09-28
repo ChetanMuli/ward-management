@@ -1066,16 +1066,21 @@ export default function Staff() {
       <PageHeader
         title={
           master
-            ? 'Staff administration'
+            ? 'Ward Team & Staff Administration'
             : sub
-              ? 'Sub-admin & staff administration'
-              : 'Ward employee administration'
+              ? 'Sub-Admin & Ward Team Administration'
+              : 'Ward Workers Administration'
         }
       />
 
+      <div className="staff-role-clarification-banner" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: 'var(--bg-subtle, #f8fafc)', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', marginBottom: '14px', fontSize: '13px', color: 'var(--text-muted, #64748b)' }}>
+        <span style={{ fontSize: '18px' }}>ℹ️</span>
+        <span>
+          <strong>Ward Workers / Staff Note:</strong> Employees in this system are field workers, assistants, and karyakartas working directly under the Nagarsevak (not Municipal Corporation government employees).
+        </span>
+      </div>
 
       <ErrorBox error={error} />
-
 
       <div className="tabs">
 
@@ -1095,7 +1100,6 @@ export default function Staff() {
           </button>
         )}
 
-
         <button
           className={
             tab === 'EMPLOYEE'
@@ -1107,16 +1111,14 @@ export default function Staff() {
             setTab('EMPLOYEE')
           }
         >
-          Employees ({eTotal})
+          Ward Workers / Staff ({eTotal})
         </button>
 
       </div>
 
-
       <Toolbar>
 
         <WardFilter />
-
 
         {master && (
           <button
@@ -1126,7 +1128,6 @@ export default function Staff() {
             Send notification
           </button>
         )}
-
 
         <button
           className="primary-btn"
@@ -1139,7 +1140,7 @@ export default function Staff() {
           + Add {
             tab === 'NAGARSEVAK'
               ? 'Nagarsevak'
-              : 'Employee'
+              : 'Ward Worker'
           }
         </button>
 
@@ -1333,7 +1334,7 @@ export default function Staff() {
                 <thead>
 
                   <tr>
-                    <th>Employee</th>
+                    <th>Worker / Staff</th>
                     {(master || sub) && <th>Ward</th>}
                     {(master || sub) && <th>Managing Nagarsevak</th>}
                     <th>Assigned Areas</th>
@@ -1672,12 +1673,12 @@ export default function Staff() {
               ? `Create ${
                   tab === 'NAGARSEVAK'
                     ? 'Nagarsevak'
-                    : 'Employee'
+                    : 'Ward Worker / Assistant'
                 }`
               : `Edit ${
                   tab === 'NAGARSEVAK'
                     ? 'Nagarsevak'
-                    : 'Employee'
+                    : 'Ward Worker / Assistant'
                 }`
           }
           onClose={() =>
@@ -1690,6 +1691,12 @@ export default function Staff() {
             className="form-grid"
             onSubmit={save}
           >
+
+            {tab !== 'NAGARSEVAK' && (
+              <div className="span-2" style={{ padding: '8px 12px', background: 'var(--bg-subtle, #f8fafc)', borderRadius: '6px', fontSize: '12px', color: 'var(--text-muted, #64748b)', marginBottom: '4px' }}>
+                👤 <strong>Ward Worker Context:</strong> This account represents a field worker, assistant, or karyakarta working under the Nagarsevak's office (not Municipal Corporation government employees).
+              </div>
+            )}
 
             <Field label="Full name">
 

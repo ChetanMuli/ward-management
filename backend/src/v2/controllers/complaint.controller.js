@@ -377,11 +377,11 @@ const detail = asyncHandler(async(req,res)=>{
   return success(res,{data});
 });
 
-const archiveOldComplaints = async (days = 60) => {
+const archiveOldComplaints = async (days = 75) => {
   try {
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     // Complaint has paranoid: true, so destroy() soft-deletes (sets deletedAt),
-    // automatically moving complaints older than 60 days to Recycle Bin!
+    // automatically moving complaints older than 75 days to Recycle Bin!
     const count = await Complaint.destroy({
       where: {
         createdAt: { [Op.lt]: cutoff }

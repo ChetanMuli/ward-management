@@ -52,6 +52,18 @@ router.post('/auth/forgot/reset',forgotLimiter,[
   body('confirmPassword').custom((v,{req})=>v===req.body.password).withMessage('Passwords do not match'),
   body('channel').optional().isIn(['email'])
 ],validate,auth.forgotReset);
+
+// Client presentation and documentation downloads
+const docDir = require('path').resolve(__dirname, '../../../../documentation');
+router.get('/docs/download/presentation', (req, res) => {
+  const file = require('path').join(docDir, 'Ward_Management_System_Client_Presentation.pptx');
+  res.download(file, 'Ward_Management_System_Client_Presentation.pptx');
+});
+router.get('/docs/download/pdf', (req, res) => {
+  const file = require('path').join(docDir, 'Ward_Management_System_Complete_Documentation.pdf');
+  res.download(file, 'Ward_Management_System_Complete_Documentation.pdf');
+});
+
 router.use(authenticateV2);
 router.get('/permissions',staff.permissions);
 // Community Members are an administration-only module. Keep its API explicit
@@ -78,6 +90,7 @@ router.post('/chat/groups/:id/messages',requirePermission('SEND_CHAT'),chat.send
 router.get('/chat/groups/:id/messages/:messageId/image',requirePermission('VIEW_CHAT'),chat.image);
 router.patch('/chat/groups/:id/clear',requirePermission('VIEW_CHAT'),chat.clearChat);
 router.patch('/chat/groups/:id/read',requirePermission('VIEW_CHAT'),chat.markRead);
+router.get('/chat/resident-details/:userId',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),chat.getResidentDetails);
 router.get('/notifications',requirePermission('VIEW_NOTIFICATIONS'),notifications.list);
 router.get('/ward-updates',wardUpdates.list);
 router.post('/ward-updates',wardUpdates.create);

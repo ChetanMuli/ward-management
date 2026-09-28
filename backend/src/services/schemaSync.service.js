@@ -118,10 +118,10 @@ async function ensureDatabaseSchema(sequelize) {
     await sequelize.query("ALTER TABLE complaints MODIFY COLUMN description TEXT NULL").catch(() => {});
 
     // 4. Ensure soft-delete deleted_at columns exist across all critical tables
-    for (const table of ['death_records', 'ward_updates', 'schemes', 'apartments', 'shops_and_offices', 'nagarsevak_schedules', 'government_voter_lists']) {
+    for (const table of ['death_records', 'ward_updates', 'schemes', 'apartments', 'shops_and_offices', 'nagarsevak_schedules', 'government_voter_lists', 'all_chat_messages', 'group_chat_messages', 'ward_chat_messages']) {
       if (tables.includes(table)) {
         const desc = await queryInterface.describeTable(table).catch(() => ({}));
-        if (!desc.deleted_at) {
+        if (!desc.deleted_at && !desc.deletedAt) {
           console.log(`[SCHEMA-SYNC] Adding deleted_at column to ${table}...`);
           await queryInterface.addColumn(table, 'deleted_at', {
             type: DataTypes.DATE,
@@ -138,6 +138,7 @@ async function ensureDatabaseSchema(sequelize) {
         '20260922000064-nagarsevak-daily-schedule.js',
         '20260924000065-schedule-assigned-employee.js',
         '20260924000066-schedule-assignments.js',
+        '20260928000067-chat-recycle-retention-and-75day-lifecycle.js',
       ];
       for (const mName of migrationsToRegister) {
         await sequelize.query('INSERT IGNORE INTO SequelizeMeta (name) VALUES (:name)', {
