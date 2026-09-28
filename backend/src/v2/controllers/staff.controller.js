@@ -156,7 +156,7 @@ const listUsers = asyncHandler(async (req, res) => {
     data: result.rows.map(u => ({
       id: u.id,
       name: u.name,
-      email: u.email,
+      email: u.email ? String(u.email).toLowerCase() : null,
       mobile: u.mobile,
       wardId: u.wardId,
       status: u.status,

@@ -126,7 +126,7 @@ export default function WardActivation(){
           </div>
           <dl className="nagar-activation-facts">
            <div><dt>Mobile</dt><dd>{n.mobile||'—'}</dd></div>
-           <div><dt>Email</dt><dd>{n.email||'—'}</dd></div>
+           <div><dt>Email</dt><dd className="user-email-val" style={{ textTransform: 'lowercase' }}>{n.email ? String(n.email).toLowerCase() : '—'}</dd></div>
            <div><dt>Party</dt><dd>{n.partyName||'—'}</dd></div>
            <div><dt>Seat</dt><dd>{n.wardSeat||'—'}</dd></div>
            {n.officialAddress?<div className="span-2"><dt>Address</dt><dd>{n.officialAddress}</dd></div>:null}

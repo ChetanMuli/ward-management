@@ -117,7 +117,22 @@ async function ensureDatabaseSchema(sequelize) {
     await sequelize.query("ALTER TABLE complaints MODIFY COLUMN category VARCHAR(100) NOT NULL DEFAULT 'OTHER'").catch(() => {});
     await sequelize.query("ALTER TABLE complaints MODIFY COLUMN description TEXT NULL").catch(() => {});
 
-    // 4. Register migrations in SequelizeMeta table if present
+    // 4. Ensure soft-delete deleted_at columns exist across all critical tables
+    for (const table of ['death_records', 'ward_updates', 'schemes', 'apartments', 'shops_and_offices', 'nagarsevak_schedules', 'government_voter_lists']) {
+      if (tables.includes(table)) {
+        const desc = await queryInterface.describeTable(table).catch(() => ({}));
+        if (!desc.deleted_at) {
+          console.log(`[SCHEMA-SYNC] Adding deleted_at column to ${table}...`);
+          await queryInterface.addColumn(table, 'deleted_at', {
+            type: DataTypes.DATE,
+            allowNull: true,
+          }).catch((e) => console.warn(`[SCHEMA-SYNC] addColumn deleted_at to ${table}:`, e.message));
+          await queryInterface.addIndex(table, ['deleted_at']).catch(() => {});
+        }
+      }
+    }
+
+    // 5. Register migrations in SequelizeMeta table if present
     if (tables.includes('sequelizemeta')) {
       const migrationsToRegister = [
         '20260922000064-nagarsevak-daily-schedule.js',

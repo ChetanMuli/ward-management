@@ -20,11 +20,11 @@ async function start() {
 
     app.listen(PORT, () => {
       console.log(`Ward Management API listening on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
-      // Lightweight hourly maintenance: audit logs older than 2 days and recycle records older than 30 days are removed automatically.
+      // Lightweight hourly maintenance: audit logs older than 2 days and recycle records older than 60 days are removed automatically.
       const runMaintenance = async () => {
         try {
           const a=await cleanupAuditLogs(2);
-          const r=await cleanupRecycleBin(30);
+          const r=await cleanupRecycleBin(60);
           const sched=await archiveOldSchedules().catch(()=>0);
           const c=await cleanupOldMessages();
           const s=await notifyExpiredNagarsevakSubscriptions().catch(()=>0);
@@ -38,10 +38,29 @@ async function start() {
       runMaintenance();
       setInterval(runMaintenance, 60*60*1000).unref();
     });
+
+    const shutdown = () => {
+      console.log('Shutting down server gracefully...');
+      server.close(() => {
+        sequelize.close().then(() => {
+          console.log('Database connections closed.');
+          process.exit(0);
+        }).catch(() => process.exit(0));
+      });
+    };
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
   } catch (err) {
     console.error('Unable to start server - database connection failed:', err.message);
     process.exit(1);
   }
 }
+
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION]', reason);
+});
 
 start();

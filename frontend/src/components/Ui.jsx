@@ -1,5 +1,6 @@
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
+import {getLanguage, MR_TERMS} from '../language';
 
 export function scrollMainToTop(){
  const jump=()=>{
@@ -14,6 +15,7 @@ export function scrollMainToTop(){
 
 export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,limits=[10,25,50,100]}){
  if(!total) return null;
+ const isMr=getLanguage()==='mr';
  const start=(page-1)*limit+1;
  const end=Math.min(page*limit,total);
  const window=[];
@@ -27,21 +29,21 @@ export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,li
  if(to<last) window.push(last);
  const go=n=>{onPage(Math.max(1,Math.min(last,n)));scrollMainToTop();};
  return (
-  <div className="global-pagination" aria-label="Pagination">
+  <div className="global-pagination" aria-label={isMr?'पृष्ठांकन':'Pagination'}>
    <div className="pagination-meta">
-    <div className="pagination-info">Showing {start}–{end} of {total}</div>
-    <label className="pagination-size">Rows per page
+    <div className="pagination-info">{isMr?`${total} पैकी ${start}–${end} दर्शवित आहे`:`Showing ${start}–${end} of ${total}`}</div>
+    <label className="pagination-size">{isMr?'प्रति पृष्ठ ओळी':'Rows per page'}
      <select value={limit} onChange={e=>{onLimit(Number(e.target.value));onPage(1);scrollMainToTop();}}>
       {limits.map(n=><option key={n} value={n}>{n}</option>)}
      </select>
     </label>
    </div>
-   <nav className="pagination-nav pagination-controls" aria-label="Pages">
-    <button type="button" className="small-btn pag-edge pag-first" disabled={page<=1} onClick={()=>go(1)}>First</button>
-    <button type="button" className="small-btn pag-step" disabled={page<=1} onClick={()=>go(page-1)}>Previous</button>
+   <nav className="pagination-nav pagination-controls" aria-label={isMr?'पृष्ठे':'Pages'}>
+    <button type="button" className="small-btn pag-edge pag-first" disabled={page<=1} onClick={()=>go(1)}>{isMr?'पहिले':'First'}</button>
+    <button type="button" className="small-btn pag-step" disabled={page<=1} onClick={()=>go(page-1)}>{isMr?'मागील':'Previous'}</button>
     {window.map((n,i)=>n==='…'?<span key={`gap-${i}`} className="pagination-gap">…</span>:<button type="button" key={n} className={`small-btn pagination-page ${n===page?'is-current':''}`} onClick={()=>go(n)}>{n}</button>)}
-    <button type="button" className="small-btn pag-step" disabled={page>=last} onClick={()=>go(page+1)}>Next</button>
-    <button type="button" className="small-btn pag-edge pag-last" disabled={page>=last} onClick={()=>go(last)}>Last</button>
+    <button type="button" className="small-btn pag-step" disabled={page>=last} onClick={()=>go(page+1)}>{isMr?'पुढील':'Next'}</button>
+    <button type="button" className="small-btn pag-edge pag-last" disabled={page>=last} onClick={()=>go(last)}>{isMr?'शेवटचे':'Last'}</button>
    </nav>
   </div>
  );
@@ -60,8 +62,15 @@ export function StatCard({label,value,hint,tone='',onClick}){
   </Tag>
  );
 }
-export function Empty({children='No records found.'}){return <div className="empty empty-pro"><div className="empty-mark" aria-hidden="true">◇</div><p>{children}</p></div>}
-export function Loading({label='Loading…'}){return <div className="loading loading-pro" role="status"><span className="spinner"/><span>{label}</span></div>}
+export function Empty({children}){
+ const isMr=getLanguage()==='mr';
+ return <div className="empty empty-pro"><div className="empty-mark" aria-hidden="true">◇</div><p>{children||(isMr?'कोणत्याही नोंदी आढळल्या नाहीत.':'No records found.')}</p></div>;
+}
+export function Loading({label}){
+ const isMr=getLanguage()==='mr';
+ const text=label||(isMr?'लोड होत आहे…':'Loading…');
+ return <div className="loading loading-pro" role="status"><span className="spinner"/><span>{text}</span></div>;
+}
 export function ErrorBox({error}){
  useEffect(()=>{
   if(!error) return;
@@ -71,8 +80,10 @@ export function ErrorBox({error}){
 }
 export function StatusPill({children}){
   const raw=String(children||'').trim().toUpperCase();
+  const isMr=getLanguage()==='mr';
   const isSubmitted=raw==='SUBMITTED'||raw==='OPEN';
-  const label=isSubmitted?'Open':String(children||'—').replaceAll('_',' ');
+  const fallbackLabel=isSubmitted?'Open':String(children||'—').replaceAll('_',' ');
+  const label=isMr?(MR_TERMS[raw]||(isSubmitted?'खुली':fallbackLabel)):fallbackLabel;
   const k=isSubmitted?'open':raw.toLowerCase().replaceAll('_','-');
   return <span className={`pill pill-${k}`}>{label}</span>;
 }
@@ -146,7 +157,10 @@ export function Field({label,children,className='',hint}){return <label classNam
 export function fmtDate(v){if(!v)return '—';return new Intl.DateTimeFormat('en-IN',{dateStyle:'medium'}).format(new Date(v))}
 export function fmtDateTime(v){if(!v)return '—';return new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v))}
 export function Toolbar({children,className=''}){return <div className={`toolbar filter-toolbar ${className}`.trim()}>{children}</div>}
-export function EmptyState(){return <div className="empty-state">Nothing to show for these filters.</div>}
+export function EmptyState(){
+  const isMr=getLanguage()==='mr';
+  return <div className="empty-state">{isMr?'या फिल्टरसाठी कोणतीही माहिती उपलब्ध नाही.':'Nothing to show for these filters.'}</div>;
+}
 
 export function SearchableMultiSelect({label,value=[],onChange,options=[],placeholder='Search and select…',className=''}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[menuStyle,setMenuStyle]=useState({});

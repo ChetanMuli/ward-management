@@ -190,4 +190,13 @@ const archive = asyncHandler(async (req, res) => {
   return success(res, { message: 'Ward update archived', data: update });
 });
 
-module.exports = { list, create, archive };
+const remove = asyncHandler(async (req, res) => {
+  assertUpdateRole(req);
+  const update = await WardUpdate.findByPk(req.params.id);
+  if (!update) throw new ApiError(404, 'Ward update not found');
+  if (!isWardAllowed(req, update.wardId)) throw new ApiError(403, 'Cross-ward access denied');
+  await update.destroy();
+  return success(res, { message: 'Ward update moved to recycle bin' });
+});
+
+module.exports = { list, create, archive, remove };

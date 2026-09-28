@@ -27,6 +27,10 @@ const DeathRecord = sequelize.define('DeathRecord', {
   notes: DataTypes.TEXT,
   verifiedBy: DataTypes.UUID,
   verifiedAt: DataTypes.DATE,
-}, { tableName: 'death_records' });
+}, {
+  tableName: 'death_records',
+  paranoid: true,
+  deletedAt: 'deletedAt',
+});
 
 module.exports = DeathRecord;

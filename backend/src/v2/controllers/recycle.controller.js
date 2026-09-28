@@ -1,10 +1,10 @@
 const { Op }=require('sequelize');
-const { Ward,Area,House,Family,Person,VoterProfile,Complaint,GovernmentVoterList,User,Role,Shop,NagarsevakSchedule }=require('../../models');
+const { Ward,Area,Apartment,House,Family,Person,VoterProfile,Complaint,GovernmentVoterList,User,Role,Shop,NagarsevakSchedule,DeathRecord,WardUpdate,Scheme }=require('../../models');
 const {success}=require('../../utils/apiResponse');
 const asyncHandler=require('../../utils/asyncHandler');
 const ApiError=require('../../utils/ApiError');
 const {getScope,allowedWardIds,isWardAllowed}=require('../services/wardScope');
-const registry={Ward,Area,House,Family,Person,VoterProfile,Complaint,GovernmentVoterList,User,Shop,NagarsevakSchedule};
+const registry={Ward,Area,Apartment,House,Family,Person,VoterProfile,Complaint,GovernmentVoterList,User,Shop,NagarsevakSchedule,DeathRecord,WardUpdate,Scheme};
 const list=asyncHandler(async(req,res)=>{
  const type=req.query.type;
  const entries=type&&registry[type]?[[type,registry[type]]]:Object.entries(registry);
@@ -21,13 +21,17 @@ const list=asyncHandler(async(req,res)=>{
   if(allowed!==null){
    if(entity==='Ward') where.id={[Op.in]:wardIds};
    else if(entity==='Area') where.wardId={[Op.in]:wardIds};
+   else if(entity==='Apartment') where.wardId={[Op.in]:wardIds};
    else if(entity==='House') include=[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}];
    else if(entity==='Shop') include=[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}];
    else if(entity==='Family') include=[{model:House,as:'house',include:[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}],required:true}];
    else if(entity==='Person') include=[{model:Family,as:'family',include:[{model:House,as:'house',include:[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}],required:true}],required:true}];
-   else if(entity==='VoterProfile') include=[{model:Person,as:'Person',required:true,include:[{model:Family,as:'family',required:true,include:[{model:House,as:'house',required:true,include:[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}]}]}]}];
+   else if(entity==='VoterProfile') include=[{model:Person,required:true,include:[{model:Family,as:'family',required:true,include:[{model:House,as:'house',required:true,include:[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}]}]}]}];
+   else if(entity==='DeathRecord') include=[{model:Person,required:true,include:[{model:Family,as:'family',required:true,include:[{model:House,as:'house',required:true,include:[{model:Area,as:'area',where:{id:{[Op.in]:scopedAreaIds}},required:true}]}]}]}];
    else if(entity==='Complaint') include=[{model:House,as:'house',where:{areaId:{[Op.in]:scopedAreaIds}},required:true}];
    else if(entity==='NagarsevakSchedule') where.wardId={[Op.in]:wardIds};
+   else if(entity==='WardUpdate') where.wardId={[Op.in]:wardIds};
+   else if(entity==='Scheme') where[Op.or]=[{wardId:{[Op.in]:wardIds}},{wardId:null}];
    else if(entity==='User') include=[{model:Role,where:{name:'CITIZEN'},required:true}];
    else if(entity==='GovernmentVoterList') continue; // No ward relation is stored for uploaded government files.
   }
@@ -38,7 +42,7 @@ const list=asyncHandler(async(req,res)=>{
    include=[{model:Role,where:{id:citizenRole.id},required:true}];
    if(allowed!==null) where.wardId={[Op.in]:wardIds};
   }
-  if(['GovernmentVoterList','User'].includes(entity)){
+  if(['GovernmentVoterList','User','Apartment','DeathRecord','WardUpdate','Scheme'].includes(entity)){
    try{
     const definition=await Model.sequelize.getQueryInterface().describeTable(Model.getTableName());
     if(!definition.deleted_at)continue;
@@ -60,13 +64,17 @@ const restore=asyncHandler(async(req,res)=>{
    if(entity==='GovernmentVoterList') throw new ApiError(403,'Only the Master Admin can restore a government voter list');
    if(entity==='Ward' && !isWardAllowed(req,row.id)) throw new ApiError(403,'Cross-ward access denied');
    if(entity==='Area' && !isWardAllowed(req,row.wardId)) throw new ApiError(403,'Cross-ward access denied');
+   if(entity==='Apartment' && !isWardAllowed(req,row.wardId)) throw new ApiError(403,'Cross-ward access denied');
    if(entity==='House'){ const h=await row.getArea(); if(!isWardAllowed(req,h?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
    if(entity==='Shop'){ const h=await row.getArea(); if(!isWardAllowed(req,h?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
    if(entity==='Family'){ const f=await row.getHouse({include:[{model:Area,as:'area'}]}); if(!isWardAllowed(req,f?.area?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
    if(entity==='Person'){ const f=await row.getFamily({include:[{model:House,as:'house',include:[{model:Area,as:'area'}]}]}); if(!isWardAllowed(req,f?.house?.area?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
    if(entity==='VoterProfile'){ const person=await row.getPerson({include:[{model:Family,as:'family',include:[{model:House,as:'house',include:[{model:Area,as:'area'}]}]}]}); if(!isWardAllowed(req,person?.family?.house?.area?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
+   if(entity==='DeathRecord'){ const person=await row.getPerson({include:[{model:Family,as:'family',include:[{model:House,as:'house',include:[{model:Area,as:'area'}]}]}]}); if(!isWardAllowed(req,person?.family?.house?.area?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
    if(entity==='Complaint'){ const h=await row.getHouse({include:[{model:Area,as:'area'}]}); if(!isWardAllowed(req,row.wardId||h?.area?.wardId))throw new ApiError(403,'Cross-ward access denied'); }
    if(entity==='NagarsevakSchedule' && !isWardAllowed(req,row.wardId)) throw new ApiError(403,'Cross-ward access denied');
+   if(entity==='WardUpdate' && !isWardAllowed(req,row.wardId)) throw new ApiError(403,'Cross-ward access denied');
+   if(entity==='Scheme' && row.wardId && !isWardAllowed(req,row.wardId)) throw new ApiError(403,'Cross-ward access denied');
    if(entity==='User'){ const citizenRole=await Role.findOne({where:{name:'CITIZEN'}}); if(!citizenRole||String(row.roleId)!==String(citizenRole.id)||!isWardAllowed(req,row.wardId))throw new ApiError(403,'Cross-ward access denied'); }
  }
  await row.restore();

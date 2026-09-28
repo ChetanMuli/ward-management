@@ -12,7 +12,10 @@ const app = express();
 app.set('trust proxy', 1);
 
 // --- Security & platform middleware (SRS section 27) ---
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 const corsOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(v => v.trim().replace(/\/$/, '')).filter(Boolean);
 function isPrivateHostname(hostname){
   if(!hostname) return false;
@@ -53,14 +56,28 @@ app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().
 app.use('/api', routes);
 app.use('/api/v2', require('./v2/routes'));
 
+// Serve production frontend build if dist folder exists
+const path = require('path');
+const fs = require('fs');
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
 app.use(notFound);
 app.use(errorHandler);
 
-// Lightweight housekeeping: audit logs older than 2 days and recycle-bin data older than 30 days are removed automatically.
+// Lightweight housekeeping: audit logs older than 2 days and recycle-bin data older than 60 days are removed automatically.
 try {
   const { cleanupAuditLogs, cleanupRecycleBin } = require('./v2/controllers/maintenance.controller');
   const { archiveOldSchedules } = require('./v2/controllers/schedule.controller');
-  const runMaintenance=()=>Promise.all([cleanupAuditLogs(2),cleanupRecycleBin(30),archiveOldSchedules()]).catch(()=>{});
+  const runMaintenance=()=>Promise.all([cleanupAuditLogs(2),cleanupRecycleBin(60),archiveOldSchedules()]).catch(()=>{});
   runMaintenance();
   setInterval(runMaintenance,24*60*60*1000).unref?.();
 } catch (_) {}

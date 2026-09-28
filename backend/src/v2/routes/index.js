@@ -82,6 +82,7 @@ router.get('/notifications',requirePermission('VIEW_NOTIFICATIONS'),notification
 router.get('/ward-updates',wardUpdates.list);
 router.post('/ward-updates',wardUpdates.create);
 router.patch('/ward-updates/:id/archive',wardUpdates.archive);
+router.delete('/ward-updates/:id',wardUpdates.remove);
 router.post('/maintenance/audit/clear',requireV2Role('SUPER_ADMIN'),maintenance.clearAudit);
 router.post('/maintenance/recycle/clear',requireV2Role('SUPER_ADMIN'),maintenance.clearRecycle);
 router.patch('/notifications/:id/read',requirePermission('VIEW_NOTIFICATIONS'),notifications.markRead);

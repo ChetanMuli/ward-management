@@ -44,9 +44,10 @@ export function setGoogleTransCookie(targetLang) {
   const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
   const past = 'Thu, 01 Jan 1970 00:00:00 GMT';
 
-  const host = window.location.hostname;
-  const domains = ['', host];
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  const domains = [''];
   if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    domains.push(host);
     domains.push(`.${host}`);
     const parts = host.split('.');
     if (parts.length > 2) {
@@ -58,9 +59,11 @@ export function setGoogleTransCookie(targetLang) {
     const domainPart = d ? `;domain=${d}` : '';
     if (isMr) {
       document.cookie = `googtrans=${val};path=/;expires=${expires}${domainPart}`;
+      document.cookie = `googtrans=/auto/mr;path=/;expires=${expires}${domainPart}`;
     } else {
       document.cookie = `googtrans=;path=/;expires=${past}${domainPart}`;
-      document.cookie = `googtrans=/en/en;path=/;expires=${expires}${domainPart}`;
+      document.cookie = `googtrans=/en/en;path=/;expires=${past}${domainPart}`;
+      document.cookie = `googtrans=/auto/en;path=/;expires=${past}${domainPart}`;
     }
   });
 }
@@ -74,7 +77,10 @@ export function triggerGoogleCombo(lang) {
     const target = lang === 'mr' ? 'mr' : 'en';
     if (select.value !== target) {
       select.value = target;
-      select.dispatchEvent(new Event('change'));
+    }
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    if (typeof select.onchange === 'function') {
+      try { select.onchange(); } catch (e) {}
     }
     return true;
   }
@@ -87,26 +93,30 @@ export function triggerGoogleCombo(lang) {
 export function ensureGoogleWidget() {
   if (typeof document === 'undefined') return;
 
-  if (!document.getElementById('google_translate_element')) {
-    const host = document.createElement('div');
+  let host = document.getElementById('google_translate_element');
+  if (!host) {
+    host = document.createElement('div');
     host.id = 'google_translate_element';
-    host.className = 'notranslate';
-    host.setAttribute('translate', 'no');
     host.setAttribute('aria-hidden', 'true');
     document.body.appendChild(host);
+  } else {
+    host.removeAttribute('translate');
+    host.classList.remove('notranslate');
   }
 
   if (!window.googleTranslateElementInit) {
     window.googleTranslateElementInit = function () {
       if (window.google && window.google.translate) {
-        new window.google.translate.TranslateElement(
-          {
-            pageLanguage: 'en',
-            includedLanguages: 'en,mr',
-            autoDisplay: false
-          },
-          'google_translate_element'
-        );
+        try {
+          new window.google.translate.TranslateElement(
+            {
+              pageLanguage: 'en',
+              includedLanguages: 'en,mr',
+              autoDisplay: false
+            },
+            'google_translate_element'
+          );
+        } catch (e) {}
         const lang = getLanguage();
         if (lang === 'mr') {
           triggerGoogleCombo('mr');
@@ -124,24 +134,27 @@ export function ensureGoogleWidget() {
   }
 }
 
+/**
+ * Cleaner that ONLY hides annoying visual overlays (banner, tooltip balloon, floating badge)
+ * WITHOUT removing elements or destroying Google Translate's iframe/select!
+ */
 export function installTranslateCleaner() {
   if (typeof document === 'undefined') return;
 
   const clean = () => {
-    // 1. Remove all banner frames and skiptranslate banner containers
-    const frames = document.querySelectorAll(
-      '.goog-te-banner-frame, iframe.goog-te-banner-frame, .goog-te-balloon-frame, #goog-gt-tt'
+    const unwanted = document.querySelectorAll(
+      '.goog-te-banner-frame, iframe.goog-te-banner-frame, .goog-te-balloon-frame, #goog-gt-tt, .goog-tooltip, .goog-te-gadget-simple, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-aZ2wEe-OiiCO, .VIpgJd-ZVi9od-ORHb-OiiCO, .VIpgJd-ZVi9od-xl07Ob-OiiCO'
     );
-    frames.forEach(el => {
+    unwanted.forEach(el => {
       try {
         el.style.setProperty('display', 'none', 'important');
         el.style.setProperty('visibility', 'hidden', 'important');
         el.style.setProperty('height', '0px', 'important');
-        el.remove();
+        el.style.setProperty('opacity', '0', 'important');
+        el.style.setProperty('pointer-events', 'none', 'important');
       } catch (e) {}
     });
 
-    // 2. Clear any top offset Google Translate injects into body
     if (document.body) {
       if (document.body.style.top && document.body.style.top !== '0px') {
         document.body.style.top = '0px';
@@ -160,7 +173,7 @@ export function installTranslateCleaner() {
   clean();
   if (typeof window !== 'undefined' && !window.__ward_translate_cleaner_installed) {
     window.__ward_translate_cleaner_installed = true;
-    setInterval(clean, 300);
+    setInterval(clean, 400);
 
     if (typeof MutationObserver !== 'undefined') {
       const observer = new MutationObserver(() => {
@@ -189,17 +202,20 @@ export function initLanguage() {
   if (typeof document !== 'undefined') {
     document.documentElement.lang = lang;
     document.documentElement.dataset.lang = lang;
-    setGoogleTransCookie(lang);
-    ensureGoogleWidget();
-
     if (lang === 'mr') {
+      setGoogleTransCookie('mr');
+      ensureGoogleWidget();
+
       let count = 0;
       const interval = setInterval(() => {
         count++;
         if (triggerGoogleCombo('mr') || count > 30) {
           clearInterval(interval);
         }
-      }, 200);
+      }, 150);
+    } else {
+      setGoogleTransCookie('en');
+      triggerGoogleCombo('en');
     }
   }
 
@@ -219,7 +235,18 @@ export function setLanguage(lang) {
     document.documentElement.lang = target;
     document.documentElement.dataset.lang = target;
     setGoogleTransCookie(target);
-    triggerGoogleCombo(target);
+    if (target === 'mr') {
+      ensureGoogleWidget();
+      let count = 0;
+      const interval = setInterval(() => {
+        count++;
+        if (triggerGoogleCombo('mr') || count > 20) {
+          clearInterval(interval);
+        }
+      }, 150);
+    } else {
+      triggerGoogleCombo('en');
+    }
   }
 }
 
@@ -232,7 +259,12 @@ export function switchLanguage(next) {
     localStorage.setItem('ward_language', target);
   } catch (e) {}
   setGoogleTransCookie(target);
-  triggerGoogleCombo(target);
+  if (target === 'mr') {
+    ensureGoogleWidget();
+    triggerGoogleCombo('mr');
+  } else {
+    triggerGoogleCombo('en');
+  }
   if (typeof window !== 'undefined') {
     window.location.reload();
   }
@@ -245,11 +277,193 @@ export function ensureCurrentLanguage() {
   const lang = getLanguage();
   if (lang === 'mr') {
     setGoogleTransCookie('mr');
-    triggerGoogleCombo('mr');
+    ensureGoogleWidget();
+    const delays = [100, 300, 600, 1200, 2000];
+    delays.forEach(d => {
+      setTimeout(() => {
+        triggerGoogleCombo('mr');
+      }, d);
+    });
   }
+}
+
+/**
+ * Automatically triggers Google Translate when dynamic data (complaints, schedules, cards, tables)
+ * is injected into the DOM by React.
+ */
+export function installDynamicContentTranslator() {
+  if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return;
+  if (window.__ward_dynamic_translator_installed) return;
+  window.__ward_dynamic_translator_installed = true;
+
+  let debounceTimer = null;
+  const observer = new MutationObserver(mutations => {
+    if (getLanguage() !== 'mr') return;
+
+    let hasNewUserContent = false;
+    for (const m of mutations) {
+      if (m.type === 'childList' && m.addedNodes.length > 0) {
+        for (const node of m.addedNodes) {
+          if (node.nodeType === 1) {
+            const tag = (node.tagName || '').toLowerCase();
+            const cls = typeof node.className === 'string' ? node.className : '';
+            if (
+              tag === 'font' ||
+              tag === 'script' ||
+              tag === 'style' ||
+              tag === 'iframe' ||
+              cls.includes('goog-') ||
+              cls.includes('skiptranslate') ||
+              cls.includes('VIpgJd-')
+            ) {
+              continue;
+            }
+            hasNewUserContent = true;
+            break;
+          }
+        }
+      }
+      if (hasNewUserContent) break;
+    }
+
+    if (hasNewUserContent) {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        triggerGoogleCombo('mr');
+      }, 350);
+    }
+  });
+
+  const attach = () => {
+    const root = document.getElementById('root') || document.body;
+    if (root) {
+      observer.observe(root, { childList: true, subtree: true });
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+}
+
+/**
+ * Universal term dictionary for daily database enums and categories
+ */
+export const MR_TERMS = {
+  // Complaint statuses
+  SUBMITTED: 'नोंदवले',
+  PENDING: 'प्रलंबित',
+  ASSIGNED: 'नियुक्त',
+  IN_PROGRESS: 'प्रगतीपथावर',
+  RESOLVED: 'निराकरण झाले',
+  CLOSED: 'बंद केले',
+  REJECTED: 'नाकारले',
+
+  // Categories
+  WATER: 'पाणीपुरवठा',
+  ROADS: 'रस्ते व वाहतूक',
+  GARBAGE: 'कचरा व स्वच्छता',
+  DRAINAGE: 'सांडपाणी व ड्रेनेज',
+  ELECTRICITY: 'विद्युत व दिवे',
+  HEALTH: 'आरोग्य व स्वच्छता',
+  STREETLIGHT: 'पथदिवे',
+  PARK: 'उद्यान व मैदाने',
+  ENCROACHMENT: 'अतिक्रमण',
+
+  // Schedule categories & priorities
+  VISIT: 'क्षेत्रीय भेट',
+  MEETING: 'अधिकृत बैठक',
+  INSPECTION: 'वॉर्ड पाहणी',
+  EVENT: 'कार्यक्रम / उत्सव',
+  CITIZEN_HEARING: 'नागरिक गाऱ्हाणे',
+  URGENT: 'अतितात्काळ',
+  HIGH: 'उच्च',
+  MEDIUM: 'मध्यम',
+  LOW: 'कमी',
+
+  // Common statuses
+  ACTIVE: 'सक्रिय',
+  INACTIVE: 'निष्क्रिय',
+  SUSPENDED: 'निलंबित',
+  EXPIRED: 'कालबाह्य',
+  DRAFT: 'मसुदा',
+  PUBLISHED: 'प्रकाशित',
+  ARCHIVED: 'संग्रहित',
+  COMPLETED: 'पूर्ण',
+  CANCELLED: 'रद्द',
+
+  // People & Voters
+  VOTER: 'मतदार',
+  NON_VOTER: 'अमतदार',
+  MALE: 'पुरुष',
+  FEMALE: 'स्त्री',
+  OTHER: 'इतर',
+
+  // Occupations
+  BUSINESS: 'व्यवसाय',
+  SERVICE: 'नोकरी',
+  STUDENT: 'विद्यार्थी',
+  HOMEMAKER: 'गृहिणी',
+  FARMER: 'शेतकरी',
+  RETIRED: 'सेवानिवृत्त',
+  DAILY_WAGER: 'रोजंदारी',
+  UNEMPLOYED: 'बेरोजगार',
+
+  // Roles
+  SUPER_ADMIN: 'मास्टर अ‍ॅडमिन',
+  SUB_MASTER_ADMIN: 'सब मास्टर अ‍ॅडमिन',
+  NAGARSEVAK: 'नगरसेवक',
+  EMPLOYEE: 'कर्मचारी',
+  CITIZEN: 'नागरिक',
+  SOCIAL_WORKER: 'सामाजिक कार्यकर्ते',
+  CANDIDATE: 'निवडणूक उमेदवार',
+
+  // Entities & Database Tables
+  WARD: 'वॉर्ड',
+  AREA: 'परिसर / कॉलनी',
+  HOUSE: 'घर',
+  APARTMENT: 'इमारत / अपार्टमेंट',
+  SHOP: 'दुकान / कार्यालय',
+  FAMILY: 'कुटुंब',
+  PERSON: 'नागरिक',
+  COMPLAINT: 'तक्रार',
+  NAGARSEVAKSCHEDULE: 'दैनिक वेळापत्रक',
+  DEATHRECORD: 'मृत्यू नोंद',
+  WARDUPDATE: 'वॉर्ड घडामोडी',
+  SCHEME: 'शासकीय योजना',
+  VOTERPROFILE: 'मतदार माहिती',
+  GOVERNMENTVOTERLIST: 'शासकीय मतदार यादी',
+  USER: 'वापरकर्ता खाते',
+
+  // Ownership & House Types
+  OWNED: 'स्वतःचे',
+  RENTED: 'भाड्याने',
+  LEASED: 'लीजवर',
+  BUNGALOW: 'बंगला',
+  ROW_HOUSE: 'रो हाऊस',
+  CHAWL: 'चाळ',
+  SLUM: 'झोपडपट्टी',
+  FLAT: 'फ्लॅट',
+
+  // General Statuses
+  VERIFIED: 'सत्यापित',
+  UNVERIFIED: 'अपुष्ट',
+  DELETED: 'हटवले',
+  YES: 'होय',
+  NO: 'नाही'
+};
+
+export function translateTerm(term, lang) {
+  const target = lang || getLanguage();
+  if (target !== 'mr') return term;
+  if (!term) return '';
+  const key = String(term).trim().toUpperCase();
+  return MR_TERMS[key] || term;
 }
 
 if (typeof window !== 'undefined') {
   installTranslateCleaner();
+  installDynamicContentTranslator();
 }
-

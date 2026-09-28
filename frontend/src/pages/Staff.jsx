@@ -1232,7 +1232,7 @@ export default function Staff() {
 
 
                         <td data-label="Login">
-                          {n.email || '—'}
+                          <span className="user-email-val" style={{ textTransform: 'lowercase' }}>{n.email ? String(n.email).toLowerCase() : '—'}</span>
                         </td>
 
 
@@ -1411,10 +1411,8 @@ export default function Staff() {
 
 
                           <td data-label="Login">
-                            <span>
-                              {e.User?.email ||
-                                e.email ||
-                                '—'}
+                            <span className="user-email-val" style={{ textTransform: 'lowercase' }}>
+                              {(e.User?.email || e.email) ? String(e.User?.email || e.email).toLowerCase() : '—'}
                             </span>
                             <div className="muted">{e.role || 'FIELD_STAFF'}</div>
                           </td>
@@ -1523,16 +1521,20 @@ export default function Staff() {
               <p>
                 <b>Email:</b>{' '}
 
-                {detail.kind === 'EMPLOYEE'
-                  ? (
-                      detail.data.User?.email ||
-                      detail.data.email ||
-                      '—'
-                    )
-                  : (
-                      detail.data.email ||
-                      '—'
-                    )}
+                <span className="user-email-val" style={{ textTransform: 'lowercase' }}>
+                  {detail.kind === 'EMPLOYEE'
+                    ? (
+                        detail.data.User?.email ||
+                        detail.data.email
+                          ? String(detail.data.User?.email || detail.data.email).toLowerCase()
+                          : '—'
+                      )
+                    : (
+                        detail.data.email
+                          ? String(detail.data.email).toLowerCase()
+                          : '—'
+                      )}
+                </span>
               </p>
 
 

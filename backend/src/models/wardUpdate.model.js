@@ -27,6 +27,8 @@ const WardUpdate = sequelize.define('WardUpdate', {
   createdByUserId: { type: DataTypes.UUID, allowNull: false },
 }, {
   tableName: 'ward_updates',
+  paranoid: true,
+  deletedAt: 'deletedAt',
 });
 
 module.exports = WardUpdate;

@@ -968,9 +968,9 @@ html {
     inset: 0 !important;
     width: 100vw !important;
     height: 100dvh !important;
-    background: rgba(15, 23, 42, 0.6) !important;
-    backdrop-filter: blur(2px) !important;
-    -webkit-backdrop-filter: blur(2px) !important;
+    background: rgba(15, 23, 42, 0.4) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     z-index: 1100 !important;
     border: 0 !important;
     cursor: pointer !important;
@@ -4457,8 +4457,7 @@ html body .person-form .form-section-title strong{
   }
 
   html body .page-header .page-header-title-box,
-  html body .page-header > div:first-child,
-  html body .page-header > div {
+  html body .page-header > div:first-child:not(.card-actions):not(.houses-header-actions):not(.sched-head-actions) {
     display: flex !important;
     flex-direction: column !important;
     align-items: flex-start !important;
@@ -4489,11 +4488,48 @@ html body .person-form .form-section-title strong{
     word-break: break-word !important;
   }
 
+  html body .page-header .houses-header-actions,
+  html body .houses-header-actions,
+  html body .page-header .card-actions,
+  html body .page-header .sched-head-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
   html body .houses-header-actions > *,
+  html body .page-header .card-actions > *,
+  html body .page-header .sched-head-actions > *,
   html body .page-header .primary-btn,
-  html body .page-header .ghost-btn{
-    flex:1 1 140px !important;
-    min-width:0 !important;
+  html body .page-header .ghost-btn,
+  html body .page-header .small-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 120px !important;
+    min-height: 42px !important;
+    height: 42px !important;
+    max-height: 44px !important;
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  html body .page-header > .primary-btn,
+  html body .page-header > .ghost-btn,
+  html body .page-header .card-actions:has(> :only-child) > *,
+  html body .page-header .card-actions.ward-updates-actions > * {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-height: 42px !important;
+    height: 42px !important;
+    max-height: 44px !important;
   }
 
   html body .family-meta,

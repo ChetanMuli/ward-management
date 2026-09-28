@@ -13,21 +13,20 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>WardDesk · Digital Ward Management</title>
     <style>
-      /* Complete hiding of Google Translate banner / toolbar */
-      .skiptranslate,
-      iframe.skiptranslate,
+      /* Hide ONLY Google Translate banner, balloon tooltips, and floating bubble */
       .goog-te-banner-frame,
       iframe.goog-te-banner-frame,
       #goog-gt-tt,
-      .goog-te-balloon-frame {
+      .goog-te-balloon-frame,
+      .goog-tooltip,
+      .goog-tooltip:hover,
+      .VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+      .VIpgJd-ZVi9od-aZ2wEe-OiiCO,
+      .VIpgJd-ZVi9od-ORHb-OiiCO,
+      .VIpgJd-ZVi9od-xl07Ob-OiiCO {
         display: none !important;
         visibility: hidden !important;
-        height: 0 !important;
-        width: 0 !important;
         opacity: 0 !important;
-        position: absolute !important;
-        top: -9999px !important;
-        left: -9999px !important;
         pointer-events: none !important;
       }
       body {
@@ -35,12 +34,22 @@
         position: static !important;
       }
       #google_translate_element {
-        position: absolute !important;
+        position: fixed !important;
         top: -9999px !important;
         left: -9999px !important;
         width: 1px !important;
         height: 1px !important;
         overflow: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        z-index: -9999 !important;
+      }
+      iframe.skiptranslate {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: fixed !important;
+        top: -9999px !important;
+        left: -9999px !important;
       }
     </style>
     <script>
@@ -49,18 +58,38 @@
           var lang = localStorage.getItem('ward_language') || 'en';
           document.documentElement.lang = lang;
           document.documentElement.dataset.lang = lang;
-          var val = lang === 'mr' ? '/en/mr' : '/en/en';
-          var expires = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
-          document.cookie = 'googtrans=' + val + ';path=/;expires=' + expires;
-          if (lang !== 'mr') {
-            document.cookie = 'googtrans=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+          var host = window.location.hostname;
+          var domains = [''];
+          if (host && host !== 'localhost' && host !== '127.0.0.1') {
+            domains.push(host);
+            domains.push('.' + host);
+            var parts = host.split('.');
+            if (parts.length > 2) {
+              domains.push('.' + parts.slice(-2).join('.'));
+            }
+          }
+          if (lang === 'mr') {
+            var expires = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
+            domains.forEach(function(d){
+              var domainPart = d ? ';domain=' + d : '';
+              document.cookie = 'googtrans=/en/mr;path=/;expires=' + expires + domainPart;
+              document.cookie = 'googtrans=/auto/mr;path=/;expires=' + expires + domainPart;
+            });
+          } else {
+            var past = 'Thu, 01 Jan 1970 00:00:00 GMT';
+            domains.forEach(function(d){
+              var domainPart = d ? ';domain=' + d : '';
+              document.cookie = 'googtrans=;path=/;expires=' + past + domainPart;
+              document.cookie = 'googtrans=/en/en;path=/;expires=' + past + domainPart;
+              document.cookie = 'googtrans=/auto/en;path=/;expires=' + past + domainPart;
+            });
           }
         } catch(e) {}
       })();
     </script>
   </head>
   <body>
-    <div id="google_translate_element" class="notranslate" translate="no" aria-hidden="true"></div>
+    <div id="google_translate_element" aria-hidden="true"></div>
     <div id="root"></div>
     <script type="text/javascript">
       function googleTranslateElementInit() {
@@ -72,8 +101,15 @@
           }, 'google_translate_element');
         }
       }
+      try {
+        if (localStorage.getItem('ward_language') === 'mr') {
+          var s = document.createElement('script');
+          s.id = 'google-translate-script';
+          s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+          document.body.appendChild(s);
+        }
+      } catch(e) {}
     </script>
-    <script type="text/javascript" id="google-translate-script" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

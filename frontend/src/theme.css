@@ -2554,21 +2554,18 @@ html body .user-portal .user-language-btn{
   white-space:nowrap !important;
 }
 html body .ward-gt-host,
-html body #google_translate_element{
-  position:fixed !important;
-  top:-9999px !important;
-  left:-9999px !important;
-  width:1px !important;
-  height:1px !important;
-  overflow:hidden !important;
-  opacity:0.01 !important;
-  pointer-events:none !important;
-  z-index:-9999 !important;
+html body #google_translate_element {
+  position: fixed !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0.01 !important;
+  pointer-events: none !important;
+  z-index: -9999 !important;
 }
-/* Universal complete suppression of all Google Translate bars, frames, toolbars and balloons */
-.skiptranslate,
-div.skiptranslate,
-iframe.skiptranslate,
+/* Suppress ONLY Google Translate top banner, tooltip balloons, and hover popups */
 .goog-te-banner-frame,
 iframe.goog-te-banner-frame,
 #goog-gt-tt,
@@ -2588,18 +2585,15 @@ iframe.goog-te-banner-frame,
   border: 0 !important;
   z-index: -99999 !important;
 }
-
-html body .ward-gt-host,
-html body #google_translate_element{
-  position:fixed !important;
-  top:-9999px !important;
-  left:-9999px !important;
-  width:1px !important;
-  height:1px !important;
-  overflow:hidden !important;
-  opacity:0.01 !important;
-  pointer-events:none !important;
-  z-index:-9999 !important;
+.goog-text-highlight {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+iframe.skiptranslate:not(.goog-te-banner-frame) {
+  position: fixed !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  opacity: 0.01 !important;
 }
 
 html body .goog-text-highlight{
@@ -3260,13 +3254,73 @@ html body .modal .modal-actions {
 .user-mobile-scrim {
   position: fixed !important;
   inset: 0 !important;
-  background: rgba(15, 23, 42, 0.45) !important;
-  backdrop-filter: blur(2px) !important;
+  background: rgba(15, 23, 42, 0.25) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   z-index: 110 !important;
+}
+
+@media (min-width: 901px) {
+  html body .user-portal .user-mobile-menu-wrap,
+  html body .user-portal .user-mobile-menu {
+    display: none !important;
+  }
 }
 
 html body .user-portal .user-quick-menu-popover {
   z-index: 120 !important;
   box-shadow: 0 20px 40px -8px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* ===== Registered User Emails Casing Guard ===== */
+.user-email-val,
+.users-table td .user-email-val,
+.detail-card .user-email-val,
+.users-table td[data-label="User"] .muted:last-child {
+  text-transform: lowercase !important;
+  font-variant: normal !important;
+}
+
+/* ===== Suppress Google Translate Floating Badge, Popover & Tooltip ===== */
+.goog-te-banner-frame,
+iframe.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+[class*="VIpgJd-"],
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-aZ2wEe-OiiCO,
+.VIpgJd-ZVi9od-ORHb-OiiCO,
+.VIpgJd-ZVi9od-xl07Ob-OiiCO,
+#goog-gt-,
+[id^="goog-gt-"] {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  z-index: -9999 !important;
+}
+
+/* ===== Mobile Page Header Buttons Compact Height Guard ===== */
+@media (max-width: 800px) {
+  html body .page-header .primary-btn,
+  html body .page-header .ghost-btn,
+  html body .page-header .small-btn,
+  html body .houses-header-actions > *,
+  html body .page-header .card-actions > *,
+  html body .page-header .sched-head-actions > * {
+    min-height: 42px !important;
+    height: 42px !important;
+    max-height: 44px !important;
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    box-sizing: border-box !important;
+  }
 }
 
