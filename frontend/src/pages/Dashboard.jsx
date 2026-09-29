@@ -1079,48 +1079,28 @@ export default function Dashboard() {
                   <span><strong>Public Office:</strong> {data.user.officialAddress}</span>
                 </div>
               )}
-            </div>
-          </div>
-
-          <div className="dash-duty-strip" aria-label="Today at a glance">
-            {canViewSchedule && (
-              <button type="button" className="dash-duty-tile tile-schedule" onClick={() => openTo('/schedules')}>
-                <div className="dash-duty-tile-top">
-                  <span className="dash-duty-tag">Schedule</span>
-                  <span className="dash-duty-arrow">→</span>
-                </div>
-                <span className="dash-duty-value">{Number(scheduleSummary?.todayPending || 0)}</span>
-                <span className="dash-duty-label">Pending tasks today</span>
-              </button>
-            )}
-            <button type="button" className="dash-duty-tile tile-agenda" onClick={() => document.querySelector('.dash-agenda-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-              <div className="dash-duty-tile-top">
-                <span className="dash-duty-tag">Visits & Agenda</span>
-                <span className="dash-duty-arrow">↓</span>
+            {/* Contact & Office info for Nagarsevak */}
+              <div className="dash-meta-pills dash-contact-pills">
+                {(data.user?.mobile || user?.mobile) && (
+                  <span className="dash-meta-pill">
+                    <strong>Mobile:</strong>{' '}
+                    <a href={`tel:${data.user?.mobile || user?.mobile}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {data.user?.mobile || user?.mobile}
+                    </a>
+                  </span>
+                )}
+                {(data.user?.email || user?.email) && (
+                  <span className="dash-meta-pill">
+                    <strong>Email:</strong> {data.user?.email || user?.email}
+                  </span>
+                )}
+                {nagar && data.user?.officialAddress && (
+                  <span className="dash-meta-pill">
+                    <strong>Office:</strong> {data.user.officialAddress}
+                  </span>
+                )}
               </div>
-              <span className="dash-duty-value">{birthdays.length + dahava.length + varsha.length}</span>
-              <span className="dash-duty-label">Today's field agenda</span>
-            </button>
-            {can('VIEW_COMPLAINTS') && (
-              <button type="button" className="dash-duty-tile tile-complaints" onClick={() => openTo('/complaints')}>
-                <div className="dash-duty-tile-top">
-                  <span className="dash-duty-tag">Complaints</span>
-                  <span className="dash-duty-arrow">→</span>
-                </div>
-                <span className="dash-duty-value">{Number(data.openComplaints || 0)}</span>
-                <span className="dash-duty-label">Open civic issues</span>
-              </button>
-            )}
-            {can('VIEW_CHAT') && (
-              <button type="button" className="dash-duty-tile tile-chat" onClick={() => openTo('/groups')}>
-                <div className="dash-duty-tile-top">
-                  <span className="dash-duty-tag">Ward Chat</span>
-                  <span className="dash-duty-arrow">→</span>
-                </div>
-                <span className="dash-duty-value">{chatUnread}</span>
-                <span className="dash-duty-label">{chatUnread > 0 ? `${chatUnread} unread messages` : 'Team discussions'}</span>
-              </button>
-            )}
+            </div>
           </div>
         </section>
       )}
@@ -1183,6 +1163,9 @@ export default function Dashboard() {
               <div className="schedule-kicker">DAILY WORK</div>
               <div className="schedule-title-wrap">
                 <h3 className="schedule-title">Daily Schedule</h3>
+                <button type="button" className="schedule-export-btn schedule-export-btn-top" onClick={handleExportDashboardSchedulePdf} title="Export daily schedule as PDF">
+                  📄 Export PDF
+                </button>
                 <div className="agenda-total-chip schedule-total-chip">
                   <span>Total Scheduled Today:</span>
                   <strong>{scheduleSummary?.todayTotal ?? 0}</strong>
@@ -1219,9 +1202,6 @@ export default function Dashboard() {
               </div>
 
               <div className="schedule-header-btn-group">
-                <button type="button" className="schedule-export-btn" onClick={handleExportDashboardSchedulePdf}>
-                  Export PDF
-                </button>
                 <button type="button" className="primary-btn schedule-add-btn" onClick={openAddScheduleModal}>
                   + Add
                 </button>
@@ -1232,51 +1212,26 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="schedule-filter-tabs-wrapper">
-            <div className="schedule-filter-tabs" role="tablist">
+          <div className="schedule-filter-pills-bar" role="tablist" aria-label="Task schedule filter">
+            {[
+              { key: 'today', label: 'Today', count: scheduleSummary?.todayTotal ?? 0 },
+              { key: 'tomorrow', label: 'Tomorrow', count: scheduleSummary?.tomorrowTotal ?? 0 },
+              { key: 'day_after', label: 'Day after', count: scheduleSummary?.dayAfterTotal ?? 0 },
+              { key: 'yesterday_remaining', label: 'Yesterday pending', count: scheduleSummary?.yesterdayRemaining ?? 0, isAlert: (scheduleSummary?.yesterdayRemaining ?? 0) > 0 },
+              { key: 'yesterday', label: 'Yesterday', count: scheduleSummary?.yesterdayTotal ?? 0 },
+            ].map((tab) => (
               <button
+                key={tab.key}
                 type="button"
-                className={`schedule-tab ${scheduleFilter === 'today' ? 'active' : ''}`}
-                onClick={() => setScheduleFilter('today')}
+                role="tab"
+                aria-selected={scheduleFilter === tab.key}
+                className={`schedule-filter-pill ${scheduleFilter === tab.key ? 'active' : ''} ${tab.isAlert ? 'has-alert' : ''}`}
+                onClick={() => setScheduleFilter(tab.key)}
               >
-                <span className="tab-label">Today</span>
-                <span className="tab-badge">{scheduleSummary?.todayTotal ?? 0}</span>
+                <span className="pill-name">{tab.label}</span>
+                <span className="pill-count-badge">{tab.count}</span>
               </button>
-              <button
-                type="button"
-                className={`schedule-tab ${scheduleFilter === 'tomorrow' ? 'active' : ''}`}
-                onClick={() => setScheduleFilter('tomorrow')}
-              >
-                <span className="tab-label">Tomorrow</span>
-                <span className="tab-badge">{scheduleSummary?.tomorrowTotal ?? 0}</span>
-              </button>
-              <button
-                type="button"
-                className={`schedule-tab ${scheduleFilter === 'day_after' ? 'active' : ''}`}
-                onClick={() => setScheduleFilter('day_after')}
-              >
-                <span className="tab-label">Day after</span>
-                <span className="tab-badge">{scheduleSummary?.dayAfterTotal ?? 0}</span>
-              </button>
-              <button
-                type="button"
-                className={`schedule-tab ${scheduleFilter === 'yesterday_remaining' ? 'active' : ''}`}
-                onClick={() => setScheduleFilter('yesterday_remaining')}
-              >
-                <span className="tab-label">Yesterday pending</span>
-                <span className={`tab-badge ${Number(scheduleSummary?.yesterdayRemaining || 0) > 0 ? 'badge-warning-pulse' : ''}`}>
-                  {scheduleSummary?.yesterdayRemaining ?? 0}
-                </span>
-              </button>
-              <button
-                type="button"
-                className={`schedule-tab ${scheduleFilter === 'yesterday' ? 'active' : ''}`}
-                onClick={() => setScheduleFilter('yesterday')}
-              >
-                <span className="tab-label">Yesterday</span>
-                <span className="tab-badge">{scheduleSummary?.yesterdayTotal ?? 0}</span>
-              </button>
-            </div>
+            ))}
           </div>
 
           {/* Pending work alert notice on Dashboard */}
@@ -2326,19 +2281,7 @@ export default function Dashboard() {
                 {(citizenDetail.family?.house?.latitude || activeEv?.latitude) && (
                   <p><b>GPS Coordinates:</b> {citizenDetail.family?.house?.latitude || activeEv?.latitude}, {citizenDetail.family?.house?.longitude || activeEv?.longitude}</p>
                 )}
-                {directionsUrl && (
-                  <div style={{ marginTop: '10px' }}>
-                    <a
-                      href={directionsUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="small-btn view-btn"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontWeight: 600 }}
-                    >
-                      Open Location / Directions on Map
-                    </a>
-                  </div>
-                )}
+                
               </div>
 
               <div className="detail-card">
@@ -2378,29 +2321,7 @@ export default function Dashboard() {
                 Close
               </button>
 
-              {directionsUrl && (
-                <a
-                  href={directionsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="small-btn view-btn citizen-directions-btn"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    border: '1px solid #0284c7',
-                    background: '#f0f9ff',
-                    color: '#0369a1',
-                  }}
-                  title="Navigate to citizen residence with Google Maps"
-                >
-                  Directions
-                </a>
-              )}
+              
 
               <button
                 type="button"

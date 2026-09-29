@@ -277,11 +277,9 @@ export default function Families(){
    <div className="family-card-top"><div><span className="eyebrow">FAMILY</span><h3>{f.familyName||'Unnamed family'}</h3></div><span className="muted">{(f.members||[]).filter(m=>m.status!=='DECEASED').length} active members{(f.members||[]).some(m=>m.status!=='DECEASED'&&isOutOfCity(m))?` · ${(f.members||[]).filter(m=>m.status!=='DECEASED'&&isOutOfCity(m)).length} out of city`:''}</span></div>
    <div className="family-meta"><div><span>{isFlatHome(f.house)?'Flat':'House'}</span><strong className="plain-cell">{placeLine([isFlatHome(f.house)?f.house?.apartment?.name:'',f.house?.houseNumber])||'—'}</strong></div><div><span>Colony</span><strong>{f.house?.area?.name||'—'}</strong></div><div><span>Native village</span><strong>{f.nativeVillage||'—'}</strong></div></div>
    <p className="family-address">{housePlace(f.house)||f.house?.address||'No address'}</p>
-   <div className="family-loc-status">
-     {hasCoords(f.house?.latitude,f.house?.longitude)?<DirectionsLink lat={f.house.latitude} lng={f.house.longitude} label="Directions"/>:<span className="muted">Location not saved</span>}
-    </div>
-    {(can('CREATE_CITIZENS')||pin)&&<div className="family-mid-actions">
+    {(can('CREATE_CITIZENS')||pin||hasCoords(f.house?.latitude,f.house?.longitude))&&<div className="family-mid-actions">
      {can('CREATE_CITIZENS')&&<button type="button" className="small-btn family-add-btn" onClick={()=>{setEditingMember(null);setMemberFamilyId(f.id);setMemberForm({...emptyPerson,familyId:f.id})}}>+ Add member</button>}
+     {hasCoords(f.house?.latitude,f.house?.longitude)&&<DirectionsLink lat={f.house.latitude} lng={f.house.longitude} label="Directions" className="small-btn family-dir-btn"/>}
      {pin&&<button type="button" className="small-btn family-loc-btn" onClick={()=>openHouseLoc(f.house,f.id)}>Update location</button>}
     </div>}
     <div className="member-mini-list">{(f.members||[]).filter(m=>m.status!=='DECEASED').slice(0,5).map(m=><span key={m.id}>{m.fullName}</span>)}{(f.members||[]).filter(m=>m.status!=='DECEASED').length>5&&<span>+{(f.members||[]).filter(m=>m.status!=='DECEASED').length-5} more</span>}</div>

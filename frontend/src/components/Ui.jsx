@@ -275,17 +275,21 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera',initialFacing=
   }
   try{
    let stream;
+   const isMobile = typeof window !== 'undefined' && (window.innerWidth <= 800 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+   const constraints = isMobile
+     ? { video: { facingMode: mode ? { ideal: mode } : 'environment' }, audio: false }
+     : { video: { facingMode: mode ? { ideal: mode } : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
    try{
-    stream=await navigator.mediaDevices.getUserMedia({
-     video:{facingMode:mode?{ideal:mode}:'environment',width:{ideal:1280},height:{ideal:720}},
-     audio:false
-    });
+    stream=await navigator.mediaDevices.getUserMedia(constraints);
    }catch(_){
     stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
    }
    activeStreamRef.current=stream;
    if(videoRef.current){
     videoRef.current.srcObject=stream;
+    videoRef.current.setAttribute('playsinline', 'true');
+    videoRef.current.setAttribute('webkit-playsinline', 'true');
+    videoRef.current.muted = true;
     await videoRef.current.play().catch(()=>{});
     setHasStream(true);
    }
@@ -343,39 +347,39 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera',initialFacing=
    {error ? (
     <div className="camera-error" style={{padding:'20px 16px',textAlign:'center'}}>
      {error==='PERMISSION_DENIED' ? (
-      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'10px'}}>
-       <span style={{fontSize:'32px'}}>📷</span>
-       <strong style={{fontSize:'15px',color:'#991b1b'}}>Camera Permission Required / कॅमेरा परवानगी आवश्यक आहे</strong>
-       <p style={{margin:'0',fontSize:'13px',color:'#b91c1c',lineHeight:'1.5'}}>
-        Please allow camera access in your browser. Tap "Allow" when the browser asks for permission.
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'12px'}}>
+       <span style={{fontSize:'36px'}}>📷</span>
+       <strong style={{fontSize:'16px',color:'#991b1b'}}>Camera Permission Required / कॅमेरा परवानगी आवश्यक आहे</strong>
+       <p style={{margin:'0',fontSize:'13px',color:'#4b5563',lineHeight:'1.5',maxWidth:'360px'}}>
+        थेट ब्राउझर कॅमेऱ्याला परवानगी मिळाली नाही. फोनच्या कॅमेऱ्याने थेट फोटो काढण्यासाठी खालील निळे बटण दाबा:
        </p>
-       <button type="button" className="primary-btn" style={{minHeight:'42px',padding:'10px 20px',cursor:'pointer',fontWeight:'bold',fontSize:'14px',background:'#008069',borderColor:'#008069'}} onClick={()=>initCamera(facing)}>
-        📷 Allow Camera & Start / कॅमेरा परवानगी द्या
+       <button type="button" className="primary-btn" style={{minHeight:'46px',width:'100%',maxWidth:'340px',padding:'12px 18px',cursor:'pointer',fontWeight:'bold',fontSize:'15px',background:'#0284c7',borderColor:'#0284c7',boxShadow:'0 2px 8px rgba(2,132,199,0.3)',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}} onClick={()=>deviceCamRef.current?.click()}>
+        📸 फोन कॅमेऱ्याने फोटो काढा (Use Phone Camera)
        </button>
-       <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'8px',padding:'8px 12px',fontSize:'11px',color:'#7f1d1d',textAlign:'left',width:'100%',boxSizing:'border-box'}}>
-        <strong>If blocked in settings:</strong> Tap 🔒 icon near address bar → Site settings / Permissions → Camera: Allow → Tap Allow Camera above.
+       <button type="button" className="ghost-btn" style={{minHeight:'38px',width:'100%',maxWidth:'340px',padding:'8px 14px',cursor:'pointer',fontWeight:'600',fontSize:'13px'}} onClick={()=>initCamera(facing)}>
+        🔄 ब्राउझर कॅमेरा पुन्हा सुरू करा (Retry Live Camera)
+       </button>
+       <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'8px',padding:'8px 12px',fontSize:'11.5px',color:'#7f1d1d',textAlign:'left',width:'100%',maxWidth:'340px',boxSizing:'border-box',lineHeight:'1.4'}}>
+        <strong>ब्राउझर परवानगी टीप:</strong> वर 🔒 चिन्हावर टॅप करा → Permissions → Camera: Allow करा. किंवा थेट वरील निळे बटण वापरून फोटो काढा.
        </div>
-       <div style={{display:'flex',gap:'8px',flexWrap:'wrap',justifyContent:'center',marginTop:'6px'}}>
-        <button type="button" className="small-btn" style={{minHeight:'38px',padding:'6px 14px',cursor:'pointer'}} onClick={()=>deviceCamRef.current?.click()}>
-         📸 Take photo with phone camera
-        </button>
-        <button type="button" className="ghost-btn" style={{minHeight:'38px',padding:'6px 14px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
-         Choose file
+       <div style={{display:'flex',gap:'8px',flexWrap:'wrap',justifyContent:'center',marginTop:'4px'}}>
+        <button type="button" className="small-btn" style={{minHeight:'36px',padding:'6px 14px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
+         📁 गॅलरी / फाईलमधून निवडा (Choose File)
         </button>
        </div>
       </div>
      ) : (
-      <div>
-       <p style={{margin:'0 0 16px',fontSize:'13px',color:'#b42318',lineHeight:'1.5'}}>{error==='NOT_FOUND'?'No camera detected on this device.':(error==='NOT_SUPPORTED'?'Web camera preview is not supported on this browser. Use device camera:':error)}</p>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'12px'}}>
+       <p style={{margin:'0',fontSize:'14px',color:'#b42318',lineHeight:'1.5'}}>{error==='NOT_FOUND'?'कोणताही कॅमेरा आढळला नाही (No camera detected).':(error==='NOT_SUPPORTED'?'Web camera preview is not supported on this browser.':error)}</p>
+       <button type="button" className="primary-btn" style={{minHeight:'46px',width:'100%',maxWidth:'340px',padding:'12px 18px',cursor:'pointer',fontWeight:'bold',fontSize:'15px',background:'#0284c7',borderColor:'#0284c7',boxShadow:'0 2px 8px rgba(2,132,199,0.3)'}} onClick={()=>deviceCamRef.current?.click()}>
+        📸 फोन कॅमेऱ्याने फोटो काढा (Phone Camera)
+       </button>
        <div style={{display:'flex',gap:'10px',justifyContent:'center',flexWrap:'wrap'}}>
-        <button type="button" className="primary-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>initCamera(facing)}>
-         🔄 Try Again
+        <button type="button" className="ghost-btn" style={{minHeight:'38px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>initCamera(facing)}>
+         🔄 पुन्हा प्रयत्न करा (Try Again)
         </button>
-        <button type="button" className="primary-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>deviceCamRef.current?.click()}>
-         Take photo with device camera
-        </button>
-        <button type="button" className="ghost-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
-         Choose from device
+        <button type="button" className="ghost-btn" style={{minHeight:'38px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
+         📁 फाईल निवडा (Choose file)
         </button>
        </div>
       </div>

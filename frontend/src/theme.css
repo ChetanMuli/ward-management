@@ -3729,32 +3729,31 @@ html body .family-loc-status a {
 }
 
 html body .family-mid-actions {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-  gap: 8px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
   width: 100% !important;
   margin: 8px 0 10px !important;
 }
-html body .family-mid-actions:has(> :only-child) {
-  grid-template-columns: 1fr !important;
-}
-html body .family-mid-actions > button,
-html body .family-mid-actions > .small-btn,
-html body .family-mid-actions .family-add-btn,
-html body .family-mid-actions .family-loc-btn {
-  width: 100% !important;
+html body .family-mid-actions > * {
+  flex: 1 1 0 !important;
+  width: 0 !important;
   min-width: 0 !important;
   height: 38px !important;
   min-height: 38px !important;
   max-height: 38px !important;
-  padding: 0 10px !important;
-  font-size: 12.5px !important;
+  padding: 0 6px !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
   border-radius: 8px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  text-align: center !important;
   white-space: nowrap !important;
+  text-decoration: none !important;
   box-sizing: border-box !important;
   cursor: pointer !important;
   transition: all 0.15s ease !important;
@@ -3771,6 +3770,17 @@ html body .family-mid-actions .family-add-btn:hover {
   color: #1e40af !important;
 }
 
+html body .family-mid-actions .family-dir-btn {
+  background: #f0f9ff !important;
+  border: 1px solid #bae6fd !important;
+  color: #0284c7 !important;
+}
+html body .family-mid-actions .family-dir-btn:hover {
+  background: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+  color: #0369a1 !important;
+}
+
 html body .family-mid-actions .family-loc-btn {
   background: #ffffff !important;
   border: 1px solid #cbd5e1 !important;
@@ -3780,6 +3790,19 @@ html body .family-mid-actions .family-loc-btn:hover {
   background: #f8fafc !important;
   border-color: #94a3b8 !important;
   color: #0f172a !important;
+}
+
+@media (max-width: 480px) {
+  html body .family-mid-actions {
+    gap: 4px !important;
+  }
+  html body .family-mid-actions > * {
+    font-size: 11px !important;
+    padding: 0 2px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+  }
 }
 
 /* Compact modal forms: remove unwanted whitespace at top */
@@ -3879,4 +3902,138 @@ html body .citizen-search-bar .small-btn.active-filter {
   color: #ffffff !important;
   border-color: #1e293b !important;
   font-weight: 700 !important;
+}
+
+/* Notification Drawer Backdrop & Background Scroll Freeze (No blur) */
+html body .notification-scrim {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.35) !important;
+  z-index: 1050 !important;
+  border: 0 !important;
+  cursor: pointer !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+html body .notification-popover {
+  z-index: 1060 !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
+}
+
+/* Dashboard Schedule Section Top Title Row & Export Button */
+html body .schedule-title-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+html body .schedule-export-btn-top {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 5px 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #0369a1 !important;
+  background: #f0f9ff !important;
+  border: 1px solid #bae6fd !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+}
+html body .schedule-export-btn-top:hover {
+  background: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+  color: #0284c7 !important;
+}
+
+/* Dashboard Schedule Task Filter Responsive Pill Bar */
+html body .schedule-filter-pills-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  padding: 6px 2px 10px !important;
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+}
+html body .schedule-filter-pills-bar::-webkit-scrollbar {
+  height: 4px !important;
+}
+html body .schedule-filter-pills-bar::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+html body .schedule-filter-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 7px 14px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 9999px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+}
+html body .schedule-filter-pill:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html body .schedule-filter-pill.active {
+  background: #1e293b !important;
+  border-color: #1e293b !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18) !important;
+}
+html body .schedule-filter-pill .pill-count-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  padding: 0 6px !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+  transition: all 0.15s ease !important;
+}
+html body .schedule-filter-pill.active .pill-count-badge {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+html body .schedule-filter-pill.has-alert {
+  border-color: #fca5a5 !important;
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+}
+html body .schedule-filter-pill.has-alert .pill-count-badge {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+html body .schedule-filter-pill.has-alert.active {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+html body .schedule-filter-pill.has-alert.active .pill-count-badge {
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+html body .dash-contact-pills {
+  margin-top: 4px !important;
+  margin-bottom: 8px !important;
 }

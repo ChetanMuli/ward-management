@@ -1375,14 +1375,10 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
     }
 
     try {
-      const constraints = {
-        video: {
-          facingMode: mode ? { ideal: mode } : 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
+      const isMobile = typeof window !== 'undefined' && (window.innerWidth <= 800 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+      const constraints = isMobile
+        ? { video: { facingMode: mode ? { ideal: mode } : 'environment' }, audio: false }
+        : { video: { facingMode: mode ? { ideal: mode } : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
       let s;
       try {
         s = await navigator.mediaDevices.getUserMedia(constraints);
@@ -1394,6 +1390,9 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
       streamRef.current = s;
       if (videoRef.current) {
         videoRef.current.srcObject = s;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.muted = true;
         await videoRef.current.play().catch(() => {});
       }
       setHasCamera(true);
@@ -1544,24 +1543,25 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
                       <button
                         type="button"
                         className="wa-cam-action-btn wa-cam-allow-btn"
-                        onClick={() => startCamera(facingMode)}
-                      >
-                        📷 {isMr ? 'कॅमेरा परवानगी द्या व सुरू करा' : 'Allow Camera & Start'}
-                      </button>
-                      <div className="wa-cam-guide-box">
-                        <small>
-                          {isMr 
-                            ? 'टीप: ब्राउझरने आधीच ब्लॉक केले असल्यास वर 🔒 चिन्हावर टॅप करा → Camera: Allow करा → पुन्हा प्रयत्न करा.' 
-                            : 'Note: If blocked in settings, tap 🔒 icon in address bar → Allow Camera → Try again.'}
-                        </small>
-                      </div>
-                      <button
-                        type="button"
-                        className="wa-cam-action-btn wa-cam-native-btn"
+                        style={{ background: '#0284c7', borderColor: '#0284c7' }}
                         onClick={() => nativeInputRef.current?.click()}
                       >
                         📸 {isMr ? 'फोनच्या कॅमेरा ॲपने फोटो काढा' : 'Take photo using phone camera'}
                       </button>
+                      <button
+                        type="button"
+                        className="wa-cam-action-btn wa-cam-native-btn"
+                        onClick={() => startCamera(facingMode)}
+                      >
+                        🔄 {isMr ? 'ब्राउझर कॅमेरा पुन्हा सुरू करा' : 'Retry in-browser camera'}
+                      </button>
+                      <div className="wa-cam-guide-box">
+                        <small>
+                          {isMr 
+                            ? 'टीप: थेट ब्राउझर कॅमेरा ब्लॉक असल्यास वरील निळ्या बटणावर टॅप करून थेट फोन कॅमेऱ्याने फोटो काढा.' 
+                            : 'Tip: If browser camera is blocked, tap the blue button above to use your phone camera app directly.'}
+                        </small>
+                      </div>
                     </div>
                   ) : (
                     <div className="wa-cam-perm-wrap">
@@ -1569,16 +1569,17 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
                       <button
                         type="button"
                         className="wa-cam-action-btn wa-cam-allow-btn"
-                        onClick={() => startCamera(facingMode)}
+                        style={{ background: '#0284c7', borderColor: '#0284c7' }}
+                        onClick={() => nativeInputRef.current?.click()}
                       >
-                        🔄 {isMr ? 'पुन्हा प्रयत्न करा' : 'Try Again'}
+                        📸 {isMr ? 'फोनच्या कॅमेरा ॲपने फोटो काढा' : 'Take photo using phone camera'}
                       </button>
                       <button
                         type="button"
                         className="wa-cam-action-btn wa-cam-native-btn"
-                        onClick={() => nativeInputRef.current?.click()}
+                        onClick={() => startCamera(facingMode)}
                       >
-                        📸 {isMr ? 'फोनच्या कॅमेरा ॲपने फोटो काढा' : 'Take photo using phone camera'}
+                        🔄 {isMr ? 'पुन्हा प्रयत्न करा' : 'Try Again'}
                       </button>
                     </div>
                   )}

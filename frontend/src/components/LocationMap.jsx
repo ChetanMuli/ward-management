@@ -222,42 +222,86 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
 
  function useGps(){
   if(!navigator.geolocation) return setNote('GPS is not available on this device.');
-  if(typeof window!=='undefined' && !window.isSecureContext) return setNote('GPS needs https. Open this page on the live site and try again.');
+  if(typeof window!=='undefined' && !window.isSecureContext && window.location.hostname!=='localhost' && window.location.hostname!=='127.0.0.1'){
+    if(window.location.protocol==='http:'){
+      window.location.href = window.location.href.replace('http:', 'https:');
+      return setNote('Redirecting to HTTPS for GPS…');
+    }
+    return setNote('GPS needs https. Open this page via https:// and try again.');
+  }
   setGpsBusy(true);
-  setNote('Reading exact GPS at this door. Stay still for a few seconds…');
+  setNote('Reading GPS coordinates… / GPS शोधत आहे…');
+
+  let locked=false;
+  let watchId=null;
+  let timer=null;
+
+  const cleanup=()=>{
+    if(watchId!==null){
+      try{navigator.geolocation.clearWatch(watchId);}catch(_){}
+      watchId=null;
+    }
+    if(timer){
+      clearTimeout(timer);
+      timer=null;
+    }
+    setGpsBusy(false);
+  };
+
   const done=(pos,extra='')=>{
-   setGpsBusy(false);
    const {latitude,longitude,accuracy}=pos.coords||{};
-   if(!hasCoords(latitude,longitude) || (isCityFallbackPin(latitude,longitude) && Number(accuracy||9999)>250)){
-    setNote('GPS could not lock the door pin. Stand outside, allow location, then tap Use GPS again.');
+   if(!hasCoords(latitude,longitude)){
+    setNote('Could not lock valid GPS coordinates. Stand outside and try again.');
     return;
    }
+   locked=true;
    const meters=Math.round(Number(accuracy)||0);
-   applyPin(latitude,longitude, meters>60
-    ? `Location pin set, about ${meters} m off. Address was not filled. Stay at the door and tap Use GPS again.${extra}`
-    : `Location pin set${meters?` (±${meters} m)`:''}. Address was not filled.${extra}`);
+   applyPin(latitude,longitude, meters>50
+    ? `Location pin set (±${meters} m). Door pin saved.${extra}`
+    : `Location pin set accurately${meters?` (±${meters} m)`:''}.${extra}`);
    if(!phone && window.L && mapRef.current){
     try{mapRef.current.invalidateSize();putMarker(window.L,Number(latitude),Number(longitude));}catch{/* map optional */}
    }
+   if(meters<=20){
+     cleanup();
+   }
   };
+
   const fail=(code)=>{
-   setGpsBusy(false);
-   if(code===1) setNote('Allow location permission for this site, then tap Use GPS again.');
-   else if(code===2) setNote('Turn on device location services, then tap Use GPS again.');
-   else if(code===3) setNote('GPS timed out. Stand outside at the door with a clear sky and try again.');
+   if(locked) return;
+   cleanup();
+   if(code===1) setNote('Allow location permission in browser settings, then tap Use GPS again.');
+   else if(code===2) setNote('Turn on device location services/GPS, then tap Use GPS again.');
+   else if(code===3) setNote('GPS timed out. Stand outside at the door and tap Use GPS again.');
    else setNote('Could not read GPS. Allow location and try again.');
   };
-  navigator.geolocation.getCurrentPosition(
-   pos=>done(pos),
-   ()=>{
+
+  // 1. Fast initial attempt: get recent cached position in < 1s
+  try{
     navigator.geolocation.getCurrentPosition(
-     pos=>done(pos,' (approximate)'),
-     e=>fail(e?.code),
-     {enableHighAccuracy:false,timeout:16000,maximumAge:20000}
+      pos=>done(pos),
+      _err=>{},
+      {enableHighAccuracy:false,timeout:5000,maximumAge:60000}
     );
-   },
-   {enableHighAccuracy:true,timeout:20000,maximumAge:0}
-  );
+  }catch(_){}
+
+  // 2. High accuracy watch to refine door position
+  try{
+    watchId=navigator.geolocation.watchPosition(
+      pos=>done(pos),
+      err=>{
+        if(!locked) fail(err?.code);
+      },
+      {enableHighAccuracy:true,timeout:10000,maximumAge:20000}
+    );
+  }catch(e){
+    if(!locked) fail(2);
+  }
+
+  timer=setTimeout(()=>{
+    cleanup();
+    if(!locked) fail(3);
+  },10000);
  }
 
  const openMapsHref=pinned?mapsViewUrl(value.latitude,value.longitude):'https://www.google.com/maps';

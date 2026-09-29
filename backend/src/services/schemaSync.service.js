@@ -132,13 +132,73 @@ async function ensureDatabaseSchema(sequelize) {
       }
     }
 
-    // 5. Register migrations in SequelizeMeta table if present
+    // 5. Ensure shops_and_offices has property_owner_name, property_owner_mobile, and ownership
+    if (tables.includes('shops_and_offices')) {
+      const desc = await queryInterface.describeTable('shops_and_offices').catch(() => ({}));
+      if (!desc.property_owner_name) {
+        console.log('[SCHEMA-SYNC] Adding missing column shops_and_offices.property_owner_name...');
+        await queryInterface.addColumn('shops_and_offices', 'property_owner_name', {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn property_owner_name:', e.message));
+      }
+      if (!desc.property_owner_mobile) {
+        console.log('[SCHEMA-SYNC] Adding missing column shops_and_offices.property_owner_mobile...');
+        await queryInterface.addColumn('shops_and_offices', 'property_owner_mobile', {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn property_owner_mobile:', e.message));
+      }
+      if (!desc.ownership) {
+        console.log('[SCHEMA-SYNC] Adding missing column shops_and_offices.ownership...');
+        await queryInterface.addColumn('shops_and_offices', 'ownership', {
+          type: DataTypes.ENUM('OWN', 'RENT', 'OTHER'),
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn ownership:', e.message));
+      }
+    }
+
+    // 6. Ensure houses has owner_name and owner_mobile
+    if (tables.includes('houses')) {
+      const desc = await queryInterface.describeTable('houses').catch(() => ({}));
+      if (!desc.owner_name) {
+        console.log('[SCHEMA-SYNC] Adding missing column houses.owner_name...');
+        await queryInterface.addColumn('houses', 'owner_name', {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn houses.owner_name:', e.message));
+      }
+      if (!desc.owner_mobile) {
+        console.log('[SCHEMA-SYNC] Adding missing column houses.owner_mobile...');
+        await queryInterface.addColumn('houses', 'owner_mobile', {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn houses.owner_mobile:', e.message));
+      }
+    }
+
+    // 7. Ensure families has native_village, native_taluka, native_district, native_state
+    if (tables.includes('families')) {
+      const desc = await queryInterface.describeTable('families').catch(() => ({}));
+      for (const col of ['native_village', 'native_taluka', 'native_district', 'native_state']) {
+        if (!desc[col]) {
+          console.log(`[SCHEMA-SYNC] Adding missing column families.${col}...`);
+          await queryInterface.addColumn('families', col, {
+            type: DataTypes.STRING(255),
+            allowNull: true,
+          }).catch((e) => console.warn(`[SCHEMA-SYNC] addColumn families.${col}:`, e.message));
+        }
+      }
+    }
+
+    // 8. Register migrations in SequelizeMeta table if present
     if (tables.includes('sequelizemeta')) {
       const migrationsToRegister = [
         '20260922000064-nagarsevak-daily-schedule.js',
         '20260924000065-schedule-assigned-employee.js',
         '20260924000066-schedule-assignments.js',
         '20260928000067-chat-recycle-retention-and-75day-lifecycle.js',
+        '20260929000068-shop-property-owner.js',
       ];
       for (const mName of migrationsToRegister) {
         await sequelize.query('INSERT IGNORE INTO SequelizeMeta (name) VALUES (:name)', {
