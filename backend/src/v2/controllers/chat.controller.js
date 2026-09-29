@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { User, Ward, Role, ChatUserState, Employee, Person, Family, House, Area, VoterProfile } = require('../../models');
+const { User, Ward, Role, ChatUserState, Employee, EmployeeAreaAssignment, Person, Family, House, Area, VoterProfile } = require('../../models');
 const Chat = require('../../services/chat.store');
 const ApiError = require('../../utils/ApiError');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -587,6 +587,8 @@ const listMessages = asyncHandler(async (req, res) => {
   });
   rows.reverse();
   const senderPhotos = await nagarsevakPublicByIds(rows.map(m => m.senderUserId));
+  const userRole = String(req.user?.roleName || '').toUpperCase();
+  const isReqUserCitizen = userRole === 'CITIZEN' || (!['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'].includes(userRole));
   const data = rows.map(m => {
     const json = typeof m.toJSON === 'function' ? m.toJSON() : m;
     const extra = senderPhotos.get(String(m.senderUserId));
@@ -594,6 +596,13 @@ const listMessages = asyncHandler(async (req, res) => {
       if (extra?.photo) json.sender.photo = extra.photo;
       if (!json.sender.name && json.sender.person?.fullName) {
         json.sender.name = json.sender.person.fullName;
+      }
+      const senderRole = String(json.sender.Role?.name || '').toUpperCase();
+      const isSenderNagarsevak = senderRole === 'NAGARSEVAK' || String(json.senderUserId) === String(group.nagarsevakUserId);
+      // Privacy rule: Citizens can ONLY see Nagarsevak's mobile number
+      if (isReqUserCitizen && !isSenderNagarsevak && String(json.senderUserId) !== String(req.user.id)) {
+        json.sender.mobile = null;
+        if (json.sender.person) json.sender.person.mobile = null;
       }
     }
     return json;
@@ -809,6 +818,19 @@ const getResidentDetails = asyncHandler(async (req, res) => {
     });
   }
 
+  let employee = null;
+  const isTargetStaff = ['EMPLOYEE', 'FIELD_EMPLOYEE'].includes(String(targetUser.Role?.name || '').toUpperCase());
+  if (isTargetStaff) {
+    try {
+      employee = await Employee.findOne({
+        where: { userId: targetUser.id },
+        include: [
+          { model: EmployeeAreaAssignment, as: 'areaAssignments', include: [{ model: Area, as: 'area' }] }
+        ]
+      });
+    } catch (_) {}
+  }
+
   const data = {
     userId: targetUser.id,
     name: person?.fullName || targetUser.name,
@@ -862,6 +884,12 @@ const getResidentDetails = asyncHandler(async (req, res) => {
         voterCenter: person.voterProfile.voterCenter,
         voterRoom: person.voterProfile.voterRoom,
       } : null,
+    } : null,
+    employeeProfile: employee ? {
+      designation: employee.designation,
+      department: employee.department,
+      employeeCode: employee.employeeCode,
+      areas: (employee.areaAssignments || []).map(a => a.area?.name).filter(Boolean),
     } : null,
   };
 

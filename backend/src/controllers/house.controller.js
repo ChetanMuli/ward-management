@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { House, Family, Person, Complaint } = require('../models');
+const { House, Family, Person, Complaint, Apartment, Area, Ward } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { success } = require('../utils/apiResponse');
 const asyncHandler = require('../utils/asyncHandler');
@@ -16,13 +16,14 @@ const list = asyncHandler(async (req, res) => {
   if (ownership) where.ownership = ownership;
   if (houseType) where.houseType = houseType;
   if (status) where.status = status;
-  if (ownership) where.ownership = ownership;
-  if (houseType) where.houseType = houseType;
-  if (status) where.status = status;
   if (search) where[Op.or] = [{ houseNumber: { [Op.like]: `%${search}%` } }, { address: { [Op.like]: `%${search}%` } }, { ownerName: { [Op.like]: `%${search}%` } }];
 
   const { rows, count } = await House.findAndCountAll({
     where,
+    include: [
+      { model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] },
+      { model: Apartment, as: 'apartment' },
+    ],
     limit: Number(limit),
     offset: (Number(page) - 1) * Number(limit),
     order: [['createdAt', 'DESC']],
@@ -37,6 +38,8 @@ const list = asyncHandler(async (req, res) => {
 const getById = asyncHandler(async (req, res) => {
   const house = await House.findByPk(req.params.id, {
     include: [
+      { model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] },
+      { model: Apartment, as: 'apartment' },
       {
         model: Family, as: 'families',
         include: [{ model: Person, as: 'members' }],

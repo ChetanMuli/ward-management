@@ -1222,9 +1222,9 @@ export default function Staff() {
 
                         <td data-label="Mobile">
                           {n.mobile ? (
-                            <span title={master ? n.mobile : 'Protected'}>
-                              {master ? `••••••${String(n.mobile).slice(-4)}` : '••••••••••'}
-                            </span>
+                            <a href={`tel:${n.mobile}`} className="staff-tel-link notranslate" translate="no" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }}>
+                              📞 {n.mobile}
+                            </a>
                           ) : '—'}
                         </td>
 
@@ -1360,7 +1360,7 @@ export default function Staff() {
                             <div className="muted">
                               {e.designation ||
                                 'Field Employee'}
-                              {(e.mobile || e.User?.mobile) ? ` · ••••••${String(e.mobile || e.User?.mobile).slice(-4)}` : ''}
+                              {(e.mobile || e.User?.mobile) ? ` · 📞 ${e.mobile || e.User?.mobile}` : ''}
                             </div>
                           </td>
 
@@ -1379,7 +1379,7 @@ export default function Staff() {
                             <td data-label="Managing Nagarsevak">
                               {e.manager?.name ||
                                 '—'}
-                              {e.manager?.mobile ? <div className="muted">••••••{String(e.manager.mobile).slice(-4)}</div> : null}
+                              {e.manager?.mobile ? <div className="muted">📞 {e.manager.mobile}</div> : null}
                             </td>
                           )}
 

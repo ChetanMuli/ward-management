@@ -1240,7 +1240,7 @@ export default function Birthdays() {
                 <div className="birthday-nagar">
                   <FaceAvatar name={hasNagarsevak ? nagarsevak.name : '-'} photo={hasNagarsevak ? nagarsevak.photo : null} />
                   <div>
-                    <small>नगरसेवक</small>
+                    <small>Nagarsevak</small>
                     <strong>{hasNagarsevak ? nagarsevak.name : '-'}</strong>
                     {hasNagarsevak && nagarsevak?.partyName ? (
                       <span className="party-badge" title={party?.name || nagarsevak.partyName}>{nagarsevak.partyName}</span>
@@ -1303,7 +1303,7 @@ export default function Birthdays() {
               </div>
             </div>
             <div className="detail-card birthday-nagar-detail">
-              <h3>नगरसेवक</h3>
+              <h3>Nagarsevak</h3>
               <div className="birthday-nagar">
                 <FaceAvatar
                   name={hasSelectedNagar ? selectedNagar.name : '-'}

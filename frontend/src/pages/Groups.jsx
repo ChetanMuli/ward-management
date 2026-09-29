@@ -816,7 +816,9 @@ function GroupPage() {
                     const isDifferentDate = !prevMsg || new Date(m.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString();
                     const nameColor = senderColor(senderName, m.senderUserId);
                     const senderRole = String(m.sender?.Role?.name || m.sender?.role || '').toUpperCase();
-                    const isSenderStaff = ['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'].includes(senderRole);
+                    const isSenderNagarsevak = senderRole === 'NAGARSEVAK' || String(m.senderUserId) === String(active?.nagarsevakUserId);
+                    const isSenderEmployee = ['EMPLOYEE', 'FIELD_EMPLOYEE'].includes(senderRole);
+                    const isSenderStaff = ['SUPER_ADMIN', 'SUB_MASTER_ADMIN'].includes(senderRole) || isSenderNagarsevak || isSenderEmployee;
                     const isSenderCitizen = !isSenderStaff;
 
                     return (
@@ -832,7 +834,8 @@ function GroupPage() {
                               <div className="wa-bubble-head">
                                 <FaceAvatar name={senderName} photo={senderPhoto} className="wa-bubble-avatar" />
                                 <div className="wa-bubble-sender-meta">
-                                  {canViewResidentDetails && isSenderCitizen ? (
+                                  {/* Sender name: Nagarsevak and Admin can view details of citizens AND employees; Employee can view citizens */}
+                                  {((master || sub || councillor) && (isSenderCitizen || isSenderEmployee)) || (isEmp && isSenderCitizen) ? (
                                     <button
                                       type="button"
                                       className="wa-sender-name-btn notranslate"
@@ -849,7 +852,13 @@ function GroupPage() {
                                     </strong>
                                   )}
                                   <SenderRoleBadge sender={m.sender} isMr={isMr} />
-                                  {m.sender?.mobile && isSenderCitizen && canViewCitizenMobile && (
+                                  {/* Mobile visibility rule:
+                                      - Admin, Nagarsevak, and Employee can see everyone's mobile in ward
+                                      - Citizen can ONLY see Nagarsevak's mobile */}
+                                  {m.sender?.mobile && (
+                                    (master || sub || councillor || isEmp) ||
+                                    (citizen && isSenderNagarsevak)
+                                  ) && (
                                     <a 
                                       href={`tel:${m.sender.mobile}`} 
                                       className="wa-sender-mobile notranslate" 
@@ -1537,8 +1546,8 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
                       </h4>
                       <p className="wa-cam-perm-desc">
                         {isMr 
-                          ? 'थेट कॅमेरा सुरू करण्यासाठी खालील बटण दाबा व ब्राउझरने विचारल्यावर "Allow" (परवानगी द्या) वर टॅप करा.' 
-                          : 'Tap below to request permission and allow camera access in your browser.'}
+                          ? 'फोटो काढण्यासाठी खालील बटणावर टॅप करा.' 
+                          : 'Tap below to capture photo using your phone camera.'}
                       </p>
                       <button
                         type="button"
@@ -1548,20 +1557,6 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
                       >
                         📸 {isMr ? 'फोनच्या कॅमेरा ॲपने फोटो काढा' : 'Take photo using phone camera'}
                       </button>
-                      <button
-                        type="button"
-                        className="wa-cam-action-btn wa-cam-native-btn"
-                        onClick={() => startCamera(facingMode)}
-                      >
-                        🔄 {isMr ? 'ब्राउझर कॅमेरा पुन्हा सुरू करा' : 'Retry in-browser camera'}
-                      </button>
-                      <div className="wa-cam-guide-box">
-                        <small>
-                          {isMr 
-                            ? 'टीप: थेट ब्राउझर कॅमेरा ब्लॉक असल्यास वरील निळ्या बटणावर टॅप करून थेट फोन कॅमेऱ्याने फोटो काढा.' 
-                            : 'Tip: If browser camera is blocked, tap the blue button above to use your phone camera app directly.'}
-                        </small>
-                      </div>
                     </div>
                   ) : (
                     <div className="wa-cam-perm-wrap">
@@ -1573,13 +1568,6 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
                         onClick={() => nativeInputRef.current?.click()}
                       >
                         📸 {isMr ? 'फोनच्या कॅमेरा ॲपने फोटो काढा' : 'Take photo using phone camera'}
-                      </button>
-                      <button
-                        type="button"
-                        className="wa-cam-action-btn wa-cam-native-btn"
-                        onClick={() => startCamera(facingMode)}
-                      >
-                        🔄 {isMr ? 'पुन्हा प्रयत्न करा' : 'Try Again'}
                       </button>
                     </div>
                   )}
@@ -1667,8 +1655,10 @@ function ResidentProfileModal({ userId, fallbackName, isMr, onClose }) {
   const email = profile?.email || p?.email;
   const cleanMobile = String(mobile || '').replace(/\D/g, '');
 
+  const isEmpProfile = ['EMPLOYEE', 'FIELD_EMPLOYEE'].includes(String(profile?.role || '').toUpperCase()) || Boolean(profile?.employeeProfile);
+
   return (
-    <Modal isOpen onClose={onClose} title={isMr ? 'नागरिक संपूर्ण तपशील' : 'Resident Profile'}>
+    <Modal isOpen onClose={onClose} title={isEmpProfile ? (isMr ? 'कर्मचारी संपूर्ण तपशील' : 'Employee Profile') : (isMr ? 'नागरिक संपूर्ण तपशील' : 'Resident Profile')}>
       <div className="wa-resident-modal-wrap">
         {loading ? (
           <Loading />
@@ -1682,7 +1672,9 @@ function ResidentProfileModal({ userId, fallbackName, isMr, onClose }) {
               <div className="wa-resident-head-info">
                 <div className="wa-resident-name-row">
                   <h3 className="notranslate" translate="no">{displayName}</h3>
-                  <span className="wa-role-badge citizen">👤 {isMr ? 'नागरिक' : 'Citizen'}</span>
+                  <span className={`wa-role-badge ${isEmpProfile ? 'emp' : 'citizen'}`}>
+                    {isEmpProfile ? (isMr ? '🛠️ कर्मचारी' : '🛠️ Employee') : (isMr ? '👤 नागरिक' : '👤 Citizen')}
+                  </span>
                 </div>
                 {profile?.ward && (
                   <p className="wa-resident-ward-sub">
@@ -1751,6 +1743,41 @@ function ResidentProfileModal({ userId, fallbackName, isMr, onClose }) {
                   </div>
                 </div>
               </div>
+
+              {/* Employee Details Card (for staff/officials) */}
+              {profile?.employeeProfile && (
+                <div className="wa-resident-section-card">
+                  <h4>🛠️ {isMr ? 'कर्मचारी तपशील' : 'Employee Details'}</h4>
+                  <div className="wa-resident-details-grid">
+                    <div className="wa-res-field">
+                      <label>{isMr ? 'पदनाम / हुद्दा' : 'Designation'}</label>
+                      <strong className="notranslate" translate="no">{profile.employeeProfile.designation || 'Field Officer'}</strong>
+                    </div>
+                    {profile.employeeProfile.department && (
+                      <div className="wa-res-field">
+                        <label>{isMr ? 'विभाग' : 'Department'}</label>
+                        <span className="notranslate" translate="no">{profile.employeeProfile.department}</span>
+                      </div>
+                    )}
+                    {profile.employeeProfile.employeeCode && (
+                      <div className="wa-res-field">
+                        <label>{isMr ? 'कर्मचारी कोड' : 'Employee Code'}</label>
+                        <span className="notranslate" translate="no">{profile.employeeProfile.employeeCode}</span>
+                      </div>
+                    )}
+                    {profile.employeeProfile.areas?.length > 0 && (
+                      <div className="wa-res-field full-width">
+                        <label>{isMr ? 'नेमून दिलेले प्रभाग / कॉलनी' : 'Assigned Areas / Colonies'}</label>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                          {profile.employeeProfile.areas.map((a, i) => (
+                            <span key={i} className="dash-colony-tag notranslate" translate="no">{a}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Residence & House Address */}
               <div className="wa-resident-section-card">

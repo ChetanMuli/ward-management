@@ -4037,3 +4037,838 @@ html body .dash-contact-pills {
   margin-top: 4px !important;
   margin-bottom: 8px !important;
 }
+
+/* ==========================================================================
+   Executive Duty Hero Banner (Nagarsevak & Field Employee)
+   ========================================================================== */
+html body .executive-hero-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.07), 0 2px 6px -1px rgba(15, 23, 42, 0.04) !important;
+  padding: 18px 20px !important;
+  margin-bottom: 20px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+html body .executive-hero-card.is-nagarsevak-card {
+  border-top: 4px solid #1e4a73 !important;
+}
+
+html body .executive-hero-card.is-employee-card {
+  border-top: 4px solid #0284c7 !important;
+}
+
+html body .dash-hero-main-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+html body .executive-hero-card .dash-hero-avatar-wrap {
+  flex-shrink: 0 !important;
+}
+
+html body .executive-hero-card .dash-hero-avatar {
+  width: 68px !important;
+  height: 68px !important;
+  min-width: 68px !important;
+  min-height: 68px !important;
+  border-radius: 50% !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 0 2px #cbd5e1, 0 3px 10px rgba(15, 23, 42, 0.12) !important;
+  object-fit: cover !important;
+  background: #f1f5f9 !important;
+}
+
+html body .executive-hero-card .dash-hero-details {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+html body .dash-hero-badges-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 4px !important;
+}
+
+html body .executive-hero-card .dash-role-badge {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  padding: 3px 9px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  white-space: nowrap !important;
+}
+
+html body .badge-nagar {
+  background: #eff6ff !important;
+  color: #1e40af !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+html body .badge-emp {
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+  border: 1px solid #bbf7d0 !important;
+}
+
+html body .dash-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  background: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+  color: #15803d !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+}
+
+html body .dash-status-pill .status-live-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+}
+
+html body .dash-seat-badge {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  padding: 3px 8px !important;
+}
+
+html body .dash-hero-name {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin: 3px 0 4px !important;
+  line-height: 1.25 !important;
+  word-break: break-word !important;
+}
+
+html body .dash-hero-scope-line {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 13px !important;
+  color: #475569 !important;
+}
+
+html body .dash-hero-meta-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin-top: 5px !important;
+  font-size: 12.5px !important;
+  color: #475569 !important;
+}
+
+html body .dash-hero-meta-item {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+html body .dash-tel-link {
+  color: #1d4ed8 !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+}
+
+html body .dash-tel-link:hover {
+  text-decoration: underline !important;
+}
+
+html body .dash-hero-footer-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin-top: 14px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+html body .dash-footer-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  min-height: 36px !important;
+  box-sizing: border-box !important;
+}
+
+html body .dash-footer-pill strong {
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+html body .dash-footer-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  border-radius: 8px !important;
+  padding: 6px 14px !important;
+  min-height: 36px !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+}
+
+html body .dash-footer-action-btn.tel-btn {
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  color: #1d4ed8 !important;
+}
+
+html body .dash-footer-action-btn.tel-btn:hover {
+  background: #dbeafe !important;
+  border-color: #93c5fd !important;
+}
+
+html body .dash-footer-action-btn.email-btn {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html body .dash-footer-action-btn.email-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* ==========================================================================
+   Universal Card Usability & Fast Comprehension Styling (Mobile-Ready)
+   ========================================================================== */
+html body .family-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04) !important;
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+html body .family-card:hover {
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+html body .family-card-top {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+}
+
+html body .family-card-top .eyebrow {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  color: #2563eb !important;
+  text-transform: uppercase !important;
+}
+
+html body .family-card-top h3 {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 2px 0 0 !important;
+  line-height: 1.3 !important;
+}
+
+html body .family-meta {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 6px 0 !important;
+}
+
+html body .family-meta div {
+  background: #f8fafc !important;
+  border: 1px solid #edf2f7 !important;
+  border-radius: 8px !important;
+  padding: 8px 10px !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+html body .family-meta span {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  display: block !important;
+}
+
+html body .family-meta strong {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-top: 3px !important;
+  display: block !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+}
+
+html body .family-address {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: #475569 !important;
+  margin: 6px 0 !important;
+  padding: 8px 10px !important;
+  background: #f8fafc !important;
+  border-radius: 8px !important;
+  border-left: 3px solid #cbd5e1 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+html body .family-mid-actions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  width: 100% !important;
+  margin: 8px 0 !important;
+}
+
+html body .family-mid-actions > * {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 0 4px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+}
+
+html body .family-mid-actions .family-add-btn {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+html body .family-mid-actions .family-dir-btn {
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+  border: 1px solid #bbf7d0 !important;
+}
+
+html body .family-mid-actions .family-loc-btn {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html body .member-mini-list {
+  display: flex !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  margin: 6px 0 !important;
+}
+
+html body .member-mini-list span {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  padding: 3px 8px !important;
+}
+
+/* Card Actions Alignment: View details & More in middle in ONE LINE */
+html body .family-card .card-actions {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  margin-top: auto !important;
+  padding-top: 10px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+html body .family-card .card-actions .row-menu {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+html body .family-card .card-actions .row-menu > button:first-child,
+html body .family-card .card-actions .row-menu .small-btn:first-child {
+  width: 100% !important;
+  min-height: 42px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1.5px solid #bfdbfe !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+html body .family-card .card-actions .row-menu > button:nth-child(2),
+html body .family-card .card-actions .row-menu .small-btn:nth-child(2) {
+  width: 100% !important;
+  min-height: 42px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* User Email in Small Case / Lowercase */
+html body .user-email-val,
+html body td[data-label="User"] .user-email-val,
+html body .table-wrap td .user-email-val,
+html body .table-wrap tbody td:first-child .user-email-val,
+html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child .user-email-val {
+  text-transform: lowercase !important;
+  font-variant: normal !important;
+  letter-spacing: normal !important;
+  font-weight: 500 !important;
+  font-size: 11.5px !important;
+  color: #64748b !important;
+  display: block !important;
+  margin-top: 2px !important;
+}
+
+/* Responsive optimization for mobile cards & executive banner */
+@media (max-width: 600px) {
+  html body .executive-hero-card {
+    padding: 16px 14px !important;
+  }
+  html body .dash-hero-main-row {
+    gap: 12px !important;
+    align-items: flex-start !important;
+  }
+  html body .executive-hero-card .dash-hero-avatar {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    min-height: 58px !important;
+  }
+  html body .dash-hero-name {
+    font-size: 18px !important;
+  }
+  html body .dash-hero-meta-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+  html body .family-meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+  html body .family-meta div {
+    padding: 6px 5px !important;
+  }
+  html body .family-meta span {
+    font-size: 9.5px !important;
+  }
+  html body .family-meta strong {
+    font-size: 11.5px !important;
+  }
+  /* Mid-actions remain in ONE LINE on mobile */
+  html body .family-mid-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  html body .family-mid-actions > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 11px !important;
+    padding: 0 2px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+@media (max-width: 480px) {
+  html body .family-meta {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+  html body .family-meta div:first-child {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* ================================================================
+   DISTINCT, EASY-TO-UNDERSTAND CARD DESIGN ACROSS ALL SECTIONS
+   Each section has a branded accent, clean property tiles, and zero overlap.
+   ================================================================ */
+
+/* Section Brand Accents (Desktop & Mobile) */
+html body .houses-page .table-wrap tbody tr {
+  border-left: 5px solid #2563eb !important; /* Royal Blue */
+}
+html body .shops-page .table-wrap tbody tr {
+  border-left: 5px solid #0284c7 !important; /* Sky / Cyan */
+}
+html body .people-page .table-wrap tbody tr {
+  border-left: 5px solid #7c3aed !important; /* Violet / Purple */
+}
+html body .users-page .table-wrap tbody tr,
+html body .users-table-wrap tbody tr {
+  border-left: 5px solid #0891b2 !important; /* Teal */
+}
+html body .voters-page .table-wrap tbody tr,
+html body .government-voter-table tbody tr {
+  border-left: 5px solid #059669 !important; /* Emerald Green */
+}
+html body .staff-data-page .table-wrap tbody tr,
+html body .staff-table-scroll .staff-data-table tbody tr {
+  border-left: 5px solid #4338ca !important; /* Deep Indigo */
+}
+html body .complaints-page .table-wrap tbody tr {
+  border-left: 5px solid #ea580c !important; /* Amber / Orange */
+}
+html body .family-card {
+  border-left: 5px solid #4f46e5 !important; /* Royal Indigo */
+}
+html body .birthday-card {
+  border-left: 5px solid #f59e0b !important; /* Gold / Amber */
+}
+
+/* Mobile Record Card Experience */
+@media (max-width: 800px) {
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody tr {
+    display: flex !important;
+    flex-direction: column !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03) !important;
+    margin-bottom: 14px !important;
+    padding: 14px 14px 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  /* Card Header: Title / Entity identity */
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:first-child {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 0 10px 0 !important;
+    margin-bottom: 10px !important;
+    border: 0 !important;
+    border-bottom: 1.5px solid #edf2f7 !important;
+    background: transparent !important;
+    position: static !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:first-child::before {
+    display: none !important;
+    content: none !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:first-child strong,
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:first-child .table-link,
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:first-child .table-link strong {
+    font-size: 16.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+    color: #0f172a !important;
+    display: block !important;
+    text-align: left !important;
+    letter-spacing: -0.015em !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:first-child .muted {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    margin-top: 3px !important;
+    line-height: 1.4 !important;
+    display: block !important;
+    text-transform: none !important;
+  }
+
+  /* Property Tiles: Distinct, rounded, easy-to-read data blocks */
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:not(:first-child):not([data-label="Actions"]) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    background: #f8fafc !important;
+    border: 1px solid #edf2f7 !important;
+    border-radius: 10px !important;
+    padding: 8px 12px !important;
+    margin-bottom: 7px !important;
+    box-sizing: border-box !important;
+    position: static !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:not(:first-child):not([data-label="Actions"])::before {
+    content: attr(data-label) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin-bottom: 3px !important;
+    line-height: 1.2 !important;
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:not(:first-child):not([data-label="Actions"]) > * {
+    display: block !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:not(:first-child):not([data-label="Actions"]) strong {
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    line-height: 1.35 !important;
+    display: block !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td:not(:first-child):not([data-label="Actions"]) .muted {
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    margin-top: 2px !important;
+    line-height: 1.35 !important;
+    display: block !important;
+  }
+
+  /* Badges & Pills inside field tile */
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td .pill,
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td .status-pill {
+    display: inline-flex !important;
+    margin-top: 2px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 3px 9px !important;
+    border-radius: 6px !important;
+  }
+
+  /* Directions link inside field tile */
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td .loc-cell {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    margin-top: 2px !important;
+  }
+
+  /* Actions Row: Clear ACTIONS label + 2 equal buttons side-by-side */
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 10px 0 2px 0 !important;
+    margin-top: 4px !important;
+    border: 0 !important;
+    border-top: 1.5px solid #edf2f7 !important;
+    background: transparent !important;
+    position: static !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"]::before {
+    content: "ACTIONS" !important;
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    margin-bottom: 8px !important;
+    position: static !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .row-menu,
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .card-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .row-menu > button:first-child,
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .row-menu .small-btn:first-child,
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .card-actions > button:first-child,
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .card-actions .small-btn:first-child {
+    width: 100% !important;
+    min-height: 42px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border: 1.5px solid #bfdbfe !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .row-menu > button:nth-child(2),
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .row-menu .small-btn:nth-child(2),
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .card-actions > button:nth-child(2),
+  html body .admin-data-page .table-wrap:not(.government-voter-preview) tbody td[data-label="Actions"] .card-actions .small-btn:nth-child(2) {
+    width: 100% !important;
+    min-height: 42px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    background: #f8fafc !important;
+    color: #334155 !important;
+    border: 1.5px solid #cbd5e1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Universal Modal Detail Cards */
+html body .detail-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03) !important;
+  margin-bottom: 10px !important;
+}
+
+html body .detail-card h3 {
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin: 0 0 10px 0 !important;
+  padding-bottom: 6px !important;
+  border-bottom: 1.5px solid #f1f5f9 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+html body .detail-card p {
+  font-size: 12.5px !important;
+  line-height: 1.6 !important;
+  color: #334155 !important;
+  margin: 6px 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+html body .detail-card p b {
+  color: #64748b !important;
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.02em !important;
+  display: inline-block !important;
+  min-width: 90px !important;
+}
+
+/* Birthday Card Nagarsevak Profile */
+html body .birthday-nagar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 12px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  margin: 10px 0 !important;
+}
+
+html body .birthday-nagar small {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+}
+
+html body .birthday-nagar strong {
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  display: block !important;
+}
+
+html body .birthday-nagar .party-badge {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  background: #edf2f7 !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+  display: inline-block !important;
+  margin-top: 3px !important;
+}
+
+

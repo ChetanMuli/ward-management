@@ -1785,60 +1785,85 @@ html {
   html body :is(.app-shell, .user-portal) .table-wrap tbody tr,
   html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody tr,
   html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table tbody tr {
+    display: flex !important;
+    flex-direction: column !important;
     padding: 14px 14px 12px !important;
-    border: 1px solid #e6ebf3 !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 16px !important;
-    background: #fff !important;
-    box-shadow: 0 8px 22px rgba(16, 29, 48, 0.05) !important;
-  }
-
-  html body :is(.app-shell, .user-portal) .table-wrap tbody td,
-  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td,
-  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) td:nth-child(n),
-  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td,
-  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:nth-child(n) {
-    display: block !important;
-    position: relative !important;
-    grid-template-columns: none !important;
-    grid-column: auto !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03) !important;
+    margin-bottom: 14px !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    padding: 8px 0 8px 108px !important;
-    border: 0 !important;
-    border-bottom: 1px solid #f0f3f8 !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:not(:first-child):not([data-label="Actions"]),
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td:not(:first-child):not([data-label="Actions"]),
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) td:nth-child(n):not(:first-child):not([data-label="Actions"]),
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:not(:first-child):not([data-label="Actions"]),
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:nth-child(n):not(:first-child):not([data-label="Actions"]) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    position: static !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    background: #f8fafc !important;
+    border: 1px solid #edf2f7 !important;
+    border-radius: 10px !important;
+    padding: 8px 12px !important;
+    margin-bottom: 7px !important;
     min-height: 0 !important;
     height: auto !important;
     overflow: visible !important;
+    box-sizing: border-box !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
   }
 
-  html body :is(.app-shell, .user-portal) .table-wrap tbody td::before,
-  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td::before,
-  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td::before {
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:not(:first-child):not([data-label="Actions"])::before,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td:not(:first-child):not([data-label="Actions"])::before,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:not(:first-child):not([data-label="Actions"])::before {
     content: attr(data-label) !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 10px !important;
-    width: 96px !important;
-    margin: 0 !important;
+    position: static !important;
+    inset: auto !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    margin: 0 0 3px 0 !important;
     padding: 0 !important;
-    grid-column: auto !important;
-    grid-row: auto !important;
-    display: block !important;
-    font-size: 9px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 10px !important;
     font-weight: 800 !important;
-    letter-spacing: 0.06em !important;
+    letter-spacing: 0.05em !important;
     text-transform: uppercase !important;
-    color: #7b8799 !important;
-    line-height: 1.35 !important;
+    color: #64748b !important;
+    line-height: 1.2 !important;
   }
 
-  html body :is(.app-shell, .user-portal) .table-wrap tbody td > *,
-  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td > *,
-  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td > * {
-    grid-column: auto !important;
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:not(:first-child):not([data-label="Actions"]) > *,
+  html body :is(.app-shell, .user-portal) .table-wrap:not(.government-voter-preview) tbody td:not(:first-child):not([data-label="Actions"]) > *,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:not(:first-child):not([data-label="Actions"]) > * {
     display: block !important;
     max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  html body :is(.app-shell, .user-portal) .table-wrap tbody td:not(:first-child):not([data-label="Actions"]) strong,
+  html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:not(:first-child):not([data-label="Actions"]) strong {
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    line-height: 1.35 !important;
   }
 
   html body :is(.app-shell, .user-portal) .table-wrap tbody td > .cell-value,
@@ -1848,6 +1873,7 @@ html {
     align-items: flex-start !important;
     gap: 2px !important;
     min-width: 0 !important;
+    width: 100% !important;
   }
 
   html body :is(.app-shell, .user-portal) .table-wrap tbody td .muted,
@@ -1901,10 +1927,10 @@ html {
   html body :is(.app-shell, .user-portal) .table-wrap tbody td:first-child .muted,
   html body :is(.app-shell, .user-portal) .staff-table-scroll .staff-data-table td:first-child .muted {
     margin-top: 3px !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.05em !important;
-    text-transform: uppercase !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em !important;
+    text-transform: none !important;
     color: #7b8799 !important;
   }
 

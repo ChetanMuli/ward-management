@@ -1003,105 +1003,87 @@ export default function Dashboard() {
 
       {/* EXECUTIVE DUTY HERO BANNER (Nagarsevak & Field Employee) */}
       {field && (
-        <section className="dash-hero-card">
-          <div className="dash-hero-content">
+        <section className={`dash-hero-card executive-hero-card ${nagar ? 'is-nagarsevak-card' : 'is-employee-card'}`}>
+          <div className="dash-hero-main-row">
             <div className="dash-hero-avatar-wrap">
               <FaceAvatar
                 name={data.user?.name || user?.name}
                 photo={data.user?.photo || user?.photo}
                 className="dash-hero-avatar"
               />
-              <span className={`dash-role-badge ${nagar ? 'badge-nagar' : 'badge-emp'}`}>
-                {nagar ? 'Nagarsevak' : 'Employee'}
-              </span>
             </div>
 
             <div className="dash-hero-details">
-              <div className="dash-hero-title-row">
-                <h2>{data.user?.name || user?.name}</h2>
-                <span className="dash-status-pill">On duty</span>
+              <div className="dash-hero-badges-row">
+                <span className={`dash-role-badge ${nagar ? 'badge-nagar' : 'badge-emp'}`}>
+                  {nagar ? '🏛️ Nagarsevak' : '🛠️ Field Officer'}
+                </span>
+                {nagar && data.user?.wardSeat && (
+                  <span className="dash-seat-badge">Seat {data.user.wardSeat}</span>
+                )}
               </div>
 
-              <div className="dash-meta-pills">
-                <span className="dash-meta-pill">
+              <h2 className="dash-hero-name">{data.user?.name || user?.name}</h2>
+
+              <div className="dash-hero-scope-line">
+                <span className="dash-scope-pin">📍</span>
+                <span className="dash-scope-text">
                   <strong>Ward:</strong> {scopeText}
                 </span>
-
-                {nagar && data.user?.wardSeat && (
-                  <span className="dash-meta-pill">
-                    <strong>Seat:</strong> {data.user.wardSeat}
-                  </span>
-                )}
-
-                {nagar && data.user?.partyName && (
-                  <span className="dash-meta-pill">
-                    <strong>Party:</strong> {data.user.partyName}
-                  </span>
-                )}
-
-                {employee && (
-                  <span className="dash-meta-pill">
-                    <strong>Designation:</strong> {data.employee?.designation || 'Field Officer'}
-                  </span>
-                )}
-
-                {employee && empManager && (
-                  <span className="dash-meta-pill dash-manager-pill">
-                    <strong>Under Nagarsevak:</strong>{' '}
-                    <a href={`tel:${empManager.mobile}`} className="dash-tel-link" title="Tap to call">
-                      {empManager.name} ({empManager.mobile || 'Call'})
-                    </a>
-                  </span>
-                )}
               </div>
 
-              {/* Employee assigned areas / colonies */}
-              {employee && (
-                <div className="dash-colonies-wrap">
-                  <span className="dash-colonies-label">Assigned Colonies / Areas:</span>
-                  {assignedAreas.length > 0 ? (
-                    <div className="dash-colonies-tags">
-                      {assignedAreas.map((a) => (
-                        <span key={a.id} className="dash-colony-tag">
-                          {a.name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="dash-all-areas-tag">Full Ward Coverage (All Areas)</span>
+              {(nagar && (data.user?.partyName || data.user?.officialAddress)) && (
+                <div className="dash-hero-meta-row">
+                  {data.user?.partyName && (
+                    <span className="dash-hero-meta-item">
+                      <span className="dash-meta-icon">🏛️</span>
+                      <strong>Party:</strong> {data.user.partyName}
+                    </span>
+                  )}
+                  {data.user?.officialAddress && (
+                    <span className="dash-hero-meta-item">
+                      <span className="dash-meta-icon">🏢</span>
+                      <strong>Office:</strong> {data.user.officialAddress}
+                    </span>
                   )}
                 </div>
               )}
 
-              {/* Nagarsevak official office */}
-              {nagar && data.user?.officialAddress && (
-                <div className="dash-office-line">
-                  <span><strong>Public Office:</strong> {data.user.officialAddress}</span>
+              {employee && (
+                <div className="dash-hero-meta-row">
+                  <span className="dash-hero-meta-item">
+                    <strong>Designation:</strong> {data.employee?.designation || 'Field Officer'}
+                  </span>
+                  {empManager && (
+                    <span className="dash-hero-meta-item">
+                      <strong>Nagarsevak:</strong>{' '}
+                      <a href={`tel:${empManager.mobile}`} className="dash-tel-link" title="Tap to call Nagarsevak">
+                        📞 {empManager.name} ({empManager.mobile || 'Call'})
+                      </a>
+                    </span>
+                  )}
                 </div>
               )}
-            {/* Contact & Office info for Nagarsevak */}
-              <div className="dash-meta-pills dash-contact-pills">
-                {(data.user?.mobile || user?.mobile) && (
-                  <span className="dash-meta-pill">
-                    <strong>Mobile:</strong>{' '}
-                    <a href={`tel:${data.user?.mobile || user?.mobile}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                      {data.user?.mobile || user?.mobile}
-                    </a>
-                  </span>
-                )}
-                {(data.user?.email || user?.email) && (
-                  <span className="dash-meta-pill">
-                    <strong>Email:</strong> {data.user?.email || user?.email}
-                  </span>
-                )}
-                {nagar && data.user?.officialAddress && (
-                  <span className="dash-meta-pill">
-                    <strong>Office:</strong> {data.user.officialAddress}
-                  </span>
-                )}
-              </div>
             </div>
           </div>
+
+          {/* Employee assigned areas / colonies */}
+          {employee && (
+            <div className="dash-colonies-wrap">
+              <span className="dash-colonies-label">Assigned Colonies / Areas:</span>
+              {assignedAreas.length > 0 ? (
+                <div className="dash-colonies-tags">
+                  {assignedAreas.map((a) => (
+                    <span key={a.id} className="dash-colony-tag">
+                      {a.name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="dash-all-areas-tag">Full Ward Coverage (All Areas)</span>
+              )}
+            </div>
+          )}
         </section>
       )}
 

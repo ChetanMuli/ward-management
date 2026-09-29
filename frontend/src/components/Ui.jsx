@@ -356,12 +356,6 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera',initialFacing=
        <button type="button" className="primary-btn" style={{minHeight:'46px',width:'100%',maxWidth:'340px',padding:'12px 18px',cursor:'pointer',fontWeight:'bold',fontSize:'15px',background:'#0284c7',borderColor:'#0284c7',boxShadow:'0 2px 8px rgba(2,132,199,0.3)',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}} onClick={()=>deviceCamRef.current?.click()}>
         📸 फोन कॅमेऱ्याने फोटो काढा (Use Phone Camera)
        </button>
-       <button type="button" className="ghost-btn" style={{minHeight:'38px',width:'100%',maxWidth:'340px',padding:'8px 14px',cursor:'pointer',fontWeight:'600',fontSize:'13px'}} onClick={()=>initCamera(facing)}>
-        🔄 ब्राउझर कॅमेरा पुन्हा सुरू करा (Retry Live Camera)
-       </button>
-       <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'8px',padding:'8px 12px',fontSize:'11.5px',color:'#7f1d1d',textAlign:'left',width:'100%',maxWidth:'340px',boxSizing:'border-box',lineHeight:'1.4'}}>
-        <strong>ब्राउझर परवानगी टीप:</strong> वर 🔒 चिन्हावर टॅप करा → Permissions → Camera: Allow करा. किंवा थेट वरील निळे बटण वापरून फोटो काढा.
-       </div>
        <div style={{display:'flex',gap:'8px',flexWrap:'wrap',justifyContent:'center',marginTop:'4px'}}>
         <button type="button" className="small-btn" style={{minHeight:'36px',padding:'6px 14px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
          📁 गॅलरी / फाईलमधून निवडा (Choose File)
@@ -375,9 +369,6 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera',initialFacing=
         📸 फोन कॅमेऱ्याने फोटो काढा (Phone Camera)
        </button>
        <div style={{display:'flex',gap:'10px',justifyContent:'center',flexWrap:'wrap'}}>
-        <button type="button" className="ghost-btn" style={{minHeight:'38px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>initCamera(facing)}>
-         🔄 पुन्हा प्रयत्न करा (Try Again)
-        </button>
         <button type="button" className="ghost-btn" style={{minHeight:'38px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
          📁 फाईल निवडा (Choose file)
         </button>

@@ -1,12 +1,15 @@
 const { Op } = require('sequelize');
-const { Family, Person, House, Area, Ward, VoterProfile } = require('../models');
+const { Family, Person, House, Area, Ward, VoterProfile, Apartment } = require('../models');
 const ApiError=require('../utils/ApiError');
 const {success}=require('../utils/apiResponse');
 const asyncHandler=require('../utils/asyncHandler');
 const {logAudit}=require('../services/audit.service');
 const include=[
  {model:Person,as:'members',include:[{model:VoterProfile,as:'voterProfile'}]},
- {model:House,as:'house',include:[{model:Area,as:'area',include:[{model:Ward,as:'ward'}]}]},
+ {model:House,as:'house',include:[
+   {model:Area,as:'area',include:[{model:Ward,as:'ward'}]},
+   {model:Apartment,as:'apartment'}
+ ]},
 ];
 const list=asyncHandler(async(req,res)=>{
  const {page=1,limit=50,search,houseId,status,areaId}=req.query; const where={};

@@ -98,6 +98,24 @@ export default function Families(){
   return true;
  });
  const listedApartments=formApartments.filter(a=>!filters.areaId||String(a.areaId||a.area?.id||'')===String(filters.areaId));
+ const getAptName = (house) => {
+   if (!house) return '';
+   if (house.apartment?.name) return house.apartment.name;
+   const aptId = house.apartmentId || house.apartment?.id;
+   if (aptId) {
+     const found = apartments.find(a => String(a.id) === String(aptId));
+     if (found?.name) return found.name;
+   }
+   return '';
+ };
+ const resolveHouse = (house) => {
+   if (!house) return null;
+   const aptName = getAptName(house);
+   if (aptName && !house.apartment?.name) {
+     return { ...house, apartment: { ...(house.apartment || {}), name: aptName } };
+   }
+   return house;
+ };
  const districtOptions=useMemo(()=>{
   const list=MAHARASHTRA_DISTRICTS.map(d=>({value:d,label:d}));
   const cur=form?.nativeDistrict;
@@ -275,8 +293,8 @@ export default function Families(){
   {!!visible.length&&<p className="family-scope-bar">{visible.length} {visible.length===1?'family':'families'}{filters.areaId?` in ${colonyOptions.find(a=>String(a.id)===String(filters.areaId))?.name||'this colony'}`:''}{filters.homeKind==='HOUSE'?' in independent houses':''}{filters.homeKind==='FLAT'||filters.apartmentId?` in ${filters.apartmentId?(formApartments.find(a=>String(a.id)===String(filters.apartmentId))?.name||'this apartment'):'flats'}`:''}{filters.peopleFilter==='OUT_VOTER'?' with out of city voters':filters.peopleFilter==='OUT_OF_CITY'?' with out of city members':filters.peopleFilter==='VOTER'?' with voters':filters.peopleFilter==='AT_HOME'?' with members at this house':''}.</p>}
   {!rows?<Loading/>:!visible.length?<Empty>{filters.peopleFilter==='OUT_VOTER'?'No families with out of city voters for this filter.':filters.peopleFilter==='OUT_OF_CITY'?'No families with out of city members for this filter.':filters.apartmentId||filters.homeKind==='FLAT'?'No families in this flat / apartment yet. Add a family and pick the flat number.':filters.areaId?'No families in this colony yet.':'No families found for this ward/filter.'}</Empty>:<div className="family-grid">{visible.map(f=><article className="family-card" key={f.id}>
    <div className="family-card-top"><div><span className="eyebrow">FAMILY</span><h3>{f.familyName||'Unnamed family'}</h3></div><span className="muted">{(f.members||[]).filter(m=>m.status!=='DECEASED').length} active members{(f.members||[]).some(m=>m.status!=='DECEASED'&&isOutOfCity(m))?` · ${(f.members||[]).filter(m=>m.status!=='DECEASED'&&isOutOfCity(m)).length} out of city`:''}</span></div>
-   <div className="family-meta"><div><span>{isFlatHome(f.house)?'Flat':'House'}</span><strong className="plain-cell">{placeLine([isFlatHome(f.house)?f.house?.apartment?.name:'',f.house?.houseNumber])||'—'}</strong></div><div><span>Colony</span><strong>{f.house?.area?.name||'—'}</strong></div><div><span>Native village</span><strong>{f.nativeVillage||'—'}</strong></div></div>
-   <p className="family-address">{housePlace(f.house)||f.house?.address||'No address'}</p>
+   <div className="family-meta"><div><span>{isFlatHome(f.house)?'Apartment / Flat':'House'}</span><strong className="plain-cell">{isFlatHome(f.house)?([getAptName(f.house),f.house?.houseNumber?`Flat ${f.house.houseNumber}`:''].filter(Boolean).join(' · ')||(f.house?.houseNumber?`Flat ${f.house.houseNumber}`:'—')):(f.house?.houseNumber?`House ${f.house.houseNumber}`:'—')}</strong></div><div><span>Colony</span><strong>{f.house?.area?.name||'—'}</strong></div><div><span>Native village</span><strong>{f.nativeVillage||'—'}</strong></div></div>
+   <p className="family-address">{housePlace(resolveHouse(f.house))||f.house?.address||'No address'}</p>
     {(can('CREATE_CITIZENS')||pin||hasCoords(f.house?.latitude,f.house?.longitude))&&<div className="family-mid-actions">
      {can('CREATE_CITIZENS')&&<button type="button" className="small-btn family-add-btn" onClick={()=>{setEditingMember(null);setMemberFamilyId(f.id);setMemberForm({...emptyPerson,familyId:f.id})}}>+ Add member</button>}
      {hasCoords(f.house?.latitude,f.house?.longitude)&&<DirectionsLink lat={f.house.latitude} lng={f.house.longitude} label="Directions" className="small-btn family-dir-btn"/>}
@@ -293,7 +311,7 @@ export default function Families(){
 
   {detail&&<Modal wide title={`${detail.familyName||'Family'} · Complete family`} onClose={()=>{setDetail(null);setMemberForm(null);setEditingMember(null);setMemberFamilyId('')}}>
    <div className="detail-grid">
-    <div className="detail-card"><h3>Household</h3><p><b>Path:</b> {housePlace(detail.house)||'—'}</p><p><b>Lives in:</b> {isFlatHome(detail.house)?'Flat':'House'}</p><p><b>Apartment:</b> {detail.house?.apartment?.name||'—'}</p><p><b>{isFlatHome(detail.house)?'Flat number':'House number'}:</b> {detail.house?.houseNumber||'—'}</p><p><b>Address:</b> {detail.house?.address||'—'}</p><p><b>Landmark:</b> {detail.house?.landmark||'—'}</p><p><b>City:</b> {detail.house?.city||detail.house?.area?.city||'—'}</p><p><b>Ward:</b> {detail.house?.area?.ward?.wardNumber||'—'} · {detail.house?.area?.ward?.name||''}</p><p><b>Colony:</b> {detail.house?.area?.name||'—'}</p></div>
+    <div className="detail-card"><h3>Household</h3><p><b>Path:</b> {housePlace(resolveHouse(detail.house))||'—'}</p><p><b>Lives in:</b> {isFlatHome(detail.house)?'Flat':'House'}</p><p><b>Apartment:</b> {getAptName(detail.house)||detail.house?.apartment?.name||'—'}</p><p><b>{isFlatHome(detail.house)?'Flat number':'House number'}:</b> {detail.house?.houseNumber||'—'}</p><p><b>Address:</b> {detail.house?.address||'—'}</p><p><b>Landmark:</b> {detail.house?.landmark||'—'}</p><p><b>City:</b> {detail.house?.city||detail.house?.area?.city||'—'}</p><p><b>Ward:</b> {detail.house?.area?.ward?.wardNumber||'—'} · {detail.house?.area?.ward?.name||''}</p><p><b>Colony:</b> {detail.house?.area?.name||'—'}</p></div>
     <div className="detail-card"><h3>Go to this home</h3>
      <MapPreview lat={detail.house?.latitude} lng={detail.house?.longitude} label={detail.house?.houseNumber?`House ${detail.house.houseNumber}`:'This home'}>
       {pin&&<button type="button" className="small-btn loc-update-btn family-detail-loc-btn" onClick={()=>openHouseLoc(detail.house,detail.id,true)}>Update location</button>}
