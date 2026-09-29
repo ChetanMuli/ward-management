@@ -1073,13 +1073,6 @@ export default function Staff() {
         }
       />
 
-      <div className="staff-role-clarification-banner" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: 'var(--bg-subtle, #f8fafc)', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', marginBottom: '14px', fontSize: '13px', color: 'var(--text-muted, #64748b)' }}>
-        <span style={{ fontSize: '18px' }}>ℹ️</span>
-        <span>
-          <strong>Ward Workers / Staff Note:</strong> Employees in this system are field workers, assistants, and karyakartas working directly under the Nagarsevak (not Municipal Corporation government employees).
-        </span>
-      </div>
-
       <ErrorBox error={error} />
 
       <div className="tabs">
@@ -1228,7 +1221,11 @@ export default function Staff() {
 
 
                         <td data-label="Mobile">
-                          {n.mobile || '—'}
+                          {n.mobile ? (
+                            <span title={master ? n.mobile : 'Protected'}>
+                              {master ? `••••••${String(n.mobile).slice(-4)}` : '••••••••••'}
+                            </span>
+                          ) : '—'}
                         </td>
 
 
@@ -1363,7 +1360,7 @@ export default function Staff() {
                             <div className="muted">
                               {e.designation ||
                                 'Field Employee'}
-                              {(e.mobile || e.User?.mobile) ? ` · ${e.mobile || e.User?.mobile}` : ''}
+                              {(e.mobile || e.User?.mobile) ? ` · ••••••${String(e.mobile || e.User?.mobile).slice(-4)}` : ''}
                             </div>
                           </td>
 
@@ -1382,7 +1379,7 @@ export default function Staff() {
                             <td data-label="Managing Nagarsevak">
                               {e.manager?.name ||
                                 '—'}
-                              {e.manager?.mobile ? <div className="muted">{e.manager.mobile}</div> : null}
+                              {e.manager?.mobile ? <div className="muted">••••••{String(e.manager.mobile).slice(-4)}</div> : null}
                             </td>
                           )}
 

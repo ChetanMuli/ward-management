@@ -117,7 +117,7 @@ export function SearchableSelect({label, value, onChange, options=[], placeholde
   let top=above?r.top-maxHeight-6:r.bottom+6;
   if(top<pad)top=pad;
   if(top+maxHeight>viewportH-pad)top=Math.max(pad,viewportH-pad-maxHeight);
-  setMenuStyle({position:'fixed',left,top,width,height:maxHeight,maxHeight,overflow:'hidden',display:'flex',flexDirection:'column',boxSizing:'border-box',touchAction:'auto','--picker-w':`${width}px`});
+  setMenuStyle({position:'fixed',left,top,width,height:maxHeight,maxHeight,zIndex:200060,overflow:'hidden',display:'flex',flexDirection:'column',boxSizing:'border-box',touchAction:'auto','--picker-w':`${width}px`});
  };
  const selected=options.find(o=>String(o.value)===String(value));
  const filtered=options.filter(o=>optionSearchText(o).includes(query.trim().toLowerCase()));
@@ -187,7 +187,7 @@ export function SearchableMultiSelect({label,value=[],onChange,options=[],placeh
   let top=above?r.top-maxHeight-6:r.bottom+6;
   if(top<pad)top=pad;
   if(top+maxHeight>viewportH-pad)top=Math.max(pad,viewportH-pad-maxHeight);
-  setMenuStyle({position:'fixed',left,top,width,height:maxHeight,maxHeight,overflow:'hidden',display:'flex',flexDirection:'column',boxSizing:'border-box',touchAction:'auto','--picker-w':`${width}px`});
+  setMenuStyle({position:'fixed',left,top,width,height:maxHeight,maxHeight,zIndex:200060,overflow:'hidden',display:'flex',flexDirection:'column',boxSizing:'border-box',touchAction:'auto','--picker-w':`${width}px`});
  };
  useLayoutEffect(()=>{if(!open)return;position();requestAnimationFrame(()=>{if(window.innerWidth>800) searchRef.current?.focus(); if(optionsRef.current) optionsRef.current.scrollTop=0});const s=()=>position();window.addEventListener('scroll',s,true);window.addEventListener('resize',s);return()=>{window.removeEventListener('scroll',s,true);window.removeEventListener('resize',s)}},[open,filtered.length]);
  useEffect(()=>{if(!open)return;const close=e=>{if(!controlRef.current?.contains(e.target)&&!menuRef.current?.contains(e.target)){setOpen(false);setQuery('')}};const esc=e=>{if(e.key==='Escape'){setOpen(false);setQuery('')}};const closeOverlay=()=>{setOpen(false);setQuery('')};document.addEventListener('pointerdown',close,true);document.addEventListener('mousedown',close,true);document.addEventListener('keydown',esc);window.addEventListener('ward:close-overlays',closeOverlay);return()=>{document.removeEventListener('pointerdown',close,true);document.removeEventListener('mousedown',close,true);document.removeEventListener('keydown',esc);window.removeEventListener('ward:close-overlays',closeOverlay)}},[open]);
@@ -248,47 +248,61 @@ export async function compressImageFile(file, maxDimension=1280, quality=0.72){
  });
 }
 
-function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
+function CameraModal({open,onClose,onCapture,cameraLabel='Camera',initialFacing='environment'}){
  const videoRef=useRef(null),canvasRef=useRef(null);
  const deviceCamRef=useRef(null),fileInputRef=useRef(null);
- const [busy,setBusy]=useState(false),[error,setError]=useState(''),[facing,setFacing]=useState('environment');
+ const [busy,setBusy]=useState(false),[error,setError]=useState(''),[facing,setFacing]=useState(initialFacing);
  const [hasStream,setHasStream]=useState(false);
+ const activeStreamRef=useRef(null);
+
+ const stopStream=()=>{
+  if(activeStreamRef.current?.getTracks){
+   activeStreamRef.current.getTracks().forEach(t=>{try{t.stop();}catch(_){}});
+   activeStreamRef.current=null;
+  }
+  if(videoRef.current)videoRef.current.srcObject=null;
+  setHasStream(false);
+ };
+
+ const initCamera=async(mode=facing)=>{
+  stopStream();
+  setError('');
+  setBusy(true);
+  if(!navigator.mediaDevices?.getUserMedia){
+   setError('NOT_SUPPORTED');
+   setBusy(false);
+   return;
+  }
+  try{
+   let stream;
+   try{
+    stream=await navigator.mediaDevices.getUserMedia({
+     video:{facingMode:mode?{ideal:mode}:'environment',width:{ideal:1280},height:{ideal:720}},
+     audio:false
+    });
+   }catch(_){
+    stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+   }
+   activeStreamRef.current=stream;
+   if(videoRef.current){
+    videoRef.current.srcObject=stream;
+    await videoRef.current.play().catch(()=>{});
+    setHasStream(true);
+   }
+   setBusy(false);
+  }catch(err){
+   const denied=err?.name==='NotAllowedError'||err?.name==='PermissionDeniedError';
+   const notFound=err?.name==='NotFoundError'||err?.name==='DevicesNotFoundError';
+   setError(denied?'PERMISSION_DENIED':(notFound?'NOT_FOUND':(err?.message||'Unable to start camera.')));
+   setBusy(false);
+  }
+ };
 
  useEffect(()=>{
   if(!open)return;
-  let activeStream=null;setError('');setBusy(true);setHasStream(false);
-
-  async function initCamera(){
-   if(!navigator.mediaDevices?.getUserMedia){
-    setError('Live webcam preview is not supported on this browser or requires HTTPS. Use device camera or file below:');
-    setBusy(false);return;
-   }
-   try{
-    let stream;
-    try{
-     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},audio:false});
-    }catch(_){
-     stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-    }
-    activeStream=stream;
-    if(videoRef.current){
-     videoRef.current.srcObject=stream;
-     await videoRef.current.play().catch(()=>{});
-     setHasStream(true);
-    }
-    setBusy(false);
-   }catch(err){
-    const denied=err?.name==='NotAllowedError'||err?.name==='PermissionDeniedError';
-    const notFound=err?.name==='NotFoundError'||err?.name==='DevicesNotFoundError';
-    setError(denied?'Camera access was denied. Allow camera permissions or use device camera below.':(notFound?'No camera detected on this system. You can choose a photo from your device below:':(err?.message||'Unable to start camera.')));
-    setBusy(false);
-   }
-  }
-  initCamera();
+  initCamera(facing);
   return()=>{
-   if(activeStream?.getTracks)activeStream.getTracks().forEach(t=>t.stop());
-   if(videoRef.current)videoRef.current.srcObject=null;
-   setHasStream(false);
+   stopStream();
   };
  },[open,facing]);
 
@@ -298,15 +312,19 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
   const max=1280,scale=Math.min(1,max/Math.max(video.videoWidth||1280,video.videoHeight||720));
   canvas.width=Math.max(1,Math.round((video.videoWidth||1280)*scale));canvas.height=Math.max(1,Math.round((video.videoHeight||720)*scale));
   const ctx=canvas.getContext('2d');if(!ctx)return;
+  if(facing==='user'){
+   ctx.translate(canvas.width,0);
+   ctx.scale(-1,1);
+  }
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  let data=canvas.toDataURL('image/jpeg',.72);if(data.length>1450000)data=canvas.toDataURL('image/jpeg',.58);
+  let data=canvas.toDataURL('image/jpeg',.78);if(data.length>1450000)data=canvas.toDataURL('image/jpeg',.62);
   onCapture(data);onClose();
  };
 
  const handleFileCapture=async e=>{
   const file=e.target.files?.[0];if(!file)return;
   try{
-   const data=await compressImageFile(file,1280,.72);
+   const data=await compressImageFile(file,1280,.75);
    if(data){onCapture(data);onClose();}
   }catch(err){
    window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not read image'}}));
@@ -323,16 +341,45 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
     <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">×</button>
    </div>
    {error ? (
-    <div className="camera-error" style={{padding:'24px 16px',textAlign:'center'}}>
-     <p style={{margin:'0 0 16px',fontSize:'13px',color:'#b42318',lineHeight:'1.5'}}>{error}</p>
-     <div style={{display:'flex',gap:'10px',justifyContent:'center',flexWrap:'wrap'}}>
-      <button type="button" className="primary-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>deviceCamRef.current?.click()}>
-       Take photo with device camera
-      </button>
-      <button type="button" className="ghost-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
-       Choose from device
-      </button>
-     </div>
+    <div className="camera-error" style={{padding:'20px 16px',textAlign:'center'}}>
+     {error==='PERMISSION_DENIED' ? (
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'10px'}}>
+       <span style={{fontSize:'32px'}}>📷</span>
+       <strong style={{fontSize:'15px',color:'#991b1b'}}>Camera Permission Required / कॅमेरा परवानगी आवश्यक आहे</strong>
+       <p style={{margin:'0',fontSize:'13px',color:'#b91c1c',lineHeight:'1.5'}}>
+        Please allow camera access in your browser. Tap "Allow" when the browser asks for permission.
+       </p>
+       <button type="button" className="primary-btn" style={{minHeight:'42px',padding:'10px 20px',cursor:'pointer',fontWeight:'bold',fontSize:'14px',background:'#008069',borderColor:'#008069'}} onClick={()=>initCamera(facing)}>
+        📷 Allow Camera & Start / कॅमेरा परवानगी द्या
+       </button>
+       <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'8px',padding:'8px 12px',fontSize:'11px',color:'#7f1d1d',textAlign:'left',width:'100%',boxSizing:'border-box'}}>
+        <strong>If blocked in settings:</strong> Tap 🔒 icon near address bar → Site settings / Permissions → Camera: Allow → Tap Allow Camera above.
+       </div>
+       <div style={{display:'flex',gap:'8px',flexWrap:'wrap',justifyContent:'center',marginTop:'6px'}}>
+        <button type="button" className="small-btn" style={{minHeight:'38px',padding:'6px 14px',cursor:'pointer'}} onClick={()=>deviceCamRef.current?.click()}>
+         📸 Take photo with phone camera
+        </button>
+        <button type="button" className="ghost-btn" style={{minHeight:'38px',padding:'6px 14px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
+         Choose file
+        </button>
+       </div>
+      </div>
+     ) : (
+      <div>
+       <p style={{margin:'0 0 16px',fontSize:'13px',color:'#b42318',lineHeight:'1.5'}}>{error==='NOT_FOUND'?'No camera detected on this device.':(error==='NOT_SUPPORTED'?'Web camera preview is not supported on this browser. Use device camera:':error)}</p>
+       <div style={{display:'flex',gap:'10px',justifyContent:'center',flexWrap:'wrap'}}>
+        <button type="button" className="primary-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>initCamera(facing)}>
+         🔄 Try Again
+        </button>
+        <button type="button" className="primary-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>deviceCamRef.current?.click()}>
+         Take photo with device camera
+        </button>
+        <button type="button" className="ghost-btn" style={{minHeight:'42px',padding:'8px 16px',cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
+         Choose from device
+        </button>
+       </div>
+      </div>
+     )}
     </div>
    ) : (
     <div className="camera-preview-wrap">
@@ -344,14 +391,14 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
     <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
      {!error && hasStream && (
       <button type="button" className="small-btn" onClick={()=>setFacing(f=>f==='environment'?'user':'environment')}>
-       Switch camera
+       🔄 Switch camera
       </button>
      )}
      <button type="button" className="small-btn" onClick={()=>deviceCamRef.current?.click()}>
-      Device camera
+      📱 Device camera
      </button>
      <button type="button" className="small-btn" onClick={()=>fileInputRef.current?.click()}>
-      Choose file
+      📁 Choose file
      </button>
     </div>
     <div style={{display:'flex',gap:'8px'}}>
@@ -363,15 +410,14 @@ function CameraModal({open,onClose,onCapture,cameraLabel='Camera'}){
      )}
     </div>
    </div>
-   <input ref={deviceCamRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleFileCapture}/>
-   <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFileCapture}/>
+   <input ref={deviceCamRef} type="file" accept="image/*" capture="environment" className="camera-hidden-input" onChange={handleFileCapture}/>
+   <input ref={fileInputRef} type="file" accept="image/*" className="camera-hidden-input" onChange={handleFileCapture}/>
   </div>
  </div>;
 }
 
 export function ImageField({label,value,onChange,optional=true,cameraLabel='Take photo'}){
  const [cameraOpen,setCameraOpen]=useState(false);
- const isMobile=isMobileOrTouch();
  const cameraInputRef=useRef(null);
  const fileInputRef=useRef(null);
 
@@ -379,7 +425,7 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
   const file=e.target.files?.[0];
   if(!file)return;
   try{
-   const data=await compressImageFile(file,1280,.72);
+   const data=await compressImageFile(file,1280,.75);
    if(data) onChange(data);
   }catch(err){
    window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:err?.message||'Could not process image.'}}));
@@ -388,7 +434,7 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
  };
 
  const handleCameraClick=()=>{
-  const canUseWebcam = !isMobile && typeof navigator!=='undefined' && !!navigator.mediaDevices?.getUserMedia && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const canUseWebcam = typeof navigator!=='undefined' && !!navigator.mediaDevices?.getUserMedia && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   if(canUseWebcam){
    setCameraOpen(true);
   } else {
@@ -406,8 +452,8 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
     <button type="button" className="upload-btn secondary-upload" onClick={()=>fileInputRef.current?.click()}>
      <span>Choose from device</span>
     </button>
-    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleFile}/>
-    <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFile}/>
+    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="camera-hidden-input" onChange={handleFile}/>
+    <input ref={fileInputRef} type="file" accept="image/*" className="camera-hidden-input" onChange={handleFile}/>
    </div>
    {value && (
     <div className="image-preview">
@@ -422,7 +468,6 @@ export function ImageField({label,value,onChange,optional=true,cameraLabel='Take
 
 export function MultiImageField({label,values=[],onChange,optional=true,max=5,cameraLabel='Open camera'}){
  const [cameraOpen,setCameraOpen]=useState(false);
- const isMobile=isMobileOrTouch();
  const cameraInputRef=useRef(null);
  const fileInputRef=useRef(null);
  const photos=(values||[]).filter(Boolean).slice(0,max);
@@ -434,7 +479,7 @@ export function MultiImageField({label,values=[],onChange,optional=true,max=5,ca
   for(const file of list){
    if(next.length>=max)break;
    try{
-    const data=await compressImageFile(file,1100,.65);
+    const data=await compressImageFile(file,1100,.68);
     if(data) next.push(data);
    }catch(_){}
   }
@@ -455,7 +500,7 @@ export function MultiImageField({label,values=[],onChange,optional=true,max=5,ca
    window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:`Maximum ${max} photos reached.`}}));
    return;
   }
-  const canUseWebcam = !isMobile && typeof navigator!=='undefined' && !!navigator.mediaDevices?.getUserMedia && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const canUseWebcam = typeof navigator!=='undefined' && !!navigator.mediaDevices?.getUserMedia && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   if(canUseWebcam){
    setCameraOpen(true);
   } else {
@@ -477,8 +522,8 @@ export function MultiImageField({label,values=[],onChange,optional=true,max=5,ca
     <button type="button" className={`upload-btn secondary-upload ${isMax?'is-disabled':''}`} disabled={isMax} onClick={()=>fileInputRef.current?.click()}>
      <span>Choose from device</span>
     </button>
-    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" disabled={isMax} style={{display:'none'}} onChange={handleNativeCapture}/>
-    <input ref={fileInputRef} type="file" accept="image/*" multiple disabled={isMax} style={{display:'none'}} onChange={handleNativeCapture}/>
+    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" disabled={isMax} className="camera-hidden-input" onChange={handleNativeCapture}/>
+    <input ref={fileInputRef} type="file" accept="image/*" multiple disabled={isMax} className="camera-hidden-input" onChange={handleNativeCapture}/>
    </div>
    {photos.length>0&&(
     <div className="image-preview-grid">
@@ -518,6 +563,7 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
  const fileRef=useRef(null),cameraRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
  const STAGE=Math.min(280, typeof window==='undefined'?280:Math.max(220, Math.min(280, window.innerWidth-56)));
  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false);
+ const [liveCameraOpen,setLiveCameraOpen]=useState(false);
  const cover=STAGE/Math.min(nat.w||1,nat.h||1);
  const scale=cover*zoom;
  const dw=(nat.w||1)*scale, dh=(nat.h||1)*scale;
@@ -579,6 +625,16 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
   };
   img.src=src;
  }
+
+ const handleCameraClick=()=>{
+  const canUseWebcam = typeof navigator!=='undefined' && !!navigator.mediaDevices?.getUserMedia && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if(canUseWebcam){
+   setLiveCameraOpen(true);
+  } else {
+   cameraRef.current?.click();
+  }
+ };
+
  const node=open?(
   <div className="photo-crop-backdrop" onPointerDown={()=>{setOpen(false);setSrc('')}}>
    <div className="photo-crop-modal" onPointerDown={e=>e.stopPropagation()}>
@@ -601,7 +657,7 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
    <div className="circle-photo-row">
     <FaceAvatar name={name||'User'} photo={value} className="staff-face-lg"/>
     <div className="circle-photo-actions">
-     <button type="button" className="small-btn" onClick={()=>cameraRef.current?.click()}>
+     <button type="button" className="small-btn" onClick={handleCameraClick}>
       Take photo
      </button>
      <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{value?'Change photo':'Choose photo'}</button>
@@ -609,9 +665,10 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
      {value?<button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button>:null}
      <p className="muted">Crop the face into the circle. This photo is used on the ward dashboard and birthday card.</p>
     </div>
-    <input ref={cameraRef} type="file" accept="image/*" capture="user" style={{display:'none'}} onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
-    <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
+    <input ref={cameraRef} type="file" accept="image/*" capture="user" className="camera-hidden-input" onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
+    <input ref={fileRef} type="file" accept="image/*" className="camera-hidden-input" onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
    </div>
+   <CameraModal open={liveCameraOpen} onClose={()=>setLiveCameraOpen(false)} onCapture={data=>openCrop(data)} initialFacing="user" cameraLabel="Take Profile Photo"/>
    {typeof document!=='undefined'&&node?createPortal(node,document.body):node}
   </div>
  );
@@ -665,7 +722,7 @@ export function RowMenu({items=[], menuOnly=false}){
   set('max-height',`${Math.round(maxH)}px`);
   set('bottom','auto');
   set('right','auto');
-  set('z-index','120');
+  set('z-index','200050');
  }
  useLayoutEffect(()=>{if(open)place();},[open,rest.length]);
  useEffect(()=>{

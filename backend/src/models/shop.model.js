@@ -15,6 +15,8 @@ const Shop = sequelize.define('Shop', {
   landmark: DataTypes.STRING,
   ownerName: DataTypes.STRING,
   ownerMobile: DataTypes.STRING,
+  propertyOwnerName: DataTypes.STRING,
+  propertyOwnerMobile: DataTypes.STRING,
   ownership: {
     type: DataTypes.ENUM('OWN', 'RENT', 'OTHER'),
     allowNull: true,

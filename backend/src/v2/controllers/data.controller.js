@@ -244,9 +244,54 @@ const persons = asyncHandler(async (req, res) => {
     if (!['AT_HOME','OUT_OF_CITY'].includes(status)) throw new ApiError(400,'Invalid presence status');
     where.presenceStatus=status;
   }
-  if (areaIds) {
+  if (req.query.occupationType) {
+    const occ = String(req.query.occupationType).toUpperCase();
+    if (['BUSINESS', 'SERVICE', 'OTHER'].includes(occ)) {
+      where.occupationType = occ;
+    }
+  }
+  if (req.query.employmentType) {
+    const emp = String(req.query.employmentType).toUpperCase();
+    if (['GOVERNMENT', 'PRIVATE'].includes(emp)) {
+      where.employmentType = emp;
+    }
+  }
+  if (req.query.gender) {
+    const g = String(req.query.gender).toUpperCase();
+    if (['MALE', 'FEMALE', 'OTHER'].includes(g)) {
+      where.gender = g;
+    }
+  }
+  if (req.query.ageGroup) {
+    const now = new Date();
+    const d18 = new Date(now.getFullYear() - 18, now.getMonth(), now.getDate()).toISOString().slice(0, 10);
+    const d60 = new Date(now.getFullYear() - 60, now.getMonth(), now.getDate()).toISOString().slice(0, 10);
+    if (req.query.ageGroup === 'SENIOR') {
+      where.dob = { [Op.ne]: null, [Op.lte]: d60 };
+    } else if (req.query.ageGroup === 'ADULT') {
+      where.dob = { [Op.ne]: null, [Op.lte]: d18 };
+    } else if (req.query.ageGroup === 'YOUTH') {
+      where.dob = { [Op.ne]: null, [Op.gt]: d18 };
+    }
+  }
+  if (req.query.areaId) {
+    const familyIds = await familyIdsForAreas([req.query.areaId]);
+    if (where.familyId) {
+      if (!familyIds.includes(where.familyId)) {
+        where.familyId = '00000000-0000-0000-0000-000000000000';
+      }
+    } else {
+      where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
+    }
+  } else if (areaIds) {
     const familyIds = await familyIdsForAreas(areaIds);
-    where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
+    if (where.familyId) {
+      if (!familyIds.includes(where.familyId)) {
+        where.familyId = '00000000-0000-0000-0000-000000000000';
+      }
+    } else {
+      where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
+    }
   }
   const r = await Person.findAndCountAll({ where, include, limit, offset, distinct: true, order: [['fullName', 'ASC']] });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });
@@ -490,6 +535,7 @@ const createHouse = asyncHandler(async (req, res) => {
   }
 
   const payload = { ...req.body };
+  payload.ownership = payload.ownership || 'OWN';
 
   const geo=pairCoords(payload.latitude,payload.longitude);
   payload.latitude=geo.latitude;

@@ -34,6 +34,8 @@ function shopFields(body){
     landmark:emptyToNull(body.landmark),
     ownerName:emptyToNull(body.ownerName),
     ownerMobile:emptyToNull(body.ownerMobile),
+    propertyOwnerName:emptyToNull(body.propertyOwnerName),
+    propertyOwnerMobile:emptyToNull(body.propertyOwnerMobile),
     ownership,
     openingHours:emptyToNull(body.openingHours),
     notes:emptyToNull(body.notes),
@@ -93,7 +95,7 @@ const create=asyncHandler(async(req,res)=>{
   const fields=shopFields(req.body);
   if(!fields.name) throw new ApiError(400,'Name is required');
   if(!fields.address) throw new ApiError(400,'Address is required');
-  if(!fields.ownership) throw new ApiError(400,'Select whether this place is owned or rented');
+  if(!fields.ownership) fields.ownership = 'OWN';
   const row=await Shop.create({...fields,areaId:area.id});
   await logAudit({user:req.user,action:'CREATE_SHOP',entity:'Shop',recordId:row.id,newValue:req.body,ipAddress:req.ip});
   const full=await Shop.findByPk(row.id,{include});
@@ -115,7 +117,7 @@ const update=asyncHandler(async(req,res)=>{
   }
   if(!patch.name) throw new ApiError(400,'Name is required');
   if(!patch.address) throw new ApiError(400,'Address is required');
-  if(!patch.ownership) throw new ApiError(400,'Select whether this place is owned or rented');
+  if(!patch.ownership) patch.ownership = old.ownership || 'OWN';
   await row.update(patch);
   await logAudit({user:req.user,action:'UPDATE_SHOP',entity:'Shop',recordId:row.id,oldValue:old,newValue:req.body,ipAddress:req.ip});
   const full=await Shop.findByPk(row.id,{include});

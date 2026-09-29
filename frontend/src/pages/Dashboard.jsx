@@ -1612,15 +1612,25 @@ export default function Dashboard() {
       <div className="two-col dashboard-lower">
         {/* Recent Complaints Stream */}
         <section className="panel dash-complaints-panel">
-          <div className="panel-title dash-recent-header">
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div className="dash-recent-header">
+            <div className="dash-recent-header-top">
+              <div className="dash-recent-title-group">
                 <h3 style={{ margin: 0 }}>Recent Complaints</h3>
                 {openCount > 0 && <span className="dash-open-badge">{openCount} {isEmployee(user) ? 'Assigned' : 'Open'}</span>}
               </div>
+
+              {can('VIEW_COMPLAINTS') && (
+                <button
+                  type="button"
+                  className="dash-view-all-btn"
+                  onClick={() => openTo('/complaints')}
+                >
+                  View all ↗
+                </button>
+              )}
             </div>
 
-            <div className="dash-recent-header-right">
+            <div className="dash-recent-header-bottom">
               <div className="dash-filter-pills" role="tablist">
                 <button
                   type="button"
@@ -1644,16 +1654,6 @@ export default function Dashboard() {
                   All Active {allActiveCount > 0 ? `(${allActiveCount})` : ''}
                 </button>
               </div>
-
-              {can('VIEW_COMPLAINTS') && (
-                <button
-                  type="button"
-                  className="small-btn dash-view-all-btn"
-                  onClick={() => openTo('/complaints')}
-                >
-                  View all ↗
-                </button>
-              )}
             </div>
           </div>
 
@@ -1684,16 +1684,18 @@ export default function Dashboard() {
                   <div className="dash-compact-main">
                     <div className="dash-compact-head">
                       <strong className="dash-compact-num">{c.complaintNumber}</strong>
-                      {c.category && (
-                        <span className="dash-compact-cat">
-                          {categoryLabel(c.category)}
-                        </span>
-                      )}
-                      {c.priority && (
-                        <span className={`priority-tag priority-${String(c.priority).toLowerCase()}`}>
-                          {c.priority}
-                        </span>
-                      )}
+                      <div className="dash-compact-badges">
+                        {c.category && (
+                          <span className="dash-compact-cat">
+                            {categoryLabel(c.category)}
+                          </span>
+                        )}
+                        {c.priority && (
+                          <span className={`priority-tag priority-${String(c.priority).toLowerCase()}`}>
+                            {c.priority}
+                          </span>
+                        )}
+                      </div>
                       <span className="dash-compact-date">
                         {formatShortDate(c.createdAt)}
                       </span>
@@ -1718,7 +1720,7 @@ export default function Dashboard() {
                     <StatusPill>{c.status}</StatusPill>
                     <button
                       type="button"
-                      className="small-btn view-btn"
+                      className="dash-compact-view-btn"
                       onClick={async () => {
                         try {
                           setDetail((await api.complaint(c.id)).data);
@@ -1739,10 +1741,27 @@ export default function Dashboard() {
                     type="button"
                     className="dash-more-toggle-btn"
                     onClick={() => setShowAllRecent((v) => !v)}
+                    aria-expanded={showAllRecent}
                   >
-                    {showAllRecent
-                      ? '▲ Show less'
-                      : `▼ Show more (${filteredRecent.length - 3} more)`}
+                    <span className="dash-more-text">
+                      {showAllRecent ? 'Show less' : 'Show more'}
+                    </span>
+                    {!showAllRecent && (
+                      <span className="dash-more-count">+{filteredRecent.length - 3}</span>
+                    )}
+                    <svg
+                      className={`dash-more-chevron ${showAllRecent ? 'expanded' : ''}`}
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
                   </button>
                 </div>
               )}
@@ -1795,7 +1814,7 @@ export default function Dashboard() {
                       href={`tel:${empManager.mobile}`}
                       className="primary-btn manager-call-btn"
                     >
-                      Call Nagarsevak ({empManager.mobile})
+                      Call Nagarsevak
                     </a>
                   )}
                   {can('VIEW_CHAT') && (
@@ -1840,8 +1859,8 @@ export default function Dashboard() {
                       </div>
                       <div className="emp-card-right">
                         {emp.mobile && (
-                          <a href={`tel:${emp.mobile}`} className="small-btn emp-call-btn">
-                            {emp.mobile}
+                          <a href={`tel:${emp.mobile}`} className="small-btn emp-call-btn" title="Call Employee">
+                            📞 Call
                           </a>
                         )}
                       </div>

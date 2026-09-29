@@ -335,9 +335,9 @@ export function installDynamicContentTranslator() {
   });
 
   const attach = () => {
-    const root = document.getElementById('root') || document.body;
-    if (root) {
-      observer.observe(root, { childList: true, subtree: true });
+    const target = document.body || document.getElementById('root');
+    if (target) {
+      observer.observe(target, { childList: true, subtree: true });
     }
   };
 
@@ -367,7 +367,7 @@ export const MR_TERMS = {
   GARBAGE: 'कचरा व स्वच्छता',
   DRAINAGE: 'सांडपाणी व ड्रेनेज',
   ELECTRICITY: 'विद्युत व दिवे',
-  HEALTH: 'आरोग्य व स्वच्छता',
+  HEALTH: 'आरॉग्य व स्वच्छता',
   STREETLIGHT: 'पथदिवे',
   PARK: 'उद्यान व मैदाने',
   ENCROACHMENT: 'अतिक्रमण',
@@ -397,19 +397,32 @@ export const MR_TERMS = {
   // People & Voters
   VOTER: 'मतदार',
   NON_VOTER: 'अमतदार',
+  NOT_SPECIFIED: 'अनिर्दिष्ट',
   MALE: 'पुरुष',
   FEMALE: 'स्त्री',
   OTHER: 'इतर',
 
-  // Occupations
+  // Occupations & Employment
   BUSINESS: 'व्यवसाय',
   SERVICE: 'नोकरी',
+  GOVERNMENT: 'शासकीय सेवा',
+  PRIVATE: 'खाजगी सेवा',
   STUDENT: 'विद्यार्थी',
   HOMEMAKER: 'गृहिणी',
   FARMER: 'शेतकरी',
   RETIRED: 'सेवानिवृत्त',
   DAILY_WAGER: 'रोजंदारी',
   UNEMPLOYED: 'बेरोजगार',
+
+  // Presence & Location
+  AT_HOME: 'या घरी उपलब्ध',
+  OUT_OF_CITY: 'गावी / शहराबाहेर',
+  OUT_VOTER: 'शहराबाहेर असलेले मतदार',
+
+  // Age Groups
+  ADULT: '१८+ प्रौढ',
+  SENIOR: '६०+ ज्येष्ठ नागरिक',
+  YOUTH: '१८ वर्षांखालील',
 
   // Roles
   SUPER_ADMIN: 'मास्टर अ‍ॅडमिन',
@@ -425,7 +438,8 @@ export const MR_TERMS = {
   AREA: 'परिसर / कॉलनी',
   HOUSE: 'घर',
   APARTMENT: 'इमारत / अपार्टमेंट',
-  SHOP: 'दुकान / कार्यालय',
+  SHOP: 'दुकान',
+  OFFICE: 'कार्यालय',
   FAMILY: 'कुटुंब',
   PERSON: 'नागरिक',
   COMPLAINT: 'तक्रार',
@@ -438,14 +452,22 @@ export const MR_TERMS = {
   USER: 'वापरकर्ता खाते',
 
   // Ownership & House Types
+  OWN: 'स्वतःचे',
   OWNED: 'स्वतःचे',
+  RENT: 'भाड्याने',
   RENTED: 'भाड्याने',
   LEASED: 'लीजवर',
+  INDEPENDENT_HOUSE: 'स्वतंत्र घर',
   BUNGALOW: 'बंगला',
   ROW_HOUSE: 'रो हाऊस',
   CHAWL: 'चाळ',
   SLUM: 'झोपडपट्टी',
   FLAT: 'फ्लॅट',
+
+  // Property & Shop Details
+  PROPERTY_OWNER: 'जागेचा मालक',
+  STORE_OWNER: 'दुकानदार / व्यावसायिक',
+  NATIVE_VILLAGE: 'मूळ गाव',
 
   // General Statuses
   VERIFIED: 'सत्यापित',

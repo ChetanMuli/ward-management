@@ -27,7 +27,7 @@ function lastPreview(m, isMr, currentUserId) {
   const prefix = String(m.senderUserId) === String(currentUserId) ? '✓✓ ' : '';
   if (m.messageType === 'IMAGE') return `${prefix}📷 ${isMr ? 'फोटो' : 'Photo'}`;
   if (m.messageType === 'VIDEO') return `${prefix}🎬 ${isMr ? 'व्हिडिओ' : 'Video'}`;
-  if (m.messageType === 'PDF') return `${prefix}📄 ${isMr ? 'दस्तऐवज (PDF)' : 'Document (PDF)'}`;
+  if (m.messageType === 'PDF') return `${prefix}📄 ${m.content || (isMr ? 'दस्तऐवज' : 'Document')}`;
   return `${prefix}${m.content || (isMr ? 'संदेश' : 'Message')}`;
 }
 
@@ -71,10 +71,44 @@ function formatMsgTime(dateStr) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatWhatsAppListItemDate(dateStr, isMr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  if (isToday) return formatMsgTime(dateStr);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) {
+    return isMr ? 'काल' : 'Yesterday';
+  }
+  return d.toLocaleDateString(isMr ? 'mr-IN' : 'en-IN', {
+    day: 'numeric',
+    month: 'numeric',
+    year: d.getFullYear() !== now.getFullYear() ? '2-digit' : undefined
+  });
+}
+
+function formatBubbleTimestamp(dateStr, isMr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const time = formatMsgTime(dateStr);
+  if (isToday) return time;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+  const dayPrefix = isYesterday ? (isMr ? 'काल, ' : 'Yesterday, ') : `${d.toLocaleDateString(isMr ? 'mr-IN' : 'en-IN', { day: 'numeric', month: 'short' })}, `;
+  return `${dayPrefix}${time}`;
+}
+
 function SenderRoleBadge({ sender, isMr }) {
   const role = String(sender?.Role?.name || sender?.role || '').toUpperCase();
   if (role === 'NAGARSEVAK') {
-    return <span className="wa-role-badge nagar">⭐ {isMr ? 'नगरसेवक' : 'Nagarsevak'}</span>;
+    return <span className="wa-role-badge nagar">{isMr ? 'नगरसेवक' : 'Nagarsevak'}</span>;
   }
   if (role === 'EMPLOYEE') {
     return <span className="wa-role-badge emp" title={isMr ? 'प्रभाग कार्यकर्ता (नगरसेवक कार्यालय)' : 'Ward Worker (under Nagarsevak)'}>🏷️ {isMr ? 'कार्यकर्ता' : 'Ward Worker'}</span>;
@@ -126,6 +160,17 @@ function GroupPage() {
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [selectedResidentId, setSelectedResidentId] = useState(null);
   const [selectedResidentName, setSelectedResidentName] = useState('');
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && lightboxImage) {
+        setLightboxImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxImage]);
 
   function openResidentModal(userId, name) {
     if (!canViewResidentDetails || !userId) return;
@@ -331,6 +376,7 @@ function GroupPage() {
       if (pendingAttachment) {
         await api.sendChatMessage(active.id, {
           messageType: pendingAttachment.type,
+          content: pendingAttachment.name || (pendingAttachment.type === 'PDF' ? 'Document.pdf' : ''),
           imageMime: pendingAttachment.mime,
           imageData: pendingAttachment.data
         });
@@ -361,11 +407,12 @@ function GroupPage() {
     if (!active || !file) return;
     setError('');
     const name = file.name || '';
-    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(name);
+    const ext = name.split('.').pop()?.toLowerCase() || '';
+    const isDoc = file.type === 'application/pdf' || /\.(pdf|docx?|xlsx?|pptx?|txt|csv)$/i.test(name) || /application\/(msword|vnd\.openxmlformats|vnd\.ms-|text\/plain|text\/csv)/i.test(file.type);
     const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(name);
     const isImage = file.type.startsWith('image/');
-    if (!isImage && !isPdf && !isVideo) {
-      setError(isMr ? 'कृपया फोटो, व्हिडिओ (MP4/WEBM/MOV) किंवा PDF निवडा.' : 'Please select a photo, video (MP4/WEBM/MOV) or PDF.');
+    if (!isImage && !isDoc && !isVideo) {
+      setError(isMr ? 'कृपया फोटो, व्हिडिओ (MP4/WEBM/MOV) किंवा दस्तऐवज (PDF/DOC/XLS/PPT) निवडा.' : 'Please select a photo, video (MP4/WEBM/MOV) or document (PDF/DOC/XLS/PPT).');
       if (fileRef.current) fileRef.current.value = '';
       return;
     }
@@ -377,7 +424,7 @@ function GroupPage() {
     try {
       if (isImage) {
         const data = await readImage(file);
-        setPendingAttachment({ data, name: name || 'Photo', type: 'IMAGE', mime: 'image/jpeg' });
+        setPendingAttachment({ data, name: name || 'Photo.jpg', type: 'IMAGE', mime: 'image/jpeg' });
       } else if (isVideo) {
         let data = await readFileData(file);
         const mime = file.type === 'video/quicktime' || /\.mov$/i.test(name) ? 'video/quicktime' : file.type === 'video/webm' ? 'video/webm' : 'video/mp4';
@@ -385,10 +432,11 @@ function GroupPage() {
           const payload = String(data).split(',')[1] || '';
           data = `data:${mime};base64,${payload}`;
         }
-        setPendingAttachment({ data, name: name || 'Video', type: 'VIDEO', mime });
+        setPendingAttachment({ data, name: name || 'Video.mp4', type: 'VIDEO', mime });
       } else {
         const data = await readFileData(file);
-        setPendingAttachment({ data, name: name || 'Document.pdf', type: 'PDF', mime: 'application/pdf' });
+        const mime = file.type || (ext === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+        setPendingAttachment({ data, name: name || 'Document.pdf', type: 'PDF', mime });
       }
     } catch (e) {
       setError(isMr ? 'निवडलेली फाइल वाचणे शक्य झाले नाही.' : 'Could not read the selected attachment.');
@@ -585,7 +633,7 @@ function GroupPage() {
                   {isEmp 
                     ? (isMr ? '🏷️ प्रभाग कार्यकर्ता (नगरसेवक कार्यालय)' : '🏷️ Ward Worker') 
                     : councillor 
-                      ? (isMr ? '⭐ नगरसेवक' : '⭐ Nagarsevak') 
+                      ? (isMr ? 'नगरसेवक' : 'Nagarsevak') 
                       : (isMr ? 'प्रभाग चॅट' : 'Ward Chat')}
                 </span>
               </div>
@@ -633,13 +681,12 @@ function GroupPage() {
                   >
                     <div className="wa-avatar-wrap">
                       <GroupFace g={g} />
-                      {g.type === 'NAGARSEVAK' && <span className="wa-avatar-badge" title="Nagarsevak">⭐</span>}
                     </div>
                     <div className="wa-item-copy">
                       <div className="wa-item-row-top">
                         <strong className="wa-item-title notranslate" translate="no">{groupTitle(g)}</strong>
                         {last?.createdAt && (
-                          <span className="wa-item-time">{formatMsgTime(last.createdAt)}</span>
+                          <span className="wa-item-time">{formatWhatsAppListItemDate(last.createdAt, isMr)}</span>
                         )}
                       </div>
                       <div className="wa-item-row-bottom">
@@ -692,14 +739,13 @@ function GroupPage() {
 
                 <div className="wa-head-avatar-wrap">
                   <GroupFace g={active} />
-                  {active.type === 'NAGARSEVAK' && <span className="wa-head-star">⭐</span>}
                 </div>
 
                 <div className="wa-head-copy">
                   <h2 className="notranslate wa-head-title" translate="no">{groupTitle(active)}</h2>
                   <div className="wa-head-subtitle">
                     {active.type === 'NAGARSEVAK' ? (
-                      <span>⭐ {active.nagarsevak?.name || (isMr ? 'नगरसेवक गट' : 'Nagarsevak')}</span>
+                      <span>{isMr ? 'नगरसेवक गट' : 'Nagarsevak Group'}{active.ward ? ` · ${isMr ? `प्रभाग ${active.ward.wardNumber}` : `Ward ${active.ward.wardNumber}`}` : ''}</span>
                     ) : (
                       <span>
                         {isAllChat(active) 
@@ -819,18 +865,42 @@ function GroupPage() {
 
                             <div className="wa-bubble-body">
                               {m.messageType === 'IMAGE' ? (
-                                <ChatAttachment groupId={active.id} messageId={m.id} type="IMAGE" isMr={isMr} />
+                                <ChatAttachment 
+                                  groupId={active.id} 
+                                  messageId={m.id} 
+                                  type="IMAGE" 
+                                  fileName={m.content} 
+                                  messageDate={m.createdAt} 
+                                  isMr={isMr} 
+                                  onOpenImage={(url, name, date) => setLightboxImage({ url, name, date })} 
+                                />
                               ) : m.messageType === 'VIDEO' ? (
-                                <ChatAttachment groupId={active.id} messageId={m.id} type="VIDEO" isMr={isMr} />
+                                <ChatAttachment 
+                                  groupId={active.id} 
+                                  messageId={m.id} 
+                                  type="VIDEO" 
+                                  fileName={m.content} 
+                                  messageDate={m.createdAt} 
+                                  isMr={isMr} 
+                                />
                               ) : m.messageType === 'PDF' ? (
-                                <ChatAttachment groupId={active.id} messageId={m.id} type="PDF" isMr={isMr} />
+                                <ChatAttachment 
+                                  groupId={active.id} 
+                                  messageId={m.id} 
+                                  type="PDF" 
+                                  fileName={m.content} 
+                                  messageDate={m.createdAt} 
+                                  isMr={isMr} 
+                                />
                               ) : (
                                 <p className="wa-message-text">{m.content}</p>
                               )}
                             </div>
 
                             <div className="wa-msg-meta">
-                              <small>{formatMsgTime(m.createdAt)}</small>
+                              <small title={new Date(m.createdAt).toLocaleString(isMr ? 'mr-IN' : 'en-IN')}>
+                                {formatBubbleTimestamp(m.createdAt, isMr)}
+                              </small>
                               {mine && (
                                 <span className="wa-ticks" title="Sent & Delivered" aria-label="Sent & Delivered">
                                   ✓✓
@@ -896,7 +966,7 @@ function GroupPage() {
                       <input 
                         ref={fileRef} 
                         type="file" 
-                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,application/pdf,.pdf,.mp4,.webm,.mov" 
+                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.mp4,.webm,.mov" 
                         onChange={e => chooseAttachment(e.target.files?.[0])}
                       />
                     </label>
@@ -1052,11 +1122,47 @@ function GroupPage() {
           onClose={() => setSelectedResidentId(null)}
         />
       )}
+
+      {lightboxImage && (
+        <div className="wa-lightbox-overlay" onClick={() => setLightboxImage(null)}>
+          <div className="wa-lightbox-modal" onClick={e => e.stopPropagation()}>
+            <div className="wa-lightbox-bar">
+              <button 
+                type="button" 
+                className="wa-lightbox-close-btn" 
+                onClick={() => setLightboxImage(null)}
+                aria-label="Close"
+                title={isMr ? 'बंद करा (Esc)' : 'Close (Esc)'}
+              >
+                ✕
+              </button>
+              <div className="wa-lightbox-title-wrap">
+                <span className="wa-lightbox-title">{lightboxImage.name || (isMr ? 'फोटो' : 'Photo')}</span>
+                {lightboxImage.date && (
+                  <span className="wa-lightbox-date">{formatBubbleTimestamp(lightboxImage.date, isMr)}</span>
+                )}
+              </div>
+              <a 
+                href={lightboxImage.url} 
+                download={lightboxImage.name || 'Photo.jpg'} 
+                className="wa-lightbox-dl-btn"
+                title={isMr ? 'डाउनलोड करा' : 'Download'}
+                onClick={e => e.stopPropagation()}
+              >
+                ⬇️
+              </a>
+            </div>
+            <div className="wa-lightbox-body">
+              <img src={lightboxImage.url} alt="Shared Photo Preview" className="wa-lightbox-img" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function ChatAttachment({ groupId, messageId, type, isMr }) {
+function ChatAttachment({ groupId, messageId, type, fileName, messageDate, isMr, onOpenImage }) {
   const [src, setSrc] = useState('');
   const [failed, setFailed] = useState(false);
 
@@ -1082,7 +1188,7 @@ function ChatAttachment({ groupId, messageId, type, isMr }) {
     return (
       <div className="chat-image-error">
         {type === 'PDF' 
-          ? (isMr ? 'PDF अनुपलब्ध आहे' : 'PDF unavailable') 
+          ? (isMr ? 'दस्तऐवज अनुपलब्ध आहे' : 'Document unavailable') 
           : type === 'VIDEO' 
             ? (isMr ? 'व्हिडिओ अनुपलब्ध आहे' : 'Video unavailable') 
             : (isMr ? 'चित्र अनुपलब्ध आहे' : 'Image unavailable')}
@@ -1093,13 +1199,21 @@ function ChatAttachment({ groupId, messageId, type, isMr }) {
   if (!src) {
     return (
       <div className="chat-image-loading">
-        {isMr ? 'लोड होत आहे…' : `Loading ${type === 'PDF' ? 'PDF' : type === 'VIDEO' ? 'video' : 'image'}…`}
+        {isMr ? 'लोड होत आहे…' : `Loading ${type === 'PDF' ? 'document' : type === 'VIDEO' ? 'video' : 'image'}…`}
       </div>
     );
   }
 
   if (type === 'PDF') {
-    const fileName = `Document_${String(messageId || '').slice(0, 8)}.pdf`;
+    const docName = fileName || `Document_${String(messageId || '').slice(0, 8)}.pdf`;
+    const ext = (docName.split('.').pop() || 'PDF').toUpperCase();
+    const isDocx = ['DOC', 'DOCX'].includes(ext);
+    const isXls = ['XLS', 'XLSX', 'CSV'].includes(ext);
+    const isPpt = ['PPT', 'PPTX'].includes(ext);
+    const isText = ['TXT'].includes(ext);
+    const badgeColor = isDocx ? '#2b579a' : isXls ? '#217346' : isPpt ? '#d24726' : isText ? '#475569' : '#e53935';
+    const dateFormatted = messageDate ? formatChatDate(messageDate, isMr) : '';
+
     const triggerDownload = (e) => {
       e?.preventDefault?.();
       e?.stopPropagation?.();
@@ -1107,7 +1221,7 @@ function ChatAttachment({ groupId, messageId, type, isMr }) {
       try {
         const a = document.createElement('a');
         a.href = src;
-        a.download = fileName;
+        a.download = docName;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
@@ -1129,15 +1243,21 @@ function ChatAttachment({ groupId, messageId, type, isMr }) {
     };
 
     return (
-      <div className="wa-pdf-card" onClick={triggerDownload} title={isMr ? 'डाउनलोड करण्यासाठी क्लिक करा' : 'Click to download PDF'}>
-        <div className="wa-pdf-icon" aria-hidden="true">📄</div>
+      <div className="wa-pdf-card" onClick={triggerDownload} title={isMr ? `“${docName}” डाउनलोड करण्यासाठी क्लिक करा` : `Click to download “${docName}”`}>
+        <div className="wa-pdf-badge-icon" style={{ backgroundColor: badgeColor }}>
+          <span className="wa-pdf-badge-text">{ext.slice(0, 4)}</span>
+        </div>
         <div className="wa-pdf-info">
-          <span className="wa-pdf-name">{isMr ? 'दस्तऐवज (PDF)' : 'Document (PDF)'}</span>
+          <span className="wa-pdf-name" title={docName}>{docName}</span>
+          <div className="wa-pdf-sub">
+            <span className="wa-pdf-ext">{ext}</span>
+            {dateFormatted && <span className="wa-pdf-date">• {dateFormatted}</span>}
+          </div>
           <div className="wa-pdf-actions">
-            <button type="button" className="wa-pdf-btn wa-pdf-btn-dl" onClick={triggerDownload}>
+            <button type="button" className="wa-pdf-btn wa-pdf-btn-dl" onClick={triggerDownload} title={isMr ? 'डाउनलोड करा' : 'Download'}>
               ⬇️ {isMr ? 'डाउनलोड' : 'Download'}
             </button>
-            <button type="button" className="wa-pdf-btn wa-pdf-btn-open" onClick={triggerOpen}>
+            <button type="button" className="wa-pdf-btn wa-pdf-btn-open" onClick={triggerOpen} title={isMr ? 'पहा' : 'View'}>
               👁️ {isMr ? 'पहा' : 'View'}
             </button>
           </div>
@@ -1149,7 +1269,14 @@ function ChatAttachment({ groupId, messageId, type, isMr }) {
   if (type === 'VIDEO') {
     return (
       <div className="wa-video-card">
-        <video className="wa-chat-video" src={src} controls playsInline preload="metadata" />
+        <video 
+          className="wa-chat-video" 
+          src={src} 
+          controls 
+          playsInline 
+          webkit-playsinline="true"
+          preload="metadata" 
+        />
       </div>
     );
   }
@@ -1159,9 +1286,9 @@ function ChatAttachment({ groupId, messageId, type, isMr }) {
       <img 
         className="wa-chat-image" 
         src={src} 
-        alt="Shared Attachment" 
-        onClick={() => window.open(src, '_blank')} 
-        title={isMr ? 'पूर्ण आकारात पाहण्यासाठी क्लिक करा' : 'Click to view full size'}
+        alt={fileName || 'Shared Photo'} 
+        onClick={() => onOpenImage?.(src, fileName || 'Photo.jpg', messageDate)} 
+        title={isMr ? 'मोठ्या आकारात पाहण्यासाठी क्लिक करा' : 'Click to view full image'}
       />
     </div>
   );
@@ -1205,8 +1332,9 @@ function readImage(file) {
 function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const nativeInputRef = useRef(null);
   const [facingMode, setFacingMode] = useState('environment');
-  const [hasCamera, setHasCamera] = useState(true);
+  const [hasCamera, setHasCamera] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [capturedDataUrl, setCapturedDataUrl] = useState(null);
   const [capturedBlob, setCapturedBlob] = useState(null);
@@ -1222,99 +1350,80 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, onClose]);
 
-  // Start video stream
-  useEffect(() => {
-    if (!isOpen) return;
+  const stopStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => {
+        try { t.stop(); } catch (e) {}
+      });
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
 
-    let active = true;
+  const startCamera = async (mode = facingMode) => {
+    stopStream();
     setLoading(true);
     setCameraError('');
-    setCapturedDataUrl(null);
-    setCapturedBlob(null);
+    setHasCamera(false);
 
-    async function initCamera() {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => {
-          try { t.stop(); } catch (e) {}
-        });
-        streamRef.current = null;
-      }
-
-      if (!navigator?.mediaDevices?.getUserMedia) {
-        if (active) {
-          setHasCamera(false);
-          setCameraError(isMr ? 'तुमच्या ब्राउझरमध्ये थेट कॅमेरा उपलब्ध नाही.' : 'Live camera is not supported in this browser.');
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const constraints = {
-          video: {
-            facingMode: { ideal: facingMode },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: false
-        };
-        const s = await navigator.mediaDevices.getUserMedia(constraints);
-        if (!active) {
-          s.getTracks().forEach(t => {
-            try { t.stop(); } catch (e) {}
-          });
-          return;
-        }
-        streamRef.current = s;
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-          await videoRef.current.play().catch(() => {});
-        }
-        setHasCamera(true);
-        setLoading(false);
-      } catch (err) {
-        console.warn('Camera facingMode stream error, trying fallback:', err);
-        try {
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          if (!active) {
-            fallbackStream.getTracks().forEach(t => {
-              try { t.stop(); } catch (e) {}
-            });
-            return;
-          }
-          streamRef.current = fallbackStream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = fallbackStream;
-            await videoRef.current.play().catch(() => {});
-          }
-          setHasCamera(true);
-          setLoading(false);
-        } catch (fallbackErr) {
-          if (active) {
-            setHasCamera(false);
-            setCameraError(
-              fallbackErr.name === 'NotAllowedError'
-                ? (isMr ? 'कॅमेरा परवानगी नाकारली गेली. कृपया ब्राउझर सेटिंग्जमध्ये कॅमेरा परवानगी द्या.' : 'Camera permission denied. Please allow camera access in browser settings.')
-                : (isMr ? 'कॅमेरा सुरू करणे शक्य झाले नाही.' : 'Unable to access camera.')
-            );
-            setLoading(false);
-          }
-        }
-      }
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      setCameraError(isMr ? 'तुमच्या ब्राउझरमध्ये थेट कॅमेरा उपलब्ध नाही.' : 'Live camera is not supported in this browser.');
+      setLoading(false);
+      return;
     }
 
-    initCamera();
+    try {
+      const constraints = {
+        video: {
+          facingMode: mode ? { ideal: mode } : 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+      let s;
+      try {
+        s = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (firstErr) {
+        console.warn('Primary camera constraints failed, attempting fallback:', firstErr);
+        s = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+
+      streamRef.current = s;
+      if (videoRef.current) {
+        videoRef.current.srcObject = s;
+        await videoRef.current.play().catch(() => {});
+      }
+      setHasCamera(true);
+      setLoading(false);
+    } catch (err) {
+      console.error('Camera access error:', err);
+      setHasCamera(false);
+      setLoading(false);
+      const isDenied = err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError';
+      if (isDenied) {
+        setCameraError('PERMISSION_DENIED');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setCameraError(isMr ? 'कोणताही कॅमेरा आढळला नाही.' : 'No camera found on this device.');
+      } else {
+        setCameraError(err.message || (isMr ? 'कॅमेरा सुरू करणे शक्य झाले नाही.' : 'Unable to access camera.'));
+      }
+    }
+  };
+
+  // Start video stream on open or facing mode toggle
+  useEffect(() => {
+    if (!isOpen) return;
+    setCapturedDataUrl(null);
+    setCapturedBlob(null);
+    startCamera(facingMode);
 
     return () => {
-      active = false;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => {
-          try { t.stop(); } catch (e) {}
-        });
-        streamRef.current = null;
-      }
+      stopStream();
     };
-  }, [isOpen, facingMode, isMr]);
+  }, [isOpen, facingMode]);
 
   const snapPhoto = () => {
     if (!videoRef.current) return;
@@ -1421,23 +1530,73 @@ function LiveCameraModal({ isOpen, onClose, onCapture, isMr }) {
               )}
               {cameraError && (
                 <div className="wa-camera-error-box">
-                  <p>⚠️ {cameraError}</p>
-                  <label className="wa-camera-native-trigger">
-                    <span>📷 {isMr ? 'फोनच्या कॅमेरा ॲपने फोटो काढा' : 'Take photo using phone camera'}</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      capture="environment" 
-                      style={{ display: 'none' }}
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          onCapture(file);
-                          onClose();
-                        }
-                      }}
-                    />
-                  </label>
+                  {cameraError === 'PERMISSION_DENIED' ? (
+                    <div className="wa-cam-perm-wrap">
+                      <div className="wa-cam-perm-icon">📷</div>
+                      <h4 className="wa-cam-perm-title">
+                        {isMr ? 'कॅमेरा परवानगी आवश्यक आहे' : 'Camera Permission Required'}
+                      </h4>
+                      <p className="wa-cam-perm-desc">
+                        {isMr 
+                          ? 'थेट कॅमेरा सुरू करण्यासाठी खालील बटण दाबा व ब्राउझरने विचारल्यावर "Allow" (परवानगी द्या) वर टॅप करा.' 
+                          : 'Tap below to request permission and allow camera access in your browser.'}
+                      </p>
+                      <button
+                        type="button"
+                        className="wa-cam-action-btn wa-cam-allow-btn"
+                        onClick={() => startCamera(facingMode)}
+                      >
+                        📷 {isMr ? 'कॅमेरा परवानगी द्या व सुरू करा' : 'Allow Camera & Start'}
+                      </button>
+                      <div className="wa-cam-guide-box">
+                        <small>
+                          {isMr 
+                            ? 'टीप: ब्राउझरने आधीच ब्लॉक केले असल्यास वर 🔒 चिन्हावर टॅप करा → Camera: Allow करा → पुन्हा प्रयत्न करा.' 
+                            : 'Note: If blocked in settings, tap 🔒 icon in address bar → Allow Camera → Try again.'}
+                        </small>
+                      </div>
+                      <button
+                        type="button"
+                        className="wa-cam-action-btn wa-cam-native-btn"
+                        onClick={() => nativeInputRef.current?.click()}
+                      >
+                        📸 {isMr ? 'फोनच्या कॅमेरा ॲपने फोटो काढा' : 'Take photo using phone camera'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="wa-cam-perm-wrap">
+                      <p style={{ margin: '0 0 12px', color: '#fca5a5', fontWeight: 600 }}>⚠️ {cameraError}</p>
+                      <button
+                        type="button"
+                        className="wa-cam-action-btn wa-cam-allow-btn"
+                        onClick={() => startCamera(facingMode)}
+                      >
+                        🔄 {isMr ? 'पुन्हा प्रयत्न करा' : 'Try Again'}
+                      </button>
+                      <button
+                        type="button"
+                        className="wa-cam-action-btn wa-cam-native-btn"
+                        onClick={() => nativeInputRef.current?.click()}
+                      >
+                        📸 {isMr ? 'फोनच्या कॅमेरा ॲपने फोटो काढा' : 'Take photo using phone camera'}
+                      </button>
+                    </div>
+                  )}
+                  <input 
+                    ref={nativeInputRef}
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment" 
+                    className="camera-hidden-input"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        onCapture(file);
+                        onClose();
+                      }
+                      e.target.value = '';
+                    }}
+                  />
                 </div>
               )}
             </>

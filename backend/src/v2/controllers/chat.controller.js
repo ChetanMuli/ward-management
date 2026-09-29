@@ -621,21 +621,28 @@ const sendMessage = asyncHandler(async (req, res) => {
     imageMime = String(req.body.imageMime || '').toLowerCase();
     const imageMatch = data.match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/i);
     const pdfMatch = data.match(/^data:application\/pdf;base64,(.+)$/i);
+    const docMatch = data.match(/^data:(application\/(pdf|msword|vnd\.openxmlformats-officedocument\.\S+|vnd\.ms-excel|vnd\.ms-powerpoint|octet-stream)|text\/(plain|csv));base64,(.+)$/i);
     const videoMatch = data.match(/^data:video\/(mp4|webm|quicktime);base64,(.+)$/i);
     if (type === 'IMAGE' && !imageMatch) throw new ApiError(400, 'Only JPG, PNG or WEBP images are allowed');
-    if (type === 'PDF' && !pdfMatch) throw new ApiError(400, 'Only PDF files are allowed');
+    if (type === 'PDF' && !pdfMatch && !docMatch) throw new ApiError(400, 'Only PDF or document files are allowed');
     if (type === 'VIDEO' && !videoMatch) throw new ApiError(400, 'Only MP4, WEBM or MOV videos are allowed');
     if (data.length > 17 * 1024 * 1024) throw new ApiError(413, 'Attachment is too large. Maximum 12 MB.');
-    const ext = type === 'PDF'
-      ? 'pdf'
-      : type === 'VIDEO'
-        ? (videoMatch[1].toLowerCase() === 'quicktime' ? 'mov' : videoMatch[1].toLowerCase())
-        : (imageMatch[1].toLowerCase() === 'jpeg' ? 'jpg' : imageMatch[1].toLowerCase());
-    const payload = type === 'PDF' ? pdfMatch[1] : type === 'VIDEO' ? videoMatch[2] : imageMatch[2];
+    let ext = 'pdf';
+    if (type === 'VIDEO') {
+      ext = videoMatch[1].toLowerCase() === 'quicktime' ? 'mov' : videoMatch[1].toLowerCase();
+    } else if (type === 'IMAGE') {
+      ext = imageMatch[1].toLowerCase() === 'jpeg' ? 'jpg' : imageMatch[1].toLowerCase();
+    } else {
+      const origExt = path.extname(content || '').replace('.', '').toLowerCase();
+      ext = origExt && ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'].includes(origExt) ? origExt : 'pdf';
+    }
+    const payload = type === 'PDF'
+      ? (pdfMatch ? pdfMatch[1] : docMatch ? docMatch[4] : (data.split(';base64,')[1] || data))
+      : (type === 'VIDEO' ? videoMatch[2] : imageMatch[2]);
     imagePath = `${crypto.randomUUID()}.${ext}`;
     fs.writeFileSync(path.join(uploadDir, imagePath), Buffer.from(payload, 'base64'));
     imageMime = type === 'PDF'
-      ? 'application/pdf'
+      ? (imageMime || (ext === 'pdf' ? 'application/pdf' : 'application/octet-stream'))
       : type === 'VIDEO'
         ? (imageMime || `video/${ext === 'mov' ? 'quicktime' : ext}`)
         : (imageMime || `image/${ext === 'jpg' ? 'jpeg' : ext}`);
@@ -697,7 +704,11 @@ const image = asyncHandler(async (req, res) => {
   if (!fs.existsSync(file)) throw new ApiError(404, 'Attachment file not found');
   const fallbackMime = row.messageType === 'PDF' ? 'application/pdf' : row.messageType === 'VIDEO' ? 'video/mp4' : 'image/jpeg';
   res.set('Content-Type', row.imageMime || fallbackMime);
-  if (row.messageType === 'PDF') res.set('Content-Disposition', 'inline');
+  if (row.messageType === 'PDF') {
+    const filename = row.content || `Document_${String(row.id).slice(0, 8)}.pdf`;
+    res.set('Content-Disposition', `inline; filename="${encodeURIComponent(filename)}"`);
+  }
+  res.set('Accept-Ranges', 'bytes');
   res.set('Cache-Control', 'private, max-age=3600');
   return res.sendFile(file);
 });

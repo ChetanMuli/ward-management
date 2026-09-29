@@ -6,7 +6,7 @@ const { normalisePermissions, ALL_PERMISSIONS, resolveFieldPermissions } = requi
 
 const authenticateV2 = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query?.token ? String(req.query.token) : null);
   if (!token) throw new ApiError(401, 'Authentication token is required');
 
   let payload;

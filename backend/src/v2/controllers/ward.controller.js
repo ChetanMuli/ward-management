@@ -21,8 +21,8 @@ const list=asyncHandler(async(req,res)=>{
   const visible=new Set((await getVisibleNagarsevakIds(req.user.wardId)).map(String));
   const sanitized=rows.map(row=>{
    const json=row.toJSON();
-   json.users=(json.users||[]).filter(u=>visible.has(String(u.id)));
-   json.nagarsevakSubscriptions=(json.nagarsevakSubscriptions||[]).filter(s=>visible.has(String(s.nagarsevakUserId)));
+   json.users=(json.users||[]).filter(u=>visible.has(String(u.id))).map(u=>({ ...u, mobile: null }));
+   json.nagarsevakSubscriptions=(json.nagarsevakSubscriptions||[]).filter(s=>visible.has(String(s.nagarsevakUserId))).map(s=>({ ...s, nagarsevak: s.nagarsevak ? { ...s.nagarsevak, mobile: null } : null }));
    return json;
   });
   return success(res,{data:sanitized});

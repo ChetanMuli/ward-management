@@ -14,15 +14,11 @@ const DeathRecord = require('./deathRecord.model');
 const Employee = require('./employee.model');
 const Complaint = require('./complaint.model');
 const ComplaintHistory = require('./complaintHistory.model');
-const UpdateRequest = require('./updateRequest.model');
 const Notification = require('./notification.model');
 const AuditLog = require('./auditLog.model');
 const Scheme = require('./scheme.model');
 const GovernmentVoterList = require('./governmentVoterList.model');
 const WardUpdate = require('./wardUpdate.model');
-const WardChatGroup = require('./wardChatGroup.model');
-const WardChatGroupMember = require('./wardChatGroupMember.model');
-const WardChatMessage = require('./wardChatMessage.model');
 const AllChat = require('./allChat.model');
 const AllChatMember = require('./allChatMember.model');
 const AllChatMessage = require('./allChatMessage.model');
@@ -149,12 +145,6 @@ ComplaintAttachment.belongsTo(Complaint, { foreignKey: 'complaintId', as: 'compl
 User.hasMany(ComplaintHistory, { foreignKey: 'changedByUserId' });
 ComplaintHistory.belongsTo(User, { foreignKey: 'changedByUserId', as: 'changedBy' });
 
-// ---- UpdateRequest ----
-Person.hasMany(UpdateRequest, { foreignKey: 'personId', as: 'updateRequests' });
-UpdateRequest.belongsTo(Person, { foreignKey: 'personId' });
-
-User.hasMany(UpdateRequest, { foreignKey: 'requestedByUserId' });
-UpdateRequest.belongsTo(User, { foreignKey: 'requestedByUserId', as: 'requestedBy' });
 
 // ---- Notification ----
 User.hasMany(Notification, { foreignKey: 'userId' });
@@ -187,22 +177,6 @@ Scheme.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
 User.hasMany(Scheme, { foreignKey: 'createdByUserId', as: 'createdSchemes' });
 Scheme.belongsTo(User, { foreignKey: 'createdByUserId', as: 'createdBy' });
 
-
-// ---- Legacy combined ward chat (kept for rollback / unread copies) ----
-Ward.hasMany(WardChatGroup, { foreignKey:'wardId', as:'chatGroups' });
-WardChatGroup.belongsTo(Ward, { foreignKey:'wardId', as:'ward' });
-User.hasMany(WardChatGroup, { foreignKey:'nagarsevakUserId', as:'nagarsevakGroupsLegacy' });
-WardChatGroup.belongsTo(User, { foreignKey:'nagarsevakUserId', as:'nagarsevak' });
-User.hasMany(WardChatGroup, { foreignKey:'createdByUserId', as:'createdChatGroupsLegacy' });
-WardChatGroup.belongsTo(User, { foreignKey:'createdByUserId', as:'createdBy' });
-WardChatGroup.hasMany(WardChatGroupMember, { foreignKey:'groupId', as:'members' });
-WardChatGroupMember.belongsTo(WardChatGroup, { foreignKey:'groupId', as:'group' });
-User.hasMany(WardChatGroupMember, { foreignKey:'userId', as:'chatMembershipsLegacy' });
-WardChatGroupMember.belongsTo(User, { foreignKey:'userId', as:'user' });
-WardChatGroup.hasMany(WardChatMessage, { foreignKey:'groupId', as:'messages' });
-WardChatMessage.belongsTo(WardChatGroup, { foreignKey:'groupId', as:'group' });
-User.hasMany(WardChatMessage, { foreignKey:'senderUserId', as:'chatMessagesLegacy' });
-WardChatMessage.belongsTo(User, { foreignKey:'senderUserId', as:'sender' });
 
 // ---- All chat (ward community) ----
 Ward.hasMany(AllChat, { foreignKey:'wardId', as:'allChats' });
@@ -304,15 +278,11 @@ module.exports = {
   Employee,
   Complaint,
   ComplaintHistory,
-  UpdateRequest,
   Notification,
   AuditLog,
   Scheme,
   GovernmentVoterList,
   WardUpdate,
-  WardChatGroup,
-  WardChatGroupMember,
-  WardChatMessage,
   AllChat,
   AllChatMember,
   AllChatMessage,
