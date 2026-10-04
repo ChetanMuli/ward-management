@@ -4,6 +4,7 @@ import { roleOf, isMaster, isSubMaster, isNagarsevak, isEmployee } from '../rbac
 import { Empty, ErrorBox, Loading, Modal, PageHeader, SearchableSelect, FaceAvatar, isDataImage } from '../components/Ui';
 import WardFilter from '../components/WardFilter';
 import { useWardFilter } from '../wardFilter';
+import {formatWardLabel, formatWardNumber} from '../wardFormat';
 
 const previousWindows = [
   { key: 'yesterday', label: 'Yesterday', from: -1, to: -1 },
@@ -74,8 +75,7 @@ export function getEffectiveNagarsevak(record, currentUser = getUser()) {
 export const getWardNagarsevak = getEffectiveNagarsevak;
 
 function birthdayMessageMarathi(name, nagarsevakName, partyName, wardNumber) {
-  const cleanWard = wardNumber ? String(wardNumber).replace(/^W-?0*/i, '') : '';
-  const wardText = cleanWard ? ` (प्रभाग क्र. ${cleanWard})` : '';
+  const wardText = wardNumber ? ` (${formatWardNumber(wardNumber, 'mr')})` : '';
   const isNamed = nagarsevakName && nagarsevakName !== '-' && nagarsevakName !== '—';
   const partyLine = isNamed && partyName ? `${partyName}\n` : '';
   const signature = isNamed
@@ -305,8 +305,8 @@ export function generateBirthdayCardHtml(record, autoPrint = false, currentUser 
   const personName = person.fullName || 'सन्माननीय नागरिक';
   const hasNagarsevak = n?.name && n.name !== '-' && n.name !== '—';
   const nagarName = hasNagarsevak ? n.name : '-';
-  const wardLine = [ward.wardNumber, ward.name].filter(Boolean).join(' - ') || 'प्रभाग परिसर';
-  const wardSeatText = n?.wardSeat ? `प्रभाग क्र. ${n.wardSeat}` : (ward.wardNumber ? `प्रभाग क्र. ${ward.wardNumber}` : '');
+  const wardLine = formatWardLabel(ward, 'वॉर्ड परिसर');
+  const wardSeatText = n?.wardSeat ? `वॉर्ड ${n.wardSeat}` : (ward.wardNumber ? formatWardNumber(ward.wardNumber, 'mr') : '');
 
   const dobMarathi = formatMarathiDob(person.dob);
 

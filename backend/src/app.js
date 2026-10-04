@@ -44,9 +44,14 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '8mb' }));
+app.use(express.urlencoded({ extended: true, limit: '8mb' }));
 app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+
+const path = require('path');
+const fs = require('fs');
+const uploadsRoot = path.resolve(__dirname, '../uploads');
+app.use('/uploads', express.static(uploadsRoot, { maxAge: '7d', fallthrough: true }));
 
 // General API rate limit; auth routes carry their own tighter limiter.
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 2000, standardHeaders: true, legacyHeaders: false }));
@@ -72,13 +77,11 @@ app.use('/api', routes);
 app.use('/api/v2', require('./v2/routes'));
 
 // Serve production frontend build if dist folder exists
-const path = require('path');
-const fs = require('fs');
 const frontendDist = path.resolve(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/download')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/download') || req.path.startsWith('/uploads')) {
       return next();
     }
     res.sendFile(path.join(frontendDist, 'index.html'));

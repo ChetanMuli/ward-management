@@ -7,6 +7,7 @@ const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { normalisePermissions, ALL_PERMISSIONS, resolveFieldPermissions } = require('../utils/permissions');
 const { syncWardCommunityMembership } = require('../../services/wardActivation.service');
+const { listRegistrationOptions, resolveSignupWard } = require('../../services/registrationInvite.service');
 const otpStore = require('../../services/otp.service');
 const { sanitisePhoto } = require('../../utils/photo');
 const { syncLogin } = require('../../services/accountStore');
@@ -152,6 +153,13 @@ const login = asyncHandler(async (req, res) => {
         photo: roleName === 'NAGARSEVAK' ? (user.getDataValue('photo') || null) : null,
         wardSeat: roleName === 'NAGARSEVAK' ? (user.getDataValue('wardSeat') || null) : null,
         partyName: roleName === 'NAGARSEVAK' ? (user.getDataValue('partyName') || null) : null,
+        officialAddress: roleName === 'NAGARSEVAK' ? (user.getDataValue('officialAddress') || null) : null,
+        bio: roleName === 'NAGARSEVAK' ? (user.getDataValue('bio') || null) : null,
+        officeTimings: roleName === 'NAGARSEVAK' ? (user.getDataValue('officeTimings') || null) : null,
+        whatsapp: roleName === 'NAGARSEVAK' ? (user.getDataValue('whatsapp') || null) : null,
+        gallery: roleName === 'NAGARSEVAK' ? (user.getDataValue('gallery') || null) : null,
+        achievements: roleName === 'NAGARSEVAK' ? (user.getDataValue('achievements') || null) : null,
+        socialLinks: roleName === 'NAGARSEVAK' ? (user.getDataValue('socialLinks') || null) : null,
         nagarsevak: nagarsevakProfile,
       },
     },
@@ -159,12 +167,16 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const registrationWards = asyncHandler(async (req, res) => {
-  const wards = await Ward.findAll({
-    where: { status: 'ACTIVE' },
-    attributes: ['id', 'wardNumber', 'name'],
-    order: [['wardNumber', 'ASC']]
+  const invite = String(req.query.invite || req.query.token || '').trim();
+  const options = await listRegistrationOptions(invite);
+  return success(res, {
+    data: options.wards,
+    meta: {
+      source: options.source,
+      locked: options.locked,
+      invitedBy: options.invitedBy,
+    },
   });
-  return success(res, { data: wards });
 });
 
 const registerCitizen = asyncHandler(async (req, res) => {
@@ -173,7 +185,8 @@ const registerCitizen = asyncHandler(async (req, res) => {
   const mobile = String(req.body.mobile || '').replace(/\D/g, '');
   const password = String(req.body.password || '');
   const confirmPassword = String(req.body.confirmPassword || '');
-  const wardId = String(req.body.wardId || '').trim();
+  const requestedWardId = String(req.body.wardId || '').trim();
+  const invite = String(req.body.invite || '').trim();
 
   if (!name) throw new ApiError(400, 'Full name is required');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -189,11 +202,9 @@ const registerCitizen = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Password and confirm password do not match');
   }
 
-  const ward = await Ward.findOne({
-    where: { id: wardId, status: 'ACTIVE' },
-    attributes: ['id', 'wardNumber', 'name']
-  });
-  if (!ward) throw new ApiError(400, 'Please select a valid active ward');
+  const resolved = await resolveSignupWard({ inviteToken: invite, requestedWardId: requestedWardId || null });
+  const ward = resolved.ward;
+  const wardId = ward.id;
 
   const citizenRole = await Role.findOne({ where: { name: 'CITIZEN' } });
   if (!citizenRole) throw new ApiError(500, 'Citizen role is not configured');
@@ -252,14 +263,37 @@ const updateProfile = asyncHandler(async(req,res)=>{
   if(patch.mobile && !/^\d{10}$/.test(String(patch.mobile))) throw new ApiError(400,'Mobile must be exactly 10 digits');
   if(patch.email && patch.email!==user.email){const exists=await User.findOne({where:{email:patch.email}});if(exists)throw new ApiError(409,'This email / login ID is already in use');}
   if(patch.mobile && patch.mobile!==user.mobile){const exists=await User.findOne({where:{mobile:patch.mobile}});if(exists)throw new ApiError(409,'This mobile number is already in use');}
-  const canPhoto = req.user.roleName === 'NAGARSEVAK';
-  if (canPhoto && Object.prototype.hasOwnProperty.call(req.body, 'photo')) {
-    patch.photo = sanitisePhoto(req.body.photo);
-    user.setDataValue('photo', patch.photo);
+  const canNagar = req.user.roleName === 'NAGARSEVAK';
+  if (canNagar) {
+    if (Object.prototype.hasOwnProperty.call(req.body, 'photo')) {
+      patch.photo = sanitisePhoto(req.body.photo);
+      user.setDataValue('photo', patch.photo);
+    }
+    for (const k of ['bio', 'officeTimings', 'whatsapp', 'gallery', 'achievements', 'socialLinks', 'officialAddress', 'partyName', 'wardSeat']) {
+      if (Object.prototype.hasOwnProperty.call(req.body, k)) {
+        patch[k] = req.body[k];
+        user.setDataValue(k, req.body[k]);
+      }
+    }
   }
   await user.update(patch);
-  if (canPhoto && Object.prototype.hasOwnProperty.call(req.body, 'photo')) await syncLogin(user, Role);
-  return success(res,{data:{id:user.id,name:user.name,email:user.email,mobile:user.mobile,photo:canPhoto?(user.getDataValue('photo')||null):null},message:'Profile updated'});
+  if (canNagar) await syncLogin(user, Role).catch(() => {});
+  return success(res,{
+    data:{
+      id:user.id,name:user.name,email:user.email,mobile:user.mobile,
+      photo:canNagar?(user.getDataValue('photo')||null):null,
+      bio:canNagar?(user.getDataValue('bio')||null):null,
+      officeTimings:canNagar?(user.getDataValue('officeTimings')||null):null,
+      whatsapp:canNagar?(user.getDataValue('whatsapp')||null):null,
+      gallery:canNagar?(user.getDataValue('gallery')||null):null,
+      achievements:canNagar?(user.getDataValue('achievements')||null):null,
+      socialLinks:canNagar?(user.getDataValue('socialLinks')||null):null,
+      officialAddress:canNagar?(user.getDataValue('officialAddress')||null):null,
+      partyName:canNagar?(user.getDataValue('partyName')||null):null,
+      wardSeat:canNagar?(user.getDataValue('wardSeat')||null):null,
+    },
+    message:'Profile updated'
+  });
 });
 
 const forgotRequest = asyncHandler(async (req, res) => {

@@ -1,14 +1,18 @@
 import React,{useEffect,useState} from 'react';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate,useParams,useSearchParams} from 'react-router-dom';
 import {api} from '../services/api';
 import {AuthShell} from './Login';
-import {initLanguage, ensureCurrentLanguage, getLanguage} from '../language';
+import {formatWardLabel} from '../wardFormat';
+import {getLanguage, initLanguage, ensureCurrentLanguage} from '../language';
 
 const KEY='ward_register_draft';
 const empty={name:'',email:'',mobile:'',wardId:'',password:'',confirmPassword:''};
 
 export default function Register(){
  const navigate=useNavigate();
+ const {code}=useParams();
+ const [params]=useSearchParams();
+ const invite=String(code||params.get('invite')||params.get('c')||'').trim();
  const currentLang=getLanguage();
  const isMr=currentLang==='mr';
  const [wards,setWards]=useState([]);
@@ -23,18 +27,29 @@ export default function Register(){
   ensureCurrentLanguage();
  },[]);
 
- useEffect(()=>{api.registrationWards().then(r=>{const open=(r.data||[]).filter(w=>String(w.status||'ACTIVE').toUpperCase()==='ACTIVE');setWards(open);setForm(f=>open.some(w=>String(w.id)===String(f.wardId))?f:{...f,wardId:''});}).catch(e=>setError(e.message)).finally(()=>setLoadingWards(false))},[]);
+ useEffect(()=>{
+  setLoadingWards(true);
+  api.registrationWards(invite||undefined).then(r=>{
+   const open=r.data||[];
+   setWards(open);
+   setForm(f=>{
+    const nextId=open[0]?.id||'';
+    return {...f,wardId:nextId};
+   });
+  }).catch(e=>setError(e.message)).finally(()=>setLoadingWards(false));
+ },[invite]);
  useEffect(()=>{try{const safe={...form,password:'',confirmPassword:''};sessionStorage.setItem(KEY,JSON.stringify(safe))}catch{}},[form]);
  const update=(key,value)=>setForm(f=>({...f,[key]:value}));
  async function submit(e){
   e.preventDefault();
   setError('');
+  if(!form.wardId) return setError(isMr?'नोंदणीसाठी वॉर्ड उपलब्ध नाही.':'No ward is open for registration.');
   if(form.mobile.replace(/\D/g,'').length!==10) return setError(isMr?'मोबाईल क्रमांक बरोबर १० अंकांचा असावा.':'Mobile must be exactly 10 digits.');
   if(form.password.length<8) return setError(isMr?'पासवर्ड किमान ८ अक्षरांचा असावा.':'Password must be at least 8 characters.');
   if(form.password!==form.confirmPassword) return setError(isMr?'नवीन पासवर्ड आणि कन्फर्म पासवर्ड जुळत नाहीत.':'Password and confirm password do not match.');
   setBusy(true);
   try{
-   await api.registerCitizen({...form,mobile:form.mobile.replace(/\D/g,'')});
+   await api.registerCitizen({...form,mobile:form.mobile.replace(/\D/g,''),invite:invite||undefined});
    sessionStorage.removeItem(KEY);
    setDone(true);
   }catch(e){setError(e.message||(isMr?'नोंदणी अयशस्वी झाली.':'Registration failed.'))}
@@ -56,9 +71,14 @@ export default function Register(){
   );
  }
 
+ const ward=wards[0];
+ const wardLabel=formatWardLabel(ward,'');
+ const closed=!loadingWards&&!wards.length&&!error;
+
  return shell(isMr?'तुमचे खाते तयार करा':'Create your account',isMr?'अपडेट्स, योजना, संदेश आणि तक्रारींसाठी एकदाच नोंदणी करा.':'Register once for updates, schemes, messages and complaints.',
   <form onSubmit={submit} className="login-v2-card auth-simple-card">
    {error&&<div className="error-box">{error}</div>}
+   {closed&&<div className="error-box">{isMr?'सध्या नोंदणी उपलब्ध नाही. कृपया आपल्या वॉर्ड कार्यालयाशी संपर्क साधा.':'Registration is not available at this time. Please contact your ward office.'}</div>}
    <div className="auth-field-row">
     <label>{isMr?'पूर्ण नाव':'Full name'}
      <input value={form.name} onChange={e=>update('name',e.target.value)} maxLength="120" autoComplete="name" required placeholder={isMr?'तुमचे पूर्ण नाव':'Your full name'}/>
@@ -75,10 +95,18 @@ export default function Register(){
      <input inputMode="numeric" value={form.mobile} onChange={e=>update('mobile',e.target.value.replace(/\D/g,'').slice(0,10))} maxLength="10" autoComplete="tel" required placeholder={isMr?'१०-अंकी मोबाईल नंबर':'10-digit mobile'}/>
     </label>
     <label className="register-ward-field">{isMr?'वॉर्ड':'Ward'}
-     <select value={form.wardId} onChange={e=>update('wardId',e.target.value)} required disabled={loadingWards||!wards.length}>
-      <option value="">{loadingWards?(isMr?'वॉर्ड लोड होत आहेत…':'Loading wards…'):(wards.length?(isMr?'तुमचा वॉर्ड निवडा':'Select your ward'):(isMr?'नोंदणीसाठी कोणतेही वॉर्ड उघडे नाहीत':'No wards are open for registration'))}</option>
-      {wards.map(w=><option key={w.id} value={w.id}>{w.wardNumber}{w.name?` · ${w.name}`:''}</option>)}
-     </select>
+     {loadingWards?(
+      <div className="register-ward-locked">{isMr?'वॉर्ड लोड होत आहे…':'Loading ward…'}</div>
+     ):ward?(
+      <div className="register-ward-locked">
+       <strong>{wardLabel}</strong>
+      </div>
+     ):error?(
+      <div className="register-ward-locked">{isMr?'वॉर्ड लोड करता आला नाही':'Unable to load ward'}</div>
+     ):(
+      <div className="register-ward-locked is-closed">{isMr?'नोंदणीसाठी वॉर्ड उघडे नाही':'No ward is open'}</div>
+     )}
+     <input type="hidden" name="wardId" value={form.wardId||''}/>
     </label>
    </div>
    <div className="auth-field-row">

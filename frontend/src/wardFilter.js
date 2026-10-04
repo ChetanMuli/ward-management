@@ -41,8 +41,15 @@ export function useWardFilter() {
       return () => { active = false; };
     }
     setLoadingWards(true);
-    api.wards().then(r => { if (active) setWards(r.data || []); }).catch(() => { if (active) setWards([]); }).finally(() => { if (active) setLoadingWards(false); });
-    return () => { active = false; };
+    const load = () => api.wards({ light: 1 }).then(r => { if (active) setWards(r.data || []); }).catch(() => { if (active) setWards([]); }).finally(() => { if (active) setLoadingWards(false); });
+    load();
+    window.addEventListener('ward:wards-changed', load);
+    window.addEventListener('focus', load);
+    return () => {
+      active = false;
+      window.removeEventListener('ward:wards-changed', load);
+      window.removeEventListener('focus', load);
+    };
   }, [canSelect, fixedWardId, user?.ward?.id]);
 
   useEffect(() => {

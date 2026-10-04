@@ -110,8 +110,10 @@ const authenticateV2 = asyncHandler(async (req, res, next) => {
 });
 
 function requireV2Role(...roles) {
+  const allowed = roles.map((r) => String(r).toUpperCase());
   return (req, res, next) => {
-    if (!roles.includes(req.user.roleName)) throw new ApiError(403, 'You do not have permission for this action');
+    const role = String(req.user?.roleName || '').toUpperCase();
+    if (!allowed.includes(role)) throw new ApiError(403, 'You do not have permission for this action');
     next();
   };
 }

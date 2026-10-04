@@ -5,6 +5,7 @@ import WardFilter from '../components/WardFilter';
 import {filterByWard,useWardFilter} from '../wardFilter';
 import {can,canModule,isNagarsevak,isEmployee} from '../rbac';
 import {directionsUrl,geoPayload,hasCoords,placeLine} from '../location';
+import {formatWardLabel, formatWardNumber} from '../wardFormat';
 import LocationPicker,{DirectionsLink,MapPreview} from '../components/LocationMap';
 
 const blank={name:'',kind:'SHOP',category:'',categoryCustom:'',wardId:'',areaId:'',address:'',landmark:'',ownerName:'',ownerMobile:'',propertyOwnerName:'',propertyOwnerMobile:'',ownership:'OWN',openingHours:'',notes:'',latitude:'',longitude:''};
@@ -43,7 +44,7 @@ export default function Shops(){
  const pages=Math.max(1,Math.ceil(total/pageSize));
  const currentPage=Math.min(page,pages);
  const pageRows=visible.slice((currentPage-1)*pageSize,currentPage*pageSize);
- const wardOptions=wards.map(w=>({value:w.id,label:`${w.wardNumber} · ${w.name||''}`}));
+ const wardOptions=wards.map(w=>({value:w.id,label:formatWardLabel(w)}));
  const colonyOptions=(selectedWardId?(wards.find(w=>String(w.id)===String(selectedWardId))?.areas||[]):wards.flatMap(w=>w.areas||[])).map(a=>({value:a.id,label:a.name}));
  const form=edit||add;
  const formWardId=form?.wardId||form?.area?.wardId||form?.area?.ward?.id||'';
@@ -98,7 +99,7 @@ export default function Shops(){
    <div className="panel table-wrap"><table><thead><tr><th>Shop / Store</th><th>Owner</th><th>Colony / Ward</th><th>Address</th><th>Location</th><th></th></tr></thead><tbody>{pageRows.map(s=><tr key={s.id}>
     <td data-label="Shop / Store"><button className="table-link" onClick={()=>api.shop(s.id).then(r=>setDetail(r.data)).catch(e=>setError(e.message))}><strong>{s.name}</strong></button><div className="muted">{s.kind==='OFFICE'?'Office':'Shop'}{s.category?` · ${s.category}`:''}</div></td>
     <td data-label="Owner"><div className="cell-value"><strong>{s.ownerName||'—'}</strong><div className="muted">{s.ownerMobile||(s.ownerName?'No mobile':'—')}</div>{s.propertyOwnerName&&<div className="muted" style={{fontSize:10,marginTop:2,color:'#64748b'}}>Property owner: {s.propertyOwnerName}</div>}</div></td>
-    <td data-label="Colony / Ward">{s.area?.ward?.wardNumber||'—'}<div className="muted">{s.area?.name||'—'}</div></td>
+    <td data-label="Colony / Ward">{formatWardNumber(s.area?.ward?.wardNumber)||'—'}<div className="muted">{s.area?.name||'—'}</div></td>
     <td data-label="Address">{s.address}<div className="muted">{placeLine([s.landmark,ownershipLabel(s.ownership)])}</div></td>
     <td data-label="Location"><div className="loc-cell">{hasCoords(s.latitude,s.longitude)?<DirectionsLink lat={s.latitude} lng={s.longitude} label="Directions"/>:<span className="muted">Not saved</span>}</div></td>
     <td data-label="Actions"><RowMenu items={[
@@ -119,7 +120,7 @@ export default function Shops(){
      <p><b>Type:</b> {detail.kind==='OFFICE'?'Office':'Shop'}</p>
      <p><b>Category:</b> {detail.category||'—'}</p>
      <p><b>Ownership:</b> {ownershipLabel(detail.ownership)}</p>
-     <p><b>Ward:</b> {detail.area?.ward?.wardNumber||'—'} · {detail.area?.ward?.name||''}</p>
+     <p><b>Ward:</b> {formatWardLabel(detail.area?.ward)}</p>
      <p><b>Colony:</b> {detail.area?.name||'—'}</p>
      <p><b>Address:</b> {detail.address||'—'}</p>
      <p><b>Landmark:</b> {detail.landmark||'—'}</p>

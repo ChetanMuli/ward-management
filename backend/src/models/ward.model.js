@@ -52,6 +52,8 @@ const Ward = sequelize.define('Ward', {
   activatedBy: { type: DataTypes.UUID, allowNull: true, field: 'activated_by' },
   deactivatedAt: { type: DataTypes.DATE, allowNull: true, field: 'deactivated_at' },
   deactivatedBy: { type: DataTypes.UUID, allowNull: true, field: 'deactivated_by' },
+  registrationOpen: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: 'registration_open' },
+  registrationInviteCode: { type: DataTypes.STRING(12), allowNull: true, unique: true, field: 'registration_invite_code' },
 }, {
   paranoid: true,
   deletedAt: 'deletedAt',

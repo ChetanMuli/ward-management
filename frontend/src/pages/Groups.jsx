@@ -5,11 +5,12 @@ import { ErrorBox, FaceAvatar, Loading, Modal, PageHeader, SearchableSelect, ini
 import BrandIcon from '../components/BrandIcon';
 import { can, isMaster, isSubMaster, isNagarsevak, roleOf } from '../rbac';
 import { useWardFilter } from '../wardFilter';
+import { formatWardLabel, formatWardNumber } from '../wardFormat';
 
 function isAllChat(g) { return g?.type === 'WARD' || g?.channel === 'ALL'; }
 
 function groupTitle(g) {
-  if (isAllChat(g)) return g.ward ? `${g.ward.wardNumber}${g.ward.name ? ` · ${g.ward.name}` : ''}` : (g.name || 'All chat');
+  if (isAllChat(g)) return g.ward ? formatWardLabel(g.ward, g.name || 'All chat') : (g.name || 'All chat');
   if (g.type === 'NAGARSEVAK') return g.nagarsevak?.name || g.name || 'Nagarsevak';
   return g.name;
 }
@@ -235,7 +236,10 @@ function GroupPage() {
   useEffect(() => { loadGroups(wardId); }, [wardId]);
   useEffect(() => {
     if (!wardId) return;
-    const t = setInterval(() => loadGroups(wardId), 8000);
+    const t = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      loadGroups(wardId);
+    }, 20000);
     return () => clearInterval(t);
   }, [wardId]);
 
@@ -318,7 +322,10 @@ function GroupPage() {
     api.markChatRead(active.id)
       .then(() => window.dispatchEvent(new CustomEvent('ward:chat-refresh')))
       .catch(() => {});
-    const t = setInterval(load, 5000);
+    const t = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      load();
+    }, 8000);
     return () => { live = false; clearInterval(t); };
   }, [active?.id]);
 
@@ -549,8 +556,8 @@ function GroupPage() {
     }
   }
 
-  const wardOptions = wards.map(w => ({ value: String(w.id), label: `${w.wardNumber}${w.name ? ` · ${w.name}` : ''}` }));
-  const nagOptions = nagarsevaks.map(n => ({ value: String(n.id), label: `${n.name}${n.ward?.wardNumber ? ` · ${n.ward.wardNumber}` : ''}` }));
+  const wardOptions = wards.map(w => ({ value: String(w.id), label: formatWardLabel(w) }));
+  const nagOptions = nagarsevaks.map(n => ({ value: String(n.id), label: `${n.name}${n.ward ? ` · ${formatWardLabel(n.ward, '')}` : ''}` }));
   const canSend = active?.isMember && ((active.mode !== 'BROADCAST') || active.canManage || master);
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 800;
   const isChatVisible = Boolean(active && (!isMobile || chatOpen));
@@ -745,7 +752,7 @@ function GroupPage() {
                   <h2 className="notranslate wa-head-title" translate="no">{groupTitle(active)}</h2>
                   <div className="wa-head-subtitle">
                     {active.type === 'NAGARSEVAK' ? (
-                      <span>{isMr ? 'नगरसेवक गट' : 'Nagarsevak Group'}{active.ward ? ` · ${isMr ? `प्रभाग ${active.ward.wardNumber}` : `Ward ${active.ward.wardNumber}`}` : ''}</span>
+                      <span>{isMr ? 'नगरसेवक गट' : 'Nagarsevak Group'}{active.ward ? ` · ${formatWardNumber(active.ward.wardNumber, isMr ? 'mr' : 'en')}` : ''}</span>
                     ) : (
                       <span>
                         {isAllChat(active) 
@@ -1678,7 +1685,7 @@ function ResidentProfileModal({ userId, fallbackName, isMr, onClose }) {
                 </div>
                 {profile?.ward && (
                   <p className="wa-resident-ward-sub">
-                    📍 {isMr ? `प्रभाग क्र. ${profile.ward.wardNumber}` : `Ward No. ${profile.ward.wardNumber}`}
+                    📍 {formatWardNumber(profile.ward.wardNumber, isMr ? 'mr' : 'en')}
                     {profile.ward.name ? ` · ${profile.ward.name}` : ''}
                   </p>
                 )}

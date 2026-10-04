@@ -5,6 +5,7 @@ import WardFilter from '../components/WardFilter';
 import { isMaster, isSubMaster, isNagarsevak, isEmployee } from '../rbac';
 import { useWardFilter } from '../wardFilter';
 import { exportScheduleToPdf } from '../schedulePdf';
+import {formatWardNumber} from '../wardFormat';
 
 const CATEGORIES = [
   { key: 'VISIT', label: 'Site visit' },
@@ -397,7 +398,7 @@ export default function Schedules() {
   const moreActive = MORE_PERIODS.some((p) => p.key === filter);
   const nagarOptions = [
     { value: '', label: 'All Nagarsevaks', title: 'All Nagarsevaks', hint: 'Every corporator in this scope' },
-    ...corporators.map((c) => ({ value: c.id, label: c.name, title: c.name, hint: c.ward?.name ? `Ward ${c.ward.wardNumber || ''} · ${c.ward.name}` : 'Nagarsevak' })),
+    ...corporators.map((c) => ({ value: c.id, label: c.name, title: c.name, hint: c.ward ? `${formatWardNumber(c.ward.wardNumber)}${c.ward.name ? ` · ${c.ward.name}` : ''}` : 'Nagarsevak' })),
   ];
 
   return (

@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {api,getUser} from '../services/api';
 import {isMaster} from '../rbac';
 import {Empty,ErrorBox,Loading,Modal,PageHeader,StatusPill} from '../components/Ui';
+import {formatWardLabel, formatWardNumber} from '../wardFormat';
 
 function Confirm({title,message,confirmLabel,tone='primary',busy,onClose,onConfirm}){
  return (
@@ -50,6 +51,7 @@ export default function WardActivation(){
    setConfirm(null);
    if(!keepList) setPick(null);
    await load();
+   window.dispatchEvent(new CustomEvent('ward:wards-changed'));
    window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'success',message:'Activation updated.'}}));
   }catch(e){setError(e.message);}
   finally{setBusy(false);}
@@ -66,6 +68,11 @@ export default function WardActivation(){
     title="Ward activation"
     action={<button className="ghost-btn" onClick={load}>Refresh</button>}
    />
+   {rows?.some(w=>w.registrationOpen)?(
+    <p className="activation-confirm-copy">Create account is assigned to {formatWardLabel(rows.find(w=>w.registrationOpen))}. Nagarsevak and employees may still issue a registration link for their own ward.</p>
+   ):(
+    <p className="activation-confirm-copy">Create account is closed. Open registration for one ward below, or ask staff to share their ward registration link.</p>
+   )}
    <ErrorBox error={error}/>
    {rows===null?<Loading/>:!rows.length?<Empty>No wards found.</Empty>:(
     <div className="panel table-wrap">
@@ -74,6 +81,7 @@ export default function WardActivation(){
        <tr>
         <th>Ward</th>
         <th>Ward status</th>
+        <th>Registration</th>
         <th>Active Nagarsevaks</th>
         <th>Residents</th>
         <th>Actions</th>
@@ -84,8 +92,13 @@ export default function WardActivation(){
         const count=Number(w.activeNagarsevakCount ?? (w.purchasedNagarsevaks||[]).length);
         return (
          <tr key={w.id}>
-          <td data-label="Ward"><div className="cell-value"><strong>{w.wardNumber}</strong><div className="muted">{w.name||'—'}</div></div></td>
+          <td data-label="Ward"><div className="cell-value"><strong>{formatWardNumber(w.wardNumber)}</strong><div className="muted">{w.name||'—'}</div></div></td>
           <td data-label="Ward status"><StatusPill>{w.status}</StatusPill></td>
+          <td data-label="Registration">
+           {w.registrationOpen
+            ?<StatusPill>OPEN</StatusPill>
+            :<span className="muted">{w.status==='ACTIVE'?'Closed':'—'}</span>}
+          </td>
           <td data-label="Active Nagarsevaks"><div className="activation-count"><strong>{count}</strong><span>{count===1?'active':'active'}</span></div></td>
           <td data-label="Residents"><strong>{w.residentCount||0}</strong></td>
           <td data-label="Actions">
@@ -93,6 +106,12 @@ export default function WardActivation(){
             {w.status==='ACTIVE'
              ?<button type="button" className="small-btn danger" onClick={()=>setConfirm({kind:'ward-off',ward:w})}>Deactivate ward</button>
              :<button type="button" className="small-btn" onClick={()=>setConfirm({kind:'ward-on',ward:w})}>Activate ward</button>}
+            {w.status==='ACTIVE' && !w.registrationOpen
+             ?<button type="button" className="small-btn" onClick={()=>setConfirm({kind:'signup-on',ward:w})}>Open registration</button>
+             :null}
+            {w.registrationOpen
+             ?<button type="button" className="small-btn danger" onClick={()=>setConfirm({kind:'signup-off',ward:w})}>Close registration</button>
+             :null}
             <button type="button" className="small-btn" onClick={()=>setPick(w)}>Manage Nagarsevaks</button>
            </div>
           </td>
@@ -104,11 +123,11 @@ export default function WardActivation(){
     </div>
    )}
 
-   {pick&&<Modal wide title={`${pick.wardNumber} · Nagarsevak activation`} onClose={()=>setPick(null)}>
+   {pick&&<Modal wide title={`${formatWardNumber(pick.wardNumber)} · Nagarsevak activation`} onClose={()=>setPick(null)}>
     <p className="activation-confirm-copy">
      {pick.status==='ACTIVE'
-      ? 'Activate every Nagarsevak who should be visible to residents of this ward. Inactive profiles stay in administration only and cannot sign in.'
-      : 'Activate this ward first. Nagarsevak login and resident visibility stay closed until the ward is open.'}
+      ? 'Activate only the Nagarsevak who purchased this ward. Residents will see that one profile. Other seats stay in administration and cannot sign in.'
+      : 'Activate this ward first, then activate the buyer. Resident registration stays closed until the ward is open.'}
     </p>
     {!pick.nagarsevaks?.length?<Empty>No Nagarsevak accounts are assigned to this ward yet. Create them under Nagarsevak & Employees and select this ward.</Empty>:(
      <div className="nagar-activation-list">
@@ -146,10 +165,12 @@ export default function WardActivation(){
     <div className="modal-actions"><button type="button" className="ghost-btn" onClick={()=>setPick(null)}>Close</button></div>
    </Modal>}
 
-   {confirm?.kind==='ward-on'&&<Confirm title={`Activate ${confirm.ward.wardNumber}?`} message="Residents will be able to register for this ward. Then activate each Nagarsevak who should appear to residents and be able to sign in." confirmLabel="Activate ward" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardActivation(confirm.ward.id,{status:'ACTIVE'}))}/>}
-   {confirm?.kind==='ward-off'&&<Confirm title={`Deactivate ${confirm.ward.wardNumber}?`} message="This ward will be removed from resident registration. Nagarsevak profiles will be hidden from residents. Historical records stay in the database." confirmLabel="Deactivate ward" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardActivation(confirm.ward.id,{status:'INACTIVE'}))}/>}
-   {confirm?.kind==='nagar-on'&&<Confirm title={`Activate ${confirm.nagar.name}?`} message={`${confirm.nagar.name} will be able to sign in with their employees, and residents of ${confirm.ward.wardNumber} will see them. Other active Nagarsevaks in this ward stay visible.`} confirmLabel="Activate Nagarsevak" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakPurchase(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,status:'ACTIVE'}),{keepList:true})}/>}
-   {confirm?.kind==='nagar-off'&&<Confirm title={`Deactivate ${confirm.nagar.name}?`} message="This Nagarsevak and their employees will not be able to sign in. Residents will no longer see this profile. Other active Nagarsevaks are not changed." confirmLabel="Deactivate Nagarsevak" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakPurchase(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,status:'DEACTIVATED'}),{keepList:true})}/>}
+   {confirm?.kind==='ward-on'&&<Confirm title={`Activate ${formatWardNumber(confirm.ward.wardNumber)}?`} message="This ward will go live for the portal and Nagarsevak profiles. Create account still uses only the ward marked Open registration. Staff can issue a registration link for this ward from Resident registration." confirmLabel="Activate ward" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardActivation(confirm.ward.id,{status:'ACTIVE'}))}/>}
+   {confirm?.kind==='ward-off'&&<Confirm title={`Deactivate ${formatWardNumber(confirm.ward.wardNumber)}?`} message="This ward will close for registration and Nagarsevak profiles will be hidden from residents. Historical records stay in the database." confirmLabel="Deactivate ward" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardActivation(confirm.ward.id,{status:'INACTIVE'}))}/>}
+   {confirm?.kind==='signup-on'&&<Confirm title={`Open registration for ${formatWardNumber(confirm.ward.wardNumber)}?`} message="Create account will be assigned to this ward only. Any other open ward will close. Nagarsevak and employees may still issue a registration link for their own ward." confirmLabel="Open this ward" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardRegistrationOpen(confirm.ward.id,true))}/>}
+   {confirm?.kind==='signup-off'&&<Confirm title={`Close registration for ${formatWardNumber(confirm.ward.wardNumber)}?`} message="Create account will not assign a ward until you open another. Residents may still register with a Nagarsevak or employee link." confirmLabel="Close registration" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardRegistrationOpen(confirm.ward.id,false))}/>}
+   {confirm?.kind==='nagar-on'&&<Confirm title={`Activate ${confirm.nagar.name}?`} message={`${confirm.nagar.name} will be the only Nagarsevak residents of ${formatWardNumber(confirm.ward.wardNumber)} can see. Any other active Nagarsevak in this ward will be turned off automatically. Then fill their photo and works in Portal Management.`} confirmLabel="Activate Nagarsevak" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakPurchase(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,status:'ACTIVE'}),{keepList:true})}/>}
+   {confirm?.kind==='nagar-off'&&<Confirm title={`Deactivate ${confirm.nagar.name}?`} message="This Nagarsevak and their employees will not be able to sign in. Residents will see the shared demo page until another Nagarsevak is activated." confirmLabel="Deactivate Nagarsevak" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakPurchase(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,status:'DEACTIVATED'}),{keepList:true})}/>}
   </div>
  );
 }

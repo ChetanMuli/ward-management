@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="medSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="50%" stop-color="#f472b6"/>
+      <stop offset="100%" stop-color="#fdf2f8"/>
+    </linearGradient>
+    <linearGradient id="floorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="medBadge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+    <linearGradient id="medOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(159,18,57,0)"/>
+      <stop offset="60%" stop-color="rgba(136,19,55,0.5)"/>
+      <stop offset="100%" stop-color="rgba(76,5,25,0.96)"/>
+    </linearGradient>
+    <filter id="medDrop" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background Clinic / Camp Hall -->
+  <rect width="800" height="300" fill="url(#medSky)"/>
+  <rect y="300" width="800" height="200" fill="url(#floorGrad)"/>
+
+  <!-- Camp Canopy / Shamiana Structure -->
+  <polygon points="0,0 800,0 800,120 0,120" fill="#ffffff" opacity="0.95"/>
+  <path d="M 0 120 Q 50 145 100 120 Q 150 145 200 120 Q 250 145 300 120 Q 350 145 400 120 Q 450 145 500 120 Q 550 145 600 120 Q 650 145 700 120 Q 750 145 800 120 L 800 100 L 0 100 Z" fill="#e11d48"/>
+
+  <!-- Banner in Background -->
+  <g transform="translate(180, 50)">
+    <rect x="0" y="0" width="440" height="60" rx="8" fill="#ffffff" stroke="#e11d48" stroke-width="2" filter="url(#medDrop)"/>
+    <rect x="15" y="10" width="40" height="40" rx="8" fill="#ffe4e6"/>
+    <!-- Red Cross -->
+    <rect x="31" y="17" width="8" height="26" fill="#e11d48"/>
+    <rect x="22" y="26" width="26" height="8" fill="#e11d48"/>
+    <text x="70" y="32" font-family="'Noto Sans Devanagari', system-ui, sans-serif" font-size="16" font-weight="800" fill="#be123c">भव्य मोफत आरोग्य व नेत्र तपासणी शिबीर</text>
+    <text x="70" y="49" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#64748b">FREE MEDICAL &amp; EYE CHECKUP CAMP · SAVEDI WARD 3</text>
+  </g>
+
+  <!-- Consultation Desk 1: Doctor with Stethoscope -->
+  <g transform="translate(100, 200)">
+    <!-- Desk -->
+    <rect x="30" y="90" width="160" height="60" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="40" y="70" width="40" height="20" rx="2" fill="#38bdf8"/>
+    <!-- Doctor -->
+    <circle cx="80" cy="40" r="20" fill="#fed7aa"/>
+    <path d="M 60 40 Q 80 20 100 40 Z" fill="#334155"/>
+    <path d="M 50 85 Q 50 60 80 60 Q 110 60 110 85 Z" fill="#ffffff" stroke="#0284c7" stroke-width="2"/>
+    <!-- Stethoscope -->
+    <path d="M 72 70 Q 80 85 88 70" stroke="#0284c7" stroke-width="3" fill="none"/>
+    <circle cx="80" cy="85" r="4" fill="#0284c7"/>
+    <!-- Patient -->
+    <circle cx="160" cy="45" r="18" fill="#ffedd5"/>
+    <path d="M 140 90 Q 140 65 160 65 Q 180 65 180 90 Z" fill="#f59e0b"/>
+  </g>
+
+  <!-- Eye Testing Station (Right Side) -->
+  <g transform="translate(480, 170)">
+    <!-- Eye Chart Stand -->
+    <rect x="40" y="10" width="80" height="110" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="2" filter="url(#medDrop)"/>
+    <text x="80" y="38" font-family="system-ui, sans-serif" font-size="24" font-weight="900" fill="#0f172a" text-anchor="middle">E</text>
+    <text x="80" y="58" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#0f172a" text-anchor="middle">F P</text>
+    <text x="80" y="76" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">T O Z</text>
+    <text x="80" y="92" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#0f172a" text-anchor="middle">L P E D</text>
+    <rect x="77" y="120" width="6" height="70" fill="#94a3b8"/>
+    <polygon points="60,190 100,190 95,200 65,200" fill="#64748b"/>
+    
+    <!-- Optometrist & Senior Citizen -->
+    <circle cx="170" cy="70" r="18" fill="#fed7aa"/>
+    <path d="M 150 115 Q 150 90 170 90 Q 190 90 190 115 Z" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
+    <!-- Spectacles -->
+    <circle cx="215" cy="85" r="7" fill="none" stroke="#d97706" stroke-width="2"/>
+    <circle cx="233" cy="85" r="7" fill="none" stroke="#d97706" stroke-width="2"/>
+    <line x1="222" y1="85" x2="226" y2="85" stroke="#d97706" stroke-width="2"/>
+  </g>
+
+  <!-- Top Badges -->
+  <g transform="translate(30, 30)">
+    <rect x="0" y="0" width="185" height="34" rx="17" fill="url(#medBadge)" filter="url(#medDrop)"/>
+    <circle cx="17" cy="17" r="7" fill="#ffffff"/>
+    <text x="32" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#ffffff">आरोग्य शिबीर / HEALTH</text>
+  </g>
+
+  <g transform="translate(630, 30)">
+    <rect x="0" y="0" width="140" height="34" rx="17" fill="rgba(15,23,42,0.85)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="70" y="21" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#f8fafc" text-anchor="middle">०५ सप्टेंबर २०२६</text>
+  </g>
+
+  <!-- Bottom Gradient Overlay -->
+  <rect x="0" y="320" width="800" height="180" fill="url(#medOverlay)"/>
+
+  <!-- Caption & Project Details -->
+  <g transform="translate(35, 415)">
+    <rect x="0" y="-2" width="220" height="20" rx="4" fill="#fb7185"/>
+    <text x="8" y="13" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#4c0519">♥ ८५०+ नागरिकांची मोफत तपासणी</text>
+    <text x="0" y="42" font-family="'Noto Sans Devanagari', system-ui, sans-serif" font-size="22" font-weight="800" fill="#ffffff">भव्य मोफत आरोग्य व नेत्र तपासणी शिबीर</text>
+    <text x="0" y="64" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#fbcfe8">सावेडी समाज मंदिर हॉल · ईसीजी, रक्त तपासणी व मोफत चष्मे वाटप</text>
+  </g>
+</svg>

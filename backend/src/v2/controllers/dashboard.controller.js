@@ -1,8 +1,7 @@
 const { Op } = require('sequelize');
-const { House, Family, Person, VoterProfile, Complaint, Area, Ward, User, Role, Employee, Apartment } = require('../../models');
+const { House, Family, Person, PersonBirthday, VoterProfile, Complaint, Area, Ward, User, Role, Employee, Apartment } = require('../../models');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
-const { daysTo18thBirthday, daysToNextBirthday } = require('../../services/age.service');
 const { loadTodayWardEvents } = require('../../services/wardDay.service');
 const { nagarsevakPublicByIds } = require('../../utils/photo');
 const { parseImageList } = require('../utils/complaintMedia');
@@ -71,19 +70,50 @@ const summary = asyncHandler(async (req, res) => {
   const apartmentWhere = requestedWardId
     ? { wardId: requestedWardId }
     : (accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}});
-  const [houses,apartments,families,scopedPeople,complaints,openComplaints,managedEmployees,corporatorCount] = await Promise.all([
+  const bdayPairs=[];
+  const now=new Date();
+  for(let i=0;i<=30;i+=1){
+    const d=new Date(now.getFullYear(), now.getMonth(), now.getDate()+i);
+    bdayPairs.push({ birthMonth:d.getMonth()+1, birthDay:d.getDate() });
+  }
+  const turn18Start=new Date(now.getFullYear()-18, now.getMonth(), now.getDate());
+  const turn18End=new Date(turn18Start); turn18End.setDate(turn18End.getDate()+90);
+  const bdayWardWhere=requestedWardId
+    ? { wardId:requestedWardId }
+    : (accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}});
+
+  const [houses,apartments,families,persons,voters,nonVoters,complaints,openComplaints,managedEmployees,corporatorCount,birthdayCount,upcomingCount] = await Promise.all([
     House.count({ where:areaFilter }),
     Apartment.count({ where:apartmentWhere }),
     Family.count({ where:{}, include:familyInclude, distinct:true }),
-    Person.findAll({ where:{status:'ACTIVE'}, include:personInclude }),
+    Person.count({ where:{status:'ACTIVE'}, include:personInclude, distinct:true }),
+    Person.count({
+      where:{status:'ACTIVE'},
+      include:[
+        { model:VoterProfile, as:'voterProfile', required:true, where:{status:'VOTER'} },
+        ...personInclude.filter((inc)=>inc.as!=='voterProfile'),
+      ],
+      distinct:true,
+    }),
+    Person.count({
+      where:{status:'ACTIVE'},
+      include:[
+        { model:VoterProfile, as:'voterProfile', required:true, where:{status:'NON_VOTER'} },
+        ...personInclude.filter((inc)=>inc.as!=='voterProfile'),
+      ],
+      distinct:true,
+    }),
     Complaint.count({ where:complaintScope, ...countOpts }),
     Complaint.count({ where:whereWith({status:{[Op.in]:OPEN_STATUSES}}), ...countOpts }),
     req.user.roleName==='NAGARSEVAK' ? Employee.count({where:{managerUserId:req.user.id,status:'ACTIVE'}}) : Promise.resolve(0),
     ['SUPER_ADMIN','SUB_MASTER_ADMIN'].includes(req.user.roleName) ? (async()=>{const r=await Role.findOne({where:{name:'NAGARSEVAK'}});const wardWhere=requestedWardId?{wardId:requestedWardId}:accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}};return r?User.count({where:{roleId:r.id,status:'ACTIVE',...wardWhere}}):0})() : Promise.resolve(0),
+    PersonBirthday.count({ where:{ status:'ACTIVE', ...bdayWardWhere, [Op.or]:bdayPairs } }).catch(()=>0),
+    Person.count({
+      where:{ status:'ACTIVE', dob:{ [Op.between]:[turn18Start.toISOString().slice(0,10), turn18End.toISOString().slice(0,10)] } },
+      include:personInclude,
+      distinct:true,
+    }),
   ]);
-  const persons=scopedPeople.length;
-  const voters=scopedPeople.filter(p=>p.voterProfile?.status==='VOTER').length;
-  const nonVoters=scopedPeople.filter(p=>p.voterProfile?.status==='NON_VOTER').length;
 
   const statusResults=await Promise.all(STATUS_LIST.map(status=>
     Complaint.count({where:whereWith({status}), ...countOpts}).then(count=>[status,count])
@@ -114,8 +144,6 @@ const summary = asyncHandler(async (req, res) => {
     return json;
   });
 
-  const birthdayCount=scopedPeople.map(p=>daysToNextBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=30).length;
-  const upcomingCount=scopedPeople.map(p=>daysTo18thBirthday(p.dob)).filter(d=>d!==null&&d>=0&&d<=90).length;
   let todayEvents=[];
   const eventWardIds=requestedWardId
     ? [requestedWardId]

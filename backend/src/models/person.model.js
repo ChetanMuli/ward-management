@@ -21,7 +21,7 @@ const Person = sequelize.define('Person', {
   email: { type: DataTypes.STRING, validate: { isEmail: true } },
   occupation: DataTypes.STRING,
   occupationType: {
-    type: DataTypes.ENUM('SERVICE', 'BUSINESS', 'OTHER'),
+    type: DataTypes.ENUM('SERVICE', 'BUSINESS', 'RETIRED', 'OTHER'),
     allowNull: true,
   },
   businessName: DataTypes.STRING,
@@ -30,6 +30,21 @@ const Person = sequelize.define('Person', {
   employmentType: {
     type: DataTypes.ENUM('PRIVATE', 'GOVERNMENT'),
     allowNull: true,
+  },
+  isRetired: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'is_retired',
+  },
+  retiredFrom: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    field: 'retired_from',
+  },
+  retiredService: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    field: 'retired_service',
   },
   voterIdImage: { type: DataTypes.VIRTUAL, get() { return this.getDataValue('voterIdImage') || null; }, set(v) { this.setDataValue('voterIdImage', v); } },
   aadhaarImage: { type: DataTypes.VIRTUAL, get() { return this.getDataValue('aadhaarImage') || null; }, set(v) { this.setDataValue('aadhaarImage', v); } },

@@ -63,6 +63,12 @@ function applyLoginFields(user, login, roleName) {
   user.setDataValue('partyName', login.partyName ?? null);
   user.setDataValue('officialAddress', login.officialAddress ?? null);
   user.setDataValue('photo', login.photo ?? null);
+  user.setDataValue('bio', login.bio ?? null);
+  user.setDataValue('officeTimings', login.officeTimings ?? null);
+  user.setDataValue('whatsapp', login.whatsapp ?? null);
+  user.setDataValue('gallery', login.gallery ?? null);
+  user.setDataValue('achievements', login.achievements ?? null);
+  user.setDataValue('socialLinks', login.socialLinks ?? null);
   user.setDataValue('accountKind', roleName);
   user.loginAccount = login;
 }
@@ -95,6 +101,12 @@ function payloadFromUser(user, roleName, isCreate = false) {
     if (isCreate || user.getDataValue('photo') !== undefined || user._loginPhoto !== undefined) {
       payload.photo = user.getDataValue('photo') !== undefined ? (user.getDataValue('photo') || null) : (user._loginPhoto || null);
     }
+    if (isCreate || user.getDataValue('bio') !== undefined) payload.bio = user.getDataValue('bio') || null;
+    if (isCreate || user.getDataValue('officeTimings') !== undefined) payload.officeTimings = user.getDataValue('officeTimings') || null;
+    if (isCreate || user.getDataValue('whatsapp') !== undefined) payload.whatsapp = user.getDataValue('whatsapp') || null;
+    if (isCreate || user.getDataValue('gallery') !== undefined) payload.gallery = user.getDataValue('gallery') || null;
+    if (isCreate || user.getDataValue('achievements') !== undefined) payload.achievements = user.getDataValue('achievements') || null;
+    if (isCreate || user.getDataValue('socialLinks') !== undefined) payload.socialLinks = user.getDataValue('socialLinks') || null;
   }
   if (roleName === 'CITIZEN') payload.personId = user.personId || null;
   if (roleName === 'SOCIAL_WORKER' || roleName === 'CANDIDATE') {

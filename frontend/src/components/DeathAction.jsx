@@ -1,6 +1,7 @@
 import React,{useState} from 'react';
 import {api} from '../services/api';
 import {Field,Modal} from './Ui';
+import {formatWardNumber} from '../wardFormat';
 
 const addDays=(s,n)=>{const d=new Date(`${s}T00:00:00Z`);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
 const addYears=(s,n)=>{const d=new Date(`${s}T00:00:00Z`),y=d.getUTCFullYear()+n,m=d.getUTCMonth(),day=d.getUTCDate();d.setUTCFullYear(y,m,day);if(m===1&&day===29&&d.getUTCMonth()!==1)d.setUTCFullYear(y,1,28);return d.toISOString().slice(0,10)};
@@ -17,7 +18,7 @@ export default function DeathAction({person,onSaved,onClose,label='Mark deceased
   {show&&<Modal wide title={`Record death · ${person.fullName||'Citizen'}`} onClose={close}>
    {error&&<div className="error-inline">{error}</div>}
    <form className="form-grid" onSubmit={save}>
-    <div className="detail-card span-2"><h3>Citizen selected</h3><p><b>Name:</b> {person.fullName||'N/A'}</p><p><b>Mobile:</b> {person.mobile||'N/A'}</p><p><b>Family:</b> {person.family?.familyName||'N/A'}</p><p><b>House:</b> {person.family?.house?.houseNumber||'N/A'}</p><p><b>Ward:</b> {person.family?.house?.area?.ward?.wardNumber||'N/A'}</p></div>
+    <div className="detail-card span-2"><h3>Citizen selected</h3><p><b>Name:</b> {person.fullName||'N/A'}</p><p><b>Mobile:</b> {person.mobile||'N/A'}</p><p><b>Family:</b> {person.family?.familyName||'N/A'}</p><p><b>House:</b> {person.family?.house?.houseNumber||'N/A'}</p><p><b>Ward:</b> {formatWardNumber(person.family?.house?.area?.ward?.wardNumber)||'N/A'}</p></div>
     <Field label="Date of death"><input type="date" required max={new Date().toISOString().slice(0,10)} value={date} onChange={e=>setDate(e.target.value)}/></Field>
     <Field className="span-2" label="Notes (optional)"><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Optional death record notes"/></Field>
     <div className="detail-card span-2"><h3>Automatic dates</h3><p><b>10th day (Dahava):</b> {date?display(addDays(date,10)):'—'}</p><p><b>1st yearly Shraddha:</b> {date?display(addYears(date,1)):'—'}</p><p className="muted">After saving, this citizen is removed from active citizen/family/voter lists and retained only in Death Records.</p></div>

@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="40%" stop-color="#bae6fd"/>
+      <stop offset="70%" stop-color="#f0f9ff"/>
+      <stop offset="100%" stop-color="#e0f2fe"/>
+    </linearGradient>
+    <linearGradient id="roadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="30%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="paveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="50%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="cardOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(15,23,42,0)"/>
+      <stop offset="60%" stop-color="rgba(15,23,42,0.4)"/>
+      <stop offset="100%" stop-color="rgba(15,23,42,0.92)"/>
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Sky & Landscape Background -->
+  <rect width="800" height="500" fill="url(#skyGrad)"/>
+
+  <!-- City Skyline Silhouette -->
+  <path d="M 0 280 L 40 280 L 40 220 L 90 220 L 90 280 L 130 280 L 130 190 L 170 190 L 170 280 L 220 280 L 220 240 L 270 240 L 270 280 L 320 280 L 320 180 L 360 180 L 360 280 L 410 280 L 410 230 L 450 230 L 450 280 L 510 280 L 510 200 L 560 200 L 560 280 L 620 280 L 620 220 L 670 220 L 670 280 L 720 280 L 720 250 L 760 250 L 760 280 L 800 280 L 800 500 L 0 500 Z" fill="#94a3b8" opacity="0.4"/>
+  <path d="M 0 300 L 60 300 L 60 250 L 110 250 L 110 300 L 160 300 L 160 220 L 200 220 L 200 300 L 260 300 L 260 260 L 300 260 L 300 300 L 370 300 L 370 230 L 420 230 L 420 300 L 480 300 L 480 250 L 530 250 L 530 300 L 590 300 L 590 220 L 640 220 L 640 300 L 700 300 L 700 260 L 750 260 L 750 300 L 800 300 L 800 500 L 0 500 Z" fill="#64748b" opacity="0.3"/>
+
+  <!-- Road & Footpath Perspective -->
+  <polygon points="0,320 800,320 800,500 0,500" fill="url(#roadGrad)"/>
+  
+  <!-- Footpath / Paver Blocks Border -->
+  <polygon points="0,320 800,320 800,340 0,340" fill="url(#paveGrad)" opacity="0.9"/>
+  <!-- Kerb Pattern -->
+  <line x1="0" y1="340" x2="800" y2="340" stroke="#f1f5f9" stroke-width="2"/>
+  <line x1="0" y1="320" x2="800" y2="320" stroke="#cbd5e1" stroke-width="2"/>
+
+  <!-- Road Center Dashed Line -->
+  <line x1="0" y1="410" x2="160" y2="410" stroke="#facc15" stroke-width="6" stroke-dasharray="35,25"/>
+  <line x1="200" y1="410" x2="600" y2="410" stroke="#facc15" stroke-width="6" stroke-dasharray="35,25"/>
+  <line x1="640" y1="410" x2="800" y2="410" stroke="#facc15" stroke-width="6" stroke-dasharray="35,25"/>
+
+  <!-- Concrete Paving Finisher / Road Roller Machine -->
+  <g transform="translate(180, 240)">
+    <!-- Machine Body -->
+    <rect x="60" y="40" width="140" height="70" rx="8" fill="#eab308" filter="url(#dropShadow)"/>
+    <rect x="75" y="15" width="70" height="45" rx="5" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+    <!-- Glass Window -->
+    <rect x="85" y="22" width="50" height="28" rx="3" fill="#38bdf8" opacity="0.8"/>
+    <!-- Operator Silhouette -->
+    <circle cx="108" cy="34" r="7" fill="#1e293b"/>
+    <!-- Exhaust Pipe -->
+    <rect x="155" y="10" width="8" height="30" fill="#334155"/>
+    <!-- Front Roller Drum -->
+    <rect x="20" y="70" width="35" height="50" rx="10" fill="#475569" stroke="#1e293b" stroke-width="3"/>
+    <circle cx="37" cy="95" r="14" fill="#64748b"/>
+    <circle cx="37" cy="95" r="5" fill="#0f172a"/>
+    <!-- Rear Heavy Wheels -->
+    <circle cx="170" cy="100" r="24" fill="#334155" stroke="#0f172a" stroke-width="3"/>
+    <circle cx="170" cy="100" r="12" fill="#64748b"/>
+    <!-- Machine Logo / Accent -->
+    <rect x="75" y="70" width="90" height="8" fill="#ca8a04"/>
+  </g>
+
+  <!-- Road Cones -->
+  <g transform="translate(420, 340)">
+    <polygon points="15,0 5,45 25,45" fill="#f97316"/>
+    <rect x="0" y="45" width="30" height="6" rx="2" fill="#ea580c"/>
+    <polygon points="12,12 8,26 22,26 18,12" fill="#ffffff"/>
+  </g>
+  <g transform="translate(490, 360)">
+    <polygon points="15,0 5,45 25,45" fill="#f97316"/>
+    <rect x="0" y="45" width="30" height="6" rx="2" fill="#ea580c"/>
+    <polygon points="12,12 8,26 22,26 18,12" fill="#ffffff"/>
+  </g>
+  <g transform="translate(560, 380)">
+    <polygon points="15,0 5,45 25,45" fill="#f97316"/>
+    <rect x="0" y="45" width="30" height="6" rx="2" fill="#ea580c"/>
+    <polygon points="12,12 8,26 22,26 18,12" fill="#ffffff"/>
+  </g>
+
+  <!-- Modern Paver Walkway with Tree Planters -->
+  <g transform="translate(620, 240)">
+    <!-- Street Light Pole -->
+    <rect x="90" y="0" width="6" height="130" fill="#94a3b8"/>
+    <path d="M 90 10 Q 60 10 50 25" stroke="#94a3b8" stroke-width="6" fill="none"/>
+    <polygon points="40,25 65,25 60,32 45,32" fill="#38bdf8"/>
+    <!-- Tree -->
+    <rect x="25" y="80" width="10" height="40" fill="#78350f"/>
+    <circle cx="30" cy="65" r="30" fill="#22c55e" opacity="0.9"/>
+    <circle cx="15" cy="60" r="22" fill="#16a34a"/>
+    <circle cx="45" cy="55" r="24" fill="#15803d"/>
+  </g>
+
+  <!-- Top Badges -->
+  <g transform="translate(30, 30)">
+    <rect x="0" y="0" width="160" height="34" rx="17" fill="url(#badgeGrad)" filter="url(#dropShadow)"/>
+    <circle cx="17" cy="17" r="7" fill="#38bdf8"/>
+    <text x="32" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#ffffff">विकास कामे / INFRA</text>
+  </g>
+
+  <g transform="translate(630, 30)">
+    <rect x="0" y="0" width="140" height="34" rx="17" fill="rgba(15,23,42,0.85)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="70" y="21" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#f8fafc" text-anchor="middle">१२ ऑगस्ट २०२६</text>
+  </g>
+
+  <!-- Bottom Gradient Overlay for Typography -->
+  <rect x="0" y="320" width="800" height="180" fill="url(#cardOverlay)"/>
+
+  <!-- Caption & Project Details -->
+  <g transform="translate(35, 415)">
+    <rect x="0" y="-2" width="180" height="20" rx="4" fill="url(#goldGrad)"/>
+    <text x="8" y="13" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#0f172a">✓ काम पूर्ण · COMPLETED</text>
+    <text x="0" y="42" font-family="'Noto Sans Devanagari', system-ui, sans-serif" font-size="22" font-weight="800" fill="#ffffff">रस्ते कॉंक्रिटीकरण व डांबरीकरण मोहीम</text>
+    <text x="0" y="64" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#93c5fd">गुलमोहर रोड व प्रोफेसर कॉलनी अंतर्गत रस्ते · प्रभाग क्रमांक ३</text>
+  </g>
+</svg>

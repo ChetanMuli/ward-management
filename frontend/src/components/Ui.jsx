@@ -95,7 +95,7 @@ export function Modal({title,onClose,children,wide=false,layer=1,footer}){
 }
 
 function optionSearchText(o){return [o.search,o.label,o.title,o.hint,o.badge].filter(Boolean).join(' ').toLowerCase()}
-export function SearchableSelect({label, value, onChange, options=[], placeholder='Search or select…', searchPlaceholder='Type to search…', disabled=false, required=false, className='', loading=false}){
+export function SearchableSelect({label, value, onChange, options=[], placeholder='Search or select…', searchPlaceholder='Type to search…', disabled=false, required=false, className='', loading=false, compact=false}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[menuStyle,setMenuStyle]=useState({});
  const controlRef=useRef(null), menuRef=useRef(null), searchRef=useRef(null), optionsRef=useRef(null);
  const position=()=>{
@@ -109,11 +109,11 @@ export function SearchableSelect({label, value, onChange, options=[], placeholde
   const pad=10;
   const spaceBelow=Math.max(0,viewportH-r.bottom-pad);
   const spaceAbove=Math.max(0,r.top-pad);
-  const desired=Math.min(mobile?Math.floor(viewportH*0.58):380, mobile?480:380);
-  let above=spaceBelow<Math.min(220,desired)&&spaceAbove>spaceBelow;
+  const desired=Math.min(mobile?Math.floor(viewportH*(compact?0.42:0.58)): compact?220:380, mobile? compact?300:480 : compact?220:380);
+  let above=spaceBelow<Math.min(compact?160:220,desired)&&spaceAbove>spaceBelow;
   let available=above?spaceAbove:spaceBelow;
-  if(available<200){above=false;available=viewportH-(pad*2);}
-  const maxHeight=Math.max(180,Math.min(desired,available));
+  if(available<160){above=false;available=viewportH-(pad*2);}
+  const maxHeight=Math.max(compact?132:180,Math.min(desired,available));
   let top=above?r.top-maxHeight-6:r.bottom+6;
   if(top<pad)top=pad;
   if(top+maxHeight>viewportH-pad)top=Math.max(pad,viewportH-pad-maxHeight);
@@ -132,7 +132,7 @@ export function SearchableSelect({label, value, onChange, options=[], placeholde
   return()=>{document.removeEventListener('pointerdown',close,true);document.removeEventListener('keydown',esc);window.removeEventListener('ward:close-overlays',closeOverlay)};
  },[open]);
  const menu=open&&!disabled&&typeof document!=='undefined'?createPortal(
-  <div ref={menuRef} className="searchable-menu searchable-menu-portal" style={menuStyle} role="listbox" onPointerDown={e=>e.stopPropagation()} onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()}>
+  <div ref={menuRef} className={`searchable-menu searchable-menu-portal ${className} ${compact?'is-compact-menu':''}`} style={menuStyle} role="listbox" onPointerDown={e=>e.stopPropagation()} onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()}>
    <div className="searchable-menu-search"><span>⌕</span><input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder={searchPlaceholder} autoComplete="off"/></div>
    <div ref={optionsRef} className="searchable-options">
     {loading?<div className="searchable-empty">Loading options…</div>:filtered.length?filtered.map(o=><button type="button" key={String(o.value)} className={`searchable-option ${o.badge?'has-badge':''} ${String(o.value)===String(value)?'selected':''}`} onClick={()=>choose(o.value)}>{o.badge&&<span className="option-badge">{o.badge}</span>}<span className="option-copy"><strong>{o.title||o.label}</strong>{o.hint&&<small>{o.hint}</small>}</span>{String(o.value)===String(value)&&<span className="option-check">✓</span>}</button>):<div className="searchable-empty">No matches found</div>}
@@ -545,6 +545,124 @@ export function isUsablePhoto(value){
  if(!src||src==='null'||src==='undefined') return false;
  return /^(data:image\/[a-z0-9.+-]+;base64,|blob:|https?:\/\/|\/(?!\/))/i.test(src);
 }
+export function ImageCropField({
+  label='Image',
+  value='',
+  onChange,
+  aspect=2.4,
+  outputWidth=1200,
+  hint='',
+  uploadLabel='Upload image',
+  adjustLabel='Adjust crop',
+}){
+  const fileRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
+  const STAGE_W=Math.min(560, typeof window==='undefined'?560:Math.max(280, Math.min(560, window.innerWidth-48)));
+  const STAGE_H=Math.round(STAGE_W/Math.max(1.1, Number(aspect)||2.4));
+  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false);
+  const cover=Math.max(STAGE_W/(nat.w||1), STAGE_H/(nat.h||1));
+  const scale=cover*zoom;
+  const dw=(nat.w||1)*scale, dh=(nat.h||1)*scale;
+  function clamp(next, w=nat.w, h=nat.h, z=zoom){
+    const c=Math.max(STAGE_W/(w||1), STAGE_H/(h||1));
+    const s=c*z;
+    const maxX=Math.max(0,((w||1)*s-STAGE_W)/2);
+    const maxY=Math.max(0,((h||1)*s-STAGE_H)/2);
+    return {x:Math.min(maxX,Math.max(-maxX,next.x||0)),y:Math.min(maxY,Math.max(-maxY,next.y||0))};
+  }
+  function openCrop(data){
+    setSrc(data);setZoom(1);zoomRef.current=1;setPos({x:0,y:0});posRef.current={x:0,y:0};setNat({w:1,h:1});setReady(false);setOpen(true);
+  }
+  function readFile(file){
+    if(!file)return;
+    if(!file.type.startsWith('image/')){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Please select an image file.'}}));return;}
+    if(file.size>10*1024*1024){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Image must be under 10MB.'}}));return;}
+    const reader=new FileReader();
+    reader.onload=()=>openCrop(String(reader.result||''));
+    reader.readAsDataURL(file);
+  }
+  useEffect(()=>{posRef.current=pos;},[pos]);
+  useEffect(()=>{zoomRef.current=zoom;setPos(p=>clamp(p,nat.w,nat.h,zoom));},[zoom,nat.w,nat.h]);
+  useEffect(()=>{
+    if(!open)return;
+    const move=e=>{
+      if(!dragRef.current)return;
+      e.preventDefault();
+      const next=clamp({x:e.clientX-dragRef.current.x,y:e.clientY-dragRef.current.y},natRef.current.w,natRef.current.h,zoomRef.current);
+      posRef.current=next;setPos(next);
+    };
+    const up=()=>{dragRef.current=null};
+    window.addEventListener('pointermove',move,{passive:false});
+    window.addEventListener('pointerup',up);
+    window.addEventListener('pointercancel',up);
+    return()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up)};
+  },[open]);
+  function apply(){
+    if(!src||!ready)return;
+    const img=new Image();
+    img.onload=()=>{
+      const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+      const outW=outputWidth, outH=Math.round(outW/(Number(aspect)||2.4));
+      const canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;
+      const ctx=canvas.getContext('2d');if(!ctx)return;
+      const z=zoomRef.current, p=posRef.current;
+      const s=(Math.max(STAGE_W/w, STAGE_H/h))*z;
+      const left=(STAGE_W-w*s)/2+p.x;
+      const top=(STAGE_H-h*s)/2+p.y;
+      ctx.fillStyle='#0b1624';ctx.fillRect(0,0,outW,outH);
+      ctx.drawImage(img, -left/s, -top/s, STAGE_W/s, STAGE_H/s, 0, 0, outW, outH);
+      let data=canvas.toDataURL('image/jpeg',0.72);
+      if(data.length>700000) data=canvas.toDataURL('image/jpeg',0.58);
+      onChange(data);setOpen(false);setSrc('');
+    };
+    img.src=src;
+  }
+  const node=open?(
+    <div className="photo-crop-backdrop" onPointerDown={()=>{setOpen(false);setSrc('')}}>
+      <div className="photo-crop-modal banner-crop-modal" onPointerDown={e=>e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>Adjust image</h2>
+            <span>Drag to position, then zoom so the important area fills the frame.</span>
+          </div>
+          <button type="button" className="icon-btn" onClick={()=>{setOpen(false);setSrc('')}}>×</button>
+        </div>
+        <div className="banner-crop-stage" style={{width:STAGE_W,height:STAGE_H}} onPointerDown={e=>{e.preventDefault();e.stopPropagation();dragRef.current={x:e.clientX-posRef.current.x,y:e.clientY-posRef.current.y};}}>
+          {src&&<img src={src} alt="" draggable="false" onLoad={e=>{const w=e.currentTarget.naturalWidth||1,h=e.currentTarget.naturalHeight||1;natRef.current={w,h};setNat({w,h});setReady(true);setPos(p=>clamp(p,w,h,zoomRef.current));}} style={{width:dw,height:dh,left:(STAGE_W-dw)/2+pos.x,top:(STAGE_H-dh)/2+pos.y}}/>}
+          <span className="banner-crop-frame" aria-hidden="true"/>
+        </div>
+        <label className="photo-crop-zoom">Zoom<input type="range" min="1" max="3" step="0.02" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
+        <div className="modal-actions">
+          <button type="button" className="ghost-btn" onClick={()=>{setOpen(false);setSrc('')}}>Cancel</button>
+          <button type="button" className="primary-btn" disabled={!ready} onClick={apply}>{ready?'Use this crop':'Loading…'}</button>
+        </div>
+      </div>
+    </div>
+  ):null;
+  return (
+    <div className="banner-crop-field">
+      {label?<div className="section-label">{label}</div>:null}
+      {value?(
+        <div
+          className="banner-crop-preview"
+          style={{
+            backgroundImage: `url(${value})`,
+            aspectRatio: `${Number(aspect) || 2.4} / 1`,
+            height: 'auto',
+          }}
+        />
+      ):null}
+      <div className="banner-crop-actions">
+        <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{value?'Replace image':uploadLabel}</button>
+        {value?<button type="button" className="small-btn" onClick={()=>openCrop(value)}>{adjustLabel}</button>:null}
+        {value?<button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button>:null}
+      </div>
+      {hint?<p className="muted" style={{margin:'6px 0 0'}}>{hint}</p>:null}
+      <input ref={fileRef} type="file" accept="image/*" className="camera-hidden-input" onChange={e=>{readFile(e.target.files?.[0]);e.target.value='';}}/>
+      {typeof document!=='undefined'&&node?createPortal(node,document.body):node}
+    </div>
+  );
+}
+
 export function FaceAvatar({name='User',photo,className=''}){
  const src=typeof photo==='string'?photo.trim():'';
  const [broken,setBroken]=useState(false);
@@ -554,7 +672,7 @@ export function FaceAvatar({name='User',photo,className=''}){
  }
  return <div className={`user-avatar user-avatar-fallback notranslate ${className}`.trim()} aria-hidden="true" translate="no"><span>{initialsOf(name)}</span></div>;
 }
-export function CirclePhotoField({label='Profile photo',name,value,onChange,optional=true}){
+export function CirclePhotoField({label='Profile photo',name,value,onChange,optional=true,allowCamera=true}){
  const fileRef=useRef(null),cameraRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
  const STAGE=Math.min(280, typeof window==='undefined'?280:Math.max(220, Math.min(280, window.innerWidth-56)));
  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false);
@@ -614,8 +732,8 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
    ctx.fillStyle='#0b1624';ctx.fillRect(0,0,size,size);
    ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.closePath();ctx.clip();
    ctx.drawImage(img,-left/s,-top/s,srcSize,srcSize,0,0,size,size);
-   let data=canvas.toDataURL('image/jpeg',.86);
-   if(data.length>1450000) data=canvas.toDataURL('image/jpeg',.68);
+   let data=canvas.toDataURL('image/jpeg',.78);
+   if(data.length>400000) data=canvas.toDataURL('image/jpeg',.62);
    onChange(data);setOpen(false);setSrc('');
   };
   img.src=src;
@@ -652,23 +770,35 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
    <div className="circle-photo-row">
     <FaceAvatar name={name||'User'} photo={value} className="staff-face-lg"/>
     <div className="circle-photo-actions">
-     <button type="button" className="small-btn" onClick={handleCameraClick}>
-      Take photo
-     </button>
+     {allowCamera ? (
+      <button type="button" className="small-btn" onClick={handleCameraClick}>
+       Take photo
+      </button>
+     ) : null}
      <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{value?'Change photo':'Choose photo'}</button>
      {value?<button type="button" className="small-btn" onClick={()=>openCrop(value)}>Adjust photo</button>:null}
      {value?<button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button>:null}
      <p className="muted">Crop the face into the circle. This photo is used on the ward dashboard and birthday card.</p>
     </div>
-    <input ref={cameraRef} type="file" accept="image/*" capture="user" className="camera-hidden-input" onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
+    {allowCamera ? <input ref={cameraRef} type="file" accept="image/*" capture="user" className="camera-hidden-input" onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/> : null}
     <input ref={fileRef} type="file" accept="image/*" className="camera-hidden-input" onChange={e=>{readFile(e.target.files?.[0]);e.target.value=''}}/>
    </div>
-   <CameraModal open={liveCameraOpen} onClose={()=>setLiveCameraOpen(false)} onCapture={data=>openCrop(data)} initialFacing="user" cameraLabel="Take Profile Photo"/>
+   {allowCamera ? <CameraModal open={liveCameraOpen} onClose={()=>setLiveCameraOpen(false)} onCapture={data=>openCrop(data)} initialFacing="user" cameraLabel="Take Profile Photo"/> : null}
    {typeof document!=='undefined'&&node?createPortal(node,document.body):node}
   </div>
  );
 }
-export function ProfileAvatar({name='User',size='md',className=''}){
+export function ProfileAvatar({name='User',photo,size='md',className=''}){
+ const src=typeof photo==='string'?photo.trim():'';
+ const [broken,setBroken]=useState(false);
+ useEffect(()=>{setBroken(false)},[src]);
+ if(isUsablePhoto(src)&&!broken){
+  return (
+   <span className={`user-profile-avatar ${size==='lg'?'large':size==='sm'?'small':''} ${className}`.trim()} role="img" aria-label={name}>
+    <img src={src} alt={name||'Profile'} onError={()=>setBroken(true)} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
+   </span>
+  );
+ }
  return (
   <span className={`user-profile-avatar ${size==='lg'?'large':size==='sm'?'small':''} ${className}`.trim()} role="img" aria-label={name}>
    <svg className="user-profile-logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

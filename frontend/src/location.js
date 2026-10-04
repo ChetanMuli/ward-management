@@ -1,3 +1,5 @@
+import { formatWardNumber } from './wardFormat';
+
 export const AHILYANAGAR={lat:19.0948,lng:74.7480,label:'Ahilyanagar'};
 
 export function hasCoords(lat,lng){
@@ -140,7 +142,7 @@ export function housePlace(house){
   house.apartment?.name,
   house.houseNumber&&(house.apartmentId||house.apartment?'Flat '+house.houseNumber:'House '+house.houseNumber),
   area.name,
-  ward.wardNumber&&`Ward ${ward.wardNumber}`,
+  formatWardNumber(ward.wardNumber),
   house.landmark||area.landmark,
   house.city||area.city||ward.city
  ]);
@@ -154,7 +156,7 @@ export function areaPlace(area,ward){
   area?.city||w.city,
   w.district,
   area?.pincode||w.pincode,
-  w.wardNumber&&`Ward ${w.wardNumber}`
+  formatWardNumber(w.wardNumber),
  ]);
 }
 
@@ -187,11 +189,44 @@ export function presenceApiQuery(filter){
  return {};
 }
 
+async function reverseAddress(lat, lng) {
+  try {
+    const ctrl = new AbortController();
+    const tId = setTimeout(() => ctrl.abort(), 2500);
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'Accept-Language': 'en' } }).catch(() => null);
+    clearTimeout(tId);
+    if (res && res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const addr = data.address || {};
+      return [
+        addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood,
+        addr.residential || addr.city_district || addr.quarter,
+        addr.city || addr.town || addr.village,
+        addr.postcode
+      ].filter(Boolean).join(', ');
+    }
+  } catch (_) {}
+  return '';
+}
+
+function gpsErrorMessage(err) {
+  const code = err?.code;
+  if (code === 1) return 'Allow location permission in the browser, then try again.';
+  if (code === 2) return 'Turn on GPS / Location services, then try again.';
+  if (code === 3) return 'GPS timed out. Stand outside in the open and try again.';
+  return err?.message || 'Could not retrieve GPS location.';
+}
+
 export function getAccurateLocation(options = {}) {
-  const { timeout = 12000, desiredAccuracy = 35 } = options;
+  const phone = typeof window !== 'undefined' && window.matchMedia?.('(max-width:800px)')?.matches;
+  const { timeout = phone ? 22000 : 16000, desiredAccuracy = phone ? 20 : 25 } = options;
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
       return reject(new Error('GPS location is not supported on this device.'));
+    }
+    if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return reject(new Error('GPS needs HTTPS. Open the site with https:// and try again.'));
     }
 
     let bestPos = null;
@@ -210,98 +245,59 @@ export function getAccurateLocation(options = {}) {
       }
     };
 
-    const finish = async (pos) => {
-      if (resolved) return;
+    const finish = async (pos, source = 'gps') => {
+      if (resolved || !pos?.coords) return;
       resolved = true;
       cleanup();
-
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
       const accuracy = Math.round(pos.coords.accuracy || 0);
-
-      let address = '';
-      try {
-        const ctrl = new AbortController();
-        const tId = setTimeout(() => ctrl.abort(), 2000);
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
-        const res = await fetch(url, { signal: ctrl.signal, headers: { 'Accept-Language': 'en' } }).catch(() => null);
-        clearTimeout(tId);
-        if (res && res.ok) {
-          const data = await res.json().catch(() => ({}));
-          const addr = data.address || {};
-          const parts = [
-            addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood,
-            addr.residential || addr.city_district || addr.quarter,
-            addr.city || addr.town || addr.village,
-            addr.postcode
-          ].filter(Boolean);
-          address = parts.join(', ');
-        }
-      } catch (_) {}
-
+      const address = await reverseAddress(lat, lng);
       resolve({
         latitude: lat,
         longitude: lng,
         accuracy,
+        source,
         address: address || '',
-        formatted: address ? `${address} (GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)})` : `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (±${accuracy}m)`
+        formatted: address
+          ? `${address} (GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} ±${accuracy}m)`
+          : `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (±${accuracy}m)`
       });
     };
 
-    // Fast-path: try to get recent cached location immediately
+    const failOrNetwork = (err) => {
+      if (bestPos) return finish(bestPos);
+      cleanup();
+      reject(new Error(gpsErrorMessage(err)));
+    };
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const acc = pos.coords?.accuracy || 9999;
         bestPos = pos;
-        if (acc <= desiredAccuracy) {
-          finish(pos);
-        }
+        if ((pos.coords?.accuracy || 9999) <= desiredAccuracy) finish(pos);
       },
       () => {},
-      { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: Math.min(8000, timeout), maximumAge: 0 }
     );
-
-    timer = setTimeout(() => {
-      if (bestPos) {
-        finish(bestPos);
-      } else {
-        cleanup();
-        reject(new Error('GPS request timed out. Please ensure location services are turned on.'));
-      }
-    }, timeout);
 
     try {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const acc = pos.coords?.accuracy || 9999;
-          if (!bestPos || acc < (bestPos.coords?.accuracy || 9999)) {
-            bestPos = pos;
-          }
-          if (acc <= desiredAccuracy) {
-            finish(pos);
-          }
+          if (!bestPos || acc < (bestPos.coords?.accuracy || 9999)) bestPos = pos;
+          if (acc <= desiredAccuracy) finish(pos);
         },
-        (err) => {
-          if (bestPos) {
-            finish(bestPos);
-          } else {
-            // Fallback attempt with network location
-            navigator.geolocation.getCurrentPosition(
-              (pos) => finish(pos),
-              (e) => {
-                cleanup();
-                reject(new Error(e?.message || err?.message || 'Could not retrieve GPS location.'));
-              },
-              { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
-            );
-          }
-        },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+        (err) => { failOrNetwork(err); },
+        { enableHighAccuracy: true, timeout, maximumAge: 0 }
       );
     } catch (e) {
-      cleanup();
-      reject(e);
+      failOrNetwork(e);
     }
+
+    timer = setTimeout(() => {
+      if (bestPos) finish(bestPos);
+      else failOrNetwork({ code: 3 });
+    }, timeout);
   });
 }
 

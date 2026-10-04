@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="natureSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="40%" stop-color="#6ee7b7"/>
+      <stop offset="80%" stop-color="#ecfdf5"/>
+      <stop offset="100%" stop-color="#d1fae5"/>
+    </linearGradient>
+    <linearGradient id="hill1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="hill2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+    <linearGradient id="greenBadge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="greenOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(6,78,59,0)"/>
+      <stop offset="60%" stop-color="rgba(6,78,59,0.5)"/>
+      <stop offset="100%" stop-color="rgba(2,44,34,0.96)"/>
+    </linearGradient>
+    <filter id="natureDrop" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="800" height="500" fill="url(#natureSky)"/>
+
+  <!-- Sun -->
+  <circle cx="680" cy="90" r="45" fill="#fef08a" opacity="0.9"/>
+  <circle cx="680" cy="90" r="35" fill="#fde047"/>
+
+  <!-- Rolling Green Park Lawns -->
+  <path d="M 0 320 Q 200 240 450 280 T 800 260 L 800 500 L 0 500 Z" fill="url(#hill1)"/>
+  <path d="M 0 360 Q 300 300 550 330 T 800 320 L 800 500 L 0 500 Z" fill="url(#hill2)"/>
+
+  <!-- Garden Pathway -->
+  <path d="M 380 500 Q 420 400 460 360 T 520 330" stroke="#fef3c7" stroke-width="28" fill="none" opacity="0.8"/>
+
+  <!-- Large Mature Tree in Park -->
+  <g transform="translate(120, 140)">
+    <!-- Tree Trunk -->
+    <path d="M 70 200 L 80 100 Q 80 60 60 40 M 80 100 Q 90 70 110 50" stroke="#78350f" stroke-width="20" stroke-linecap="round" fill="none"/>
+    <!-- Foliage Layers -->
+    <circle cx="75" cy="50" r="60" fill="#15803d" filter="url(#natureDrop)"/>
+    <circle cx="45" cy="40" r="45" fill="#16a34a"/>
+    <circle cx="105" cy="40" r="45" fill="#22c55e"/>
+    <circle cx="75" cy="15" r="40" fill="#4ade80"/>
+  </g>
+
+  <!-- Tree Guard with Sapling (Active Plantation) -->
+  <g transform="translate(420, 240)">
+    <!-- Protective Metal Tree Guard Cage -->
+    <rect x="25" y="50" width="70" height="90" rx="4" fill="none" stroke="#22c55e" stroke-width="3"/>
+    <line x1="25" y1="75" x2="95" y2="75" stroke="#22c55e" stroke-width="2"/>
+    <line x1="25" y1="105" x2="95" y2="105" stroke="#22c55e" stroke-width="2"/>
+    <line x1="42" y1="50" x2="42" y2="140" stroke="#22c55e" stroke-width="2"/>
+    <line x1="60" y1="50" x2="60" y2="140" stroke="#22c55e" stroke-width="2"/>
+    <line x1="78" y1="50" x2="78" y2="140" stroke="#22c55e" stroke-width="2"/>
+    <!-- Young Sapling -->
+    <line x1="60" y1="140" x2="60" y2="30" stroke="#854d0e" stroke-width="6"/>
+    <ellipse cx="48" cy="45" rx="14" ry="8" fill="#15803d" transform="rotate(-30, 48, 45)"/>
+    <ellipse cx="72" cy="45" rx="14" ry="8" fill="#15803d" transform="rotate(30, 72, 45)"/>
+    <ellipse cx="45" cy="25" rx="14" ry="8" fill="#22c55e" transform="rotate(-30, 45, 25)"/>
+    <ellipse cx="75" cy="25" rx="14" ry="8" fill="#22c55e" transform="rotate(30, 75, 25)"/>
+    <circle cx="60" cy="15" r="14" fill="#4ade80"/>
+  </g>
+
+  <!-- Citizens & Corporator Watering the Plant -->
+  <g transform="translate(540, 260)">
+    <circle cx="30" cy="40" r="16" fill="#fed7aa"/>
+    <path d="M 15 80 Q 15 60 30 60 Q 45 60 45 80 Z" fill="#0284c7"/>
+    <!-- Watering Can -->
+    <rect x="50" y="65" width="22" height="18" rx="3" fill="#38bdf8"/>
+    <path d="M 68 70 L 85 60" stroke="#38bdf8" stroke-width="4"/>
+    <!-- Water Drops -->
+    <circle cx="92" cy="72" r="3" fill="#0284c7"/>
+    <circle cx="98" cy="82" r="3" fill="#0284c7"/>
+    <circle cx="94" cy="92" r="3" fill="#0284c7"/>
+  </g>
+
+  <!-- Top Badges -->
+  <g transform="translate(30, 30)">
+    <rect x="0" y="0" width="195" height="34" rx="17" fill="url(#greenBadge)" filter="url(#natureDrop)"/>
+    <circle cx="17" cy="17" r="7" fill="#86efac"/>
+    <text x="32" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#ffffff">पर्यावरण संवर्धन / GREEN WARD</text>
+  </g>
+
+  <g transform="translate(630, 30)">
+    <rect x="0" y="0" width="140" height="34" rx="17" fill="rgba(15,23,42,0.85)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="70" y="21" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#f8fafc" text-anchor="middle">१५ सप्टेंबर २०२६</text>
+  </g>
+
+  <!-- Bottom Gradient Overlay -->
+  <rect x="0" y="320" width="800" height="180" fill="url(#greenOverlay)"/>
+
+  <!-- Caption & Project Details -->
+  <g transform="translate(35, 415)">
+    <rect x="0" y="-2" width="220" height="20" rx="4" fill="#34d399"/>
+    <text x="8" y="13" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#064e3b">🌿 १०१ देशी वृक्षांचे संवर्धन संकल्प</text>
+    <text x="0" y="42" font-family="'Noto Sans Devanagari', system-ui, sans-serif" font-size="22" font-weight="800" fill="#ffffff">स्वच्छ व हरित प्रभाग - १,००१ वृक्षारोपण मोहीम</text>
+    <text x="0" y="64" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#a7f3d0">अहिल्या उद्यान परिसर, यशवंतनगर रिंग रोड · प्रभाग ३</text>
+  </g>
+</svg>

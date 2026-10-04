@@ -15,7 +15,18 @@ const list=asyncHandler(async(req,res)=>{
   if(req.query.wardId && String(req.query.wardId)!==String(req.user.wardId)) throw new ApiError(403,'You can only view your registered ward');
   where.id=req.user.wardId;
  }
- const rows=await Ward.findAll({where,include:[{model:Area,as:'areas'},{model:Apartment,as:'apartments',required:false,include:[{model:Area,as:'area',attributes:['id','name']}]},{model:User,as:'users',attributes:['id','name','mobile','status','roleId'],required:false,include:[{model:Role,attributes:['name'],required:false,where:{name:'NAGARSEVAK'}}]},{model:WardNagarsevakSubscription,as:'nagarsevakSubscriptions',attributes:['id','nagarsevakUserId','status'],required:false,include:[{model:User,as:'nagarsevak',attributes:['id','name','mobile','status'],required:false}]}],order:[['wardNumber','ASC']]});
+ const light=String(req.query.light||'')==='1'||String(req.query.light||'').toLowerCase()==='true';
+ if(light){
+  const slim=await Ward.findAll({where,attributes:['id','wardNumber','name','status','registrationOpen'],order:[['wardNumber','ASC']]});
+  return success(res,{data:slim});
+ }
+ const nagarRole=await Role.findOne({where:{name:'NAGARSEVAK'},attributes:['id']});
+ const rows=await Ward.findAll({where,include:[
+  {model:Area,as:'areas',separate:true},
+  {model:Apartment,as:'apartments',required:false,separate:true,include:[{model:Area,as:'area',attributes:['id','name']}]},
+  {model:User,as:'users',attributes:['id','name','mobile','status','roleId'],required:false,separate:true,where:nagarRole?{roleId:nagarRole.id}:undefined,include:[{model:Role,attributes:['name'],required:false}]},
+  {model:WardNagarsevakSubscription,as:'nagarsevakSubscriptions',attributes:['id','nagarsevakUserId','status'],required:false,separate:true,include:[{model:User,as:'nagarsevak',attributes:['id','name','mobile','status'],required:false}]}
+ ],order:[['wardNumber','ASC']]});
  if(req.user.roleName==='CITIZEN'){
   const { getVisibleNagarsevakIds } = require('../../services/wardActivation.service');
   const visible=new Set((await getVisibleNagarsevakIds(req.user.wardId)).map(String));

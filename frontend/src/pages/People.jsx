@@ -7,9 +7,11 @@ import {can} from '../rbac';
 import PersonForm,{emptyPerson,presenceLine} from '../components/PersonForm';
 import DeathAction from '../components/DeathAction';
 import {housePlace,nativePlaceLine,presenceApiQuery,PEOPLE_PLACE_OPTIONS} from '../location';
+import {formatWardLabel, formatWardNumber} from '../wardFormat';
 import {MapPreview} from '../components/LocationMap';
 
 function occupationLabel(p){
+ if(p.isRetired || p.occupationType==='RETIRED') return `Retired${p.retiredFrom ? ` (${p.retiredFrom}${p.retiredService ? ` · ${p.retiredService}` : ''})` : p.retiredService ? ` (${p.retiredService})` : ''}`;
  if(p.occupationType==='BUSINESS') return `Business · ${p.businessName||'N/A'}`;
  if(p.occupationType==='SERVICE') return `${p.companyName||'Service'} · ${p.employmentType||'N/A'}`;
  return p.occupation||'Other';
@@ -23,6 +25,7 @@ export default function People(){
  const [filters,setFilters]=useState({
   occupationType:'',
   employmentType:'',
+  isRetired:'',
   voterStatus:'',
   presenceStatus:'',
   areaId:'',
@@ -41,6 +44,7 @@ export default function People(){
  const activeFiltersCount=[
   filters.occupationType,
   filters.employmentType,
+  filters.isRetired,
   filters.voterStatus,
   filters.presenceStatus,
   filters.areaId,
@@ -52,6 +56,7 @@ export default function People(){
   setFilters({
    occupationType:'',
    employmentType:'',
+   isRetired:'',
    voterStatus:'',
    presenceStatus:'',
    areaId:'',
@@ -75,6 +80,7 @@ export default function People(){
     presenceStatus:extra.presenceStatus||(filters.presenceStatus==='AT_HOME'||filters.presenceStatus==='OUT_OF_CITY'?filters.presenceStatus:undefined),
     occupationType:filters.occupationType||undefined,
     employmentType:filters.employmentType||undefined,
+    isRetired:filters.isRetired||undefined,
     gender:filters.gender||undefined,
     ageGroup:filters.ageGroup||undefined,
     areaId:filters.areaId||undefined
@@ -107,12 +113,23 @@ export default function People(){
 
   {showFilters&&<div className="citizen-advanced-filters">
    <SearchableSelect
+    value={filters.isRetired}
+    onChange={v=>setFilters({...filters,isRetired:v,occupationType:v==='true'?'RETIRED':(filters.occupationType==='RETIRED'?'':filters.occupationType)})}
+    options={[
+     {value:'',label:'All citizens (Working & Retired)'},
+     {value:'true',label:'Retired persons only (निवृत्त)'},
+     {value:'false',label:'Active / Working only'}
+    ]}
+    placeholder="Retired status"
+   />
+   <SearchableSelect
     value={filters.occupationType}
-    onChange={v=>setFilters({...filters,occupationType:v,employmentType:(v==='BUSINESS'||v==='OTHER')?'':filters.employmentType})}
+    onChange={v=>setFilters({...filters,occupationType:v,isRetired:v==='RETIRED'?'true':(filters.isRetired==='true'?'':filters.isRetired),employmentType:(v==='BUSINESS'||v==='OTHER'||v==='RETIRED')?'':filters.employmentType})}
     options={[
      {value:'',label:'All occupations'},
      {value:'BUSINESS',label:'Business'},
      {value:'SERVICE',label:'Service'},
+     {value:'RETIRED',label:'Retired (निवृत्त)'},
      {value:'OTHER',label:'Other / Homemaker / Student'}
     ]}
     placeholder="Occupation"
@@ -176,14 +193,14 @@ export default function People(){
 
   {activeFiltersCount>0&&<p className="citizen-filter-summary">{total} {total===1?'citizen':'citizens'} found for active filters. <button type="button" className="table-link" style={{textDecoration:'underline',fontWeight:600}} onClick={clearAllFilters}>Clear all</button></p>}
 
-  {!rows?<Loading/>:!rows.length?<Empty>{activeFiltersCount>0?'No citizens match the selected filters. Try changing or resetting filters.':'No citizens found for the selected ward/search.'}</Empty>:<div className="panel table-wrap"><table><thead><tr><th>Citizen</th><th>DOB / Age</th><th>Family</th><th>Occupation / Job</th><th>House / Ward</th><th>Voter</th><th/></tr></thead><tbody>{rows.map(p=><tr key={p.id}><td data-label="Citizen"><button className="table-link" onClick={()=>openPerson(p.id)}><strong>{p.fullName}</strong></button><div className="muted">{p.mobile||'—'}</div></td><td data-label="DOB / Age">{p.dob||'—'}<div className="muted">{p.age==null?'Age not available':`${p.age} years`}</div></td><td data-label="Family">{p.family?.familyName||'—'}</td><td data-label="Occupation / Job">{occupationLabel(p)}</td><td data-label="House / Ward">{p.family?.house?.houseNumber||'—'}<div className="muted">{p.family?.house?.area?.ward?.wardNumber||''}</div></td><td data-label="Voter"><StatusPill>{p.voterProfile?.status||'NOT_SPECIFIED'}</StatusPill></td><td data-label="Actions"><RowMenu items={[
+  {!rows?<Loading/>:!rows.length?<Empty>{activeFiltersCount>0?'No citizens match the selected filters. Try changing or resetting filters.':'No citizens found for the selected ward/search.'}</Empty>:<div className="panel table-wrap"><table><thead><tr><th>Citizen</th><th>DOB / Age</th><th>Family</th><th>Occupation / Job</th><th>House / Ward</th><th>Voter</th><th/></tr></thead><tbody>{rows.map(p=><tr key={p.id}><td data-label="Citizen"><button className="table-link" onClick={()=>openPerson(p.id)}><strong>{p.fullName}</strong></button><div className="muted">{p.mobile||'—'}</div></td><td data-label="DOB / Age">{p.dob||'—'}<div className="muted">{p.age==null?'Age not available':`${p.age} years`}</div></td><td data-label="Family">{p.family?.familyName||'—'}</td><td data-label="Occupation / Job">{occupationLabel(p)}</td><td data-label="House / Ward">{p.family?.house?.houseNumber||'—'}<div className="muted">{formatWardNumber(p.family?.house?.area?.ward?.wardNumber)||''}</div></td><td data-label="Voter"><StatusPill>{p.voterProfile?.status||'NOT_SPECIFIED'}</StatusPill></td><td data-label="Actions"><RowMenu items={[
      {label:'View details',onClick:()=>openPerson(p.id)},
-     can('EDIT_CITIZENS')&&{label:'Edit',onClick:async()=>{try{setError('');const r=await api.person(p.id);const row=r?.data||p;setEdit({...row,isVoter:row.voterProfile?.status==='VOTER'?'VOTER':row.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:row.voterProfile?.officialVoterIdRef||'',votingWard:row.voterProfile?.votingWard||'',constituency:row.voterProfile?.constituency||''})}catch(e){setError(e.message)}}},
+     can('EDIT_CITIZENS')&&{label:'Edit',onClick:async()=>{try{setError('');const r=await api.person(p.id);const row=r?.data||p;setEdit({...row,isRetired:!!row.isRetired,retiredFrom:row.retiredFrom||'',retiredService:row.retiredService||'',isVoter:row.voterProfile?.status==='VOTER'?'VOTER':row.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:row.voterProfile?.officialVoterIdRef||'',votingWard:row.voterProfile?.votingWard||'',constituency:row.voterProfile?.constituency||''})}catch(e){setError(e.message)}}},
      can('CREATE_DEATH_RECORDS')&&{label:'Mark deceased',danger:true,onClick:()=>setDeathPerson(p)},
      can('DELETE_CITIZENS')&&{label:'Delete',danger:true,onClick:async()=>{if(confirm('Move citizen to recycle bin?')){try{await api.deletePerson(p.id);await load()}catch(e){setError(e.message)}}}}
     ]}/></td></tr>)}</tbody></table></div>}
   {rows&&<PaginationBar page={page} pages={pages} total={total} limit={limit} onPage={setPage} onLimit={setLimit}/>}
-  {detail&&<Modal wide title={`${detail.fullName} · Complete profile`} onClose={()=>setDetail(null)}><div className="detail-grid"><div className="detail-card"><h3>Citizen</h3><p><b>Name:</b> {detail.fullName}</p><p><b>Mobile:</b> {detail.mobile||'—'}</p><p><b>DOB / Age:</b> {detail.dob||'—'} · {detail.age==null?'—':`${detail.age} years`}</p><p><b>Gender:</b> {detail.gender||'—'}</p><p><b>Email:</b> {detail.email||'—'}</p><p><b>Where now:</b> {presenceLine(detail)||'—'}</p></div><div className="detail-card"><h3>Occupation / Job</h3><p><b>Type:</b> {detail.occupationType||'—'}</p>{detail.occupationType==='BUSINESS'?<><p><b>Business:</b> {detail.businessName||'—'}</p><p><b>Business address:</b> {detail.businessAddress||'—'}</p></>:detail.occupationType==='SERVICE'?<><p><b>Company:</b> {detail.companyName||'—'}</p><p><b>Employment:</b> {detail.employmentType||'—'}</p></>:<p><b>Occupation:</b> {detail.occupation||'—'}</p>}</div><div className="detail-card"><h3>Voter</h3><p><b>Status:</b> {detail.voterProfile?.status||'NOT_SPECIFIED'}</p><p><b>Voting ward:</b> {detail.voterProfile?.votingWard||'—'}</p><p><b>Voter ID:</b> {detail.voterProfile?.officialVoterIdRef||'—'}</p><p><b>Constituency:</b> {detail.voterProfile?.constituency||'—'}</p></div></div><div className="detail-card"><h3>Family & household</h3><p><b>Family:</b> {detail.family?.familyName||'—'}</p><p><b>Native village:</b> {nativePlaceLine(detail.family)||'—'}</p><p><b>Path:</b> {housePlace(detail.family?.house)||'—'}</p><p><b>Apartment:</b> {detail.family?.house?.apartment?.name||'Independent house'}</p><p><b>House:</b> {detail.family?.house?.houseNumber||'—'}</p><p><b>Address:</b> {detail.family?.house?.address||'—'}</p><p><b>City:</b> {detail.family?.house?.city||detail.family?.house?.area?.city||'—'}</p><p><b>Ward:</b> {detail.family?.house?.area?.ward?.wardNumber||'—'} · {detail.family?.house?.area?.ward?.name||''}</p><p><b>Colony:</b> {detail.family?.house?.area?.name||'—'}</p><MapPreview lat={detail.family?.house?.latitude} lng={detail.family?.house?.longitude} label={detail.family?.house?.houseNumber?`House ${detail.family.house.houseNumber}`:'This home'}/><div className="member-grid">{(detail.family?.members||[]).map(m=><div className="member-card" key={m.id}><strong>{m.fullName}</strong><span>{m.age==null?'Age unavailable':`${m.age} years`} · {m.mobile||'—'}</span><span>{occupationLabel(m)}</span>{presenceLine(m)?<span>{presenceLine(m)}</span>:null}</div>)}</div></div><div className="detail-card"><h3>Documents</h3><div className="image-grid">{detail.voterIdImage&&<div><strong>Voter ID</strong><img src={detail.voterIdImage} alt="Voter ID"/></div>}{detail.aadhaarImage&&<div><strong>Aadhaar</strong><img src={detail.aadhaarImage} alt="Aadhaar"/></div>}{detail.panCardImage&&<div><strong>PAN</strong><img src={detail.panCardImage} alt="PAN"/></div>}{!detail.voterIdImage&&!detail.aadhaarImage&&!detail.panCardImage&&<p className="muted">No optional documents uploaded.</p>}</div></div><div className="modal-actions"><button className="ghost-btn" onClick={()=>setDetail(null)}>Close</button>{can('EDIT_CITIZENS')&&<button className="primary-btn" onClick={()=>{setEdit({...detail,isVoter:detail.voterProfile?.status==='VOTER'?'VOTER':detail.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:detail.voterProfile?.officialVoterIdRef||'',votingWard:detail.voterProfile?.votingWard||'',constituency:detail.voterProfile?.constituency||''});setDetail(null)}}>Edit profile</button>}</div></Modal>}
+  {detail&&<Modal wide title={`${detail.fullName} · Complete profile`} onClose={()=>setDetail(null)}><div className="detail-grid"><div className="detail-card"><h3>Citizen</h3><p><b>Name:</b> {detail.fullName}</p><p><b>Mobile:</b> {detail.mobile||'—'}</p><p><b>DOB / Age:</b> {detail.dob||'—'} · {detail.age==null?'—':`${detail.age} years`}</p><p><b>Gender:</b> {detail.gender||'—'}</p><p><b>Email:</b> {detail.email||'—'}</p><p><b>Where now:</b> {presenceLine(detail)||'—'}</p></div><div className="detail-card"><h3>Occupation / Job</h3><p><b>Type:</b> {detail.occupationType||'—'}</p>{detail.occupationType==='BUSINESS'?<><p><b>Business:</b> {detail.businessName||'—'}</p><p><b>Business address:</b> {detail.businessAddress||'—'}</p></>:detail.occupationType==='SERVICE'?<><p><b>Company:</b> {detail.companyName||'—'}</p><p><b>Employment:</b> {detail.employmentType||'—'}</p></>:(detail.isRetired||detail.occupationType==='RETIRED')?<><p><b>Status:</b> <span className="status-pill warn" style={{padding:'2px 8px',borderRadius:12}}>Retired (निवृत्त)</span></p><p><b>Retired from:</b> {detail.retiredFrom||'—'}</p><p><b>Service / Role:</b> {detail.retiredService||'—'}</p></>:<p><b>Occupation:</b> {detail.occupation||'—'}</p>}</div><div className="detail-card"><h3>Voter</h3><p><b>Status:</b> {detail.voterProfile?.status||'NOT_SPECIFIED'}</p><p><b>Voting ward:</b> {formatWardNumber(detail.voterProfile?.votingWard)||detail.voterProfile?.votingWard||'—'}</p><p><b>Voter ID:</b> {detail.voterProfile?.officialVoterIdRef||'—'}</p><p><b>Constituency:</b> {detail.voterProfile?.constituency||'—'}</p></div></div><div className="detail-card"><h3>Family & household</h3><p><b>Family:</b> {detail.family?.familyName||'—'}</p><p><b>Native village:</b> {nativePlaceLine(detail.family)||'—'}</p><p><b>Path:</b> {housePlace(detail.family?.house)||'—'}</p><p><b>Apartment:</b> {detail.family?.house?.apartment?.name||'Independent house'}</p><p><b>House:</b> {detail.family?.house?.houseNumber||'—'}</p><p><b>Address:</b> {detail.family?.house?.address||'—'}</p><p><b>City:</b> {detail.family?.house?.city||detail.family?.house?.area?.city||'—'}</p><p><b>Ward:</b> {formatWardLabel(detail.family?.house?.area?.ward)}</p><p><b>Colony:</b> {detail.family?.house?.area?.name||'—'}</p><MapPreview lat={detail.family?.house?.latitude} lng={detail.family?.house?.longitude} label={detail.family?.house?.houseNumber?`House ${detail.family.house.houseNumber}`:'This home'}/><div className="member-grid">{(detail.family?.members||[]).map(m=><div className="member-card" key={m.id}><strong>{m.fullName}</strong><span>{m.age==null?'Age unavailable':`${m.age} years`} · {m.mobile||'—'}</span><span>{occupationLabel(m)}</span>{presenceLine(m)?<span>{presenceLine(m)}</span>:null}</div>)}</div></div><div className="detail-card"><h3>Documents</h3><div className="image-grid">{detail.voterIdImage&&<div><strong>Voter ID</strong><img src={detail.voterIdImage} alt="Voter ID"/></div>}{detail.aadhaarImage&&<div><strong>Aadhaar</strong><img src={detail.aadhaarImage} alt="Aadhaar"/></div>}{detail.panCardImage&&<div><strong>PAN</strong><img src={detail.panCardImage} alt="PAN"/></div>}{!detail.voterIdImage&&!detail.aadhaarImage&&!detail.panCardImage&&<p className="muted">No optional documents uploaded.</p>}</div></div><div className="modal-actions"><button className="ghost-btn" onClick={()=>setDetail(null)}>Close</button>{can('EDIT_CITIZENS')&&<button className="primary-btn" onClick={()=>{setEdit({...detail,isRetired:!!detail.isRetired,retiredFrom:detail.retiredFrom||'',retiredService:detail.retiredService||'',isVoter:detail.voterProfile?.status==='VOTER'?'VOTER':detail.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:detail.voterProfile?.officialVoterIdRef||'',votingWard:detail.voterProfile?.votingWard||'',constituency:detail.voterProfile?.constituency||''});setDetail(null)}}>Edit profile</button>}</div></Modal>}
   {(edit||add)&&<Modal wide title={edit?`Edit ${edit.fullName}`:'Add citizen'} onClose={()=>{setEdit(null);setAdd(null)}}><PersonForm value={edit||add} onChange={edit?setEdit:setAdd} families={wardFamilies} wards={wards} onSubmit={save} onCancel={()=>{setEdit(null);setAdd(null)}} busy={busy}/></Modal>}
   {deathPerson&&<DeathAction trigger={false} person={deathPerson} onSaved={load} onClose={()=>setDeathPerson(null)}/>}
  </div>;

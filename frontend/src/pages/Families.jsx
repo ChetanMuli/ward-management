@@ -8,6 +8,7 @@ import {can,canModule,isNagarsevak,isEmployee} from '../rbac';
 import PersonForm,{emptyPerson,presenceLine} from '../components/PersonForm';
 import DeathAction from '../components/DeathAction';
 import {geoPayload,hasCoords,housePlace,placeLine,nativePlaceLine,directionsUrl,MAHARASHTRA_DISTRICTS,isFlatHome,homePickOption,isOutOfCity,isVoterPerson,PEOPLE_PLACE_OPTIONS} from '../location';
+import {formatWardLabel} from '../wardFormat';
 import {emptyNativePlace} from '../nativePlace';
 import LocationPicker,{DirectionsLink,MapPreview} from '../components/LocationMap';
 
@@ -298,12 +299,11 @@ export default function Families(){
     {(can('CREATE_CITIZENS')||pin||hasCoords(f.house?.latitude,f.house?.longitude))&&<div className="family-mid-actions">
      {can('CREATE_CITIZENS')&&<button type="button" className="small-btn family-add-btn" onClick={()=>{setEditingMember(null);setMemberFamilyId(f.id);setMemberForm({...emptyPerson,familyId:f.id})}}>+ Add member</button>}
      {hasCoords(f.house?.latitude,f.house?.longitude)&&<DirectionsLink lat={f.house.latitude} lng={f.house.longitude} label="Directions" className="small-btn family-dir-btn"/>}
-     {pin&&<button type="button" className="small-btn family-loc-btn" onClick={()=>openHouseLoc(f.house,f.id)}>Update location</button>}
+     {pin&&<button type="button" className="small-btn family-loc-btn" onClick={()=>openHouseLoc(f.house,f.id)} title="Update house GPS location"><span className="loc-btn-up">Update</span><span className="loc-btn-down">location</span></button>}
     </div>}
     <div className="member-mini-list">{(f.members||[]).filter(m=>m.status!=='DECEASED').slice(0,5).map(m=><span key={m.id}>{m.fullName}</span>)}{(f.members||[]).filter(m=>m.status!=='DECEASED').length>5&&<span>+{(f.members||[]).filter(m=>m.status!=='DECEASED').length-5} more</span>}</div>
     <div className="card-actions"><RowMenu items={[
       {label:'View details',onClick:()=>openFamily(f.id)},
-      hasCoords(f.house?.latitude,f.house?.longitude)&&{label:'Get directions',onClick:()=>window.open(directionsUrl(f.house.latitude,f.house.longitude),'_blank','noopener')},
       can('EDIT_FAMILIES')&&{label:'Edit',onClick:()=>setEdit(familyFromHouse(f))},
       can('DELETE_FAMILIES')&&{label:'Delete',danger:true,onClick:async()=>{if(confirm('Move family to recycle bin?')){try{await api.deleteFamily(f.id);await load()}catch(e){setError(e.message)}}}}
     ]}/></div>
@@ -311,7 +311,7 @@ export default function Families(){
 
   {detail&&<Modal wide title={`${detail.familyName||'Family'} · Complete family`} onClose={()=>{setDetail(null);setMemberForm(null);setEditingMember(null);setMemberFamilyId('')}}>
    <div className="detail-grid">
-    <div className="detail-card"><h3>Household</h3><p><b>Path:</b> {housePlace(resolveHouse(detail.house))||'—'}</p><p><b>Lives in:</b> {isFlatHome(detail.house)?'Flat':'House'}</p><p><b>Apartment:</b> {getAptName(detail.house)||detail.house?.apartment?.name||'—'}</p><p><b>{isFlatHome(detail.house)?'Flat number':'House number'}:</b> {detail.house?.houseNumber||'—'}</p><p><b>Address:</b> {detail.house?.address||'—'}</p><p><b>Landmark:</b> {detail.house?.landmark||'—'}</p><p><b>City:</b> {detail.house?.city||detail.house?.area?.city||'—'}</p><p><b>Ward:</b> {detail.house?.area?.ward?.wardNumber||'—'} · {detail.house?.area?.ward?.name||''}</p><p><b>Colony:</b> {detail.house?.area?.name||'—'}</p></div>
+    <div className="detail-card"><h3>Household</h3><p><b>Path:</b> {housePlace(resolveHouse(detail.house))||'—'}</p><p><b>Lives in:</b> {isFlatHome(detail.house)?'Flat':'House'}</p><p><b>Apartment:</b> {getAptName(detail.house)||detail.house?.apartment?.name||'—'}</p><p><b>{isFlatHome(detail.house)?'Flat number':'House number'}:</b> {detail.house?.houseNumber||'—'}</p><p><b>Address:</b> {detail.house?.address||'—'}</p><p><b>Landmark:</b> {detail.house?.landmark||'—'}</p><p><b>City:</b> {detail.house?.city||detail.house?.area?.city||'—'}</p><p><b>Ward:</b> {formatWardLabel(detail.house?.area?.ward)}</p><p><b>Colony:</b> {detail.house?.area?.name||'—'}</p></div>
     <div className="detail-card"><h3>Go to this home</h3>
      <MapPreview lat={detail.house?.latitude} lng={detail.house?.longitude} label={detail.house?.houseNumber?`House ${detail.house.houseNumber}`:'This home'}>
       {pin&&<button type="button" className="small-btn loc-update-btn family-detail-loc-btn" onClick={()=>openHouseLoc(detail.house,detail.id,true)}>Update location</button>}
@@ -331,13 +331,13 @@ export default function Families(){
       <div>
        <button type="button" className="member-name-btn" onClick={()=>setMemberDetail(m)} title="Click to view complete details"><strong>{m.fullName}</strong></button>
        <span>{m.age==null?'Age not available':`${m.age} years`} · {m.mobile||'No mobile'}</span>
-       <span>{m.occupationType==='BUSINESS' ? `Business: ${m.businessName||'—'}` : m.occupationType==='SERVICE' ? `Service: ${m.companyName||'—'}${m.employmentType ? ` (${m.employmentType})` : ''}` : m.occupationType ? `Occupation: ${m.occupationType}` : 'Other occupation'}</span>
+       <span>{m.isRetired||m.occupationType==='RETIRED'?`Retired: ${m.retiredFrom||'—'}${m.retiredService?` (${m.retiredService})`:''}` : m.occupationType==='BUSINESS' ? `Business: ${m.businessName||'—'}` : m.occupationType==='SERVICE' ? `Service: ${m.companyName||'—'}${m.employmentType ? ` (${m.employmentType})` : ''}` : m.occupationType ? `Occupation: ${m.occupationType}` : 'Other occupation'}</span>
        <span>{m.voterProfile?.status==='VOTER'?'Voter':'Non-Voter'}</span>
        {presenceLine(m)?<span>{presenceLine(m)}</span>:null}
       </div>
       <div className="card-actions"><RowMenu items={[
        {label:'View info',onClick:()=>setMemberDetail(m)},
-       can('EDIT_CITIZENS')&&{label:'Edit',onClick:()=>{setEditingMember(m);setMemberFamilyId(detail.id);setMemberForm({...emptyPerson,...m,isVoter:m.voterProfile?.status==='VOTER'?'VOTER':m.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:m.voterProfile?.officialVoterIdRef||'',votingWard:m.voterProfile?.votingWard||'',constituency:m.voterProfile?.constituency||''});setDetail(null)}},
+       can('EDIT_CITIZENS')&&{label:'Edit',onClick:()=>{setEditingMember(m);setMemberFamilyId(detail.id);setMemberForm({...emptyPerson,...m,isRetired:!!m.isRetired,retiredFrom:m.retiredFrom||'',retiredService:m.retiredService||'',isVoter:m.voterProfile?.status==='VOTER'?'VOTER':m.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:m.voterProfile?.officialVoterIdRef||'',votingWard:m.voterProfile?.votingWard||'',constituency:m.voterProfile?.constituency||''});setDetail(null)}},
        can('CREATE_DEATH_RECORDS')&&{label:'Mark deceased',danger:true,onClick:()=>setDeathPerson(m)},
        can('DELETE_CITIZENS')&&{label:'Remove',danger:true,onClick:()=>deleteMember(m.id)}
       ]}/></div>
@@ -369,6 +369,12 @@ export default function Families(){
         <p><b>Company:</b> {memberDetail.companyName||'—'}</p>
         <p><b>Employment:</b> {memberDetail.employmentType||'—'}</p>
        </>
+      ):(memberDetail.isRetired||memberDetail.occupationType==='RETIRED')?(
+       <>
+        <p><b>Status:</b> <span className="status-pill warn" style={{padding:'2px 8px',borderRadius:12}}>Retired (निवृत्त)</span></p>
+        <p><b>Retired from:</b> {memberDetail.retiredFrom||'—'}</p>
+        <p><b>Service / Role:</b> {memberDetail.retiredService||'—'}</p>
+       </>
       ):(
        <p><b>Occupation:</b> {memberDetail.occupation||'Other occupation'}</p>
       )}
@@ -383,7 +389,7 @@ export default function Families(){
     </div>
     <div className="modal-actions">
      <button type="button" className="ghost-btn" onClick={()=>setMemberDetail(null)}>Close</button>
-     {can('EDIT_CITIZENS')&&<button type="button" className="primary-btn" onClick={()=>{const m=memberDetail;setMemberDetail(null);setEditingMember(m);setMemberFamilyId(detail?.id||m.familyId||'');setMemberForm({...emptyPerson,...m,isVoter:m.voterProfile?.status==='VOTER'?'VOTER':m.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:m.voterProfile?.officialVoterIdRef||'',votingWard:m.voterProfile?.votingWard||'',constituency:m.voterProfile?.constituency||''});setDetail(null)}}>Edit member</button>}
+     {can('EDIT_CITIZENS')&&<button type="button" className="primary-btn" onClick={()=>{const m=memberDetail;setMemberDetail(null);setEditingMember(m);setMemberFamilyId(detail?.id||m.familyId||'');setMemberForm({...emptyPerson,...m,isRetired:!!m.isRetired,retiredFrom:m.retiredFrom||'',retiredService:m.retiredService||'',isVoter:m.voterProfile?.status==='VOTER'?'VOTER':m.voterProfile?.status==='NON_VOTER'?'NON_VOTER':'',officialVoterIdRef:m.voterProfile?.officialVoterIdRef||'',votingWard:m.voterProfile?.votingWard||'',constituency:m.voterProfile?.constituency||''});setDetail(null)}}>Edit member</button>}
     </div>
    </Modal>}
 

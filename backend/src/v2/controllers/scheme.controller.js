@@ -5,6 +5,7 @@ const { success }=require('../../utils/apiResponse');
 const asyncHandler=require('../../utils/asyncHandler');
 const { logAudit }=require('../../services/audit.service');
 const { allowedWardIds, isWardAllowed }=require('../services/wardScope');
+const { formatWardNumber } = require('../../utils/wardFormat');
 
 function canManage(req){ return ['SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK'].includes(req.user.roleName); }
 
@@ -17,7 +18,7 @@ async function notifySchemePublished(req, scheme) {
     senderUserId: req.user.id,
     type: 'SCHEME_PUBLISHED',
     title: 'New scheme published',
-    message: `${scheme.title} is now available in ${ward?.wardNumber || 'your ward'}. Open Schemes & Benefits for details.`,
+    message: `${scheme.title} is now available in ${formatWardNumber(ward?.wardNumber) || 'your ward'}. Open Schemes & Benefits for details.`,
     actionUrl: `/schemes?open=${scheme.id}`,
   };
   const { notifyWardCitizens } = require('../../services/notify.service');

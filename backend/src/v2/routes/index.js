@@ -23,12 +23,14 @@ const election=require('../controllers/election.controller');
 const stakeholder=require('../controllers/stakeholder.controller');
 const wardActivation=require('../controllers/wardActivation.controller');
 const schedule=require('../controllers/schedule.controller');
+const portalConfig=require('../controllers/portalConfig.controller');
 const multer=require('multer');
 const voterListUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:100*1024*1024},fileFilter:(req,file,cb)=>{const ext=require('path').extname(file.originalname||'').toLowerCase();cb(null,['.pdf','.xlsx','.csv'].includes(ext));}});
 const router=express.Router();
 const registrationLimiter=rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false});
+const registrationWardsLimiter=rateLimit({windowMs:15*60*1000,max:120,standardHeaders:true,legacyHeaders:false});
 
-router.get('/auth/registration-wards',registrationLimiter,auth.registrationWards);
+router.get('/auth/registration-wards',registrationWardsLimiter,auth.registrationWards);
 router.post('/auth/register',registrationLimiter,[
   body('name').trim().notEmpty().withMessage('Full name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
@@ -63,6 +65,30 @@ router.get('/docs/download/pdf', (req, res) => {
   const file = require('path').join(docDir, 'Ward_Management_System_Complete_Documentation.pdf');
   res.download(file, 'Ward_Management_System_Complete_Documentation.pdf');
 });
+
+// Portal & Gallery public / resident read endpoints
+const jwt = require('jsonwebtoken');
+const { User: UserModel, Role: RoleModel, Ward: WardModel } = require('../../models');
+const tryAuthenticateV2 = async (req, res, next) => {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query?.token ? String(req.query.token) : null);
+  if (!token) return next();
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const u = await UserModel.findByPk(payload.sub, {
+      include: [{ model: RoleModel }, { model: WardModel, as: 'ward' }],
+    });
+    if (u && u.status === 'ACTIVE') {
+      req.user = u;
+      req.user.roleName = u.Role?.name;
+      req.user.wardId = u.wardId;
+    }
+  } catch (_) {}
+  next();
+};
+
+router.get('/portal-config', tryAuthenticateV2, portalConfig.getPortalConfig);
+router.get('/gallery-items', tryAuthenticateV2, portalConfig.listGalleryItems);
 
 router.use(authenticateV2);
 router.get('/permissions',staff.permissions);
@@ -110,6 +136,8 @@ router.get('/me/ward',wardActivation.myWard);
 router.get('/ward-activations',requireV2Role('SUPER_ADMIN'),wardActivation.board);
 router.get('/nagarsevak-subscriptions',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN'),wardActivation.subscriptions);
 router.patch('/ward-activations/:wardId/ward',requireV2Role('SUPER_ADMIN'),wardActivation.setWard);
+router.patch('/ward-activations/:wardId/registration',requireV2Role('SUPER_ADMIN'),wardActivation.setRegistrationOpen);
+router.post('/registration-invite',wardActivation.createRegistrationInvite);
 router.patch('/ward-activations/:wardId/nagarsevak',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN'),wardActivation.setPurchase);
 router.post('/ward-activations/:wardId/sync',requireV2Role('SUPER_ADMIN'),wardActivation.sync);
 router.patch('/profile',auth.updateProfile);
@@ -211,5 +239,12 @@ router.patch('/schedules/:id',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NA
 router.patch('/schedules/:id/status',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.updateStatus);
 router.patch('/schedules/:id/assign',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.assign);
 router.delete('/schedules/:id',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),schedule.remove);
+
+// Citizen Portal & Gallery CMS Management (Nagarsevak & Admin)
+router.patch('/portal-config', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.updatePortalConfig);
+router.post('/gallery-items', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.createGalleryItem);
+router.patch('/gallery-items/:id', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.updateGalleryItem);
+router.delete('/gallery-items/:id', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.deleteGalleryItem);
+router.post('/gallery-items/reorder', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.reorderGalleryItems);
 
 module.exports=router;

@@ -1,22 +1,25 @@
 const { Op } = require('sequelize');
-const { Notification, User, Role, Employee, Scheme, Person, Family, House, Area, Ward } = require('../../models');
+const { Notification, Ward, User, Role, Employee, Scheme, Person, Family, House, Area } = require('../../models');
+const { formatWardNumber } = require('../../utils/wardFormat');
 const ApiError = require('../../utils/ApiError');
 const asyncHandler = require('../../utils/asyncHandler');
 const { success } = require('../../utils/apiResponse');
 
 const list = asyncHandler(async (req,res)=>{
+  const isCitizen = req.user.roleName === 'CITIZEN';
+  const senderInclude = { model: User, as: 'sender', attributes: ['id', 'name', 'mobile'], include: [{ model: Role, attributes: ['id', 'name'] }] };
   const [receivedRows,sentRows]=await Promise.all([
     Notification.findAll({
       where:{userId:req.user.id},
-      include:[{model:User,as:'sender',attributes:['id','name','email','mobile'],include:[{model:Role,attributes:['id','name']}] }],
+      include:[senderInclude],
       order:[['createdAt','DESC']],
-      limit:250,
+      limit: isCitizen ? 40 : 80,
     }),
-    Notification.findAll({
+    isCitizen ? Promise.resolve([]) : Notification.findAll({
       where:{senderUserId:req.user.id},
-      include:[{model:User,as:'recipient',attributes:['id','name','email','mobile'],include:[{model:Role,attributes:['id','name']}] }],
+      include:[{model:User,as:'recipient',attributes:['id','name','mobile'],include:[{model:Role,attributes:['id','name']}] }],
       order:[['createdAt','DESC']],
-      limit:200,
+      limit:80,
     })
   ]);
 
@@ -29,6 +32,17 @@ const list = asyncHandler(async (req,res)=>{
     x.direction='RECEIVED';
     return x;
   });
+
+  const seenKeys = new Set();
+  received = received.filter(n => {
+    if (n.senderUserId && String(n.senderUserId) === String(req.user.id)) return false;
+    if (req.user.roleName === 'CITIZEN' && String(n.type || '').toUpperCase() === 'CHAT_MESSAGE') return false;
+    const key = `${n.type}|${n.title}|${n.message}`;
+    if (seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
+
   if(req.user.roleName==='CITIZEN' && req.user.wardId){
     const { getVisibleNagarsevakIds } = require('../../services/wardActivation.service');
     const visible=new Set((await getVisibleNagarsevakIds(req.user.wardId)).map(String));
@@ -241,6 +255,6 @@ const sendScheme = asyncHandler(async(req,res)=>{
     actionUrl: '/schemes',
   });
 
-  return success(res,{message:`Scheme notification sent to ${ids.length} residents of ${scheme.ward?.wardNumber||'the publishing ward'}`,data:{recipientCount:ids.length,wardId:targetWardId,ward:scheme.ward}});
+  return success(res,{message:`Scheme notification sent to ${ids.length} residents of ${formatWardNumber(scheme.ward?.wardNumber)||'the publishing ward'}`,data:{recipientCount:ids.length,wardId:targetWardId,ward:scheme.ward}});
 });
 module.exports={list,markRead,markAllRead,clearAll,send,recipients,sendScheme,schemeRecipients};

@@ -75,7 +75,14 @@ const listCorporators = asyncHandler(async (req, res) => {
         id:u.id,name:u.name,email:u.email,mobile:u.mobile,status:u.status,wardId:u.wardId,ward:u.ward,
         wardSeat: extra?.wardSeat || u.wardSeat || null,
         partyName: extra?.partyName || u.partyName || null,
-        officialAddress:u.officialAddress,photo: extra?.photo || u.photo || null,
+        officialAddress: extra?.officialAddress || u.officialAddress || null,
+        photo: extra?.photo || u.photo || null,
+        bio: extra?.bio || u.bio || null,
+        officeTimings: extra?.officeTimings || u.officeTimings || null,
+        whatsapp: extra?.whatsapp || u.whatsapp || null,
+        gallery: extra?.gallery || u.gallery || null,
+        achievements: extra?.achievements || u.achievements || null,
+        socialLinks: extra?.socialLinks || u.socialLinks || null,
         permissions:normalisePermissions(u.permissions),
         wardStatus: u.ward?.status || null,
         wardActive,
@@ -177,7 +184,7 @@ const listUsers = asyncHandler(async (req, res) => {
 });
 
 const createCorporator = asyncHandler(async (req, res) => {
-  const { name, email, mobile, password, wardId, partyName, wardSeat, officialAddress } = req.body;
+  const { name, email, mobile, password, wardId, partyName, wardSeat, officialAddress, bio, officeTimings, whatsapp, gallery, achievements, socialLinks } = req.body;
   const photo = sanitisePhoto(req.body.photo);
   await checkWard(wardId, req);
   const r = await role('NAGARSEVAK');
@@ -188,7 +195,13 @@ const createCorporator = asyncHandler(async (req, res) => {
   const permissions = Object.prototype.hasOwnProperty.call(req.body, 'permissions')
     ? [...new Set(['VIEW_DASHBOARD', ...normalisePermissions(req.body.permissions)])]
     : [...ALL_PERMISSIONS];
-  const user = await User.create({ name, email, mobile, partyName: partyName || null, wardSeat: wardSeat || null, officialAddress: officialAddress || null, photo: photo || null, passwordHash: await bcrypt.hash(password, 12), roleId:r.id, wardId, permissions, status:'INACTIVE' });
+  const user = await User.create({
+    name, email, mobile, partyName: partyName || null, wardSeat: wardSeat || null, officialAddress: officialAddress || null, photo: photo || null,
+    bio: bio || null, officeTimings: officeTimings || null, whatsapp: whatsapp || null,
+    gallery: gallery || null, achievements: achievements || null, socialLinks: socialLinks || null,
+    passwordHash: await bcrypt.hash(password, 12), roleId:r.id, wardId, permissions, status:'INACTIVE'
+  });
+  await syncLogin(user, Role, { isCreate: true }).catch(() => {});
   await ensureNagarsevakSubscription(wardId, user.id, 'PENDING');
   await logAudit({ user:req.user, action:'CREATE_NAGARSEVAK', entity:'User', recordId:user.id, newValue:{name,email,mobile,wardId,status:'INACTIVE'}, ipAddress:req.ip });
   return success(res,{statusCode:201,message:'Nagarsevak added to the ward. Activate the ward, then activate this Nagarsevak on Ward activation.',data:{id:user.id,name:user.name,email:user.email,mobile:user.mobile,wardId,status:user.status}});
@@ -203,9 +216,12 @@ const updateCorporator = asyncHandler(async (req,res)=>{
   const oldWardId=user.wardId;
   const patch={...req.body};
   delete patch.password; delete patch.roleId;
-  for (const key of ['name','email','mobile','wardId','partyName','wardSeat','officialAddress','status']) { if (Object.prototype.hasOwnProperty.call(req.body, key)) patch[key] = req.body[key]; }
+  const allowedKeys = ['name','email','mobile','wardId','partyName','wardSeat','officialAddress','status','bio','officeTimings','whatsapp','gallery','achievements','socialLinks'];
+  for (const key of allowedKeys) {
+    if (Object.prototype.hasOwnProperty.call(req.body, key)) patch[key] = req.body[key];
+  }
   if (Object.prototype.hasOwnProperty.call(req.body, 'photo')) patch.photo = sanitisePhoto(req.body.photo);
-  Object.keys(patch).filter(k => !['name','email','mobile','wardId','partyName','wardSeat','officialAddress','photo','status','permissions','passwordHash'].includes(k)).forEach(k => delete patch[k]);
+  Object.keys(patch).filter(k => ![...allowedKeys, 'photo', 'permissions', 'passwordHash'].includes(k)).forEach(k => delete patch[k]);
   if(patch.passwordHash) delete patch.passwordHash;
   if(Object.prototype.hasOwnProperty.call(req.body, 'permissions')) {
     if(req.user.roleName !== 'SUPER_ADMIN') throw new ApiError(403, 'Only Master Admin can manage Nagarsevak permissions');
@@ -220,11 +236,11 @@ const updateCorporator = asyncHandler(async (req,res)=>{
     user.setDataValue('photo', patch.photo);
     user._loginPhoto = patch.photo;
   }
-  await user.update(patch);
-  if (Object.prototype.hasOwnProperty.call(req.body, 'photo')) {
-    user.setDataValue('photo', patch.photo);
-    await syncLogin(user, Role);
+  for (const k of ['bio','officeTimings','whatsapp','gallery','achievements','socialLinks','partyName','wardSeat','officialAddress']) {
+    if (k in patch) user.setDataValue(k, patch[k]);
   }
+  await user.update(patch);
+  await syncLogin(user, Role).catch(() => {});
   if (String(oldWardId || '') !== String(user.wardId || '')) {
     if (oldWardId) {
       await WardNagarsevakSubscription.update(

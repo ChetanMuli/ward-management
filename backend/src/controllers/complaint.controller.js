@@ -88,10 +88,6 @@ const updateStatus = asyncHandler(async (req, res) => {
   const complaint = await Complaint.findByPk(req.params.id);
   if (!complaint) throw new ApiError(404, 'Complaint not found');
 
-  if (status === 'RESOLVED' && !resolutionNote) {
-    throw new ApiError(400, 'resolutionNote is mandatory when resolving a complaint');
-  }
-
   const oldStatus = complaint.status;
   await complaint.update({
     status,
@@ -101,7 +97,7 @@ const updateStatus = asyncHandler(async (req, res) => {
 
   await ComplaintHistory.create({
     complaintId: complaint.id, oldStatus, newStatus: status,
-    changedByUserId: req.user.id, comment,
+    changedByUserId: req.user.id, comment: comment || (status === 'RESOLVED' ? (resolutionNote || 'Work completed and resolved') : `Status updated to ${status}`),
   });
 
   await logAudit({ user: req.user, action: 'UPDATE_COMPLAINT_STATUS', entity: 'Complaint', recordId: complaint.id, oldValue: { status: oldStatus }, newValue: { status }, ipAddress: req.ip });

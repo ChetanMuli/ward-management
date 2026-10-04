@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {centerOf,directionsUrl,fmtCoord,geoAppUrl,hasCoords,isCityFallbackPin,mapsEmbedUrl,mapsViewUrl,osmTileUrl} from '../location';
+import {centerOf,directionsUrl,fmtCoord,geoAppUrl,getAccurateLocation,hasCoords,mapsEmbedUrl,mapsViewUrl,osmTileUrl} from '../location';
 
 let leafletLoader;
 function loadLeaflet(){
@@ -186,7 +186,7 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
   map.setView([c.lat,c.lng],c.zoom);
  },[value?.latitude,value?.longitude,centerKey,phone]);
 
- async function lookup(url){
+ async function lookupOsm(url){
   const r=await fetch(url,{headers:{Accept:'application/json'}});
   const rows=await r.json();
   return Array.isArray(rows)?rows:[];
@@ -200,8 +200,8 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
    const pad=0.08;
    const q=encodeURIComponent(query.trim());
    const base=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&countrycodes=in&addressdetails=1&accept-language=en&q=${q}`;
-   let rows=await lookup(`${base}&viewbox=${c.lng-pad},${c.lat+pad},${c.lng+pad},${c.lat-pad}&bounded=1`);
-   if(!rows.length) rows=await lookup(base);
+   let rows=await lookupOsm(`${base}&viewbox=${c.lng-pad},${c.lat+pad},${c.lng+pad},${c.lat-pad}&bounded=1`);
+   if(!rows.length) rows=await lookupOsm(base);
    setHits(rows);
    setNote(rows.length?'Select a result to set the pin only. Address stays as you typed.':'No match. Use GPS or tap the map.');
   }catch{
@@ -220,8 +220,7 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
   setQuery(h.display_name);
  }
 
- function useGps(){
-  if(!navigator.geolocation) return setNote('GPS is not available on this device.');
+ async function useGps(){
   if(typeof window!=='undefined' && !window.isSecureContext && window.location.hostname!=='localhost' && window.location.hostname!=='127.0.0.1'){
     if(window.location.protocol==='http:'){
       window.location.href = window.location.href.replace('http:', 'https:');
@@ -230,78 +229,21 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
     return setNote('GPS needs https. Open this page via https:// and try again.');
   }
   setGpsBusy(true);
-  setNote('Reading GPS coordinates… / GPS शोधत आहे…');
-
-  let locked=false;
-  let watchId=null;
-  let timer=null;
-
-  const cleanup=()=>{
-    if(watchId!==null){
-      try{navigator.geolocation.clearWatch(watchId);}catch(_){}
-      watchId=null;
+  setNote('Reading precise GPS… Stand still at the door.');
+  try{
+    const loc=await getAccurateLocation({ timeout: phone?24000:18000, desiredAccuracy: phone?18:22 });
+    const meters=Math.round(Number(loc.accuracy)||0);
+    applyPin(loc.latitude,loc.longitude, meters>40
+      ? ` Pin set (±${meters} m). Walk to the door and tap Use GPS again for a tighter pin.`
+      : ` Exact pin set${meters?` (±${meters} m)`:''}.`);
+    if(!phone && window.L && mapRef.current){
+      try{mapRef.current.invalidateSize();putMarker(window.L,Number(loc.latitude),Number(loc.longitude));}catch{/* map optional */}
     }
-    if(timer){
-      clearTimeout(timer);
-      timer=null;
-    }
+  }catch(err){
+    setNote(err?.message || 'Could not read GPS. Allow location and try again.');
+  }finally{
     setGpsBusy(false);
-  };
-
-  const done=(pos,extra='')=>{
-   const {latitude,longitude,accuracy}=pos.coords||{};
-   if(!hasCoords(latitude,longitude)){
-    setNote('Could not lock valid GPS coordinates. Stand outside and try again.');
-    return;
-   }
-   locked=true;
-   const meters=Math.round(Number(accuracy)||0);
-   applyPin(latitude,longitude, meters>50
-    ? `Location pin set (±${meters} m). Door pin saved.${extra}`
-    : `Location pin set accurately${meters?` (±${meters} m)`:''}.${extra}`);
-   if(!phone && window.L && mapRef.current){
-    try{mapRef.current.invalidateSize();putMarker(window.L,Number(latitude),Number(longitude));}catch{/* map optional */}
-   }
-   if(meters<=20){
-     cleanup();
-   }
-  };
-
-  const fail=(code)=>{
-   if(locked) return;
-   cleanup();
-   if(code===1) setNote('Allow location permission in browser settings, then tap Use GPS again.');
-   else if(code===2) setNote('Turn on device location services/GPS, then tap Use GPS again.');
-   else if(code===3) setNote('GPS timed out. Stand outside at the door and tap Use GPS again.');
-   else setNote('Could not read GPS. Allow location and try again.');
-  };
-
-  // 1. Fast initial attempt: get recent cached position in < 1s
-  try{
-    navigator.geolocation.getCurrentPosition(
-      pos=>done(pos),
-      _err=>{},
-      {enableHighAccuracy:false,timeout:5000,maximumAge:60000}
-    );
-  }catch(_){}
-
-  // 2. High accuracy watch to refine door position
-  try{
-    watchId=navigator.geolocation.watchPosition(
-      pos=>done(pos),
-      err=>{
-        if(!locked) fail(err?.code);
-      },
-      {enableHighAccuracy:true,timeout:10000,maximumAge:20000}
-    );
-  }catch(e){
-    if(!locked) fail(2);
   }
-
-  timer=setTimeout(()=>{
-    cleanup();
-    if(!locked) fail(3);
-  },10000);
  }
 
  const openMapsHref=pinned?mapsViewUrl(value.latitude,value.longitude):'https://www.google.com/maps';
@@ -316,7 +258,7 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
     <button type="button" className="primary-btn loc-gps-btn" onClick={useGps} disabled={gpsBusy}>{gpsBusy?'Reading GPS…':'Use GPS at this home'}</button>
     {phone&&<a className="small-btn loc-gmaps-btn" href={openMapsHref} target="_blank" rel="noopener noreferrer">Open Google Maps</a>}
    </div>
-   {!!hits.length&&<div className="loc-hits">{hits.map(h=><button type="button" key={h.place_id} onClick={()=>pickHit(h)}>{h.display_name}</button>)}</div>}
+   {!!hits.length&&<div className="loc-hits">{hits.map(h=><button type="button" key={h.placeId||h.place_id||`${h.lat},${h.lon}`} onClick={()=>pickHit(h)}>{h.display_name}</button>)}</div>}
    {phone?(
     <iframe className="loc-map loc-gmaps" title="Google Maps" src={embedSrc} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen/>
    ):(

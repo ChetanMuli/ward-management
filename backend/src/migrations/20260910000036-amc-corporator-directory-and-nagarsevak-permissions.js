@@ -84,6 +84,7 @@ const CORPORATORS = [
 ];
 
 module.exports = {
+  CORPORATORS,
   async up(queryInterface) {
     const transaction = await queryInterface.sequelize.transaction();
     try {

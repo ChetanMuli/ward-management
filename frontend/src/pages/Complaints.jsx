@@ -9,6 +9,8 @@ import {useWardFilter} from '../wardFilter';
 import {can,isEmployee,isNagarsevak,isMaster,isSubMaster} from '../rbac';
 
 import { COMPLAINT_CATEGORIES } from './UserComplaints';
+import ComplaintTimeline from '../components/ComplaintTimeline';
+import { formatWardLabel, formatWardNumber } from '../wardFormat';
 
 const statuses=['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED'];
 const STATUS_FILTER_OPTIONS = [
@@ -42,6 +44,59 @@ export function openDirections(locationStr, house, wardName) {
   window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`, '_blank', 'noopener,noreferrer');
 }
 
+export function formatStatusLabel(status) {
+  if (!status) return '';
+  const s = String(status).toUpperCase();
+  if (s === 'SUBMITTED' || s === 'OPEN') return 'Open';
+  if (s === 'IN_PROGRESS') return 'In Progress';
+  return s.charAt(0) + s.slice(1).toLowerCase();
+}
+
+export function getTimelineDescription(h, complaint, isMr = false) {
+  const custom = String(h?.comment || '').trim();
+  if (custom) return custom;
+  if (h?.newStatus === 'RESOLVED' && complaint?.resolutionNote) {
+    return complaint.resolutionNote;
+  }
+  const s = h?.newStatus;
+  if (!h?.oldStatus || s === 'SUBMITTED' || s === 'OPEN') {
+    return isMr
+      ? 'तक्रार प्राप्त झाली असून वॉर्ड कामकाजासाठी नोंदवली गेली आहे.'
+      : 'Complaint received and recorded in the ward system.';
+  }
+  if (s === 'ASSIGNED') {
+    return isMr
+      ? 'तक्रार क्षेत्रीय कर्मचारी / पथकाकडे सोपवण्यात आली आहे.'
+      : 'Complaint assigned to field staff for execution.';
+  }
+  if (s === 'IN_PROGRESS') {
+    return isMr
+      ? 'कर्मचाऱ्यांकडून प्रत्यक्ष काम सुरू करण्यात आले आहे.'
+      : 'Field work started and in progress.';
+  }
+  if (s === 'PENDING') {
+    return isMr
+      ? 'तपासणी किंवा साहित्याच्या उपलब्धतेसाठी तक्रार प्रलंबित ठेवली आहे.'
+      : 'Marked pending for site inspection or materials.';
+  }
+  if (s === 'RESOLVED') {
+    return isMr
+      ? 'समस्येचे काम यशस्वीरीत्या पूर्ण झाले आहे.'
+      : 'Work successfully completed and resolved.';
+  }
+  if (s === 'CLOSED') {
+    return isMr
+      ? 'तक्रार पडताळणीअंती बंद करण्यात आली आहे.'
+      : 'Complaint verified and closed.';
+  }
+  if (s === 'REOPENED') {
+    return isMr
+      ? 'पुढील तपासणी अथवा कामासाठी तक्रार पुन्हा उघडण्यात आली आहे.'
+      : 'Complaint reopened for further review or follow-up.';
+  }
+  return isMr ? 'स्थिती अद्ययावत केली गेली.' : `Status updated to ${formatStatusLabel(s)}.`;
+}
+
 export function getUpdateStatusOptions(currentStatus, isEmp) {
   if (isEmp) {
     return ['IN_PROGRESS', 'RESOLVED'];
@@ -71,7 +126,7 @@ export default function Complaints(){
    try {
      setLocating(true);
      setError('');
-     const loc = await getAccurateLocation({ timeout: 15000, desiredAccuracy: 25 });
+     const loc = await getAccurateLocation({ timeout: 22000, desiredAccuracy: 20 });
      setForm(prev => ({
        ...prev,
        location: loc.formatted || loc.address || `GPS: ${loc.latitude.toFixed(6)}, ${loc.longitude.toFixed(6)}`
@@ -146,15 +201,12 @@ export default function Complaints(){
  }
  async function update(e){
   e.preventDefault();
-  if(editing.status === 'RESOLVED' && !String(editing.resolutionNote || '').trim()){
-    setError('Resolution note is mandatory when resolving a complaint.');
-    return;
-  }
   setBusy(true);
   try{
+    const commentToSend = String(editing.comment || '').trim() || (editing.status === 'RESOLVED' ? String(editing.resolutionNote || '').trim() : '');
     await api.updateComplaintStatus(editing.id,{
       status:editing.status,
-      comment:editing.comment,
+      comment:commentToSend,
       resolutionNote:editing.resolutionNote,
       resolutionImages:editing.resolutionImages||[],
       resolutionImage:packComplaintImages(editing.resolutionImages||editing.resolutionImage||[])
@@ -244,7 +296,7 @@ export default function Complaints(){
        </div>
      )}
     </td>
-   <td data-label="Ward">{c.ward?.wardNumber||c.house?.area?.ward?.wardNumber||'—'}<div className="muted">{c.ward?.name||c.house?.area?.ward?.name||''}</div></td><td data-label="Status"><StatusPill>{c.status}</StatusPill></td>
+   <td data-label="Ward">{formatWardNumber(c.ward?.wardNumber||c.house?.area?.ward?.wardNumber)||'—'}<div className="muted">{c.ward?.name||c.house?.area?.ward?.name||''}</div></td><td data-label="Status"><StatusPill>{c.status}</StatusPill></td>
    <td data-label="Assignment">
      <div>Nagarsevak: <strong>{c.assignedNagarsevak?.name||c.assignedEmployee?.manager?.name||'Not assigned'}</strong></div>
      <div className="muted">Employee: {c.assignedEmployee?.User?.name||'Not assigned'}</div>
@@ -436,36 +488,44 @@ export default function Complaints(){
       </div>
     </Field>
 
-    <Field className="span-2" label="Progress note">
-      <textarea
-        placeholder="Add progress note or remarks (optional)..."
-        rows={3}
-        value={editing.comment || ''}
-        onChange={e => setEditing({...editing, comment: e.target.value})}
-      />
-    </Field>
-
-    <Field className="span-2" label={`Resolution note ${editing.status === 'RESOLVED' ? '*' : '(optional)'}`}>
-      <textarea
-        required={editing.status === 'RESOLVED'}
-        placeholder={editing.status === 'RESOLVED' ? 'Mandatory: Describe the work done to resolve this complaint...' : 'Optional resolution note...'}
-        rows={3}
-        value={editing.resolutionNote || ''}
-        onChange={e => setEditing({...editing, resolutionNote: e.target.value})}
-      />
-    </Field>
-
-    {editing.status === 'RESOLVED' && (
-      <div className="span-2">
-        <MultiImageField
-          max={5}
-          label="Work completed photos (max 5)"
-          values={editing.resolutionImages || parseComplaintImages(editing.resolutionImage)}
-          onChange={v => setEditing({...editing, resolutionImages: v, resolutionImage: packComplaintImages(v)})}
-          optional={true}
-          cameraLabel="Take completion photo"
+    {editing.status === 'RESOLVED' ? (
+      <>
+        <Field className="span-2" label="Resolution note (optional)">
+          <textarea
+            placeholder="Describe the work done to resolve this complaint (optional)..."
+            rows={3}
+            value={editing.resolutionNote || ''}
+            onChange={e => setEditing({...editing, resolutionNote: e.target.value})}
+          />
+        </Field>
+        <div className="span-2">
+          <MultiImageField
+            max={5}
+            label="Work completed photos (max 5)"
+            values={editing.resolutionImages || parseComplaintImages(editing.resolutionImage)}
+            onChange={v => setEditing({...editing, resolutionImages: v, resolutionImage: packComplaintImages(v)})}
+            optional={true}
+            cameraLabel="Take completion photo"
+          />
+        </div>
+        <Field className="span-2" label="Additional remarks (optional)">
+          <textarea
+            placeholder="Optional additional remarks or notes..."
+            rows={2}
+            value={editing.comment || ''}
+            onChange={e => setEditing({...editing, comment: e.target.value})}
+          />
+        </Field>
+      </>
+    ) : (
+      <Field className="span-2" label="Progress note / remarks (optional)">
+        <textarea
+          placeholder="Add progress note or remarks about work underway (optional)..."
+          rows={3}
+          value={editing.comment || ''}
+          onChange={e => setEditing({...editing, comment: e.target.value})}
         />
-      </div>
+      </Field>
     )}
 
     <div className="modal-actions span-2" style={{ marginTop: '10px' }}>
@@ -509,7 +569,7 @@ export default function Complaints(){
         </div>
       )}
      </div>
-    <div className="detail-card"><h3>Ward & assignment</h3><p><b>Ward:</b> {detail.ward?.wardNumber||detail.house?.area?.ward?.wardNumber||'—'}{detail.ward?.name||detail.house?.area?.ward?.name?` · ${detail.ward?.name||detail.house?.area?.ward?.name}`:''}</p><p><b>Nagarsevak:</b> {detail.assignedNagarsevak?.name||detail.assignedEmployee?.manager?.name||'Not assigned'}</p><p><b>Employee:</b> {detail.assignedEmployee?.User?.name||'Not assigned'}</p><p><b>Employee mobile:</b> {detail.assignedEmployee?.User?.mobile||'—'}</p><p><b>Resolution note:</b> {detail.resolutionNote||'—'}</p></div>
+    <div className="detail-card"><h3>Ward & assignment</h3><p><b>Ward:</b> {formatWardLabel(detail.ward||detail.house?.area?.ward)}</p><p><b>Nagarsevak:</b> {detail.assignedNagarsevak?.name||detail.assignedEmployee?.manager?.name||'Not assigned'}</p><p><b>Employee:</b> {detail.assignedEmployee?.User?.name||'Not assigned'}</p><p><b>Employee mobile:</b> {detail.assignedEmployee?.User?.mobile||'—'}</p><p><b>Resolution note:</b> {detail.resolutionNote||'—'}</p></div>
    </div>
 
    {/* Problem Photos */}
@@ -558,7 +618,9 @@ export default function Complaints(){
      )}
    </div>
 
-   <div className="detail-card" style={{marginTop:'14px'}}><h3>Activity timeline</h3><div className="complaint-timeline">{(detail.history||[]).length?(detail.history||[]).slice().sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).map((h,i)=><div className="timeline-item" key={h.id||i}><strong>{h.newStatus?.replaceAll('_',' ')||'Updated'}</strong><small>{fmtDateTime(h.createdAt)} · {h.changedBy?.name||'System'}</small><div>{h.comment||'Status updated'}</div></div>):<div className="muted">No activity recorded.</div>}</div></div>
+   <div className="detail-card" style={{marginTop:'14px'}}>
+     <ComplaintTimeline history={detail.history} complaint={detail} isMr={false} />
+   </div>
    <div className="modal-actions">
      <button className="ghost-btn" onClick={()=>setDetail(null)}>Close</button>
      {(detail.location || detail.house?.address) && (

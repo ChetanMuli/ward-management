@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {api} from '../services/api';
 import {Empty,ErrorBox,Loading,Modal,PageHeader,SearchableSelect} from '../components/Ui';
+import {formatWardLabel} from '../wardFormat';
 
 const P=[
  {id:'VIEW_DASHBOARD',label:'Dashboard'},
@@ -36,7 +37,7 @@ export default function Stakeholders(){
   return (rows||[]).filter(r=>(!wardId||String(r.wardId)===String(wardId))&&(!type||r.role===type)&&(!q||[r.name,r.email,r.mobile,r.ward?.wardNumber,r.ward?.name,typeLabel(r.role)].filter(Boolean).some(v=>String(v).toLowerCase().includes(q))));
  },[rows,wardId,type,search]);
  if(!rows)return <Loading/>;
- const wardOptions=[{value:'',label:'All wards'},...wards.map(w=>({value:String(w.id),label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}))];
+ const wardOptions=[{value:'',label:'All wards'},...wards.map(w=>({value:String(w.id),label:formatWardLabel(w)}))];
  return (
   <div className="community-page">
    <PageHeader
@@ -63,7 +64,7 @@ export default function Stakeholders(){
      <tr key={r.id}>
       <td><strong>{r.name}</strong><div className="muted">{r.email||'—'}</div></td>
       <td>{typeLabel(r.role)}</td>
-      <td>{r.ward?.wardNumber||'—'}{r.ward?.name?` · ${r.ward.name}`:''}</td>
+      <td>{formatWardLabel(r.ward)}</td>
       <td>{r.mobile||'—'}</td>
       <td>{r.permissions?.length||0} granted</td>
       <td><button className="small-btn" onClick={()=>setEdit(r)}>Permissions</button></td>
@@ -111,7 +112,7 @@ function StakeholderForm({value,wards,onClose,onSaved}){
    <label>Ward
     <select required value={f.wardId} onChange={e=>setF({...f,wardId:e.target.value})}>
      <option value="">Select ward</option>
-     {wards.map(w=><option key={w.id} value={w.id}>{w.wardNumber} · {w.name}</option>)}
+     {wards.map(w=><option key={w.id} value={w.id}>{formatWardLabel(w)}</option>)}
     </select>
    </label>
    {value.new&&<label>Password<input type="password" minLength="8" required value={f.password} onChange={e=>setF({...f,password:e.target.value})} autoComplete="new-password"/></label>}

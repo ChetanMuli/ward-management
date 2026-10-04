@@ -9,7 +9,9 @@ const sequelize = new Sequelize(
     host: config.host,
     port: config.port,
     dialect: config.dialect,
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: process.env.DEBUG_SQL === '1'
+      ? (sql, timing) => { if (Number(timing) >= 200) console.log(`[SQL ${timing}ms] ${sql}`); }
+      : false,
     define: {
       ...(config.define || {}),
       charset: 'utf8mb4',
@@ -19,7 +21,10 @@ const sequelize = new Sequelize(
       ...(config.dialectOptions || {}),
       charset: 'utf8mb4',
     },
-    pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
+    pool: process.env.NODE_ENV === 'production'
+      ? { max: 30, min: 4, acquire: 20000, idle: 8000 }
+      : { max: 15, min: 2, acquire: 30000, idle: 10000 },
+    benchmark: process.env.DEBUG_SQL === '1',
   }
 );
 

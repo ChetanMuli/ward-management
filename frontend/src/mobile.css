@@ -7640,6 +7640,13 @@ html body .family-mid-actions .family-loc-btn {
   background: #ffffff !important;
   border: 1px solid #cbd5e1 !important;
   color: #334155 !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  line-height: 1.05 !important;
+  padding: 2px 4px !important;
+  white-space: normal !important;
 }
 html body .family-mid-actions .family-loc-btn:hover {
   background: #f8fafc !important;

@@ -16,7 +16,13 @@ async function start() {
   try {
     await sequelize.authenticate();
     console.log('MySQL connection established.');
-    await ensureDatabaseSchema(sequelize);
+    const schemaJob = ensureDatabaseSchema(sequelize).catch((e) => {
+      console.warn('[SCHEMA-SYNC]', e.message);
+    });
+    await Promise.race([
+      schemaJob,
+      new Promise((resolve) => setTimeout(resolve, 4000)),
+    ]);
 
     app.listen(PORT, () => {
       console.log(`Ward Management API listening on port ${PORT} (${process.env.NODE_ENV || 'development'})`);

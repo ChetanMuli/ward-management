@@ -4,6 +4,7 @@ import {ErrorBox,Field,Loading,Modal,PageHeader,RowMenu,StatusPill,Toolbar} from
 import WardFilter from '../components/WardFilter';
 import {useWardFilter} from '../wardFilter';
 import {isMaster,isNagarsevak,isEmployee} from '../rbac';
+import {formatWardLabel, formatWardNumber} from '../wardFormat';
 
 const blank={wardNumber:'',name:'',description:'',status:'INACTIVE'};
 const emptyArea={name:'',description:''};
@@ -23,7 +24,7 @@ export default function Wards(){
  const [wards,setWards]=useState(null),[error,setError]=useState(''),[edit,setEdit]=useState(null),[create,setCreate]=useState(null),[detail,setDetail]=useState(null),[areaEdit,setAreaEdit]=useState(null),[areaCreate,setAreaCreate]=useState(null),[busy,setBusy]=useState(false),[search,setSearch]=useState(''),[openChips,setOpenChips]=useState({});
  async function load(){try{setError('');setWards((await api.wards()).data||[])}catch(e){setError(e.message)}}
  useEffect(()=>{load()},[]);
- const visible=useMemo(()=>{const base=selectedWardId?(wards||[]).filter(w=>String(w.id)===String(selectedWardId)):(wards||[]);const q=search.trim().toLowerCase();if(!q)return base;return base.filter(w=>`${w.wardNumber||''} ${w.name||''} ${w.description||''} ${(w.areas||[]).map(a=>`${a.name||''} ${a.description||''}`).join(' ')}`.toLowerCase().includes(q));},[wards,selectedWardId,search]);
+ const visible=useMemo(()=>{const base=selectedWardId?(wards||[]).filter(w=>String(w.id)===String(selectedWardId)):(wards||[]);const q=search.trim().toLowerCase();if(!q)return base;return base.filter(w=>`${formatWardNumber(w.wardNumber)||''} ${w.wardNumber||''} ${w.name||''} ${w.description||''} ${(w.areas||[]).map(a=>`${a.name||''} ${a.description||''}`).join(' ')}`.toLowerCase().includes(q));},[wards,selectedWardId,search]);
 
  async function saveWard(e){
   e.preventDefault();setBusy(true);
@@ -64,7 +65,7 @@ export default function Wards(){
      <div className="ward-card-top">
       <div>
        <span className="eyebrow">WARD</span>
-       <h3>{w.wardNumber}</h3>
+       <h3>{formatWardNumber(w.wardNumber)}</h3>
        <p className="ward-card-name">{w.name||'Municipal ward'}</p>
       </div>
       <StatusPill>{w.status||'INACTIVE'}</StatusPill>
@@ -81,7 +82,7 @@ export default function Wards(){
        {label:'View details',onClick:()=>setDetail(w)},
        wardEditor&&{label:'Edit ward',onClick:()=>setEdit({...blank,...w})},
        wardEditor&&{label:'Add area / colony',onClick:()=>setAreaCreate({wardId:w.id,...emptyArea})},
-       master&&{label:'Delete ward',danger:true,onClick:async()=>{if(confirm(`Delete ward ${w.wardNumber}? It will move to the recycle bin.`)){try{await api.deleteWard(w.id);await load()}catch(e){setError(e.message)}}}}
+       master&&{label:'Delete ward',danger:true,onClick:async()=>{if(confirm(`Delete ward ${formatWardNumber(w.wardNumber)}? It will move to the recycle bin.`)){try{await api.deleteWard(w.id);await load()}catch(e){setError(e.message)}}}}
       ]}/>
      </div>
      <div className="area-list">{areas.map(a=><div className="area-item" key={a.id}><div><strong>{a.name}</strong><span>{a.description||'Colony / area in this ward'}</span></div>{wardEditor&&<div className="card-actions"><button className="small-btn" onClick={()=>setAreaEdit({...emptyArea,...a})}>Edit</button><button className="small-btn danger" onClick={async()=>{if(confirm(`Delete area ${a.name}?`)){try{await api.deleteArea(a.id);load()}catch(e){setError(e.message)}}}}>Delete</button></div>}</div>)}</div>
@@ -89,16 +90,16 @@ export default function Wards(){
    );
   })}</div>}
 
-  {detail&&<Modal wide title={`${detail.wardNumber}${detail.name?` · ${detail.name}`:''} · Ward details`} onClose={()=>setDetail(null)}>
+  {detail&&<Modal wide title={`${formatWardLabel(detail)} · Ward details`} onClose={()=>setDetail(null)}>
    <div className="detail-grid">
-    <div className="detail-card"><h3>Ward</h3><p><b>Ward number:</b> {detail.wardNumber||'—'}</p><p><b>Activation:</b> <StatusPill>{detail.status||'INACTIVE'}</StatusPill></p><p><b>Name:</b> {detail.name||'N/A'}</p><p><b>Description:</b> {detail.description||'N/A'}</p></div>
+    <div className="detail-card"><h3>Ward</h3><p><b>Ward number:</b> {formatWardNumber(detail.wardNumber)||'—'}</p><p><b>Activation:</b> <StatusPill>{detail.status||'INACTIVE'}</StatusPill></p><p><b>Name:</b> {detail.name||'N/A'}</p><p><b>Description:</b> {detail.description||'N/A'}</p></div>
     <div className="detail-card"><h3>Active nagarsevaks</h3>{activeNagarsevaks(detail).length?activeNagarsevaks(detail).map(u=><p key={u.id}><b>{u.name||'Nagarsevak'}</b>{u.mobile?` · ${u.mobile}`:''}</p>):<p className="muted">No active nagarsevak on this ward yet.</p>}</div>
     <div className="detail-card span-2"><h3>Areas / Colonies</h3>{(detail.areas||[]).length?(detail.areas||[]).map(a=><div className="area-detail-row" key={a.id}><div><b>{a.name}</b><span>{a.description||'No description'}</span></div></div>):<p className="muted">No colonies yet.</p>}</div>
    </div>
    <div className="modal-actions"><button className="ghost-btn" onClick={()=>setDetail(null)}>Close</button></div>
   </Modal>}
 
-  {(edit||create)&&<Modal wide title={edit?`Edit ${edit.wardNumber}`:'Create ward'} onClose={()=>{setEdit(null);setCreate(null)}}>
+  {(edit||create)&&<Modal wide title={edit?`Edit ${formatWardNumber(edit.wardNumber)}`:'Create ward'} onClose={()=>{setEdit(null);setCreate(null)}}>
    <form className="form-grid admin-form" onSubmit={saveWard}>
     <div className="form-section-title span-2"><strong>Ward</strong><span>Number and name used across houses, families and registration.</span></div>
     <Field label="Ward number *"><input required value={(edit||create).wardNumber||''} onChange={e=>(edit?setEdit:setCreate)({...((edit||create)),wardNumber:e.target.value})}/></Field>

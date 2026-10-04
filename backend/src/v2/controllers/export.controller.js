@@ -5,6 +5,7 @@ const asyncHandler=require('../../utils/asyncHandler');
 const ApiError=require('../../utils/ApiError');
 const ExcelJS=require('exceljs');
 const PDFDocument=require('pdfkit');
+const { formatWardNumber }=require('../../utils/wardFormat');
 
 function presenceWhere(req,type){
   const presence=String(req.query.presenceStatus||'').toUpperCase();
@@ -80,15 +81,15 @@ function presenceLabel(status){
 function flat(type,r){
   const x=r.toJSON();
   const kind=['outOfCity','out-of-city','outOfCityVoters','out-of-city-voters'].includes(type)?'citizens':(['votersOnly','voters-only','voter','nonVoters','non-voters','nonVoter','non-voter'].includes(type)?'voters':type);
-  if(kind==='houses')return {House:x.houseNumber,Address:x.address,Landmark:x.landmark||'',City:x.city||x.area?.city||'',Pincode:x.pincode||x.area?.pincode||'',Latitude:x.latitude||'',Longitude:x.longitude||'',Owner:x.ownerName,Ownership:x.ownership,Type:x.houseType,Ward:x.area?.ward?.wardNumber,Area:x.area?.name,Status:x.status};
-  if(kind==='families')return {Family:x.familyName,House:x.house?.houseNumber||'',Apartment:x.house?.apartment?.name||'',Address:x.house?.address||'',Colony:x.house?.area?.name||'',Ward:x.house?.area?.ward?.wardNumber||'',NativeVillage:x.nativeVillage||'',NativeTaluka:x.nativeTaluka||'',NativeDistrict:x.nativeDistrict||'',NativeState:x.nativeState||'',Latitude:x.house?.latitude||'',Longitude:x.house?.longitude||'',Members:(x.members||[]).length,Status:x.status};
-  if(kind==='shops')return {Name:x.name,Type:x.kind==='OFFICE'?'Office':'Shop',Category:x.category||'',Ownership:x.ownership||'',Owner:x.ownerName||'',Mobile:x.ownerMobile||'',Address:x.address||'',Landmark:x.landmark||'',Ward:x.area?.ward?.wardNumber||'',Colony:x.area?.name||'',Latitude:x.latitude||'',Longitude:x.longitude||'',Status:x.status||''};
-  if(kind==='persons'||kind==='citizens')return {Name:x.fullName,Gender:x.gender,DOB:x.dob,Age:x.age,Mobile:x.mobile,AlternateMobile:x.alternateMobile||'',Email:x.email||'',Occupation:x.occupation,Company:x.companyName||'',Business:x.businessName||'',WhereNow:presenceLabel(x.presenceStatus),CurrentCity:x.currentCity||'',LivingWith:x.livingWith||'',Voter:x.voterProfile?.status||'',VotingWard:x.voterProfile?.votingWard||'',VoterID:x.voterProfile?.officialVoterIdRef||'',Family:x.family?.familyName||'',House:x.family?.house?.houseNumber||'',Ward:x.family?.house?.area?.ward?.wardNumber||'',Colony:x.family?.house?.area?.name||'',Status:x.status};
+  if(kind==='houses')return {House:x.houseNumber,Address:x.address,Landmark:x.landmark||'',City:x.city||x.area?.city||'',Pincode:x.pincode||x.area?.pincode||'',Latitude:x.latitude||'',Longitude:x.longitude||'',Owner:x.ownerName,Ownership:x.ownership,Type:x.houseType,Ward:formatWardNumber(x.area?.ward?.wardNumber)||x.area?.ward?.wardNumber,Area:x.area?.name,Status:x.status};
+  if(kind==='families')return {Family:x.familyName,House:x.house?.houseNumber||'',Apartment:x.house?.apartment?.name||'',Address:x.house?.address||'',Colony:x.house?.area?.name||'',Ward:formatWardNumber(x.house?.area?.ward?.wardNumber)||'',NativeVillage:x.nativeVillage||'',NativeTaluka:x.nativeTaluka||'',NativeDistrict:x.nativeDistrict||'',NativeState:x.nativeState||'',Latitude:x.house?.latitude||'',Longitude:x.house?.longitude||'',Members:(x.members||[]).length,Status:x.status};
+  if(kind==='shops')return {Name:x.name,Type:x.kind==='OFFICE'?'Office':'Shop',Category:x.category||'',Ownership:x.ownership||'',Owner:x.ownerName||'',Mobile:x.ownerMobile||'',Address:x.address||'',Landmark:x.landmark||'',Ward:formatWardNumber(x.area?.ward?.wardNumber)||'',Colony:x.area?.name||'',Latitude:x.latitude||'',Longitude:x.longitude||'',Status:x.status||''};
+  if(kind==='persons'||kind==='citizens')return {Name:x.fullName,Gender:x.gender,DOB:x.dob,Age:x.age,Mobile:x.mobile,AlternateMobile:x.alternateMobile||'',Email:x.email||'',Occupation:x.occupation,Company:x.companyName||'',Business:x.businessName||'',WhereNow:presenceLabel(x.presenceStatus),CurrentCity:x.currentCity||'',LivingWith:x.livingWith||'',Voter:x.voterProfile?.status||'',VotingWard:formatWardNumber(x.voterProfile?.votingWard)||x.voterProfile?.votingWard||'',VoterID:x.voterProfile?.officialVoterIdRef||'',Family:x.family?.familyName||'',House:x.family?.house?.houseNumber||'',Ward:formatWardNumber(x.family?.house?.area?.ward?.wardNumber)||'',Colony:x.family?.house?.area?.name||'',Status:x.status};
   if(kind==='voters'){
     const p=x.Person||{};
-    return {Name:p.fullName||'',Age:p.age??'',Mobile:p.mobile||'',WhereNow:presenceLabel(p.presenceStatus),CurrentCity:p.currentCity||'',Family:p.family?.familyName||'',House:p.family?.house?.houseNumber||'',Ward:p.family?.house?.area?.ward?.wardNumber||'',Colony:p.family?.house?.area?.name||'',VoterStatus:x.status,VotingWard:x.votingWard||'',VoterRef:x.officialVoterIdRef||'',Constituency:x.constituency||''};
+    return {Name:p.fullName||'',Age:p.age??'',Mobile:p.mobile||'',WhereNow:presenceLabel(p.presenceStatus),CurrentCity:p.currentCity||'',Family:p.family?.familyName||'',House:p.family?.house?.houseNumber||'',Ward:formatWardNumber(p.family?.house?.area?.ward?.wardNumber)||'',Colony:p.family?.house?.area?.name||'',VoterStatus:x.status,VotingWard:formatWardNumber(x.votingWard)||x.votingWard||'',VoterRef:x.officialVoterIdRef||'',Constituency:x.constituency||''};
   }
-  return {'Complaint No':x.complaintNumber,Status:x.status,Ward:x.house?.area?.ward?.wardNumber||'',Colony:x.house?.area?.name||'',House:x.house?.houseNumber||'',Citizen:x.citizen?.fullName||'',Description:x.description};
+  return {'Complaint No':x.complaintNumber,Status:x.status,Ward:formatWardNumber(x.house?.area?.ward?.wardNumber)||'',Colony:x.house?.area?.name||'',House:x.house?.houseNumber||'',Citizen:x.citizen?.fullName||'',Description:x.description};
 }
 const exportData=asyncHandler(async(req,res)=>{
   if(!req.user.permissions.includes('EXPORT_DATA'))throw new ApiError(403,'Export permission is required');

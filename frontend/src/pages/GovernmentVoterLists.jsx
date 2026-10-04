@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import {api,getUser} from '../services/api';
 import {can,isNagarsevak,isSubMaster} from '../rbac';
 import {Empty,ErrorBox,Field,Loading,PageHeader,PaginationBar,RowMenu,StatusPill,SearchableSelect} from '../components/Ui';
+import {formatWardLabel} from '../wardFormat';
 
 const formatBytes=n=>{const x=Number(n||0);if(x<1024)return `${x} B`;if(x<1024*1024)return `${(x/1024).toFixed(1)} KB`;return `${(x/1024/1024).toFixed(1)} MB`};
 const formatDate=v=>v?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'—';
@@ -43,7 +44,7 @@ export default function GovernmentVoterLists(){
  function wardLabel(id){
   const w=wards.find(x=>String(x.id)===String(id));
   if(!w) return id?'Unknown ward':'Ward not set';
-  return `${w.wardNumber}${w.name?` · ${w.name}`:''}`;
+  return formatWardLabel(w);
  }
 
  async function load(){
@@ -126,7 +127,7 @@ export default function GovernmentVoterLists(){
    <div className="panel-title"><div><h3>Add government voter list</h3><span>PDF, XLSX or CSV · one ward · maximum 100 MB</span></div></div>
    {nagarsevak&&<div className="info-note">This file is saved for your ward only: {wardLabel(ownWard)}.</div>}
    <form className="government-voter-upload" onSubmit={upload}>
-    {!nagarsevak&&<SearchableSelect label="Ward" required value={uploadWardId} onChange={setUploadWardId} options={wardOptions.map(w=>({value:String(w.id),label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}))} placeholder="Select one ward…"/>}
+    {!nagarsevak&&<SearchableSelect label="Ward" required value={uploadWardId} onChange={setUploadWardId} options={wardOptions.map(w=>({value:String(w.id),label:formatWardLabel(w)}))} placeholder="Select one ward…"/>}
     <Field label="Government voter-list file">
      <input ref={inputRef} type="file" accept=".pdf,.xlsx,.csv,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={e=>setFile(e.target.files?.[0]||null)}/>
     </Field>
@@ -138,7 +139,7 @@ export default function GovernmentVoterLists(){
   <section className="panel">
    <div className="panel-title"><div><h3>Lists by ward</h3><span>Open a file to see every extracted name below.</span></div></div>
    {!nagarsevak&&<div className="filter-toolbar government-voter-filter">
-    <SearchableSelect label="Show ward" value={filterWardId} onChange={v=>{setFilterWardId(v);if(detail&&wardKey(detail)!==String(v)&&v)setDetail(null)}} options={[{value:'',label:'All wards'},...wardOptions.map(w=>({value:String(w.id),label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}))]} placeholder="All wards"/>
+    <SearchableSelect label="Show ward" value={filterWardId} onChange={v=>{setFilterWardId(v);if(detail&&wardKey(detail)!==String(v)&&v)setDetail(null)}} options={[{value:'',label:'All wards'},...wardOptions.map(w=>({value:String(w.id),label:formatWardLabel(w)}))]} placeholder="All wards"/>
    </div>}
    {rows===null?<Loading/>:!visibleLists.length?<Empty>{filterWardId?'No government voter list is uploaded for this ward yet.':'No government voter lists uploaded yet.'}</Empty>:<div className="table-wrap government-voter-table"><table><thead><tr><th>File</th><th>Ward</th><th>Type</th><th>Extracted</th><th>Uploaded by</th><th>Date</th><th>Actions</th></tr></thead><tbody>{visibleLists.map(r=>{
     const selected=detail?.id===r.id;

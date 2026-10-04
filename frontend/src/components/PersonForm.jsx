@@ -1,5 +1,6 @@
 import React,{useMemo} from 'react';
 import {Field,ImageField,SearchableSelect} from './Ui';
+import {formatWardLabel} from '../wardFormat';
 
 function ageFromDob(dob){
  if(!dob)return '';
@@ -10,7 +11,7 @@ function ageFromDob(dob){
  return Math.max(0,age);
 }
 
-export const emptyPerson={fullName:'',gender:'',dob:'',mobile:'',alternateMobile:'',email:'',occupationType:'',businessName:'',businessAddress:'',companyName:'',employmentType:'',officialVoterIdRef:'',voterIdImage:'',aadhaarImage:'',panCardImage:'',notes:'',isVoter:'',votingWard:'',constituency:'',presenceStatus:'',currentCity:'',livingWith:''};
+export const emptyPerson={fullName:'',gender:'',dob:'',mobile:'',alternateMobile:'',email:'',occupationType:'',businessName:'',businessAddress:'',companyName:'',employmentType:'',isRetired:false,retiredFrom:'',retiredService:'',officialVoterIdRef:'',voterIdImage:'',aadhaarImage:'',panCardImage:'',notes:'',isVoter:'',votingWard:'',constituency:'',presenceStatus:'',currentCity:'',livingWith:''};
 
 export function presenceLine(p){
  const where=p?.presenceStatus==='OUT_OF_CITY'
@@ -27,7 +28,7 @@ export default function PersonForm({value,onChange,families=[],wards=[],hideFami
  const occupation=form.occupationType||'';
  const isAdult=age!==''&&age>=18;
  const voterChoice=isAdult?form.isVoter:'';
- const voterOptions=wards.map(w=>({value:w.wardNumber,label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}));
+ const voterOptions=wards.map(w=>({value:w.wardNumber,label:formatWardLabel(w)}));
  return <form className="form-grid person-form compact-modal-form" onSubmit={onSubmit}>
   {!hideFamily&&<Field className="span-2" label="Family *"><SearchableSelect required value={form.familyId||''} onChange={v=>set('familyId',v)} options={families.map(f=>({value:f.id,label:`${f.familyName||'Unnamed family'} · ${[f.house?.apartment?.name,f.house?.houseNumber].filter(Boolean).join(' / ')||'No house'}${f.nativeVillage?` · Native village ${f.nativeVillage}`:''}`}))} placeholder="Search family…"/></Field>}
 
@@ -49,10 +50,50 @@ export default function PersonForm({value,onChange,families=[],wards=[],hideFami
    {voterChoice==='VOTER'&&<Field label="Constituency (optional)"><input value={form.constituency||''} onChange={e=>set('constituency',e.target.value)} placeholder="Optional constituency"/></Field>}
   </>}
 
-  <div className="form-section-title span-2"><strong>Occupation</strong><span>Choose one. Extra fields appear only when required.</span></div>
-  <Field className="span-2" label="Occupation type"><select value={occupation} onChange={e=>{const v=e.target.value;onChange({...form,occupationType:v,businessName:v==='BUSINESS'?form.businessName:'',businessAddress:v==='BUSINESS'?form.businessAddress:'',companyName:v==='SERVICE'?form.companyName:'',employmentType:v==='SERVICE'?form.employmentType:''})}}><option value="">Not specified / N/A</option><option value="BUSINESS">Business</option><option value="SERVICE">Service</option><option value="OTHER">Not specified / Student / Homemaker / Retired / Other</option></select></Field>
-  {occupation==='BUSINESS'&&<><Field label="Business name"><input value={form.businessName||''} onChange={e=>set('businessName',e.target.value)} placeholder="Enter business name"/></Field><Field label="Business address"><textarea value={form.businessAddress||''} onChange={e=>set('businessAddress',e.target.value)} placeholder="Enter business address"/></Field></>}
-  {occupation==='SERVICE'&&<><Field label="Company / organisation name"><input value={form.companyName||''} onChange={e=>set('companyName',e.target.value)} placeholder="Enter company / organisation"/></Field><Field label="Service type"><select value={form.employmentType||''} onChange={e=>set('employmentType',e.target.value)}><option value="">Not specified / N/A</option><option value="PRIVATE">Private</option><option value="GOVERNMENT">Government</option></select></Field></>}
+  <div className="form-section-title span-2"><strong>Occupation & Work</strong><span>Choose work or retired status. Extra details appear only when needed.</span></div>
+  <Field className="span-2" label="Occupation / Employment Status (optional)">
+    <select
+      value={form.isRetired ? 'RETIRED' : (form.occupationType || '')}
+      onChange={e=>{
+        const v=e.target.value;
+        if(v==='RETIRED'){
+          onChange({...form,occupationType:'RETIRED',isRetired:true,businessName:'',businessAddress:'',companyName:'',employmentType:''});
+        } else {
+          onChange({...form,occupationType:v,isRetired:false,retiredFrom:'',retiredService:'',businessName:v==='BUSINESS'?form.businessName:'',businessAddress:v==='BUSINESS'?form.businessAddress:'',companyName:v==='SERVICE'?form.companyName:'',employmentType:v==='SERVICE'?form.employmentType:''});
+        }
+      }}
+    >
+      <option value="">Not specified / N/A</option>
+      <option value="SERVICE">Service (Government / Private)</option>
+      <option value="BUSINESS">Business / Self-Employed</option>
+      <option value="RETIRED">Retired Person (निवृत्त)</option>
+      <option value="OTHER">Other / Student / Homemaker</option>
+    </select>
+  </Field>
+  {form.occupationType==='BUSINESS'&&!form.isRetired&&<>
+    <Field label="Business name (optional)"><input value={form.businessName||''} onChange={e=>set('businessName',e.target.value)} placeholder="Enter business name"/></Field>
+    <Field label="Business address (optional)"><textarea value={form.businessAddress||''} onChange={e=>set('businessAddress',e.target.value)} placeholder="Enter business address"/></Field>
+  </>}
+  {form.occupationType==='SERVICE'&&!form.isRetired&&<>
+    <Field label="Company / organisation name (optional)"><input value={form.companyName||''} onChange={e=>set('companyName',e.target.value)} placeholder="Enter company / organisation"/></Field>
+    <Field label="Service type (optional)"><select value={form.employmentType||''} onChange={e=>set('employmentType',e.target.value)}><option value="">Not specified / N/A</option><option value="PRIVATE">Private</option><option value="GOVERNMENT">Government</option></select></Field>
+  </>}
+  {(form.isRetired||form.occupationType==='RETIRED')&&<>
+    <Field label="From where retired (Dept / Organisation / Firm) (optional)">
+      <input
+        value={form.retiredFrom||''}
+        onChange={e=>set('retiredFrom',e.target.value)}
+        placeholder="e.g. Police Dept, Railways, Zilla Parishad, Bank, School, Private"
+      />
+    </Field>
+    <Field label="What service / post / designation held (optional)">
+      <input
+        value={form.retiredService||''}
+        onChange={e=>set('retiredService',e.target.value)}
+        placeholder="e.g. Headmaster, Assistant Commissioner, Sub-Inspector, Clerk, Officer"
+      />
+    </Field>
+  </>}
 
   <div className="form-section-title span-2"><strong>Where they are now</strong><span>Record if this member stays at the house, or is currently out of the city — with family or on their own.</span></div>
   <Field label="Current place"><select value={form.presenceStatus||''} onChange={e=>onChange({...form,presenceStatus:e.target.value,currentCity:e.target.value==='OUT_OF_CITY'?form.currentCity:''})}><option value="">Not specified</option><option value="AT_HOME">At this house</option><option value="OUT_OF_CITY">Out of this city</option></select></Field>

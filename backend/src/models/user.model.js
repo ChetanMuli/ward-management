@@ -17,6 +17,12 @@ const User = sequelize.define('User', {
   partyName: { type: DataTypes.VIRTUAL },
   officialAddress: { type: DataTypes.VIRTUAL },
   photo: { type: DataTypes.VIRTUAL },
+  bio: { type: DataTypes.VIRTUAL },
+  officeTimings: { type: DataTypes.VIRTUAL },
+  whatsapp: { type: DataTypes.VIRTUAL },
+  gallery: { type: DataTypes.VIRTUAL },
+  achievements: { type: DataTypes.VIRTUAL },
+  socialLinks: { type: DataTypes.VIRTUAL },
   accountKind: { type: DataTypes.VIRTUAL },
   status: {
     type: DataTypes.ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED', 'DELETED'),

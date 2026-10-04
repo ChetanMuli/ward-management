@@ -10,6 +10,8 @@ const {
   getResidentWardSnapshot,
   syncWardCommunityMembership,
 } = require('../../services/wardActivation.service');
+const { setPublicOpenWard, createStaffInvite } = require('../../services/registrationInvite.service');
+const { formatWardLabel } = require('../../utils/wardFormat');
 
 function requireMaster(req) {
   if (req.user?.roleName !== 'SUPER_ADMIN') throw new ApiError(403, 'Only Master Admin can manage ward activation and purchases.');
@@ -53,7 +55,7 @@ const setWard = asyncHandler(async (req, res) => {
   const ward = await setWardActivation(req.params.wardId, req.body.status, req.user, req.ip);
   return success(res, {
     data: ward,
-    message: ward.status === 'ACTIVE' ? 'Ward activated. Residents of this ward can now see active Nagarsevaks.' : 'Ward deactivated. This ward is hidden from resident registration and Nagarsevak directories.',
+    message: ward.status === 'ACTIVE' ? 'Ward activated. Open public signup separately if residents should register without a staff link.' : 'Ward deactivated. This ward is hidden from resident registration and Nagarsevak directories.',
   });
 });
 
@@ -81,4 +83,29 @@ const sync = asyncHandler(async (req, res) => {
   return success(res, { data, message: 'Ward community membership synchronized.' });
 });
 
-module.exports = { board, myWard, setWard, setPurchase, sync, subscriptions };
+const setRegistrationOpen = asyncHandler(async (req, res) => {
+  requireMaster(req);
+  const open = req.body.open !== false && req.body.open !== 'false' && req.body.open !== 0;
+  const ward = await setPublicOpenWard(open ? req.params.wardId : null, req.user);
+  return success(res, {
+    data: ward,
+    message: ward
+      ? `Public signup is now only for ${formatWardLabel(ward, 'this ward')}. Other wards stay closed unless a staff link is used.`
+      : 'Public signup is closed. Residents can still register with a Nagarsevak or employee link.',
+  });
+});
+
+const createRegistrationInvite = asyncHandler(async (req, res) => {
+  const role = String(req.user?.roleName || '').toUpperCase();
+  if (!['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'].includes(role)) {
+    throw new ApiError(403, 'You cannot share a ward registration link.');
+  }
+  const data = await createStaffInvite(
+    req.user,
+    req.body?.wardId || req.query?.wardId,
+    { rotate: req.body?.rotate === true || req.body?.rotate === 'true' }
+  );
+  return success(res, { data, message: 'Share this link with residents of the selected ward.' });
+});
+
+module.exports = { board, myWard, setWard, setPurchase, sync, subscriptions, setRegistrationOpen, createRegistrationInvite };

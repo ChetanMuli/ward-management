@@ -1,10 +1,12 @@
+import ComplaintTimeline from '../components/ComplaintTimeline';
 import React,{useEffect,useMemo,useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import {api,getUser} from '../services/api';
 import {Empty,Field,MultiImageField,Loading,Modal,PageHeader,SearchableSelect,StatusPill,FaceAvatar} from '../components/Ui';
 import {packComplaintImages,parseComplaintImages} from '../complaintMedia';
-import {openDirections} from './Complaints';
+import {openDirections, getTimelineDescription, formatStatusLabel} from './Complaints';
 import {getAccurateLocation} from '../location';
+import {formatWardLabel} from '../wardFormat';
 
 export const COMPLAINT_CATEGORIES=[
   ['WATER','Water Supply','पाणी पुरवठा'],
@@ -32,12 +34,34 @@ export default function UserComplaints({language='en'}){
  const [locating,setLocating]=useState(false);
  const [previewPhoto,setPreviewPhoto]=useState(null);
  const [form,setForm]=useState({category:'WATER',customCategory:'',description:'',priority:'MEDIUM',assignedNagarsevakUserId:'__ALL__',location:'',reportedImages:[]});
+ const [portalNagarsevaks,setPortalNagarsevaks]=useState([]);
+ const [portalConfig,setPortalConfig]=useState(null);
+ function cachedHero(){
+  try{
+    const v=localStorage.getItem(`ward_complaints_banner_${user?.wardId||''}`);
+    if(v&&!String(v).startsWith('data:')&&!/hero-campaign-banner|hero-gauri-ajinkya|hero-poster-card/i.test(v)) return v;
+  }catch{/* ignore */}
+  return null;
+ }
  const labels=mr?{title:'माझ्या तक्रारी',sub:'तुमच्या वॉर्डमध्ये नोंदवलेल्या तक्रारी आणि त्यांची प्रगती येथे पहा.',new:'नवीन तक्रार',empty:'अजून कोणतीही तक्रार नोंदवलेली नाही.',category:'तक्रारीचा प्रकार',description:'तक्रारीचे वर्णन',priority:'प्राधान्य',nagarsevak:'नगरसेवक निवडा',location:'ठिकाण / लँडमार्क',photo:'तक्रारीचे फोटो',submit:'तक्रार नोंदवा',cancel:'रद्द करा'}:{title:'My Complaints',sub:'Track complaints submitted from your registered ward account and follow every status update.',new:'New complaint',empty:'You have not submitted any complaints yet.',category:'Complaint category',description:'Describe the problem',priority:'Priority',nagarsevak:'Choose Nagarsevak',location:'Location / landmark',photo:'Problem photos',submit:'Submit complaint',cancel:'Cancel'};
 
- async function load(){try{setError('');const [c,t]=await Promise.all([api.complaints({page:1,limit:100}),api.wardTeam()]);setRows(c.data||[]);setTeam(t.data||null)}catch(e){setRows([]);setError(e.message)}}
+ async function load(){try{setError('');const [c,t,pc]=await Promise.all([api.complaints({page:1,limit:40}),api.wardTeam(),api.portalConfig(user?.wardId?{wardId:user.wardId}:{})]);setRows(c.data||[]);setTeam(t.data||null);const cfg=pc.data?.config||pc.data||null;setPortalConfig(cfg);const complaintsBanner=cfg?.complaintsBannerUrl||cfg?.meta?.complaintsBannerUrl;if(complaintsBanner&&!String(complaintsBanner).startsWith('data:')){try{localStorage.setItem(`ward_complaints_banner_${user?.wardId||''}`,complaintsBanner)}catch{}}setPortalNagarsevaks(Array.isArray(pc.data?.nagarsevaks)?pc.data.nagarsevaks:(pc.data?.nagarsevak?[pc.data.nagarsevak]:[]))}catch(e){setRows([]);setError(e.message)}}
  useEffect(()=>{load()},[]);
+ useEffect(()=>{
+   const onPortalUpdate=()=>load();
+   window.addEventListener('ward:portal-updated',onPortalUpdate);
+   const onStorage=(e)=>{if(e.key==='ward_portal_updated')onPortalUpdate();};
+   window.addEventListener('storage',onStorage);
+   return()=>{window.removeEventListener('ward:portal-updated',onPortalUpdate);window.removeEventListener('storage',onStorage);};
+ },[]);
  useEffect(()=>{const id=new URLSearchParams(location.search).get('open');if(!id)return;api.complaint(id).then(r=>setDetail(r.data)).catch(e=>setError(e.message))},[location.search]);
- const nagarsevaks=team?.nagarsevaks||[];
+ const nagarsevaks=useMemo(()=>{
+   if(portalNagarsevaks.length) return portalNagarsevaks.filter(n=>n&&n.id&&!n.isDemo);
+   return team?.nagarsevaks||[];
+ },[team, portalNagarsevaks]);
+ const liveComplaints=(portalConfig?.complaintsBannerUrl||portalConfig?.meta?.complaintsBannerUrl||'');
+ const liveHero=(liveComplaints&&!String(liveComplaints).startsWith('data:'))?liveComplaints:null;
+ const heroBanner=liveHero||cachedHero()||null;
  const nextAction=(status)=>({SUBMITTED:mr?'तक्रार नोंद झाली असून नगरसेवक / कर्मचाऱ्यांकडे पाठवली आहे.':'Complaint is open and waiting for ward assignment/action.',PENDING:mr?'तक्रारीवर पुढील कार्यवाहीची प्रतीक्षा.':'Waiting for the next ward action.',ASSIGNED:mr?'नियुक्त कर्मचारी काम सुरू करेल.':'Assigned employee should start the work.',IN_PROGRESS:mr?'काम सुरू आहे; पूर्ण झाल्यावर फोटोसह अपडेट होईल.':'Work is in progress; the responsible person should update it when completed.',RESOLVED:mr?'काम पूर्ण झाले आहे; प्रशासनाकडून बंद करण्याची प्रक्रिया बाकी.':'Work is marked complete; ward management can close the complaint.',REOPENED:mr?'तक्रार पुन्हा उघडली आहे; पुढील कार्यवाही अपेक्षित.':'Complaint was reopened and needs further action.',CLOSED:mr?'तक्रार बंद करण्यात आली आहे.':'Complaint is closed.'}[status]||'—');
 
  const getCategoryName=(cat)=>{
@@ -63,7 +87,7 @@ export default function UserComplaints({language='en'}){
    try {
      setLocating(true);
      setError('');
-     const loc = await getAccurateLocation({ timeout: 15000, desiredAccuracy: 25 });
+     const loc = await getAccurateLocation({ timeout: 22000, desiredAccuracy: 20 });
      setForm(prev => ({
        ...prev,
        location: loc.formatted || loc.address || `GPS: ${loc.latitude.toFixed(6)}, ${loc.longitude.toFixed(6)}`
@@ -156,12 +180,29 @@ export default function UserComplaints({language='en'}){
    <button type="button" className="small-btn" onClick={()=>{setSearch('');setStatusFilter('');setCategoryFilter('');setPriorityFilter('');setNagarsevakFilter('')}}>{mr?'फिल्टर साफ करा':'Clear filters'}</button>
  </div>
   {error&&<div className="user-error"><span>{error}</span><button onClick={load}>Retry</button></div>}
-  <section className="ward-info-card">
+  <section className={`ward-info-card ${heroBanner?'has-portal-banner':''}`} style={heroBanner?{'--portal-hero-bg':`url("${String(heroBanner).replace(/"/g,'')}")`}:undefined}>
+   {heroBanner?<img className="ward-info-banner-photo" src={heroBanner} alt="" onError={(e)=>{e.currentTarget.style.display='none'}}/>:null}
    <div className="ward-info-main">
     <span className="user-kicker">{mr?'तुमचा वॉर्ड':'Your ward'}</span>
-    <h2>{team?.ward?.wardNumber||user?.ward?.wardNumber}{team?.ward?.name?` · ${team.ward.name}`:''}</h2>
+    <h2>{formatWardLabel(team?.ward||user?.ward,'')}</h2>
    </div>
-   <div className="nagar-info-list">{nagarsevaks.length?nagarsevaks.slice(0,4).map(n=><article className="nagar-info-card" key={n.id}><FaceAvatar name={n.name} photo={n.photo}/><div className="nagar-info-copy"><strong>{n.name}</strong><span>{n.partyName||(mr?'नगरसेवक':'Nagarsevak')}</span>{n.mobile?<a href={`tel:${n.mobile}`}>{n.mobile}</a>:<span>No mobile</span>}</div></article>):<div className="user-nagar-empty"><strong>{mr?'नगरसेवक प्रोफाइल सध्या उपलब्ध नाही.':'Nagarsevak details are not available yet.'}</strong></div>}</div>
+   <div className="nagar-info-list">{nagarsevaks.length?nagarsevaks.slice(0,1).map(n=>{
+     const photoSrc = (typeof n.photo === 'string' && n.photo.trim()) ? n.photo.trim() : '';
+     const formattedName = n.name || (mr ? 'माननीय नगरसेवक' : 'Ward Nagarsevak');
+     const roleOrParty = [n.partyName, n.wardSeat, mr ? 'नगरसेवक' : 'Corporator'].filter(Boolean).join(' · ');
+     return (
+       <article className="nagar-info-card" key={n.id}>
+         <div className="nagar-avatar-wrap">
+           <FaceAvatar name={formattedName} photo={photoSrc}/>
+         </div>
+         <div className="nagar-info-copy">
+           <strong>{formattedName}</strong>
+           <span>{roleOrParty}</span>
+           {n.mobile?<a href={`tel:${n.mobile}`} className="nagar-info-phone">📞 {n.mobile}</a>:<span>{mr?'मोबाईल उपलब्ध नाही':'No mobile'}</span>}
+         </div>
+       </article>
+     );
+   }):<div className="user-nagar-empty"><strong>{mr?'नगरसेवक प्रोफाइल सध्या उपलब्ध नाही.':'Nagarsevak details are not available yet.'}</strong></div>}</div>
   </section>
   {rows===null?<Loading/>:!filteredRows.length?<Empty>{search||statusFilter||categoryFilter||priorityFilter||nagarsevakFilter?(mr?'फिल्टरनुसार तक्रार सापडली नाही.':'No complaints match the selected filters.') : labels.empty}</Empty>:<><div className="complaint-results-summary">{mr?`${filteredRows.length} तक्रारी दिसत आहेत`:`Showing ${filteredRows.length} complaint${filteredRows.length===1?'':'s'}`}</div><div className="user-complaint-list">{filteredRows.map(c=><article className="user-complaint-card" key={c.id}><div className="user-complaint-card-head"><div><span className="complaint-number">{c.complaintNumber}</span><h3>{c.description}</h3></div><StatusPill>{c.status}</StatusPill></div><div className="user-complaint-meta"><span>{getCategoryName(c.category)}</span><span>{c.priority}</span><span>{fmt(c.createdAt)}</span></div><div className="complaint-status-stepper" aria-label={`Complaint status: ${c.status}`}>
  {statusFlow.map((stage,i)=>{const active=flowIndex(c.status)>=i;return <div className={`complaint-status-step ${active?'done':''} ${c.status===stage?'current':''}`} key={stage}><span className="complaint-status-dot">{active?'✓':i+1}</span><small>{statusLabel(stage)}</small></div>})}
@@ -288,16 +329,7 @@ export default function UserComplaints({language='en'}){
       </div>
     )}
     <div className="detail-card" style={{marginTop:'14px'}}>
-      <h3>{mr?'स्टेटस इतिहास':'Status timeline'}</h3>
-      <div className="complaint-timeline">
-        {(detail.history||[]).map((h,i)=>(
-          <div className="timeline-item" key={h.id||i}>
-            <strong>{statusText(h.newStatus==='SUBMITTED'?(mr?'खुली':'Open'):h.newStatus)}</strong>
-            <small>{fmt(h.createdAt)} · {h.changedBy?.name||'System'}</small>
-            <div>{h.comment||'Status updated'}</div>
-          </div>
-        ))}
-      </div>
+      <ComplaintTimeline history={detail.history} complaint={detail} isMr={mr} />
     </div>
   </Modal>}
 

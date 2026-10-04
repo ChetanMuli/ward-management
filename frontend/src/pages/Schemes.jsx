@@ -5,17 +5,20 @@ import {Empty,ErrorBox,Field,Loading,Modal,PageHeader,RowMenu,SearchableSelect,S
 import WardFilter from '../components/WardFilter';
 import {isMaster,isSubMaster,isNagarsevak} from '../rbac';
 import {useWardFilter} from '../wardFilter';
+import {formatWardLabel} from '../wardFormat';
 
 const prettyRole=r=>r?r.toLowerCase().replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase()):'';
 const blank={title:'',description:'',benefits:'',eligibility:'',minAge:'',maxAge:'',gender:'ALL',audience:'',wardId:'',applicationUrl:'',contactInfo:'',startDate:'',endDate:'',status:'PUBLISHED'};
+
+let _schemesCache = null;
 
 export default function Schemes(){
  const user=getUser(),location=useLocation(),master=isMaster(user),sub=isSubMaster(user),councillor=isNagarsevak(user);
  const isCitizen=String(user?.role||'').toUpperCase()==='CITIZEN';
  const {selectedWardId}=useWardFilter();
- const [rows,setRows]=useState(null),[wards,setWards]=useState([]),[search,setSearch]=useState(''),[status,setStatus]=useState(''),[edit,setEdit]=useState(null),[form,setForm]=useState(blank),[error,setError]=useState(''),[detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[schemeNotify,setSchemeNotify]=useState(null),[schemeNotifyForm,setSchemeNotifyForm]=useState({title:'',message:''});
+ const [rows,setRows]=useState(()=>_schemesCache||null),[wards,setWards]=useState([]),[search,setSearch]=useState(''),[status,setStatus]=useState(''),[edit,setEdit]=useState(null),[form,setForm]=useState(blank),[error,setError]=useState(''),[detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[schemeNotify,setSchemeNotify]=useState(null),[schemeNotifyForm,setSchemeNotifyForm]=useState({title:'',message:''});
 
- async function load(){try{setError('');const r=await api.schemes({search,status:isCitizen?'PUBLISHED':status,wardId:selectedWardId||undefined});setRows(r.data||[])}catch(e){setError(e.message)}}
+ async function load(){try{setError('');const r=await api.schemes({search,status:isCitizen?'PUBLISHED':status,wardId:selectedWardId||undefined});const list=r.data||[];setRows(list);if(!search&&!status&&!selectedWardId)_schemesCache=list;}catch(e){setError(e.message)}}
  useEffect(()=>{const t=setTimeout(load,220);return()=>clearTimeout(t)},[search,status,selectedWardId,isCitizen]);
  useEffect(()=>{const id=new URLSearchParams(location.search).get('open');if(!id||!rows?.length)return;const found=rows.find(r=>String(r.id)===String(id));if(found)setDetail(found)},[location.search,rows]);
  useEffect(()=>{
@@ -66,7 +69,7 @@ export default function Schemes(){
    }catch(e){setError(e.message)}finally{setBusy(false)}
  }
 
- const wardLabel=(r)=>r.ward?.wardNumber||'Ward not assigned';
+ const wardLabel=(r)=>formatWardLabel(r.ward,'Ward not assigned');
  const creatorLabel=(r)=>`${r.createdByName||r.createdBy?.name||'System'}${(r.createdByRole||r.createdBy?.Role?.name)?` · ${prettyRole(r.createdByRole||r.createdBy.Role.name)}`:''}`;
 
  return <div className={isCitizen?'user-schemes-page':'admin-schemes-page'}>
@@ -112,7 +115,7 @@ export default function Schemes(){
     <Field label="Maximum age"><input type="number" min="0" value={form.maxAge} onChange={e=>setForm({...form,maxAge:e.target.value})} placeholder="Any"/></Field>
     <Field label="Gender eligibility"><select value={form.gender} onChange={e=>setForm({...form,gender:e.target.value})}><option value="ALL">Everyone</option><option value="FEMALE">Females / Women</option><option value="MALE">Males / Men</option><option value="OTHER">Other</option></select></Field>
     <Field label="Who is it for?"><input value={form.audience} onChange={e=>setForm({...form,audience:e.target.value})} placeholder="e.g. Students, senior citizens"/></Field>
-    <SearchableSelect label="Publishing ward" required value={form.wardId} disabled={councillor} onChange={v=>setForm({...form,wardId:v})} options={wards.map(w=>({value:w.id,label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}))} placeholder="Select publishing ward…"/>
+    <SearchableSelect label="Publishing ward" required value={form.wardId} disabled={councillor} onChange={v=>setForm({...form,wardId:v})} options={wards.map(w=>({value:w.id,label:formatWardLabel(w)}))} placeholder="Select publishing ward…"/>
     {councillor&&<div className="ward-fixed-note"><strong>Ward locked to your assigned ward.</strong></div>}
     <Field label="Status"><select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="PUBLISHED">Published</option><option value="DRAFT">Draft</option><option value="CLOSED">Closed</option></select></Field>
     <Field label="Start date"><input type="date" value={form.startDate||''} onChange={e=>setForm({...form,startDate:e.target.value})}/></Field>

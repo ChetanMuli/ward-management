@@ -35,6 +35,10 @@ const EmployeeAreaAssignment = require('./employeeAreaAssignment.model');
 const ComplaintAttachment = require('./complaintAttachment.model');
 const NagarsevakSchedule = require('./nagarsevakSchedule.model');
 const NagarsevakScheduleAssignment = require('./nagarsevakScheduleAssignment.model');
+const WardPortalConfig = require('./wardPortalConfig.model');
+const WardGalleryItem = require('./wardGalleryItem.model');
+const WardPortalBanner = require('./wardPortalBanner.model');
+const WardHomeWork = require('./wardHomeWork.model');
 const {
   AdminUser,
   SubAdminUser,
@@ -256,6 +260,19 @@ NagarsevakScheduleAssignment.belongsTo(User, { foreignKey: 'toUserId', as: 'toUs
 User.hasMany(NagarsevakSchedule, { foreignKey: 'nagarsevakUserId', as: 'schedules' });
 User.hasMany(NagarsevakSchedule, { foreignKey: 'assignedEmployeeUserId', as: 'assignedSchedules' });
 
+Ward.hasOne(WardPortalConfig, { foreignKey: 'wardId', as: 'portalConfig' });
+WardPortalConfig.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+Ward.hasMany(WardGalleryItem, { foreignKey: 'wardId', as: 'galleryItems' });
+WardGalleryItem.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+User.hasMany(WardGalleryItem, { foreignKey: 'nagarsevakUserId', as: 'galleryItems' });
+WardGalleryItem.belongsTo(User, { foreignKey: 'nagarsevakUserId', as: 'nagarsevak' });
+Ward.hasOne(WardPortalBanner, { foreignKey: 'wardId', as: 'portalBanners' });
+WardPortalBanner.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+Ward.hasMany(WardHomeWork, { foreignKey: 'wardId', as: 'homeWorks' });
+WardHomeWork.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+WardGalleryItem.hasMany(WardHomeWork, { foreignKey: 'galleryItemId', as: 'homeSlots' });
+WardHomeWork.belongsTo(WardGalleryItem, { foreignKey: 'galleryItemId', as: 'galleryItem' });
+
 module.exports = {
   sequelize,
   Role,
@@ -299,4 +316,8 @@ module.exports = {
   ComplaintAttachment,
   NagarsevakSchedule,
   NagarsevakScheduleAssignment,
+  WardPortalConfig,
+  WardGalleryItem,
+  WardPortalBanner,
+  WardHomeWork,
 };

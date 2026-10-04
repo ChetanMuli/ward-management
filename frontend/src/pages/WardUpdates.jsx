@@ -5,6 +5,7 @@ import WardFilter from '../components/WardFilter';
 import {isMaster,isSubMaster,isNagarsevak,isEmployee} from '../rbac';
 import {useLocation,useNavigate} from 'react-router-dom';
 import {useWardFilter} from '../wardFilter';
+import {formatWardLabel, formatWardNumber} from '../wardFormat';
 
 function prettyType(v){return v==='EVENT'?'Event':'Ward update'}
 function prettyAudience(v){
@@ -54,8 +55,8 @@ function UpdateForm({onClose,onSaved,wards,currentUser,initialOpen=true}){
         </select>
       </Field>
       {master||sub
-        ? <SearchableSelect label="Ward" required value={wardId} onChange={setWardId} options={wards.map(w=>({value:w.id,label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}))} placeholder="Select ward"/>
-        : <div className="update-scope-field"><div className="section-label">Ward</div><div className="scope-chip">{currentUser?.ward?.wardNumber||'Your assigned ward'}{currentUser?.ward?.name?` · ${currentUser.ward.name}`:''}</div></div>}
+        ? <SearchableSelect label="Ward" required value={wardId} onChange={setWardId} options={wards.map(w=>({value:w.id,label:formatWardLabel(w)}))} placeholder="Select ward"/>
+        : <div className="update-scope-field"><div className="section-label">Ward</div><div className="scope-chip">{formatWardLabel(currentUser?.ward,'Your assigned ward')}</div></div>}
       <Field label="Audience">
         <select value={audience} onChange={e=>setAudience(e.target.value)}>
           {audienceOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
@@ -81,7 +82,7 @@ export default function WardUpdates({autoOpen=false}){
   const [rows,setRows]=useState(null),[meta,setMeta]=useState({total:0,page:1,limit:25,pages:1});
   const [type,setType]=useState(''),[status,setStatus]=useState('PUBLISHED'),[search,setSearch]=useState('');
   const [page,setPage]=useState(1),[limit,setLimit]=useState(25),[error,setError]=useState(''),[compose,setCompose]=useState(canManage&&autoOpen),[wards,setWards]=useState([]),[selectedUpdate,setSelectedUpdate]=useState(null);
-  const scopeLabel=master?'all wards':sub?'assigned wards':(user?.ward?.wardNumber||'your ward');
+  const scopeLabel=master?'all wards':sub?'assigned wards':(formatWardNumber(user?.ward?.wardNumber)||'your ward');
 
   useEffect(()=>{if(canManage&&(master||sub))api.wards().then(r=>setWards(r.data||[])).catch(e=>setError(e.message))},[master,sub]);
   useEffect(()=>{setPage(1)},[selectedWardId,type,status,search]);
@@ -132,7 +133,7 @@ export default function WardUpdates({autoOpen=false}){
           </div>
           <p>{u.message}</p>
           <div className="ward-update-meta">
-            <span><b>Ward:</b> {u.ward?.wardNumber||'—'}{u.ward?.name?` · ${u.ward.name}`:''}</span>
+            <span><b>Ward:</b> {formatWardLabel(u.ward)}</span>
             <span><b>Published:</b> {fmtDateTime(u.publishedAt||u.createdAt)}</span>
             {u.eventDate&&<span><b>Event:</b> {fmtDateTime(u.eventDate)}</span>}
             {u.location&&<span><b>Location:</b> {u.location}</span>}
@@ -146,7 +147,7 @@ export default function WardUpdates({autoOpen=false}){
       <label>Rows <select value={limit} onChange={e=>{setLimit(Number(e.target.value));setPage(1)}}><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
       <button className="small-btn" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {pages}</span><button className="small-btn" disabled={page>=pages} onClick={()=>setPage(p=>p+1)}>Next</button>
     </div>}
-    {selectedUpdate&&<Modal wide title={`${selectedUpdate.title} · ${selectedUpdate.type==='EVENT'?'Event':'Ward update'} details`} onClose={()=>setSelectedUpdate(null)}><div className="detail-grid"><div className="detail-card"><h3>Update</h3><p><b>Title:</b> {selectedUpdate.title||'—'}</p><p><b>Type:</b> {prettyType(selectedUpdate.type)}</p><p><b>Status:</b> <StatusPill>{selectedUpdate.status}</StatusPill></p><p><b>Published:</b> {fmtDateTime(selectedUpdate.publishedAt||selectedUpdate.createdAt)}</p><p><b>By:</b> {selectedUpdate.createdBy?.name||'—'}</p></div><div className="detail-card"><h3>Ward & event</h3><p><b>Ward:</b> {selectedUpdate.ward?.wardNumber||'—'}{selectedUpdate.ward?.name?` · ${selectedUpdate.ward.name}`:''}</p><p><b>Audience:</b> {prettyAudience(selectedUpdate.audience)}</p><p><b>Event:</b> {selectedUpdate.eventDate?fmtDateTime(selectedUpdate.eventDate):'—'}</p><p><b>Location:</b> {selectedUpdate.location||'—'}</p></div></div><div className="detail-card"><h3>Full message</h3><p style={{whiteSpace:'pre-wrap'}}>{selectedUpdate.message||'—'}</p></div><div className="modal-actions"><button className="ghost-btn" onClick={()=>setSelectedUpdate(null)}>Close</button></div></Modal>}
+    {selectedUpdate&&<Modal wide title={`${selectedUpdate.title} · ${selectedUpdate.type==='EVENT'?'Event':'Ward update'} details`} onClose={()=>setSelectedUpdate(null)}><div className="detail-grid"><div className="detail-card"><h3>Update</h3><p><b>Title:</b> {selectedUpdate.title||'—'}</p><p><b>Type:</b> {prettyType(selectedUpdate.type)}</p><p><b>Status:</b> <StatusPill>{selectedUpdate.status}</StatusPill></p><p><b>Published:</b> {fmtDateTime(selectedUpdate.publishedAt||selectedUpdate.createdAt)}</p><p><b>By:</b> {selectedUpdate.createdBy?.name||'—'}</p></div><div className="detail-card"><h3>Ward & event</h3><p><b>Ward:</b> {formatWardLabel(selectedUpdate.ward)}</p><p><b>Audience:</b> {prettyAudience(selectedUpdate.audience)}</p><p><b>Event:</b> {selectedUpdate.eventDate?fmtDateTime(selectedUpdate.eventDate):'—'}</p><p><b>Location:</b> {selectedUpdate.location||'—'}</p></div></div><div className="detail-card"><h3>Full message</h3><p style={{whiteSpace:'pre-wrap'}}>{selectedUpdate.message||'—'}</p></div><div className="modal-actions"><button className="ghost-btn" onClick={()=>setSelectedUpdate(null)}>Close</button></div></Modal>}
     {compose&&<UpdateForm currentUser={user} wards={wards} onClose={()=>{setCompose(false);if(canManage&&autoOpen)navigate('/ward-updates',{replace:true})}} onSaved={async r=>{setCompose(false);navigate('/ward-updates',{replace:true});setStatus('PUBLISHED');setPage(1);const fresh=await api.wardUpdates({page:1,limit,search:search.trim(),type:type||undefined,status:'PUBLISHED',wardId:selectedWardId||undefined});setRows(fresh.data||[]);setMeta(fresh.meta||meta);}}/>}
   </div>;
 }

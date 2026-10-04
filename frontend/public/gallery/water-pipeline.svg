@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="waterSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#e0f2fe"/>
+    </linearGradient>
+    <linearGradient id="groundGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#78350f"/>
+      <stop offset="30%" stop-color="#451a03"/>
+      <stop offset="100%" stop-color="#1c1917"/>
+    </linearGradient>
+    <linearGradient id="pipeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="40%" stop-color="#0369a1"/>
+      <stop offset="70%" stop-color="#0c4a6e"/>
+      <stop offset="100%" stop-color="#082f49"/>
+    </linearGradient>
+    <linearGradient id="pipeShine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.8)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.1)"/>
+    </linearGradient>
+    <linearGradient id="waterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="waterOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(12,74,110,0)"/>
+      <stop offset="60%" stop-color="rgba(12,74,110,0.5)"/>
+      <stop offset="100%" stop-color="rgba(8,47,73,0.95)"/>
+    </linearGradient>
+    <filter id="waterDrop" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="800" height="500" fill="url(#waterSky)"/>
+
+  <!-- Residential Background Buildings -->
+  <g fill="#cbd5e1" opacity="0.6">
+    <rect x="50" y="160" width="90" height="120" rx="4"/>
+    <rect x="65" y="180" width="20" height="25" fill="#94a3b8"/>
+    <rect x="105" y="180" width="20" height="25" fill="#94a3b8"/>
+    <rect x="65" y="225" width="20" height="25" fill="#94a3b8"/>
+    <rect x="105" y="225" width="20" height="25" fill="#94a3b8"/>
+
+    <rect x="180" y="130" width="130" height="150" rx="4"/>
+    <rect x="200" y="150" width="25" height="30" fill="#94a3b8"/>
+    <rect x="245" y="150" width="25" height="30" fill="#94a3b8"/>
+    <rect x="200" y="200" width="25" height="30" fill="#94a3b8"/>
+    <rect x="245" y="200" width="25" height="30" fill="#94a3b8"/>
+
+    <!-- Water Overhead Tank in Background -->
+    <rect x="620" y="110" width="100" height="60" rx="10" fill="#38bdf8" stroke="#0284c7" stroke-width="4"/>
+    <text x="670" y="145" font-family="system-ui, sans-serif" font-size="12" font-weight="800" fill="#0369a1" text-anchor="middle">WATER TANK</text>
+    <rect x="635" y="170" width="10" height="110" fill="#64748b"/>
+    <rect x="695" y="170" width="10" height="110" fill="#64748b"/>
+    <line x1="635" y1="210" x2="705" y2="210" stroke="#64748b" stroke-width="6"/>
+  </g>
+
+  <!-- Ground Layer with Trench / Excavation -->
+  <polygon points="0,280 800,280 800,500 0,500" fill="url(#groundGrad)"/>
+
+  <!-- Excavated Pipe Trench -->
+  <polygon points="40,310 760,310 740,430 60,430" fill="#292524"/>
+
+  <!-- High-Capacity Heavy DI Water Pipeline -->
+  <g transform="translate(30, 335)">
+    <!-- Main Pipe Body -->
+    <rect x="20" y="10" width="700" height="65" rx="12" fill="url(#pipeGrad)" stroke="#0c4a6e" stroke-width="3" filter="url(#waterDrop)"/>
+    <!-- Pipe Highlight Stripe -->
+    <rect x="20" y="18" width="700" height="10" fill="url(#pipeShine)"/>
+    
+    <!-- Pipe Flange Collars / Joints -->
+    <rect x="180" y="0" width="22" height="85" rx="6" fill="#0284c7" stroke="#0369a1" stroke-width="3"/>
+    <circle cx="191" cy="15" r="4" fill="#f8fafc"/>
+    <circle cx="191" cy="42" r="4" fill="#f8fafc"/>
+    <circle cx="191" cy="70" r="4" fill="#f8fafc"/>
+
+    <rect x="420" y="0" width="22" height="85" rx="6" fill="#0284c7" stroke="#0369a1" stroke-width="3"/>
+    <circle cx="431" cy="15" r="4" fill="#f8fafc"/>
+    <circle cx="431" cy="42" r="4" fill="#f8fafc"/>
+    <circle cx="431" cy="70" r="4" fill="#f8fafc"/>
+
+    <!-- Control Valve / Wheel -->
+    <rect x="426" y="-45" width="10" height="45" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+    <circle cx="431" cy="-55" r="24" fill="#ef4444" stroke="#b91c1c" stroke-width="4"/>
+    <circle cx="431" cy="-55" r="8" fill="#f8fafc"/>
+    <line x1="431" y1="-79" x2="431" y2="-31" stroke="#f8fafc" stroke-width="3"/>
+    <line x1="407" y1="-55" x2="455" y2="-55" stroke="#f8fafc" stroke-width="3"/>
+  </g>
+
+  <!-- Modern Water Tanker Truck in Background -->
+  <g transform="translate(380, 190)">
+    <!-- Truck Cab -->
+    <rect x="180" y="30" width="55" height="55" rx="6" fill="#0284c7"/>
+    <rect x="195" y="36" width="35" height="24" rx="3" fill="#e0f2fe"/>
+    <!-- Water Tank Cylinder -->
+    <rect x="20" y="15" width="150" height="60" rx="26" fill="#f8fafc" stroke="#0284c7" stroke-width="3"/>
+    <text x="95" y="52" font-family="'Noto Sans Devanagari', system-ui, sans-serif" font-size="14" font-weight="800" fill="#0369a1" text-anchor="middle">पिण्याचे पाणी</text>
+    <!-- Wheels -->
+    <circle cx="60" cy="85" r="16" fill="#1e293b"/>
+    <circle cx="130" cy="85" r="16" fill="#1e293b"/>
+    <circle cx="210" cy="85" r="16" fill="#1e293b"/>
+  </g>
+
+  <!-- Top Badges -->
+  <g transform="translate(30, 30)">
+    <rect x="0" y="0" width="195" height="34" rx="17" fill="url(#waterGrad)" filter="url(#waterDrop)"/>
+    <circle cx="17" cy="17" r="7" fill="#ffffff"/>
+    <text x="32" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#ffffff">पाणी व स्वच्छता / WATER</text>
+  </g>
+
+  <g transform="translate(630, 30)">
+    <rect x="0" y="0" width="140" height="34" rx="17" fill="rgba(15,23,42,0.85)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="70" y="21" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#f8fafc" text-anchor="middle">२८ ऑगस्ट २०२६</text>
+  </g>
+
+  <!-- Bottom Gradient Overlay -->
+  <rect x="0" y="320" width="800" height="180" fill="url(#waterOverlay)"/>
+
+  <!-- Caption & Project Details -->
+  <g transform="translate(35, 415)">
+    <rect x="0" y="-2" width="210" height="20" rx="4" fill="#38bdf8"/>
+    <text x="8" y="13" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#0c4a6e">💧 २४/७ पाणी पुरवठा योजना</text>
+    <text x="0" y="42" font-family="'Noto Sans Devanagari', system-ui, sans-serif" font-size="22" font-weight="800" fill="#ffffff">भूमिगत जलवाहिनी नूतनीकरण व ड्रेनेज काम</text>
+    <text x="0" y="64" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#bae6fd">पंकज कॉलनी व सावेडी रोड परिसर · थेट नागरिक तक्रार निवारण</text>
+  </g>
+</svg>

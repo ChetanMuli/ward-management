@@ -10,6 +10,7 @@ const { success } = require('../../utils/apiResponse');
 const { allowedWardIds, isWardAllowed } = require('../services/wardScope');
 const { getVisibleNagarsevakIds, isNagarsevakVisibleInWard, syncWardCommunityMembership } = require('../../services/wardActivation.service');
 const { nagarsevakPublicByIds } = require('../../utils/photo');
+const { formatWardLabel, formatWardNumber } = require('../../utils/wardFormat');
 const { notifyUsers } = require('../../services/notify.service');
 
 const uploadDir = path.resolve(process.env.CHAT_UPLOAD_DIR || path.join(__dirname, '..', '..', '..', 'uploads', 'chat'));
@@ -107,7 +108,7 @@ async function ensureWardGroup(wardId) {
   if (!wardId) return null;
   const ward = await Ward.findByPk(wardId);
   if (!ward || ward.status !== 'ACTIVE') return null;
-  const name = `Ward ${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''} Community`;
+  const name = `${formatWardLabel(ward, 'Ward')} Community`;
   const [group] = await Chat.findOrCreate({
     where: { wardId, type: 'WARD' },
     defaults: { id: crypto.randomUUID(), wardId, name, type:'WARD', createdByUserId:null, isActive:true, mode:'CHAT' }
@@ -173,7 +174,21 @@ async function syncGroupMembers(group, users, nagarRoleId, visibleNagarsevakIds)
   const empRows = await Employee.findAll({ attributes: ['userId', 'managerUserId'] }).catch(() => []);
   const employeeManagerMap = new Map(empRows.map(e => [String(e.userId), e.managerUserId]));
   const allowedUserIds = memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, empRole, employeeManagerMap);
-  await Chat.Member.reconcile(group.id, allowedUserIds);
+  for (const userId of allowedUserIds) {
+    await ensureMembershipRow(group.id, userId);
+  }
+}
+
+async function staffUsersForWard(wardId) {
+  const nagarRoleId = await nagarsevakRoleId();
+  const empRole = await employeeRoleId();
+  const roleIds = [nagarRoleId, empRole].filter(Boolean);
+  if (!wardId || !roleIds.length) return [];
+  return User.findAll({
+    where: { wardId, status: 'ACTIVE', roleId: { [Op.in]: roleIds } },
+    attributes: ['id', 'roleId', 'wardId'],
+    hooks: false,
+  });
 }
 
 async function ensureNagarsevakGroup(nagarsevakUserId, options = {}) {
@@ -202,7 +217,7 @@ async function ensureNagarsevakGroup(nagarsevakUserId, options = {}) {
       });
 
   const [activeUsers, nagarRoleId, visibleIds] = await Promise.all([
-    User.findAll({ where: { wardId: ward, status: 'ACTIVE' }, attributes: ['id', 'roleId'], hooks: false }),
+    staffUsersForWard(ward),
     nagarsevakRoleId(),
     getVisibleNagarsevakIds(ward)
   ]);
@@ -271,15 +286,19 @@ async function syncActiveWardMembers(groupRows) {
   const targetGroups = groupRows.filter(g => ['WARD','CUSTOM','NAGARSEVAK'].includes(g.type));
   const wardIds = [...new Set(targetGroups.map(g => g.wardId).filter(Boolean))];
   if (!wardIds.length) return;
-  const [activeUsers, nagarRoleId, visibleMap] = await Promise.all([
-    User.findAll({
-      where: { wardId: { [Op.in]: wardIds }, status: 'ACTIVE' },
-      attributes: ['id','wardId','roleId'],
-      hooks: false,
-    }),
+  const [nagarRoleId, empRole, visibleMap] = await Promise.all([
     nagarsevakRoleId(),
+    employeeRoleId(),
     visibleIdsByWard(wardIds)
   ]);
+  const roleIds = [nagarRoleId, empRole].filter(Boolean);
+  const activeUsers = roleIds.length
+    ? await User.findAll({
+      where: { wardId: { [Op.in]: wardIds }, status: 'ACTIVE', roleId: { [Op.in]: roleIds } },
+      attributes: ['id','wardId','roleId'],
+      hooks: false,
+    })
+    : [];
   const usersByWard = new Map();
   for (const u of activeUsers) {
     const key = String(u.wardId);
@@ -299,7 +318,7 @@ async function reconcileWardGroupMembers(wardId) {
   });
   if (!groups.length) return;
   const [activeUsers, nagarRoleId, visibleIds] = await Promise.all([
-    User.findAll({ where: { wardId, status: 'ACTIVE' }, attributes: ['id', 'roleId'], hooks: false }),
+    staffUsersForWard(wardId),
     nagarsevakRoleId(),
     getVisibleNagarsevakIds(wardId)
   ]);
@@ -457,6 +476,7 @@ const listGroups = asyncHandler(async (req, res) => {
     });
   }
   const observer = req.user.roleName === 'SUPER_ADMIN' || req.user.roleName === 'SUB_MASTER_ADMIN';
+  const summary = String(req.query.summary || '') === '1';
   const [unreadEntries, lastMessageEntries] = await Promise.all([
     Promise.all(visibleRows.map(async (g) => {
       try {
@@ -466,7 +486,7 @@ const listGroups = asyncHandler(async (req, res) => {
         return [g.id, 0];
       }
     })),
-    Promise.all(visibleRows.map(async (g) => {
+    summary ? Promise.resolve([]) : Promise.all(visibleRows.map(async (g) => {
       try {
         const kind = await Chat.resolveKind(g.id);
         const Message = kind === 'all' ? Chat.AllChatMessage : Chat.GroupChatMessage;
@@ -488,7 +508,9 @@ const listGroups = asyncHandler(async (req, res) => {
   ]);
   const unreadMap = Object.fromEntries(unreadEntries);
   const lastMessageMap = Object.fromEntries(lastMessageEntries);
-  const nagarProfiles = await nagarsevakPublicByIds(visibleRows.map(g => g.nagarsevakUserId || g.nagarsevak?.id));
+  const nagarProfiles = summary
+    ? new Map()
+    : await nagarsevakPublicByIds(visibleRows.map(g => g.nagarsevakUserId || g.nagarsevak?.id));
   const data = visibleRows.map(g => {
     const row = g.toJSON();
     const extra = nagarProfiles.get(String(g.nagarsevakUserId || row.nagarsevak?.id || ''));
@@ -533,16 +555,12 @@ const createGroup = asyncHandler(async (req, res) => {
     isActive: true,
   });
 
-  // New community groups automatically include every active account in that ward.
-  const activeUsers = await User.findAll({
-    where: { wardId, status: 'ACTIVE' },
-    attributes: ['id'],
-  });
+  const activeUsers = await staffUsersForWard(wardId);
   const members = activeUsers.map(u => ({ id: crypto.randomUUID(), groupId: group.id, userId: u.id, joinedAt: new Date() }));
-  if (!members.some(m => m.userId === req.user.id)) members.push({ id: crypto.randomUUID(), groupId: group.id, userId: req.user.id, joinedAt: new Date() });
+  if (!members.some(m => String(m.userId) === String(req.user.id))) members.push({ id: crypto.randomUUID(), groupId: group.id, userId: req.user.id, joinedAt: new Date() });
   if (members.length) await Chat.Member.bulkCreate(members, { ignoreDuplicates: true });
 
-  return success(res, { statusCode: 201, message: 'Group created and active ward users were added automatically.', data: { ...group.toJSON(), memberCount: members.length } });
+  return success(res, { statusCode: 201, message: 'Group created.', data: { ...group.toJSON(), memberCount: members.length } });
 });
 
 const deleteGroup = asyncHandler(async (req, res) => {
@@ -693,15 +711,18 @@ const sendMessage = asyncHandler(async (req, res) => {
     ? content.slice(0, 120)
     : type === 'IMAGE' ? 'Sent a photo' : type === 'VIDEO' ? 'Sent a video' : 'Sent a file';
   const groupLabel = group.type === 'WARD'
-    ? (group.ward?.wardNumber || group.name || 'All chat')
+    ? (formatWardNumber(group.ward?.wardNumber) || group.name || 'All chat')
     : (group.name || 'Group');
-  notifyUsers(members.map((m) => m.userId), {
-    senderUserId: req.user.id,
-    type: 'CHAT_MESSAGE',
-    title: `New message · ${groupLabel}`,
-    message: `${req.user.name || 'Someone'}: ${preview}`,
-    actionUrl: `/groups?group=${group.id}`,
-  }).catch((err) => console.error('[CHAT NOTIFY]', err.message));
+  const otherMemberIds = members.map((m) => m.userId).filter(id => String(id) !== String(req.user.id));
+  if (otherMemberIds.length > 0) {
+    notifyUsers(otherMemberIds, {
+      senderUserId: req.user.id,
+      type: 'CHAT_MESSAGE',
+      title: `New message · ${groupLabel}`,
+      message: `${req.user.name || 'Someone'}: ${preview}`,
+      actionUrl: `/groups?group=${group.id}`,
+    }).catch((err) => console.error('[CHAT NOTIFY]', err.message));
+  }
   return success(res, { statusCode: 201, data: json });
 });
 

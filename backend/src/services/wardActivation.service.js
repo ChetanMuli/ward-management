@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 const {
   Ward,
   User,
@@ -8,11 +9,13 @@ const {
   NagarsevakUser,
   Employee,
   WardSubscriptionEvent,
+  WardPortalConfig,
 } = require('../models');
 const Chat = require('./chat.store');
 const ApiError = require('../utils/ApiError');
 const { logAudit } = require('./audit.service');
 const { notifyUsers } = require('./notify.service');
+const { formatWardLabel } = require('../utils/wardFormat');
 const { canResidentSeeNagarsevak } = require('./wardActivation.rules');
 const { decorateNagarsevakPhotos } = require('../utils/photo');
 
@@ -126,6 +129,23 @@ function publicNagarsevak(user) {
   if (!user) return null;
   const row = typeof user.toJSON === 'function' ? user.toJSON() : user;
   const photo = (typeof user.getDataValue === 'function' ? user.getDataValue('photo') : null) || row.photo || null;
+  const officialAddress = (typeof user.getDataValue === 'function' ? user.getDataValue('officialAddress') : null) || row.officialAddress || null;
+  const bio = (typeof user.getDataValue === 'function' ? user.getDataValue('bio') : null) || row.bio || null;
+  const officeTimings = (typeof user.getDataValue === 'function' ? user.getDataValue('officeTimings') : null) || row.officeTimings || null;
+  const whatsapp = (typeof user.getDataValue === 'function' ? user.getDataValue('whatsapp') : null) || row.whatsapp || null;
+  let gallery = (typeof user.getDataValue === 'function' ? user.getDataValue('gallery') : null) || row.gallery || null;
+  if (typeof gallery === 'string' && gallery.trim()) {
+    try { gallery = JSON.parse(gallery); } catch (_) { gallery = []; }
+  }
+  let achievements = (typeof user.getDataValue === 'function' ? user.getDataValue('achievements') : null) || row.achievements || null;
+  if (typeof achievements === 'string' && achievements.trim()) {
+    try { achievements = JSON.parse(achievements); } catch (_) { achievements = []; }
+  }
+  let socialLinks = (typeof user.getDataValue === 'function' ? user.getDataValue('socialLinks') : null) || row.socialLinks || null;
+  if (typeof socialLinks === 'string' && socialLinks.trim()) {
+    try { socialLinks = JSON.parse(socialLinks); } catch (_) { socialLinks = {}; }
+  }
+
   return {
     id: row.id,
     name: row.name,
@@ -134,8 +154,30 @@ function publicNagarsevak(user) {
     partyName: (typeof user.getDataValue === 'function' ? user.getDataValue('partyName') : null) || row.partyName || null,
     wardSeat: (typeof user.getDataValue === 'function' ? user.getDataValue('wardSeat') : null) || row.wardSeat || null,
     photo,
+    officialAddress,
+    bio,
+    officeTimings,
+    whatsapp,
+    gallery: Array.isArray(gallery) ? gallery : null,
+    achievements: Array.isArray(achievements) ? achievements : null,
+    socialLinks: socialLinks && typeof socialLinks === 'object' ? socialLinks : null,
     status: 'ACTIVE',
   };
+}
+
+async function eligibleStaffUserIds(wardId, extraIds) {
+  const nagarRole = await roleId('NAGARSEVAK');
+  const empRole = await roleId('EMPLOYEE');
+  const roleIds = [nagarRole, empRole].filter(Boolean);
+  const users = roleIds.length
+    ? await User.findAll({
+      where: { wardId, status: 'ACTIVE', roleId: { [Op.in]: roleIds } },
+      attributes: ['id'],
+    })
+    : [];
+  const ids = users.map((u) => u.id);
+  for (const id of extraIds || []) ids.push(id);
+  return [...new Set(ids.map(String))];
 }
 
 async function eligibleResidentIds(wardId) {
@@ -149,18 +191,12 @@ async function eligibleResidentIds(wardId) {
 }
 
 async function eligibleCommunityUserIds(wardId, visibleNagarsevakIds) {
-  const citizenRole = await roleId('CITIZEN');
-  const where = { wardId, status: 'ACTIVE' };
-  if (citizenRole) where.roleId = citizenRole;
-  const users = await User.findAll({ where, attributes: ['id'] });
-  const ids = users.map((u) => u.id);
-  for (const id of visibleNagarsevakIds || []) ids.push(id);
-  return [...new Set(ids.map(String))];
+  return eligibleStaffUserIds(wardId, visibleNagarsevakIds);
 }
 
 async function ensureWardCommunityGroup(ward) {
   if (!ward) return null;
-  const name = `Ward ${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''} Community`;
+  const name = `${formatWardLabel(ward, 'Ward')} Community`;
   const [group] = await Chat.findOrCreate({
     where: { wardId: ward.id, type: 'WARD' },
     defaults: {
@@ -205,21 +241,23 @@ async function syncWardCommunityMembership(wardId) {
   if (!ward) return { wardId, communityId: null, visibleNagarsevakIds: [] };
   const visibleIds = await getVisibleNagarsevakIds(wardId);
   const community = await ensureWardCommunityGroup(ward);
-  const communityMembers = await eligibleCommunityUserIds(wardId, visibleIds);
-  if (community) await replaceGroupMembers(community.id, communityMembers);
+  const communityMembers = await eligibleStaffUserIds(wardId, visibleIds);
+  if (community) {
+    for (const userId of communityMembers) await ensureMembershipRow(community.id, userId);
+  }
 
   const nagarRole = await roleId('NAGARSEVAK');
   const allNagars = nagarRole
     ? await User.findAll({ where: { wardId, roleId: nagarRole }, attributes: ['id', 'name', 'wardId', 'status'] })
     : [];
-  const residentsAndStaff = await eligibleCommunityUserIds(wardId, []);
+  const staffIds = await eligibleStaffUserIds(wardId, []);
   const visibleSet = new Set(visibleIds.map(String));
 
   for (const nagar of allNagars) {
     if (visibleSet.has(String(nagar.id)) && nagar.status === 'ACTIVE') {
       const group = await ensureNagarsevakChatGroup(nagar);
       if (!group) continue;
-      await replaceGroupMembers(group.id, [...residentsAndStaff, nagar.id]);
+      for (const userId of [...staffIds, nagar.id]) await ensureMembershipRow(group.id, userId);
     } else {
       await Chat.update(
         { isActive: false },
@@ -250,6 +288,7 @@ async function setWardActivation(wardId, nextStatus, actor, ipAddress) {
   } else {
     patch.deactivatedAt = now;
     patch.deactivatedBy = actor?.id || null;
+    patch.registrationOpen = false;
   }
   await ward.update(patch);
   await syncWardCommunityMembership(ward.id);
@@ -265,12 +304,12 @@ async function setWardActivation(wardId, nextStatus, actor, ipAddress) {
   if (status === 'ACTIVE' && previous !== 'ACTIVE') {
     const visible = await getVisibleNagarsevaks(ward.id);
     if (visible.length) {
-      const residentIds = await eligibleResidentIds(ward.id);
-      await notifyUsers(residentIds, {
+      const staffIds = await eligibleStaffUserIds(ward.id, []);
+      await notifyUsers(staffIds, {
         senderUserId: actor?.id || null,
         type: 'WARD_ACTIVATED',
         title: 'Your ward is now active',
-        message: `${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''} is now active. ${visible[0].name} is available in Ward Community.`,
+        message: `${formatWardLabel(ward, 'This ward')} is now active. ${visible[0].name} is available in Ward Community.`,
         actionUrl: '/groups',
       });
     }
@@ -386,6 +425,12 @@ async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, 
     const team = await Employee.findAll({ where: { managerUserId: user.id }, attributes: ['userId'] });
     const empIds = team.map((row) => row.userId).filter(Boolean);
     if (empIds.length) await User.update({ status: 'ACTIVE' }, { where: { id: empIds, status: 'INACTIVE' } });
+    await WardNagarsevakSubscription.update(
+      { status: 'DEACTIVATED', deactivatedAt: now, deactivatedBy: actor?.id || null },
+      { where: { wardId, nagarsevakUserId: { [Op.ne]: user.id }, status: 'ACTIVE' } }
+    );
+    const portal = await WardPortalConfig.findOne({ where: { wardId } });
+    if (portal) await portal.update({ featuredNagarsevakUserId: user.id, updatedBy: actor?.id || null });
   } else if (['INACTIVE', 'DEACTIVATED'].includes(next)) {
     if (user.status === 'ACTIVE') await user.update({ status: 'INACTIVE' });
     const team = await Employee.findAll({ where: { managerUserId: user.id }, attributes: ['userId'] });
@@ -405,12 +450,12 @@ async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, 
   });
 
   if (next === 'ACTIVE' && previous !== 'ACTIVE') {
-    const residentIds = await eligibleResidentIds(wardId);
-    await notifyUsers(residentIds, {
+    const staffIds = await eligibleStaffUserIds(wardId, []);
+    await notifyUsers(staffIds, {
       senderUserId: actor?.id || null,
       type: 'NAGARSEVAK_ACTIVATED',
       title: `Your Nagarsevak is now available`,
-      message: `${user.name} is now available for ${ward.wardNumber}${ward.name ? ` · ${ward.name}` : ''}. Open Ward Community to connect.`,
+      message: `${user.name} is now available for ${formatWardLabel(ward, 'your ward')}. Open Ward Community to connect.`,
       actionUrl: '/groups',
     });
   }
@@ -448,7 +493,7 @@ async function listActivationBoard() {
   const nagarRole = await roleId('NAGARSEVAK');
   const citizenRole = await roleId('CITIZEN');
   const wards = await Ward.findAll({
-    attributes: ['id', 'wardNumber', 'name', 'status', 'activatedAt', 'deactivatedAt'],
+    attributes: ['id', 'wardNumber', 'name', 'status', 'activatedAt', 'deactivatedAt', 'registrationOpen'],
     order: [['wardNumber', 'ASC']],
   });
   const wardIds = wards.map((w) => w.id);
@@ -463,17 +508,27 @@ async function listActivationBoard() {
         include: [{
           model: NagarsevakUser,
           as: 'nagarsevakAccount',
-          attributes: ['wardSeat', 'partyName', 'officialAddress', 'photo'],
+          attributes: [
+            'wardSeat', 'partyName', 'officialAddress', 'bio', 'officeTimings', 'whatsapp', 'achievements', 'socialLinks',
+            [
+              NagarsevakUser.sequelize.literal("CASE WHEN `nagarsevakAccount`.`photo` LIKE 'data:%' THEN NULL ELSE `nagarsevakAccount`.`photo` END"),
+              'photo',
+            ],
+          ],
           required: false,
         }],
         order: [['name', 'ASC']],
       })
       : [],
     citizenRole
-      ? User.findAll({
-        where: { roleId: citizenRole, status: 'ACTIVE', wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
-        attributes: ['id', 'wardId'],
-      })
+      ? sequelize.query(
+        `SELECT ward_id AS wardId, COUNT(*) AS cnt
+         FROM users
+         WHERE role_id = :role AND status = 'ACTIVE' AND deleted_at IS NULL
+           AND ward_id IN (:ids)
+         GROUP BY ward_id`,
+        { replacements: { role: citizenRole, ids: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } }
+      ).then(([rows]) => rows)
       : [],
     Chat.findAll({
       where: { type: 'WARD', wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
@@ -496,7 +551,7 @@ async function listActivationBoard() {
   const residentsByWard = new Map();
   for (const r of residentCounts) {
     const key = String(r.wardId);
-    residentsByWard.set(key, (residentsByWard.get(key) || 0) + 1);
+    residentsByWard.set(key, Number(r.cnt || r.CNT || 0));
   }
   const communityByWard = new Map(communities.map((c) => [String(c.wardId), c]));
 
@@ -513,6 +568,7 @@ async function listActivationBoard() {
       wardNumber: ward.wardNumber,
       name: ward.name,
       status: ward.status,
+      registrationOpen: !!ward.registrationOpen,
       activatedAt: ward.activatedAt,
       deactivatedAt: ward.deactivatedAt,
       purchasedNagarsevaks: purchased,
@@ -528,7 +584,13 @@ async function listActivationBoard() {
           wardSeat: account.wardSeat || null,
           partyName: account.partyName || null,
           officialAddress: account.officialAddress || null,
-          photo: account.photo || (typeof n.getDataValue === 'function' ? n.getDataValue('photo') : null) || n.photo || null,
+          photo: (account.photo && String(account.photo).startsWith('data:')) ? null : (account.photo || null),
+          bio: account.bio || null,
+          officeTimings: account.officeTimings || null,
+          whatsapp: account.whatsapp || null,
+          gallery: null,
+          achievements: account.achievements || null,
+          socialLinks: account.socialLinks || null,
           accountStatus: n.status,
           purchaseStatus: sub?.status || 'PENDING',
           purchasedAt: sub?.purchasedAt || null,

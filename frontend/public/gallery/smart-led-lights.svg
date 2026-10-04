@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="nightSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#020617"/>
+      <stop offset="40%" stop-color="#0f172a"/>
+      <stop offset="70%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="nightRoad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="50%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <radialGradient id="lightCone1" cx="50%" cy="0%" r="90%">
+      <stop offset="0%" stop-color="rgba(254,240,138,0.7)"/>
+      <stop offset="40%" stop-color="rgba(253,224,71,0.3)"/>
+      <stop offset="75%" stop-color="rgba(250,204,21,0.08)"/>
+      <stop offset="100%" stop-color="rgba(250,204,21,0)"/>
+    </radialGradient>
+    <radialGradient id="highmastCone" cx="50%" cy="0%" r="90%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.95)"/>
+      <stop offset="25%" stop-color="rgba(186,230,253,0.5)"/>
+      <stop offset="65%" stop-color="rgba(56,189,248,0.15)"/>
+      <stop offset="100%" stop-color="rgba(56,189,248,0)"/>
+    </radialGradient>
+    <linearGradient id="lightBadge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ca8a04"/>
+      <stop offset="100%" stop-color="#a16207"/>
+    </linearGradient>
+    <linearGradient id="nightOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(2,6,23,0)"/>
+      <stop offset="55%" stop-color="rgba(2,6,23,0.6)"/>
+      <stop offset="100%" stop-color="rgba(2,6,23,0.98)"/>
+    </linearGradient>
+    <filter id="glowEffect" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Night Sky -->
+  <rect width="800" height="500" fill="url(#nightSky)"/>
+
+  <!-- Distant City Silhouette at Night with lit windows -->
+  <path d="M 0 300 L 50 300 L 50 210 L 110 210 L 110 300 L 150 300 L 150 180 L 210 180 L 210 300 L 260 300 L 260 230 L 310 230 L 310 300 L 490 300 L 490 190 L 550 190 L 550 300 L 600 300 L 600 240 L 660 240 L 660 300 L 720 300 L 720 200 L 800 200 L 800 500 L 0 500 Z" fill="#090d16"/>
+  <!-- Windows Glowing -->
+  <rect x="70" y="230" width="8" height="12" fill="#fef08a" opacity="0.6"/>
+  <rect x="90" y="250" width="8" height="12" fill="#fef08a" opacity="0.8"/>
+  <rect x="170" y="200" width="10" height="15" fill="#fef08a" opacity="0.7"/>
+  <rect x="190" y="230" width="10" height="15" fill="#fef08a" opacity="0.9"/>
+  <rect x="510" y="210" width="10" height="14" fill="#38bdf8" opacity="0.6"/>
+  <rect x="530" y="240" width="10" height="14" fill="#fef08a" opacity="0.8"/>
+  <rect x="740" y="220" width="10" height="14" fill="#fef08a" opacity="0.8"/>
+  <rect x="765" y="240" width="10" height="14" fill="#fef08a" opacity="0.7"/>
+
+  <!-- Road & Chowk Perspective -->
+  <polygon points="0,320 800,320 800,500 0,500" fill="url(#nightRoad)"/>
+  <line x1="0" y1="420" x2="800" y2="420" stroke="#facc15" stroke-width="4" stroke-dasharray="30,20"/>
+
+  <!-- Center High-Mast Tower (Large 360 Light) -->
+  <g transform="translate(370, 40)">
+    <!-- Highmast Cone of Light beaming downward -->
+    <polygon points="30,50 -200,420 260,420" fill="url(#highmastCone)"/>
+    
+    <!-- Mast Steel Structure -->
+    <polygon points="26,50 34,50 38,300 22,300" fill="#94a3b8"/>
+    <line x1="22" y1="90" x2="38" y2="90" stroke="#475569" stroke-width="2"/>
+    <line x1="23" y1="140" x2="37" y2="140" stroke="#475569" stroke-width="2"/>
+    <line x1="24" y1="190" x2="36" y2="190" stroke="#475569" stroke-width="2"/>
+    <line x1="24" y1="240" x2="36" y2="240" stroke="#475569" stroke-width="2"/>
+    
+    <!-- Highmast Head Crown -->
+    <ellipse cx="30" cy="50" rx="36" ry="12" fill="#334155" stroke="#64748b" stroke-width="2"/>
+    <!-- LED Floodlights on Crown -->
+    <circle cx="8" cy="50" r="7" fill="#ffffff" filter="url(#glowEffect)"/>
+    <circle cx="22" cy="54" r="8" fill="#ffffff" filter="url(#glowEffect)"/>
+    <circle cx="38" cy="54" r="8" fill="#ffffff" filter="url(#glowEffect)"/>
+    <circle cx="52" cy="50" r="7" fill="#ffffff" filter="url(#glowEffect)"/>
+    <!-- Top Beacon Aviation Red Light -->
+    <circle cx="30" cy="36" r="4" fill="#ef4444" filter="url(#glowEffect)"/>
+  </g>
+
+  <!-- Left Side Smart Octagonal LED Street Light Pole -->
+  <g transform="translate(100, 160)">
+    <polygon points="12,30 -70,260 110,260" fill="url(#lightCone1)"/>
+    <line x1="20" y1="30" x2="20" y2="200" stroke="#94a3b8" stroke-width="6"/>
+    <path d="M 20 30 Q 15 10 5 15" stroke="#94a3b8" stroke-width="6" fill="none"/>
+    <!-- Modern Luminaire -->
+    <rect x="-8" y="12" width="22" height="7" rx="3" fill="#f8fafc" filter="url(#glowEffect)"/>
+    <circle cx="3" cy="18" r="6" fill="#fef08a" filter="url(#glowEffect)"/>
+  </g>
+
+  <!-- Right Side Smart LED Street Light Pole -->
+  <g transform="translate(680, 160)">
+    <polygon points="12,30 -70,260 110,260" fill="url(#lightCone1)"/>
+    <line x1="20" y1="30" x2="20" y2="200" stroke="#94a3b8" stroke-width="6"/>
+    <path d="M 20 30 Q 25 10 35 15" stroke="#94a3b8" stroke-width="6" fill="none"/>
+    <rect x="26" y="12" width="22" height="7" rx="3" fill="#f8fafc" filter="url(#glowEffect)"/>
+    <circle cx="37" cy="18" r="6" fill="#fef08a" filter="url(#glowEffect)"/>
+  </g>
+
+  <!-- Top Badges -->
+  <g transform="translate(30, 30)">
+    <rect x="0" y="0" width="180" height="34" rx="17" fill="url(#lightBadge)"/>
+    <circle cx="17" cy="17" r="7" fill="#fef08a"/>
+    <text x="32" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#ffffff">स्मार्ट पथदिवे / LIGHTING</text>
+  </g>
+
+  <g transform="translate(630, 30)">
+    <rect x="0" y="0" width="140" height="34" rx="17" fill="rgba(15,23,42,0.85)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="70" y="21" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#f8fafc" text-anchor="middle">२० सप्टेंबर २०२६</text>
+  </g>
+
+  <!-- Bottom Gradient Overlay -->
+  <rect x="0" y="320" width="800" height="180" fill="url(#nightOverlay)"/>
+
+  <!-- Caption & Project Details -->
+  <g transform="translate(35, 415)">
+    <rect x="0" y="-2" width="230" height="20" rx="4" fill="#fbbf24"/>
+    <text x="8" y="13" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#451a03">⚡ १००% एलईडी व हायमास्ट प्रकाश</text>
+    <text x="0" y="42" font-family="'Noto Sans Devanagari', system-ui, sans-serif" font-size="22" font-weight="800" fill="#ffffff">नवीन हायमास्ट व स्मार्ट एलईडी पथदिवे</text>
+    <text x="0" y="64" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#fde68a">टी.व्ही. सेंटर चौक, प्रा. कॉलनी व गोविंदपुरा मुख्य चौक · महिला सुरक्षितता</text>
+  </g>
+</svg>

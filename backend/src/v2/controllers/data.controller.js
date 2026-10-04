@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { House, Family, Person, PersonDocument, VoterProfile, Complaint, Area, Apartment, Ward, User, Role } = require('../../models');
+const { House, Family, Person, PersonDocument, PersonBirthday, VoterProfile, Complaint, Area, Apartment, Ward, User, Role } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -9,8 +9,18 @@ const { daysTo18thBirthday, daysToNextBirthday, daysFromBirthday } = require('..
 const { nagarsevakPublicByIds } = require('../../utils/photo');
 
 const familyInclude = [
-  { model: Person, as: 'members', where: { status: 'ACTIVE' }, required: false, include: [{ model: VoterProfile, as: 'voterProfile' }] },
+  { model: Person, as: 'members', where: { status: 'ACTIVE' }, required: false, separate: true, include: [{ model: VoterProfile, as: 'voterProfile' }] },
   { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name'] }] },
+];
+const personListInclude = [
+  {
+    model: Family,
+    as: 'family',
+    include: [
+      { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name'] }] },
+    ],
+  },
+  { model: VoterProfile, as: 'voterProfile' },
 ];
 const personInclude = [
   {
@@ -86,7 +96,7 @@ function applyPresence(target, body){
 }
 
 function pagination(q) {
-  const limit = Math.min(Number(q.limit) || 100, 500);
+  const limit = Math.min(Number(q.limit) || 50, 100);
   const page = Math.max(Number(q.page) || 1, 1);
   return { limit, offset: (page - 1) * limit, page };
 }
@@ -233,7 +243,7 @@ const persons = asyncHandler(async (req, res) => {
       { notes: { [Op.like]: `%${search}%` } },
     ];
   }
-  const include = [...personInclude];
+  const include = [...personListInclude];
   if (req.query.voterStatus) {
     const status=String(req.query.voterStatus).toUpperCase();
     if (!['VOTER','NON_VOTER','NOT_SPECIFIED'].includes(status)) throw new ApiError(400,'Invalid voter status');
@@ -395,11 +405,19 @@ const upcoming18 = asyncHandler(async (req, res) => {
   const fromDays = Number.isFinite(Number(req.query.fromDays)) ? Number(req.query.fromDays) : 0;
   await assertRequestedWard(req, req.query.wardId);
   const { areaIds } = await scopeAreaIds(req, req.query.wardId);
-  const where = { status: 'ACTIVE' };
-  const include = [...personInclude];
-  if (areaIds) { const familyIds = await familyIdsForAreas(areaIds); where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] }; }
-  const rows = await Person.findAll({ where, include });
-  const data = rows.filter(p => p.dob).map(p => ({ person: p, daysTo18: daysTo18thBirthday(p.dob) }))
+  const now = new Date();
+  const start = new Date(now.getFullYear() - 18, now.getMonth(), now.getDate() + fromDays);
+  const end = new Date(now.getFullYear() - 18, now.getMonth(), now.getDate() + days);
+  const where = {
+    status: 'ACTIVE',
+    dob: { [Op.between]: [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)] },
+  };
+  if (areaIds) {
+    const familyIds = await familyIdsForAreas(areaIds);
+    where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
+  }
+  const rows = await Person.findAll({ where, include: personListInclude, limit: 400, order: [['dob', 'DESC']] });
+  const data = rows.map(p => ({ person: p, daysTo18: daysTo18thBirthday(p.dob) }))
     .filter(x => x.daysTo18 !== null && x.daysTo18 >= fromDays && x.daysTo18 <= days)
     .sort((a, b) => a.daysTo18 - b.daysTo18);
   return success(res, { data });
@@ -409,20 +427,19 @@ const birthdays = asyncHandler(async (req, res) => {
   const fromDays = Number.isFinite(Number(req.query.fromDays)) ? Number(req.query.fromDays) : 0;
   await assertRequestedWard(req, req.query.wardId);
   const { areaIds } = await scopeAreaIds(req, req.query.wardId);
-  const where = { status: 'ACTIVE' };
-  const include = [...personInclude];
-  if (areaIds) { const familyIds = await familyIdsForAreas(areaIds); where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] }; }
-  const rows = await Person.findAll({ where, include });
-
-  // Dynamic role-based nagarsevak assignment:
-  // In every municipal ward, there are 4 Nagarsevaks (Seats A, B, C, D).
-  // 1. Admin panel (SUPER_ADMIN / SUB_MASTER_ADMIN):
-  //    No single Nagarsevak should be hardcoded. The admin panel gets `nagarsevak: null`
-  //    so the frontend renders clean '-' for Nagarsevak name.
-  // 2. Nagarsevak panel (NAGARSEVAK):
-  //    Dynamically bound to the logged-in Nagarsevak!
-  // 3. Employee panel (EMPLOYEE):
-  //    Dynamically bound to the employee's assigned Nagarsevak manager!
+  const now = new Date();
+  const pairs = [];
+  for (let i = fromDays; i < fromDays + days; i += 1) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    pairs.push({ birthMonth: d.getMonth() + 1, birthDay: d.getDate() });
+  }
+  const bdayWhere = { status: 'ACTIVE', [Op.or]: pairs };
+  if (req.query.wardId) bdayWhere.wardId = req.query.wardId;
+  let personIds = null;
+  if (areaIds) {
+    const familyIds = await familyIdsForAreas(areaIds);
+    bdayWhere.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
+  }
   let activeNagarsevak = null;
   const userRole = req.user?.roleName;
   if (userRole === 'NAGARSEVAK') {
@@ -437,10 +454,24 @@ const birthdays = asyncHandler(async (req, res) => {
   } else if (userRole === 'EMPLOYEE') {
     activeNagarsevak = req.user.nagarsevak || null;
   }
-
-  const data = rows.filter(p => p.dob).map(p => {
-    return { person: p, nagarsevak: activeNagarsevak, daysToBirthday: daysFromBirthday(p.dob) };
-  }).filter(x => x.daysToBirthday >= fromDays && x.daysToBirthday <= (fromDays + days - 1)).sort((a,b)=>a.daysToBirthday-b.daysToBirthday);
+  const bdayRows = await PersonBirthday.findAll({
+    where: bdayWhere,
+    attributes: ['personId', 'dob', 'fullName', 'birthMonth', 'birthDay'],
+    limit: 400,
+  }).catch(() => []);
+  personIds = bdayRows.map((r) => r.personId).filter(Boolean);
+  if (!personIds.length) return success(res, { data: [] });
+  const people = await Person.findAll({
+    where: { id: { [Op.in]: personIds }, status: 'ACTIVE' },
+    include: personListInclude,
+  });
+  const byId = new Map(people.map((p) => [String(p.id), p]));
+  const data = bdayRows.map((row) => {
+    const person = byId.get(String(row.personId));
+    if (!person) return null;
+    return { person, nagarsevak: activeNagarsevak, daysToBirthday: daysFromBirthday(person.dob || row.dob) };
+  }).filter(Boolean).filter((x) => x.daysToBirthday >= fromDays && x.daysToBirthday <= (fromDays + days - 1))
+    .sort((a, b) => a.daysToBirthday - b.daysToBirthday);
   return success(res, { data });
 });
 

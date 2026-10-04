@@ -1,6 +1,7 @@
 const asyncHandler = require('../../utils/asyncHandler');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
+const { wardDigits } = require('../../utils/wardFormat');
 
 const SIR_URL='https://cdn.s3waas.gov.in/s345fbc6d3e05ebd93369ce542e8f2322d/uploads/2026/08/17864304818676.pdf';
 const SIR_DISTRICT_URL='https://ahilyanagar.maharashtra.gov.in/en/district-election-office-ahmednagar/';
@@ -28,12 +29,12 @@ const rows=[
 const list=asyncHandler(async(req,res)=>{
   let visible=rows;
   if(req.user.roleName==='NAGARSEVAK'){
-    const own=String(req.user.ward?.wardNumber||req.user.wardNumber||'').replace(/^W-?/i,'').padStart(2,'0');
+    const own=wardDigits(req.user.ward?.wardNumber||req.user.wardNumber);
     if(!own) throw new ApiError(403,'Your Nagarsevak account is not assigned to a ward.');
-    visible=rows.filter(r=>r.ward.replace(/^W-?/i,'')===own);
+    visible=rows.filter(r=>wardDigits(r.ward)===own);
   } else if(req.user.roleName==='EMPLOYEE'){
-    const own=String(req.user.ward?.wardNumber||req.user.wardNumber||'').replace(/^W-?/i,'').padStart(2,'0');
-    if(own) visible=rows.filter(r=>r.ward.replace(/^W-?/i,'')===own);
+    const own=wardDigits(req.user.ward?.wardNumber||req.user.wardNumber);
+    if(own) visible=rows.filter(r=>wardDigits(r.ward)===own);
   }
   return success(res,{data:{rows:visible,sirUrl:SIR_URL,sirDistrictUrl:SIR_DISTRICT_URL,amcElectionUrl:AMC_ELECTION_URL}});
 });

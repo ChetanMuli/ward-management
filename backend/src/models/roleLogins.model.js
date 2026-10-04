@@ -43,6 +43,12 @@ const NagarsevakUser = defineLoginModel('NagarsevakUser', 'nagarsevak_users', {
   partyName: { type: DataTypes.STRING, allowNull: true, field: 'party_name' },
   officialAddress: { type: DataTypes.TEXT, allowNull: true, field: 'official_address' },
   photo: { type: DataTypes.TEXT('long'), allowNull: true },
+  bio: { type: DataTypes.TEXT, allowNull: true },
+  officeTimings: { type: DataTypes.STRING, allowNull: true, field: 'office_timings' },
+  whatsapp: { type: DataTypes.STRING, allowNull: true },
+  gallery: { type: DataTypes.JSON, allowNull: true },
+  achievements: { type: DataTypes.JSON, allowNull: true },
+  socialLinks: { type: DataTypes.JSON, allowNull: true, field: 'social_links' },
 });
 const EmployeeUser = defineLoginModel('EmployeeUser', 'employee_users');
 const CitizenUser = defineLoginModel('CitizenUser', 'citizen_users', {

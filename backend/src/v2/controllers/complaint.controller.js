@@ -6,6 +6,7 @@ const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { logAudit } = require('../../services/audit.service');
 const { assertComplaint, isWardAllowed } = require('../services/wardScope');
+const { formatWardNumber } = require('../../utils/wardFormat');
 const { parseImageList, packImageList } = require('../utils/complaintMedia');
 const { nagarsevakPublicByIds } = require('../../utils/photo');
 
@@ -22,7 +23,9 @@ async function complaintWithContext(id){
     {model:Ward,as:'ward',attributes:['id','wardNumber','name']},
     {model:User,as:'assignedNagarsevak',attributes:['id','name','email','mobile','wardId','roleId']},
     {model:ComplaintHistory,as:'history',include:[{model:User,as:'changedBy',attributes:['id','name','mobile']}]},
-  ]});
+  ],
+  order: [[{ model: ComplaintHistory, as: 'history' }, 'createdAt', 'ASC']]
+  });
 }
 async function attachNagarPhotos(rows) {
   const list = (Array.isArray(rows) ? rows : [rows]).filter(Boolean);
@@ -34,6 +37,8 @@ async function attachNagarPhotos(rows) {
     if (j.assignedNagarsevak && extra?.photo) j.assignedNagarsevak.photo = extra.photo;
     j.reportedImages = parseImageList(j.reportedImage);
     j.resolutionImages = parseImageList(j.resolutionImage);
+    delete j.reportedImage;
+    delete j.resolutionImage;
     return j;
   });
   return Array.isArray(rows) ? mapped : mapped[0];
@@ -105,24 +110,44 @@ const list = asyncHandler(async(req,res)=>{
   if(search){
     const searchOr=[
       {complaintNumber:{[Op.like]:`%${search}%`}},{description:{[Op.like]:`%${search}%`}},{location:{[Op.like]:`%${search}%`}},
-      {'$citizen.fullName$':{[Op.like]:`%${search}%`}},{'$citizen.mobile$':{[Op.like]:`%${search}%`}},
       {'$submittedBy.name$':{[Op.like]:`%${search}%`}},{'$submittedBy.mobile$':{[Op.like]:`%${search}%`}},
-      {'$assignedEmployee.User.name$':{[Op.like]:`%${search}%`}},{'$assignedNagarsevak.name$':{[Op.like]:`%${search}%`}}
+      {'$assignedNagarsevak.name$':{[Op.like]:`%${search}%`}}
     ];
+    if (req.user.roleName !== 'CITIZEN') {
+      searchOr.push(
+        {'$citizen.fullName$':{[Op.like]:`%${search}%`}},{'$citizen.mobile$':{[Op.like]:`%${search}%`}},
+        {'$assignedEmployee.User.name$':{[Op.like]:`%${search}%`}}
+      );
+    }
     where[Op.and]=[...(where[Op.and]||[]),{[Op.or]:searchOr}];
   }
 
-  const include=[
-    {model:House,as:'house',required:false,include:[{model:Area,as:'area',required:false,include:[{model:Ward,as:'ward',required:false}]}]},
-    {model:Employee,as:'assignedEmployee',required:false,include:[{model:User,as:'User',attributes:['id','name','mobile']},{model:User,as:'manager',attributes:['id','name','mobile']}]},
-    {model:Person,as:'citizen',required:false,attributes:['id','fullName','mobile']},
-    {model:User,as:'submittedBy',required:false,attributes:['id','name','email','mobile','wardId']},
-    {model:Ward,as:'ward',required:false,attributes:['id','wardNumber','name']},
-    {model:User,as:'assignedNagarsevak',required:false,attributes:['id','name','email','mobile','wardId','roleId']},
-  ];
+  const include = req.user.roleName === 'CITIZEN'
+    ? [
+      { model: Ward, as: 'ward', required: false, attributes: ['id', 'wardNumber', 'name'] },
+      { model: User, as: 'assignedNagarsevak', required: false, attributes: ['id', 'name', 'mobile'] },
+      { model: User, as: 'submittedBy', required: false, attributes: ['id', 'name', 'mobile'] },
+    ]
+    : [
+      { model: House, as: 'house', required: false, include: [{ model: Area, as: 'area', required: false, include: [{ model: Ward, as: 'ward', required: false }] }] },
+      { model: Employee, as: 'assignedEmployee', required: false, include: [{ model: User, as: 'User', attributes: ['id', 'name', 'mobile'] }, { model: User, as: 'manager', attributes: ['id', 'name', 'mobile'] }] },
+      { model: Person, as: 'citizen', required: false, attributes: ['id', 'fullName', 'mobile'] },
+      { model: User, as: 'submittedBy', required: false, attributes: ['id', 'name', 'email', 'mobile', 'wardId'] },
+      { model: Ward, as: 'ward', required: false, attributes: ['id', 'wardNumber', 'name'] },
+      { model: User, as: 'assignedNagarsevak', required: false, attributes: ['id', 'name', 'email', 'mobile', 'wardId', 'roleId'] },
+    ];
 
-  const r=await Complaint.findAndCountAll({where,include,order:[['createdAt','DESC']],limit,offset,distinct:true,subQuery:false});
-  return success(res,{data:await attachNagarPhotos(r.rows),meta:{total:r.count,page,limit,pages:Math.max(1,Math.ceil(r.count/limit))}});
+  const r = await Complaint.findAndCountAll({
+    where,
+    include,
+    attributes: { exclude: ['reportedImage', 'resolutionImage'] },
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset,
+    distinct: true,
+    subQuery: false,
+  });
+  return success(res, { data: await attachNagarPhotos(r.rows), meta: { total: r.count, page, limit, pages: Math.max(1, Math.ceil(r.count / limit)) } });
 });
 
 const MANAGEMENT_ROLES=['SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK'];
@@ -185,7 +210,7 @@ const create = asyncHandler(async(req,res)=>{
       senderUserId: req.user.id,
       type: 'COMPLAINT_NEW',
       title: 'New ward complaint',
-      message: `${complaint.complaintNumber} was submitted in ${ward?.wardNumber || 'a ward'}.`,
+      message: `${complaint.complaintNumber} was submitted in ${formatWardNumber(ward?.wardNumber) || 'a ward'}.`,
       actionUrl: `/complaints?open=${complaint.id}`,
     });
     await logAudit({user:req.user,action:'CREATE_COMPLAINT',entity:'Complaint',recordId:complaint.id,newValue:{...req.body,submittedByUserId:req.user.id,wardId,reportedImage:reportedImage?'[image]':null},ipAddress:req.ip});
@@ -216,7 +241,7 @@ const create = asyncHandler(async(req,res)=>{
     senderUserId: req.user.id,
     type: 'COMPLAINT_NEW',
     title: 'New ward complaint',
-    message: `${complaint.complaintNumber} was submitted in ${ward?.wardNumber || 'a ward'}.`,
+    message: `${complaint.complaintNumber} was submitted in ${formatWardNumber(ward?.wardNumber) || 'a ward'}.`,
     actionUrl: `/complaints?open=${complaint.id}`,
   });
   await logAudit({user:req.user,action:'CREATE_COMPLAINT',entity:'Complaint',recordId:complaint.id,newValue:{...req.body,reportedImage:reportedImage?'[image]':null},ipAddress:req.ip});
@@ -310,8 +335,6 @@ const updateStatus = asyncHandler(async(req,res)=>{
     throw new ApiError(403,'You do not have permission to update complaints');
   }
 
-  if(status==='RESOLVED'&&!String(resolutionNote||'').trim())throw new ApiError(400,'Resolution note is mandatory when resolving');
-
   const image=(status==='RESOLVED' || req.body.resolutionImages!==undefined || req.body.resolutionImage!==undefined)
     ? cleanResolutionImages(req.body)
     : undefined;
@@ -322,7 +345,10 @@ const updateStatus = asyncHandler(async(req,res)=>{
     resolutionImage:image===undefined?complaint.resolutionImage:image,
     resolvedAt:status==='RESOLVED'?new Date():status==='REOPENED'?null:complaint.resolvedAt
   });
-  await ComplaintHistory.create({complaintId:complaint.id,oldStatus,newStatus:status,changedByUserId:req.user.id,comment:comment||null});
+  const historyComment = String(comment || '').trim()
+    || (status === 'RESOLVED' ? (String(resolutionNote || '').trim() || 'Work completed and resolved') : '')
+    || (status === 'IN_PROGRESS' ? 'Work started by field staff' : status === 'CLOSED' ? 'Complaint marked closed' : `Status changed to ${prettyStatus(status)}`);
+  await ComplaintHistory.create({complaintId:complaint.id,oldStatus,newStatus:status,changedByUserId:req.user.id,comment:historyComment});
 
   const statusText=prettyStatus(status);
   await notifyComplaintCitizen(

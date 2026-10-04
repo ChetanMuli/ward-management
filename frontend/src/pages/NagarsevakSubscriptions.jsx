@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {api,getUser} from '../services/api';
 import {isMaster,isSubMaster} from '../rbac';
 import {Empty,ErrorBox,Loading,Modal,PageHeader,PaginationBar,SearchableSelect,StatusPill} from '../components/Ui';
+import {formatWardLabel} from '../wardFormat';
 
 function fmtDate(v){
  if(!v) return '—';
@@ -116,7 +117,7 @@ export default function NagarsevakSubscriptions(){
     <label className="grow">Search
      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Name, mobile or ward"/>
     </label>
-    <SearchableSelect label="Ward" value={wardId} onChange={setWardId} options={[{value:'',label:'All wards'},...wards.map(w=>({value:w.id,label:`${w.wardNumber}${w.name?` · ${w.name}`:''}`}))]} placeholder="All wards"/>
+    <SearchableSelect label="Ward" value={wardId} onChange={setWardId} options={[{value:'',label:'All wards'},...wards.map(w=>({value:w.id,label:formatWardLabel(w)}))]} placeholder="All wards"/>
     <label>Status
      <select value={status} onChange={e=>setStatus(e.target.value)}>
       <option value="ALL">All statuses</option>
@@ -153,7 +154,7 @@ export default function NagarsevakSubscriptions(){
          return (
           <tr key={r.id} className={r.cycle==='YEAR_ENDED'||r.cycle==='EXPIRED'?'is-expired':r.cycle==='EXPIRING'?'is-expiring':!on?'is-panel-off':''}>
            <td data-label="Nagarsevak"><div className="cell-value"><strong>{r.name}</strong><div className="muted">{r.mobile||r.email||'—'}</div></div></td>
-           <td data-label="Ward">{r.ward?.wardNumber||'—'}{r.ward?.name?` · ${r.ward.name}`:''}</td>
+           <td data-label="Ward">{formatWardLabel(r.ward)}</td>
            <td data-label="Ward status"><StatusPill>{r.wardActive?'WARD ACTIVE':'WARD CLOSED'}</StatusPill></td>
            <td data-label="Added by admin">{fmtDate(r.addedAt)}</td>
            <td data-label="Activated">{fmtDate(r.activatedAt)}</td>

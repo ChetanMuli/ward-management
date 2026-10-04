@@ -5,6 +5,7 @@ import {ErrorBox,Loading,PageHeader,StatusPill} from '../components/Ui';
 import WardFilter from '../components/WardFilter';
 import {useWardFilter} from '../wardFilter';
 import {can,isMaster} from '../rbac';
+import {formatWardNumber} from '../wardFormat';
 
 const fmt=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('en-IN'):'—';
 
@@ -23,7 +24,7 @@ export default function WardInformation(){
    <WardFilter label="Select ward"/>
   </section>
   <section className="ward-info-hero panel">
-   <div className="ward-info-hero-title"><span className="eyebrow">MUNICIPAL WARD</span><h1>{selected?.wardNumber||'—'}</h1><h2>{selected?.name||'Ahilyanagar Municipal Corporation Ward'}</h2><p>{selected?.description||'Ahilyanagar Municipal Corporation service area.'}</p></div>
+   <div className="ward-info-hero-title"><span className="eyebrow">MUNICIPAL WARD</span><h1>{formatWardNumber(selected?.wardNumber)||'—'}</h1><h2>{selected?.name||'Ahilyanagar Municipal Corporation Ward'}</h2><p>{selected?.description||'Ahilyanagar Municipal Corporation service area.'}</p></div>
    <div className="ward-info-hero-actions">{selected?.officialMapUrl&&<a className="primary-btn" href={selected.officialMapUrl} target="_blank" rel="noreferrer">View official AMC map ↗</a>} {selected?.officialSourceUrl&&<a className="ghost-btn" href={selected.officialSourceUrl} target="_blank" rel="noreferrer">AMC election source ↗</a>}</div>
   </section>
   <div className="stat-grid ward-info-stats">

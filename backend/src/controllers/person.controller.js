@@ -9,14 +9,21 @@ const { findPossibleDuplicates } = require('../services/duplicateDetection.servi
 const { daysTo18thBirthday, daysToNextBirthday } = require('../services/age.service');
 
 const familyInclude = { model: Family, as: 'family', include: [
-  { model: Person, as: 'members', attributes: ['id','fullName','gender','dob','mobile','alternateMobile','occupationType','businessName','companyName'] },
+  { model: Person, as: 'members', attributes: ['id','fullName','gender','dob','mobile','alternateMobile','occupationType','businessName','companyName','isRetired','retiredFrom','retiredService'] },
   { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }] }
 ] };
 const fullInclude = [familyInclude, { model: VoterProfile, as: 'voterProfile' }, { model: DeathRecord, as: 'deathRecord' }, { model: PersonDocument, as: 'documents' }];
 
 const list = asyncHandler(async (req,res)=>{
-  const {page=1,limit=200,search,status,voterStatus,areaId,familyId,ageMin,ageMax,wardId}=req.query;
+  const {page=1,limit=200,search,status,voterStatus,areaId,familyId,ageMin,ageMax,wardId,isRetired,retired,retiredStatus}=req.query;
   const where={}; if(status) where.status=status; if(familyId) where.familyId=familyId;
+  const wantRetired = isRetired === 'true' || isRetired === '1' || retired === 'true' || retired === '1' || retiredStatus === 'RETIRED';
+  const wantNotRetired = isRetired === 'false' || isRetired === '0' || retired === 'false' || retired === '0' || retiredStatus === 'NOT_RETIRED';
+  if(wantRetired) {
+    where[Op.or] = [{ isRetired: true }, { occupationType: 'RETIRED' }];
+  } else if(wantNotRetired) {
+    where[Op.and] = [{ isRetired: false }, { [Op.or]: [{ occupationType: { [Op.ne]: 'RETIRED' } }, { occupationType: null }] }];
+  }
   if(search) where[Op.or]=[{fullName:{[Op.like]:`%${search}%`}},{mobile:{[Op.like]:`%${search}%`}},{id:search}];
   const houseArea = { model: Area, as: 'area', include: [{ model: Ward, as: 'ward', ...(wardId ? { where: { id: wardId }, required: true } : {}) }] };
   const include=[{...familyInclude, include:[{model:House,as:'house',include:[houseArea], ...(areaId?{where:{areaId},required:true}:{})}]},  ...(voterStatus?[{model:VoterProfile,as:'voterProfile',where:{status:voterStatus},required:true}]:[{model:VoterProfile,as:'voterProfile'}])];
@@ -27,15 +34,25 @@ const list = asyncHandler(async (req,res)=>{
 });
 const getById=asyncHandler(async(req,res)=>{const person=await Person.findByPk(req.params.id,{include:fullInclude});if(!person)throw new ApiError(404,'Person not found');if(req.user.roleName==='CITIZEN'&&person.id!==req.user.personId)throw new ApiError(403,'You may only view your own record');return success(res,{data:person});});
 const create=asyncHandler(async(req,res)=>{const {fullName,dob,mobile,familyId,force}=req.body;const duplicates=await findPossibleDuplicates({fullName,dob,mobile,familyId});if(duplicates.length&&!force)return success(res,{message:'Possible duplicate citizen record found. Resubmit with force=true to proceed anyway.',data:{duplicates},statusCode:409});const payload={...req.body};
-  for(const key of ['email','alternateMobile','mobile','occupation','occupationType','businessName','businessAddress','companyName','employmentType','officialVoterIdRef','votingWard','constituency','notes','voterIdImage','aadhaarImage','panCardImage','dob']){
+  for(const key of ['email','alternateMobile','mobile','occupation','occupationType','businessName','businessAddress','companyName','employmentType','retiredFrom','retiredService','officialVoterIdRef','votingWard','constituency','notes','voterIdImage','aadhaarImage','panCardImage','dob']){
     if(payload[key]==='') payload[key]=null;
+  }
+  if(payload.isRetired==='true'||payload.isRetired===true||payload.isRetired===1||payload.isRetired==='1'||payload.occupationType==='RETIRED') {
+    payload.isRetired=true;
+  } else if(payload.isRetired==='false'||payload.isRetired===false||payload.isRetired===0||payload.isRetired==='0') {
+    payload.isRetired=false;
   }
   if(payload.gender==='') payload.gender='NOT_SPECIFIED';
   payload.status='ACTIVE';
   const person=await Person.create({...payload,createdBy:req.user.id});
   await VoterProfile.create({personId:person.id,status:payload.isVoter==='VOTER'?'VOTER':payload.isVoter==='NON_VOTER'?'NON_VOTER':'NOT_SPECIFIED',officialVoterIdRef:payload.officialVoterIdRef||null,votingWard:payload.votingWard||null,constituency:payload.constituency||null});await logAudit({user:req.user,action:'CREATE_PERSON',entity:'Person',recordId:person.id,newValue:req.body,ipAddress:req.ip});return success(res,{data:person,statusCode:201,message:'Person created'});});
 const update=asyncHandler(async(req,res)=>{const person=await Person.findByPk(req.params.id);if(!person)throw new ApiError(404,'Person not found');if(req.user.roleName==='CITIZEN')throw new ApiError(403,'Submit a Profile Update Request instead of editing directly');const oldValue=person.toJSON();const payload={...req.body};
-  for(const key of ['email','alternateMobile','mobile','occupation','occupationType','businessName','businessAddress','companyName','employmentType','officialVoterIdRef','votingWard','constituency','notes','voterIdImage','aadhaarImage','panCardImage','dob']) if(payload[key]==='') payload[key]=null;
+  for(const key of ['email','alternateMobile','mobile','occupation','occupationType','businessName','businessAddress','companyName','employmentType','retiredFrom','retiredService','officialVoterIdRef','votingWard','constituency','notes','voterIdImage','aadhaarImage','panCardImage','dob']) if(payload[key]==='') payload[key]=null;
+  if(payload.isRetired==='true'||payload.isRetired===true||payload.isRetired===1||payload.isRetired==='1'||payload.occupationType==='RETIRED') {
+    payload.isRetired=true;
+  } else if(payload.isRetired==='false'||payload.isRetired===false||payload.isRetired===0||payload.isRetired==='0') {
+    payload.isRetired=false;
+  }
   if(payload.gender==='') payload.gender='NOT_SPECIFIED';
   delete payload.isVoter;
   await person.update({...payload,updatedBy:req.user.id});

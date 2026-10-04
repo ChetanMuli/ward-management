@@ -17,26 +17,64 @@ async function nagarsevakPublicByIds(ids) {
   const { NagarsevakUser } = require('../models/roleLogins.model');
   const rows = await NagarsevakUser.findAll({
     where: { id: unique },
-    attributes: ['id', 'name', 'mobile', 'photo', 'partyName', 'wardSeat'],
+    attributes: [
+      'id', 'name', 'mobile', 'partyName', 'wardSeat',
+      'officialAddress', 'bio', 'officeTimings', 'whatsapp',
+      'achievements', 'socialLinks',
+      [
+        NagarsevakUser.sequelize.literal("CASE WHEN `photo` LIKE 'data:%' THEN NULL ELSE `photo` END"),
+        'photo',
+      ],
+    ],
   });
-  return new Map(rows.map((row) => [String(row.id), {
-    id: row.id,
-    name: row.name,
-    mobile: row.mobile || null,
-    partyName: row.partyName || null,
-    wardSeat: row.wardSeat || null,
-    photo: row.photo || null,
-  }]));
+  return new Map(rows.map((row) => {
+    let achievements = row.achievements;
+    if (typeof achievements === 'string' && achievements.trim()) {
+      try { achievements = JSON.parse(achievements); } catch (_) { achievements = []; }
+    }
+    let socialLinks = row.socialLinks;
+    if (typeof socialLinks === 'string' && socialLinks.trim()) {
+      try { socialLinks = JSON.parse(socialLinks); } catch (_) { socialLinks = {}; }
+    }
+    return [String(row.id), {
+      id: row.id,
+      name: row.name,
+      mobile: row.mobile || null,
+      partyName: row.partyName || null,
+      wardSeat: row.wardSeat || null,
+      photo: row.photo && String(row.photo).startsWith('data:') ? null : (row.photo || null),
+      officialAddress: row.officialAddress || null,
+      bio: row.bio || null,
+      officeTimings: row.officeTimings || null,
+      whatsapp: row.whatsapp || null,
+      gallery: null,
+      achievements: Array.isArray(achievements) ? achievements : null,
+      socialLinks: socialLinks && typeof socialLinks === 'object' ? socialLinks : null,
+    }];
+  }));
 }
 
 async function decorateNagarsevakPhotos(items) {
   const list = Array.isArray(items) ? items : [];
   if (!list.length) return list;
-  const photos = await nagarsevakPublicByIds(list.map((n) => n?.id));
+  const extras = await nagarsevakPublicByIds(list.map((n) => n?.id));
   return list.map((n) => {
     if (!n) return n;
-    const extra = photos.get(String(n.id));
-    return extra?.photo ? { ...n, photo: extra.photo } : n;
+    const extra = extras.get(String(n.id));
+    if (!extra) return n;
+    return {
+      ...n,
+      partyName: extra.partyName || n.partyName || null,
+      wardSeat: extra.wardSeat || n.wardSeat || null,
+      photo: extra.photo || n.photo || null,
+      officialAddress: extra.officialAddress || n.officialAddress || null,
+      bio: extra.bio || n.bio || null,
+      officeTimings: extra.officeTimings || n.officeTimings || null,
+      whatsapp: extra.whatsapp || n.whatsapp || null,
+      gallery: extra.gallery || n.gallery || null,
+      achievements: extra.achievements || n.achievements || null,
+      socialLinks: extra.socialLinks || n.socialLinks || null,
+    };
   });
 }
 

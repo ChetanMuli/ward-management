@@ -33,6 +33,7 @@ import {
 
 import PasswordResetModal from '../components/PasswordResetModal';
 import PermissionEditor, { ALL_PERMISSIONS } from '../components/PermissionEditor';
+import { formatWardLabel } from '../wardFormat';
 
 
 const empty = {
@@ -45,6 +46,9 @@ const empty = {
   partyName: '',
   officialAddress: '',
   photo: '',
+  bio: '',
+  officeTimings: '',
+  whatsapp: '',
   designation: 'Ward Employee',
   assignedAreaIds: [],
   permissions: [],
@@ -627,6 +631,9 @@ export default function Staff() {
           partyName: form.partyName || null,
           officialAddress: form.officialAddress || null,
           photo: form.photo || null,
+          bio: form.bio || null,
+          officeTimings: form.officeTimings || null,
+          whatsapp: form.whatsapp || null,
           permissions:
             Array.isArray(form.permissions) ? form.permissions : [],
           status: edit === 'create' ? 'INACTIVE' : (form.status || 'INACTIVE')
@@ -1204,12 +1211,7 @@ export default function Staff() {
 
                         <td data-label="Ward / Seat">
 
-                          {n.ward?.wardNumber ||
-                            '—'}
-
-                          {n.ward?.name
-                            ? ` · ${n.ward.name}`
-                            : ''}
+                          {formatWardLabel(n.ward)}
                           {n.wardSeat ? <div className="muted">Seat {n.wardSeat}</div> : null}
 
                         </td>
@@ -1367,9 +1369,7 @@ export default function Staff() {
 
                           {(master || sub) && (
                             <td data-label="Ward">
-                              {e.ward?.wardNumber ||
-                                e.wardId ||
-                                '—'}
+                              {formatWardLabel(e.ward, e.wardId || '—')}
                               {e.ward?.name ? <div className="muted">{e.ward.name}</div> : null}
                             </td>
                           )}
@@ -1582,13 +1582,7 @@ export default function Staff() {
 
                 <b>Ward:</b>{' '}
 
-                {detail.data.ward?.wardNumber ||
-                  detail.data.wardId ||
-                  '—'}
-
-                {detail.data.ward?.name
-                  ? ` · ${detail.data.ward.name}`
-                  : ''}
+                {formatWardLabel(detail.data.ward, detail.data.wardId || '—')}
 
               </p>
 
@@ -1732,11 +1726,7 @@ export default function Staff() {
                 ward => ({
                   value: ward.id,
                   label:
-                    `${ward.wardNumber || ''}${
-                      ward.name
-                        ? ` · ${ward.name}`
-                        : ''
-                    }`
+                    formatWardLabel(ward)
                 })
               )}
             />
@@ -1864,9 +1854,31 @@ export default function Staff() {
                     placeholder="Party name"
                   />
                 </Field>
-                <Field className="span-2" label="Official / published address">
+                <Field label="WhatsApp Direct Number">
+                  <input
+                    value={form.whatsapp || ''}
+                    onChange={event => setForm({ ...form, whatsapp: event.target.value })}
+                    placeholder="e.g. 9822000000"
+                  />
+                </Field>
+                <Field label="Office Timings / कार्यालयीन वेळ">
+                  <input
+                    value={form.officeTimings || ''}
+                    onChange={event => setForm({ ...form, officeTimings: event.target.value })}
+                    placeholder="e.g. सकाळी ९ ते १ | सायं ५ ते ९"
+                  />
+                </Field>
+                <Field className="span-2" label="Bio / Vision / ध्येय व संकल्प">
                   <textarea
                     rows="3"
+                    value={form.bio || ''}
+                    onChange={event => setForm({ ...form, bio: event.target.value })}
+                    placeholder="Brief bio, vision statement or citizen message for your ward..."
+                  />
+                </Field>
+                <Field className="span-2" label="Official / published address">
+                  <textarea
+                    rows="2"
                     value={form.officialAddress || ''}
                     onChange={event => setForm({ ...form, officialAddress: event.target.value })}
                     placeholder="Office address / public contact address"
@@ -1918,7 +1930,7 @@ export default function Staff() {
                     onChange={value => setForm({...form,managerUserId:value})}
                     options={managerOptions.map(manager=>({
                       value: manager.userId || manager.id,
-                      label: `${manager.name || 'Nagarsevak'}${manager.ward?.wardNumber ? ` · Ward ${manager.ward.wardNumber}` : ''}`
+                      label: `${manager.name || 'Nagarsevak'}${manager.ward ? ` · ${formatWardLabel(manager.ward, '')}` : ''}`
                     }))}
                     placeholder="Search or select…"
                   />
@@ -2202,7 +2214,7 @@ export default function Staff() {
               label="Replacement Nagarsevak for managed employees (if required)"
               value={convertForm.replacementManagerUserId}
               onChange={v => setConvertForm({ ...convertForm, replacementManagerUserId: v })}
-              options={managerOptions.filter(n => String(n.id) !== String(convertTarget.id)).map(n => ({ value: n.id, label: `${n.name || 'Nagarsevak'}${n.ward?.wardNumber ? ` · Ward ${n.ward.wardNumber}` : ''}` }))}
+              options={managerOptions.filter(n => String(n.id) !== String(convertTarget.id)).map(n => ({ value: n.id, label: `${n.name || 'Nagarsevak'}${n.ward ? ` · ${formatWardLabel(n.ward, '')}` : ''}` }))}
               placeholder="Select replacement manager if needed…"
             />
             <div className="modal-actions span-2">

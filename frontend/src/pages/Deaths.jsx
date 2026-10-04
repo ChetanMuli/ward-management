@@ -5,6 +5,7 @@ import {Empty,ErrorBox,Field,Loading,Modal,PageHeader,SearchableSelect,Toolbar,f
 import WardFilter from '../components/WardFilter';
 import {useWardFilter} from '../wardFilter';
 import {isMaster,isNagarsevak,isEmployee,can} from '../rbac';
+import {formatWardLabel, formatWardNumber} from '../wardFormat';
 
 const addDays=(s,n)=>{const d=new Date(`${s}T00:00:00Z`);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
 const addYears=(s,n)=>{const d=new Date(`${s}T00:00:00Z`),y=d.getUTCFullYear()+n,m=d.getUTCMonth(),day=d.getUTCDate();d.setUTCFullYear(y,m,day);if(m===1&&day===29&&d.getUTCMonth()!==1)d.setUTCFullYear(y,1,28);return d.toISOString().slice(0,10)};
@@ -13,7 +14,7 @@ const display=s=>s?new Intl.DateTimeFormat('en-IN',{day:'2-digit',month:'2-digit
 function personLabel(p){
  const ward=p?.family?.house?.area?.ward;
  const house=p?.family?.house?.houseNumber;
- return `${p?.fullName||'N/A'} · ${p?.mobile||'N/A'}${house?` · ${house}`:''}${ward?` · ${ward.wardNumber}`:''}`;
+ return `${p?.fullName||'N/A'} · ${p?.mobile||'N/A'}${house?` · ${house}`:''}${ward?` · ${formatWardNumber(ward.wardNumber)||ward.wardNumber}`:''}`;
 }
 
 export default function Deaths(){
@@ -64,7 +65,7 @@ export default function Deaths(){
    <td data-label="Citizen"><strong>{p?.fullName||'N/A'}</strong><div className="muted">{p?.mobile||'N/A'}</div></td>
    <td data-label="Family / House">{p?.family?.familyName||'N/A'}<div className="muted">{p?.family?.house?.houseNumber||'N/A'}</div></td>
    <td data-label="Date of death">{display(r.dateOfDeath)}</td><td data-label="10th day">{display(r.tenthDay)}</td><td data-label="1st death anniversary">{display(r.firstDeathAnniversary)}</td>
-   <td data-label="Ward">{p?.family?.house?.area?.ward?.wardNumber||'N/A'}{p?.family?.house?.area?.name&&<div className="muted">{p.family.house.area.name}</div>}</td>
+   <td data-label="Ward">{formatWardNumber(p?.family?.house?.area?.ward?.wardNumber)||'N/A'}{p?.family?.house?.area?.name&&<div className="muted">{p.family.house.area.name}</div>}</td>
    <td data-label="Status">{r.recordStatus==='RESTORED'?'Restored':'Active'}</td>
    <td data-label="Actions"><div className="card-actions"><button className="small-btn view-btn" onClick={()=>setDetail(r)}>View full details</button>{r.recordStatus==='ACTIVE'&&<button className="small-btn" onClick={()=>restoreDeath(r)}>Restore</button>}</div></td>
   </tr>})}</tbody></table></div>}
@@ -74,7 +75,7 @@ export default function Deaths(){
     <div className="death-highlight"><div><span>Date of death</span><strong>{display(detail.dateOfDeath)}</strong></div><div><span>10th day (Dahava)</span><strong>{display(detail.tenthDay)}</strong></div><div><span>1st yearly Shraddha</span><strong>{display(detail.firstDeathAnniversary)}</strong></div></div>
     <div className="detail-grid death-detail-grid">
      <div className="detail-card"><h3>Citizen</h3><p><b>Name:</b> {p.fullName||'N/A'}</p><p><b>Mobile:</b> {p.mobile||'N/A'}</p><p><b>Alternate mobile:</b> {p.alternateMobile||'N/A'}</p><p><b>Email:</b> {p.email||'N/A'}</p><p><b>DOB / Age:</b> {p.dob||'N/A'} · {p.age??'N/A'}</p><p><b>Gender:</b> {p.gender||'N/A'}</p></div>
-     <div className="detail-card"><h3>Family & household</h3><p><b>Family:</b> {f.familyName||'N/A'}</p><p><b>House:</b> {h.houseNumber||'N/A'}</p><p><b>Address:</b> {h.address||'N/A'}</p><p><b>Area / Colony:</b> {a.name||'N/A'}</p><p><b>Ward:</b> {w.wardNumber||'N/A'} {w.name?`· ${w.name}`:''}</p></div>
+     <div className="detail-card"><h3>Family & household</h3><p><b>Family:</b> {f.familyName||'N/A'}</p><p><b>House:</b> {h.houseNumber||'N/A'}</p><p><b>Address:</b> {h.address||'N/A'}</p><p><b>Area / Colony:</b> {a.name||'N/A'}</p><p><b>Ward:</b> {formatWardLabel(w,'N/A')}</p></div>
      <div className="detail-card"><h3>Occupation & voter</h3><p><b>Occupation:</b> {p.occupation||p.occupationType||'N/A'}</p><p><b>Business:</b> {p.businessName||'N/A'}</p><p><b>Company:</b> {p.companyName||'N/A'}</p><p><b>Employment:</b> {p.employmentType||'N/A'}</p><p><b>Voter status:</b> {p.voterProfile?.status||'N/A'}</p><p><b>Voter ID:</b> {p.voterProfile?.officialVoterIdRef||'N/A'}</p></div>
     </div>
     <div className="detail-card"><h3>Death record</h3><p><b>Reported by:</b> {detail.reportedBy?.name||'N/A'} · {detail.reportedBy?.mobile||'N/A'}</p><p><b>Verification:</b> {detail.verificationStatus||'N/A'}</p><p><b>Previous voter status:</b> {detail.previousVoterStatus||'N/A'}</p><p><b>Record status:</b> {detail.recordStatus||'N/A'}{detail.restoredAt?` · Restored ${display(detail.restoredAt.slice(0,10))}`:''}</p><p><b>Notes:</b> {detail.notes||'N/A'}</p></div>

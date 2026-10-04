@@ -1,3 +1,4 @@
+import ComplaintTimeline from '../components/ComplaintTimeline';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, getUser } from '../services/api';
@@ -7,6 +8,8 @@ import WardFilter from '../components/WardFilter';
 import { isEmployee, isMaster, isSubMaster, isNagarsevak, can, permissionsOf } from '../rbac';
 import { useWardFilter } from '../wardFilter';
 import { exportScheduleToPdf } from '../schedulePdf';
+import { getTimelineDescription, formatStatusLabel } from './Complaints';
+import { formatWardLabel, formatWardNumber } from '../wardFormat';
 const complaintLabels = ['SUBMITTED', 'PENDING', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
 const PIPELINE_STAGES = [
@@ -77,10 +80,8 @@ function formatScheduleDate(dateStr) {
 }
 
 function wardLabel(row) {
-  const number = row?.ward?.wardNumber || row?.house?.area?.ward?.wardNumber;
-  const name = row?.ward?.name || row?.house?.area?.ward?.name;
-  if (!number && !name) return 'Ward not linked';
-  return name ? `${number} · ${name}` : number;
+  const w = row?.ward || row?.house?.area?.ward;
+  return formatWardLabel(w, 'Ward not linked');
 }
 
 const CAT_MAP = {
@@ -141,7 +142,7 @@ function resolveNagarsevakName(user, data) {
     return data.corporatorName;
   }
   const wNo = data?.ward?.wardNumber || user?.ward?.wardNumber;
-  return wNo ? `नगरसेवक (प्रभाग क्र. ${wNo})` : 'नगरसेवक';
+  return wNo ? `नगरसेवक (${formatWardNumber(wNo, 'mr')})` : 'नगरसेवक';
 }
 
 function getCitizenDirectionsUrl(item) {
@@ -164,7 +165,7 @@ function getCitizenDirectionsUrl(item) {
     addr,
     area,
     wardName,
-    wardNo ? `Ward ${wardNo}` : '',
+    wardNo ? formatWardNumber(wardNo) : '',
   ].filter(Boolean);
 
   if (parts.length > 0) {
@@ -178,7 +179,7 @@ function getCitizenDirectionsUrl(item) {
 
 function getGreetingPayload(ev, user, ward, data) {
   const nagarName = resolveNagarsevakName(user, data);
-  const wardStr = ward?.wardNumber ? `वॉर्ड क्र. ${ward.wardNumber}` : '';
+  const wardStr = ward?.wardNumber ? formatWardNumber(ward.wardNumber, 'mr') : '';
   const wardTitle = wardStr ? (ward?.name ? `${wardStr} (${ward.name})` : wardStr) : '';
 
   if (ev.kind === 'BIRTHDAY') {
@@ -827,14 +828,6 @@ export default function Dashboard() {
   const handleSaveStatus = async (e) => {
     if (e) e.preventDefault();
     if (!updatingComplaint) return;
-    if (updateForm.status === 'RESOLVED' && !String(updateForm.resolutionNote || '').trim()) {
-      window.dispatchEvent(
-        new CustomEvent('ward:toast', {
-          detail: { type: 'error', message: 'Resolution note is mandatory when resolving a complaint.' }
-        })
-      );
-      return;
-    }
     setUpdateBusy(true);
     try {
       const payload = {
@@ -872,7 +865,10 @@ export default function Dashboard() {
   useEffect(() => {
     setError('');
     loadDashboard();
-    const timer = setInterval(loadDashboard, 30000);
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      loadDashboard();
+    }, 60000);
     return () => {
       clearInterval(timer);
     };
@@ -880,9 +876,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     let live = true;
-    const loadChat = () =>
+    const loadChat = () => {
+      if (document.visibilityState === 'hidden') return;
       api
-        .chatGroups(selected ? { wardId: selected } : {})
+        .chatGroups(selected ? { wardId: selected, summary: 1 } : { summary: 1 })
         .then((r) => {
           if (!live) return;
           setChatUnread(
@@ -890,8 +887,9 @@ export default function Dashboard() {
           );
         })
         .catch(() => {});
+    };
     loadChat();
-    const t = setInterval(loadChat, 15000);
+    const t = setInterval(loadChat, 45000);
     window.addEventListener('ward:chat-refresh', loadChat);
     return () => {
       live = false;
@@ -932,7 +930,7 @@ export default function Dashboard() {
     : 'Assigned areas, complaints, and today’s schedule.';
 
   const scopeText = data.ward
-    ? `${data.ward.wardNumber} · ${data.ward.name || 'Municipal Ward'}`
+    ? formatWardLabel(data.ward, 'Municipal Ward')
     : 'All Municipal Wards';
 
   const openTo = (path) => navigate(path);
@@ -1858,7 +1856,7 @@ export default function Dashboard() {
               <h3>Assignment</h3>
               <p>
                 <b>Ward:</b>{' '}
-                {detail.ward?.wardNumber || detail.house?.area?.ward?.wardNumber || '—'}
+                {formatWardNumber(detail.ward?.wardNumber || detail.house?.area?.ward?.wardNumber) || '—'}
                 {detail.ward?.name || detail.house?.area?.ward?.name
                   ? ` · ${detail.ward?.name || detail.house?.area?.ward?.name}`
                   : ''}
@@ -1988,25 +1986,7 @@ export default function Dashboard() {
           })()}
 
           <div className="detail-card" style={{ marginTop: '14px' }}>
-            <h3>Activity timeline</h3>
-            <div className="complaint-timeline">
-              {(detail.history || []).length ? (
-                (detail.history || [])
-                  .slice()
-                  .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                  .map((h, i) => (
-                    <div className="timeline-item" key={h.id || i}>
-                      <strong>{h.newStatus?.replaceAll('_', ' ') || 'Updated'}</strong>
-                      <small>
-                        {new Date(h.createdAt).toLocaleString('en-IN')} · {h.changedBy?.name || 'System'}
-                      </small>
-                      <div>{h.comment || 'Status updated'}</div>
-                    </div>
-                  ))
-              ) : (
-                <div className="muted">No activity recorded.</div>
-              )}
-            </div>
+            <ComplaintTimeline history={detail.history} complaint={detail} isMr={false} />
           </div>
 
           <div className="modal-actions">
@@ -2080,15 +2060,10 @@ export default function Dashboard() {
 
             <Field
               className="span-2"
-              label={`Resolution note ${updateForm.status === 'RESOLVED' ? '*' : '(optional)'}`}
+              label="Resolution note (optional)"
             >
               <textarea
-                required={updateForm.status === 'RESOLVED'}
-                placeholder={
-                  updateForm.status === 'RESOLVED'
-                    ? 'Mandatory: Explain how the problem was resolved…'
-                    : 'Notes on final resolution or work performed…'
-                }
+                placeholder="Notes on final resolution or work performed (optional)…"
                 rows={3}
                 value={updateForm.resolutionNote}
                 onChange={(e) => setUpdateForm({ ...updateForm, resolutionNote: e.target.value })}
@@ -2255,7 +2230,7 @@ export default function Dashboard() {
                   <p><b>Apartment / Society:</b> {citizenDetail.family.house.apartment.name}</p>
                 )}
                 <p><b>Colony / Area:</b> {citizenDetail.family?.house?.area?.name || '—'}</p>
-                <p><b>Ward:</b> {citizenDetail.family?.house?.area?.ward?.wardNumber ? `Ward ${citizenDetail.family.house.area.ward.wardNumber}` : '—'}{citizenDetail.family?.house?.area?.ward?.name ? ` · ${citizenDetail.family.house.area.ward.name}` : ''}</p>
+                <p><b>Ward:</b> {formatWardLabel(citizenDetail.family?.house?.area?.ward)}</p>
                 <p><b>Address:</b> {citizenDetail.family?.house?.address || activeEv?.address || '—'}</p>
                 {citizenDetail.family?.house?.landmark && (
                   <p><b>Landmark:</b> {citizenDetail.family.house.landmark}</p>
@@ -2366,7 +2341,7 @@ export default function Dashboard() {
             <div className={`wa-greeting-card wa-theme-${whatsappModal.payload.theme}`}>
               <div className="wa-card-header">
                 <span className="wa-card-scope">
-                  {data?.ward?.wardNumber ? `WARD ${data.ward.wardNumber}` : 'MUNICIPAL WARD'}
+                  {data?.ward?.wardNumber ? formatWardNumber(data.ward.wardNumber) : 'MUNICIPAL WARD'}
                   {data?.ward?.name ? ` · ${data.ward.name.toUpperCase()}` : ''}
                 </span>
                 <span className="wa-card-badge">{whatsappModal.payload.titleMr}</span>
