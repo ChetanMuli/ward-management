@@ -341,6 +341,26 @@ async function ensureDatabaseSchema(sequelize) {
       await queryInterface.addIndex('ward_home_works', ['ward_id', 'gallery_item_id'], { unique: true, name: 'uq_home_works_ward_item' }).catch(() => {});
     }
 
+    const profileCols = [
+      ['bio', { type: DataTypes.TEXT, allowNull: true }],
+      ['office_timings', { type: DataTypes.STRING(255), allowNull: true }],
+      ['whatsapp', { type: DataTypes.STRING(50), allowNull: true }],
+      ['gallery', { type: DataTypes.TEXT('long'), allowNull: true }],
+      ['achievements', { type: DataTypes.TEXT('long'), allowNull: true }],
+      ['social_links', { type: DataTypes.TEXT('long'), allowNull: true }],
+    ];
+    for (const table of ['nagarsevak_users', 'users']) {
+      if (!tables.includes(table)) continue;
+      const desc = await queryInterface.describeTable(table).catch(() => ({}));
+      for (const [col, spec] of profileCols) {
+        if (!desc[col]) {
+          console.log(`[SCHEMA-SYNC] Adding ${table}.${col}...`);
+          await queryInterface.addColumn(table, col, spec)
+            .catch((e) => console.warn(`[SCHEMA-SYNC] addColumn ${table}.${col}:`, e.message));
+        }
+      }
+    }
+
     const addNamedIndex = async (table, fields, name) => {
       if (!tables.includes(table)) return;
       await queryInterface.addIndex(table, fields, { name }).catch(() => {});

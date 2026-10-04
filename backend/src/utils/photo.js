@@ -15,18 +15,24 @@ async function nagarsevakPublicByIds(ids) {
   const unique = [...new Set((ids || []).filter(Boolean).map(String))];
   if (!unique.length) return new Map();
   const { NagarsevakUser } = require('../models/roleLogins.model');
-  const rows = await NagarsevakUser.findAll({
-    where: { id: unique },
-    attributes: [
-      'id', 'name', 'mobile', 'partyName', 'wardSeat',
-      'officialAddress', 'bio', 'officeTimings', 'whatsapp',
-      'achievements', 'socialLinks',
-      [
-        NagarsevakUser.sequelize.literal("CASE WHEN `photo` LIKE 'data:%' THEN NULL ELSE `photo` END"),
-        'photo',
-      ],
-    ],
-  });
+  const photoCol = [
+    NagarsevakUser.sequelize.literal("CASE WHEN `photo` LIKE 'data:%' THEN NULL ELSE `photo` END"),
+    'photo',
+  ];
+  const fullAttrs = [
+    'id', 'name', 'mobile', 'partyName', 'wardSeat',
+    'officialAddress', 'bio', 'officeTimings', 'whatsapp',
+    'achievements', 'socialLinks',
+    photoCol,
+  ];
+  const safeAttrs = ['id', 'name', 'mobile', 'partyName', 'wardSeat', 'officialAddress', photoCol];
+  let rows;
+  try {
+    rows = await NagarsevakUser.findAll({ where: { id: unique }, attributes: fullAttrs });
+  } catch (err) {
+    if (!/Unknown column/i.test(String(err.message || ''))) throw err;
+    rows = await NagarsevakUser.findAll({ where: { id: unique }, attributes: safeAttrs });
+  }
   return new Map(rows.map((row) => {
     let achievements = row.achievements;
     if (typeof achievements === 'string' && achievements.trim()) {

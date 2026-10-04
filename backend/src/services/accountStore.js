@@ -156,10 +156,20 @@ async function hydrateUsers(result, Role) {
   }
   await Promise.all(Object.entries(grouped).map(async ([roleName, rows]) => {
     const Model = ROLE_MODELS[roleName];
-    const logins = await Model.findAll({
-      where: { id: rows.map(u => u.id) },
-      paranoid: false,
-    });
+    let logins;
+    try {
+      logins = await Model.findAll({
+        where: { id: rows.map(u => u.id) },
+        paranoid: false,
+      });
+    } catch (err) {
+      if (!/Unknown column/i.test(String(err.message || ''))) throw err;
+      logins = await Model.findAll({
+        where: { id: rows.map(u => u.id) },
+        paranoid: false,
+        attributes: ['id', 'name', 'email', 'mobile', 'passwordHash', 'status', 'twoFactorEnabled', 'lastLoginAt', 'wardId', 'permissions', 'wardSeat', 'partyName', 'officialAddress', 'photo'],
+      });
+    }
     const byId = Object.fromEntries(logins.map(row => [String(row.id), row]));
     for (const user of rows) applyLoginFields(user, byId[String(user.id)], roleName);
   }));
