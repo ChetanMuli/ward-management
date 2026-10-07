@@ -605,8 +605,7 @@ function GroupPage() {
   async function deleteOneMessage(m, scope = 'me') {
     if (!active || !m?.id) return;
     const mine = String(m.senderUserId) === String(user?.id);
-    const canModerate = master || sub || councillor || isEmp;
-    if (scope === 'everyone' && !mine && !canModerate) return;
+    if (scope === 'everyone' && !mine) return;
     const everyone = scope === 'everyone';
     const ok = window.confirm(everyone
       ? (isMr ? 'हा संदेश सर्वांकडून कायमचा काढायचा आहे का?' : 'Delete this message from everyone in this chat?')
@@ -1084,7 +1083,7 @@ function GroupPage() {
                               )}
                               <MessageMenu
                                 mine={mine}
-                                canDeleteEveryone={true}
+                                canDeleteEveryone={mine}
                                 isMr={isMr}
                                 open={msgMenuId === m.id}
                                 deleting={deletingMessageId === m.id}

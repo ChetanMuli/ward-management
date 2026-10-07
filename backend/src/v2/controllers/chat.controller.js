@@ -786,13 +786,11 @@ const deleteMessage = asyncHandler(async (req, res) => {
   const { group } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
   const row = await Chat.Message.findOne({ where: { id: req.params.messageId, groupId: group.id } });
   if (!row) throw new ApiError(404, 'Message not found');
-  const role = String(req.user.roleName || '').toUpperCase();
   const own = String(row.senderUserId) === String(req.user.id);
-  const staff = ['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'].includes(role);
   const scopeRaw = String(req.body?.scope || req.query?.scope || 'me').toLowerCase();
   const everyone = scopeRaw === 'everyone' || scopeRaw === 'all';
   if (everyone) {
-    if (!own && !staff) throw new ApiError(403, 'You can delete only your own messages for everyone.');
+    if (!own) throw new ApiError(403, 'You can delete only your own messages for everyone.');
     await row.destroy();
     await Chat.Message.destroy({ where: { id: row.id, groupId: group.id } }).catch(() => {});
     return success(res, { message: 'Message deleted for everyone.', scope: 'everyone' });
