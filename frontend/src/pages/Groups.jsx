@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { api, getUser } from '../services/api';
 import { ErrorBox, FaceAvatar, Loading, Modal, PageHeader, SearchableSelect, initialsOf } from '../components/Ui';
@@ -120,6 +121,123 @@ function SenderRoleBadge({ sender, isMr }) {
   return null;
 }
 
+function MessageMenu({ mine, canDeleteEveryone, isMr, open, onToggle, onClose, onDelete, deleting }) {
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState(null);
+
+  const placeMenu = () => {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    const pad = 10;
+    const width = Math.min(248, Math.max(220, window.innerWidth - pad * 2));
+    const estimatedH = canDeleteEveryone ? 118 : 64;
+    const spaceBelow = window.innerHeight - r.bottom - pad;
+    const spaceAbove = r.top - pad;
+    const openUp = spaceBelow < estimatedH && spaceAbove > spaceBelow;
+    let left = mine ? r.right - width : r.left;
+    left = Math.max(pad, Math.min(left, window.innerWidth - width - pad));
+    let top = openUp ? r.top - estimatedH - 8 : r.bottom + 8;
+    if (top < pad) top = pad;
+    if (top + estimatedH > window.innerHeight - pad) {
+      top = Math.max(pad, window.innerHeight - pad - estimatedH);
+    }
+    setMenuStyle({
+      position: 'fixed',
+      top: `${Math.round(top)}px`,
+      left: `${Math.round(left)}px`,
+      width: `${Math.round(width)}px`,
+      zIndex: 200080,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return undefined;
+    }
+    placeMenu();
+    const onMove = () => placeMenu();
+    window.addEventListener('resize', onMove);
+    window.addEventListener('scroll', onMove, true);
+    return () => {
+      window.removeEventListener('resize', onMove);
+      window.removeEventListener('scroll', onMove, true);
+    };
+  }, [open, mine, canDeleteEveryone]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointer = (e) => {
+      if (btnRef.current?.contains(e.target)) return;
+      if (menuRef.current?.contains(e.target)) return;
+      onClose?.();
+    };
+    document.addEventListener('pointerdown', onPointer, true);
+    return () => document.removeEventListener('pointerdown', onPointer, true);
+  }, [open, onClose]);
+
+  return (
+    <div className={`wa-msg-menu-wrap ${mine ? 'mine' : 'theirs'} ${open ? 'open' : ''}`}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="wa-msg-dots"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={isMr ? 'संदेश पर्याय' : 'Message options'}
+        aria-label={isMr ? 'संदेश पर्याय' : 'Message options'}
+        disabled={deleting}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onToggle();
+        }}
+      >
+        {deleting ? '…' : '⋮'}
+      </button>
+      {open && menuStyle && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          className={`wa-msg-menu-portal ${mine ? 'mine' : 'theirs'}`}
+          role="menu"
+          style={menuStyle}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className="wa-msg-menu-item"
+            onClick={(e) => { e.stopPropagation(); onDelete('me'); }}
+          >
+            <span className="wa-msg-menu-ico" aria-hidden="true">🗑️</span>
+            <span className="wa-msg-menu-copy">
+              <strong>{isMr ? 'डिलीट' : 'Delete'}</strong>
+              <small>{isMr ? 'फक्त तुमच्यासाठी' : 'Only for you'}</small>
+            </span>
+          </button>
+          {canDeleteEveryone && (
+            <button
+              type="button"
+              role="menuitem"
+              className="wa-msg-menu-item danger"
+              onClick={(e) => { e.stopPropagation(); onDelete('everyone'); }}
+            >
+              <span className="wa-msg-menu-ico" aria-hidden="true">⛔</span>
+              <span className="wa-msg-menu-copy">
+                <strong>{isMr ? 'सर्वांकडून डिलीट' : 'Delete from everyone'}</strong>
+                <small>{isMr ? 'या चॅटमधील सर्वांसाठी' : 'Remove for all members'}</small>
+              </span>
+            </button>
+          )}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 function GroupFace({ g }) {
   if (isAllChat(g)) return <span className="wa-avatar community notranslate" translate="no"><BrandIcon size={28} variant="dark" /></span>;
   if (g.type === 'NAGARSEVAK') return <FaceAvatar name={g.nagarsevak?.name || groupTitle(g)} photo={g.nagarsevak?.photo} className="wa-avatar nagar" />;
@@ -158,6 +276,9 @@ function GroupPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [clearModalOpen, setClearModalOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState('');
+  const [msgMenuId, setMsgMenuId] = useState('');
+  const pendingHiddenIds = useRef(new Set());
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [selectedResidentId, setSelectedResidentId] = useState(null);
   const [selectedResidentName, setSelectedResidentName] = useState('');
@@ -168,9 +289,12 @@ function GroupPage() {
       if (e.key === 'Escape' && lightboxImage) {
         setLightboxImage(null);
       }
+      if (e.key === 'Escape') setMsgMenuId('');
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [lightboxImage]);
 
   function openResidentModal(userId, name) {
@@ -298,25 +422,31 @@ function GroupPage() {
   }, [filteredGroups, groupId]);
 
   useEffect(() => {
-    if (!filteredGroups.length) { setActive(null); return; }
+    if (!displayedGroups.length) { setActive(null); return; }
     const requested = searchParams.get('group');
     if (requested) {
-      const requestedGroup = filteredGroups.find(g => String(g.id) === String(requested));
+      const requestedGroup = displayedGroups.find(g => String(g.id) === String(requested));
       if (requestedGroup) { setActive(requestedGroup); setChatOpen(true); return; }
     }
     setActive(a => {
-      if (a && filteredGroups.some(g => g.id === a.id)) return filteredGroups.find(g => g.id === a.id);
+      if (a && displayedGroups.some(g => g.id === a.id)) return displayedGroups.find(g => g.id === a.id);
       if (typeof window !== 'undefined' && window.matchMedia('(max-width:800px)').matches) return null;
-      return filteredGroups[0];
+      return displayedGroups[0];
     });
-  }, [filteredGroups, searchParams]);
+  }, [displayedGroups, searchParams]);
 
   useEffect(() => {
     if (!active) { setMessages([]); return; }
     setPendingAttachment(null);
     let live = true;
+    pendingHiddenIds.current = new Set();
     const load = () => api.chatMessages(active.id, { limit: 100 })
-      .then(r => { if (live) setMessages(r.data || []); })
+      .then(r => {
+        if (!live) return;
+        const hidden = pendingHiddenIds.current;
+        const rows = r.data || [];
+        setMessages(hidden.size ? rows.filter((m) => !hidden.has(String(m.id))) : rows);
+      })
       .catch(e => { if (live) setError(e.message); });
     load();
     api.markChatRead(active.id)
@@ -463,9 +593,45 @@ function GroupPage() {
     }
   }
 
-  function clearMyChat() {
+  function askClearMessages(e) {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     if (!active) return;
     setClearModalOpen(true);
+  }
+
+  async function deleteOneMessage(m, scope = 'me') {
+    if (!active || !m?.id) return;
+    const mine = String(m.senderUserId) === String(user?.id);
+    const canModerate = master || sub || councillor || isEmp;
+    if (scope === 'everyone' && !mine && !canModerate) return;
+    const everyone = scope === 'everyone';
+    const ok = window.confirm(everyone
+      ? (isMr ? 'हा संदेश सर्वांकडून कायमचा काढायचा आहे का?' : 'Delete this message from everyone in this chat?')
+      : (isMr ? 'हा संदेश फक्त तुमच्या चॅटमधून काढायचा आहे का?' : 'Delete this message for you only?'));
+    if (!ok) return;
+    setDeletingMessageId(m.id);
+    setMsgMenuId('');
+    setError('');
+    pendingHiddenIds.current.add(String(m.id));
+    setMessages((rows) => (rows || []).filter((x) => String(x.id) !== String(m.id)));
+    try {
+      await api.deleteChatMessage(active.id, m.id, everyone ? 'everyone' : 'me');
+      setGroups((rows) => (rows || []).map((g) => {
+        if (String(g.id) !== String(active.id)) return g;
+        const last = g.lastMessage;
+        if (last && String(last.id) === String(m.id)) return { ...g, lastMessage: null };
+        return g;
+      }));
+    } catch (e) {
+      pendingHiddenIds.current.delete(String(m.id));
+      setError(e.message || (isMr ? 'संदेश काढता आला नाही.' : 'Could not delete the message.'));
+      api.chatMessages(active.id, { limit: 100 }).then((r) => setMessages(r.data || [])).catch(() => {});
+    } finally {
+      setDeletingMessageId('');
+    }
   }
 
   async function executeClearChat() {
@@ -475,10 +641,10 @@ function GroupPage() {
     try {
       await api.clearChat(active.id);
       setMessages([]);
+      setGroups((rows) => (rows || []).map((x) => String(x.id) === String(active.id) ? { ...x, lastMessage: null, unreadCount: 0 } : x));
       setClearModalOpen(false);
-      setGroups(rows => (rows || []).map(x => x.id === active.id ? { ...x, lastMessage: null, unreadCount: 0 } : x));
     } catch (e) {
-      setError(e.message || (isMr ? 'चॅट साफ करणे शक्य झाले नाही.' : 'Unable to clear chat.'));
+      setError(e.message || (isMr ? 'संदेश साफ करता आले नाहीत.' : 'Unable to clear messages.'));
     } finally {
       setClearing(false);
     }
@@ -678,10 +844,10 @@ function GroupPage() {
                 const unread = Number(g.unreadCount || 0);
 
                 return (
-                  <button 
-                    key={g.id} 
+                  <button
+                    key={g.id}
                     type="button"
-                    className={`group-item wa-item ${active?.id === g.id ? 'active' : ''} ${unread > 0 ? 'has-unread' : ''}`} 
+                    className={`group-item wa-item ${active?.id === g.id ? 'active' : ''} ${unread > 0 ? 'has-unread' : ''}`}
                     onClick={() => openGroup(g)}
                   >
                     <div className="wa-avatar-wrap">
@@ -763,16 +929,12 @@ function GroupPage() {
 
                 <div className="wa-header-actions">
                   {(active.isMember || master || sub || active.type !== 'CUSTOM') && (
-                    <button 
-                      type="button" 
-                      className="wa-header-btn wa-clear-btn" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        setClearModalOpen(true);
-                      }} 
-                      title={isMr ? 'चॅट साफ करा' : 'Clear chat'}
-                      aria-label={isMr ? 'चॅट साफ करा' : 'Clear chat'}
+                    <button
+                      type="button"
+                      className="wa-header-btn wa-clear-btn"
+                      onClick={askClearMessages}
+                      title={isMr ? 'सर्व संदेश साफ करा' : 'Clear all messages'}
+                      aria-label={isMr ? 'सर्व संदेश साफ करा' : 'Clear all messages'}
                     >
                       <span className="wa-btn-icon">🗑️</span>
                       <span className="wa-btn-text">{isMr ? 'साफ करा' : 'Clear'}</span>
@@ -920,6 +1082,16 @@ function GroupPage() {
                                   ✓✓
                                 </span>
                               )}
+                              <MessageMenu
+                                mine={mine}
+                                canDeleteEveryone={true}
+                                isMr={isMr}
+                                open={msgMenuId === m.id}
+                                deleting={deletingMessageId === m.id}
+                                onToggle={() => setMsgMenuId((id) => id === m.id ? '' : m.id)}
+                                onClose={() => setMsgMenuId('')}
+                                onDelete={(scope) => deleteOneMessage(m, scope)}
+                              />
                             </div>
                           </div>
                         </div>
@@ -1070,9 +1242,9 @@ function GroupPage() {
         </Modal>
       )}
 
-      {clearModalOpen && (
+      {clearModalOpen && active && (
         <Modal
-          title={isMr ? 'चॅट साफ करायचा आहे का?' : 'Clear this chat?'}
+          title={isMr ? 'संदेश साफ करायचे आहेत का?' : 'Clear messages?'}
           onClose={() => !clearing && setClearModalOpen(false)}
           layer={100}
         >
@@ -1081,12 +1253,12 @@ function GroupPage() {
               <span className="wa-clear-warning-icon">🗑️</span>
               <div>
                 <strong>
-                  {isMr ? 'फक्त तुमच्या खात्यावरील संदेश साफ केले जातील' : 'Messages will be cleared for you only'}
+                  {isMr ? 'गट राहील, फक्त संदेश साफ होतील' : 'The group stays. Only messages are cleared.'}
                 </strong>
                 <p>
-                  {isMr 
-                    ? `“${groupTitle(active)}” मधील सर्व संदेश तुमच्या खात्यावरून काढून टाकले जातील. इतर सदस्यांचे संदेश सुरक्षित राहतील.`
-                    : `All existing messages in “${groupTitle(active)}” will be cleared from your account. Other members will keep their messages.`}
+                  {isMr
+                    ? `“${groupTitle(active)}” मधील सर्व संदेश तुमच्या खात्यावरून काढले जातील. गट यादीत राहील. इतर सदस्यांचे संदेश सुरक्षित राहतील.`
+                    : `All messages in “${groupTitle(active)}” will be cleared from your account. The group remains in the list. Other members keep their messages.`}
                 </p>
               </div>
             </div>
@@ -1112,7 +1284,7 @@ function GroupPage() {
                 onClick={executeClearChat}
                 disabled={clearing}
               >
-                {clearing ? (isMr ? 'साफ करत आहे…' : 'Clearing…') : (isMr ? 'चॅट साफ करा' : 'Clear Chat')}
+                {clearing ? (isMr ? 'साफ करत आहे…' : 'Clearing…') : (isMr ? 'संदेश साफ करा' : 'Clear messages')}
               </button>
             </div>
           </div>

@@ -114,6 +114,7 @@ router.post('/chat/groups/:id/leave',requirePermission('VIEW_CHAT'),chat.leaveGr
 router.get('/chat/groups/:id/messages',requirePermission('VIEW_CHAT'),chat.listMessages);
 router.post('/chat/groups/:id/messages',requirePermission('SEND_CHAT'),chat.sendMessage);
 router.get('/chat/groups/:id/messages/:messageId/image',requirePermission('VIEW_CHAT'),chat.image);
+router.delete('/chat/groups/:id/messages/:messageId',requirePermission('VIEW_CHAT'),chat.deleteMessage);
 router.patch('/chat/groups/:id/clear',requirePermission('VIEW_CHAT'),chat.clearChat);
 router.patch('/chat/groups/:id/read',requirePermission('VIEW_CHAT'),chat.markRead);
 router.get('/chat/resident-details/:userId',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK','EMPLOYEE'),chat.getResidentDetails);

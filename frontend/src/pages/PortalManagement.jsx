@@ -812,28 +812,15 @@ export default function PortalManagement() {
             : 'Four steps: pick a ward → banner → nagarsevak profile → works (star = citizen home). Save, and residents see it immediately.'
         }
         action={
-          <div className="portal-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="portal-header-actions">
             <a
               href={`/citizen-portal${effectiveWardId ? `?wardId=${effectiveWardId}` : ''}&preview=citizen`}
               target="_blank"
               rel="noreferrer"
-              className="ghost-btn"
-              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              className="primary-btn portal-preview-btn"
               title={isMr ? 'निवडलेल्या वॉर्डचे नागरिक पोर्टल पहा' : 'View citizen portal for selected ward'}
             >
-              <span>👁️</span>
-              <span>{isMr ? 'प्रभाग पोर्टल पहा' : 'View Ward Portal'}</span>
-            </a>
-            <a
-              href="/citizen-default"
-              target="_blank"
-              rel="noreferrer"
-              className="ghost-btn"
-              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              title={isMr ? 'डिफॉल्ट प्लेन मनपा पोर्टल पहा' : 'View default plain municipal portal'}
-            >
-              <span>🏛️</span>
-              <span>{isMr ? 'डिफॉल्ट प्लेन पोर्टल पहा' : 'View Default Plain Portal'}</span>
+              {isMr ? 'प्रभाग पोर्टल पहा' : 'View Ward Portal'}
             </a>
           </div>
         }
@@ -843,7 +830,7 @@ export default function PortalManagement() {
         <WardFilter compact label="Ward" />
       </Toolbar>
       {needsWardPick && (
-        <p className="ward-portal-hint" style={{ maxWidth: '100%', marginTop: 0 }}>
+        <p className="ward-portal-hint">
           {isMr
             ? 'पोर्टल संपादनासाठी वॉर्ड निवडा. प्रत्येक वॉर्ड स्वतंत्र आहे.'
             : 'Select a ward to edit its citizen portal. Each ward is separate.'}

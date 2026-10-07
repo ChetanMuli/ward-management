@@ -382,6 +382,7 @@ async function ensureDatabaseSchema(sequelize) {
         user_id: { type: DataTypes.UUID, allowNull: false },
         last_read_at: { type: DataTypes.DATE, allowNull: true },
         last_cleared_at: { type: DataTypes.DATE, allowNull: true },
+        hidden_message_ids: { type: DataTypes.JSON, allowNull: true },
       }, { charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
       await queryInterface.addIndex('chat_user_state', ['group_id', 'user_id'], { unique: true, name: 'chat_user_state_unique' }).catch(() => {});
       await queryInterface.addIndex('chat_user_state', ['user_id'], { name: 'chat_user_state_user_idx' }).catch(() => {});
@@ -397,6 +398,10 @@ async function ensureDatabaseSchema(sequelize) {
       if (!desc.last_cleared_at && !desc.lastClearedAt) {
         await queryInterface.addColumn(table, 'last_cleared_at', { type: DataTypes.DATE, allowNull: true })
           .catch((e) => console.warn(`[SCHEMA-SYNC] addColumn ${table}.last_cleared_at:`, e.message));
+      }
+      if (table === 'chat_user_state' && !desc.hidden_message_ids && !desc.hiddenMessageIds) {
+        await queryInterface.addColumn(table, 'hidden_message_ids', { type: DataTypes.JSON, allowNull: true })
+          .catch((e) => console.warn(`[SCHEMA-SYNC] addColumn ${table}.hidden_message_ids:`, e.message));
       }
     }
 

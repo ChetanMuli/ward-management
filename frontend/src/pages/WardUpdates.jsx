@@ -114,7 +114,7 @@ export default function WardUpdates({autoOpen=false}){
     setCompose(true);
     navigate('/ward-updates',{replace:true});
   };
-  return <div className="ward-updates-page">
+  return <div className={`ward-updates-page ${isCitizen?'is-citizen-updates':''}`}>
     <PageHeader title="Ward Updates & Events" action={canManage?<div className="card-actions ward-updates-actions"><button className="primary-btn" onClick={openCreate}>＋ New update / event</button></div>:null}/>
     <ErrorBox error={error}/>
     <div className="ward-updates-filter-bar">
@@ -125,11 +125,16 @@ export default function WardUpdates({autoOpen=false}){
       <button className="small-btn" onClick={()=>{setSearch('');setType('');if(canManage)setStatus('PUBLISHED');setPage(1)}}>Clear filters</button>
     </div>
     {!rows?<Loading/>:!rows.length?<Empty>{status==='ARCHIVED'?'No archived updates found.':'No ward updates or events found.'}</Empty>:
-      <div className="ward-update-list">{rows.map(u=>
-        <article className={`ward-update-card ${selectedUpdate?.id===u.id?'is-selected':''}`} key={u.id} onClick={()=>setSelectedUpdate(u)}>
+      <div className={isCitizen?'user-update-card-grid':'ward-update-list'}>{rows.map(u=>
+        <article className={`ward-update-card ${isCitizen?'user-update-visual-card':''} ${selectedUpdate?.id===u.id?'is-selected':''}`} key={u.id} onClick={()=>setSelectedUpdate(u)}>
+          {isCitizen&&<div className={`user-update-card-banner ${u.type==='EVENT'?'is-event':''}`}>
+            <span>{u.type==='EVENT'?'📅':'📢'}</span>
+            <strong>{prettyType(u.type)}</strong>
+            {u.eventDate?<em>{fmtDateTime(u.eventDate)}</em>:null}
+          </div>}
           <div className="ward-update-head">
-            <div><div className="ward-update-tags"><StatusPill>{u.type}</StatusPill><span className="update-audience">{prettyAudience(u.audience)}</span></div><h3>{u.title}</h3></div>
-            <StatusPill>{u.status}</StatusPill>
+            <div><div className="ward-update-tags">{!isCitizen&&<StatusPill>{u.type}</StatusPill>}{!isCitizen&&<span className="update-audience">{prettyAudience(u.audience)}</span>}</div><h3>{u.title}</h3></div>
+            {!isCitizen&&<StatusPill>{u.status}</StatusPill>}
           </div>
           <p>{u.message}</p>
           <div className="ward-update-meta">

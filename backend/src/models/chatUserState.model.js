@@ -7,6 +7,7 @@ module.exports = sequelize.define('ChatUserState', {
   userId: { type: DataTypes.UUID, allowNull: false, field: 'user_id' },
   lastReadAt: { type: DataTypes.DATE, allowNull: true, field: 'last_read_at' },
   lastClearedAt: { type: DataTypes.DATE, allowNull: true, field: 'last_cleared_at' },
+  hiddenMessageIds: { type: DataTypes.JSON, allowNull: true, field: 'hidden_message_ids' },
 }, {
   tableName: 'chat_user_state',
   timestamps: false,

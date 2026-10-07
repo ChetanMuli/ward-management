@@ -49,8 +49,40 @@ async function loadChatState(groupId, userId) {
   }
 }
 
+function parseHiddenIds(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+  return [];
+}
+
+let hiddenColumnReady = false;
+async function ensureHiddenMessageColumn() {
+  if (hiddenColumnReady) return;
+  try {
+    const desc = await ChatUserState.describe();
+    if (!desc.hiddenMessageIds && !desc.hidden_message_ids) {
+      await ChatUserState.sequelize.query('ALTER TABLE chat_user_state ADD COLUMN hidden_message_ids JSON NULL');
+    }
+    hiddenColumnReady = true;
+  } catch (err) {
+    if (/duplicate column|exists/i.test(String(err.message || ''))) hiddenColumnReady = true;
+    else console.error('[CHAT HIDDEN COL]', err.message);
+  }
+}
+
 async function saveChatState(groupId, userId, patch) {
   try {
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'hiddenMessageIds')) {
+      await ensureHiddenMessageColumn();
+    }
     const [row] = await ChatUserState.findOrCreate({
       where: { groupId, userId },
       defaults: { id: crypto.randomUUID(), ...patch },
@@ -61,6 +93,12 @@ async function saveChatState(groupId, userId, patch) {
     console.error('[CHAT STATE WRITE]', err.message);
     return null;
   }
+}
+
+async function hiddenIdsFor(groupId, userId) {
+  await ensureHiddenMessageColumn();
+  const state = await loadChatState(groupId, userId);
+  return parseHiddenIds(state?.hiddenMessageIds);
 }
 
 async function clearedAtFor(groupId, userId, member = null) {
@@ -490,6 +528,10 @@ const listGroups = asyncHandler(async (req, res) => {
         if (clearedAt) {
           where.createdAt = { [Op.gt]: clearedAt };
         }
+        const hiddenIds = await hiddenIdsFor(g.id, req.user.id);
+        if (hiddenIds.length) {
+          where.id = { [Op.notIn]: hiddenIds };
+        }
         const msg = await Message.findOne({
           where,
           order: [['createdAt', 'DESC']],
@@ -599,10 +641,12 @@ const listMessages = asyncHandler(async (req, res) => {
     limit,
   });
   rows.reverse();
-  const senderPhotos = await nagarsevakPublicByIds(rows.map(m => m.senderUserId));
+  const hiddenIds = new Set(await hiddenIdsFor(group.id, req.user.id));
+  const visibleRows = hiddenIds.size ? rows.filter((m) => !hiddenIds.has(String(m.id))) : rows;
+  const senderPhotos = await nagarsevakPublicByIds(visibleRows.map(m => m.senderUserId));
   const userRole = String(req.user?.roleName || '').toUpperCase();
   const isReqUserCitizen = userRole === 'CITIZEN' || (!['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'].includes(userRole));
-  const data = rows.map(m => {
+  const data = visibleRows.map(m => {
     const json = typeof m.toJSON === 'function' ? m.toJSON() : m;
     const extra = senderPhotos.get(String(m.senderUserId));
     if (json.sender) {
@@ -736,6 +780,28 @@ const image = asyncHandler(async (req, res) => {
   res.set('Accept-Ranges', 'bytes');
   res.set('Cache-Control', 'private, max-age=3600');
   return res.sendFile(file);
+});
+
+const deleteMessage = asyncHandler(async (req, res) => {
+  const { group } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
+  const row = await Chat.Message.findOne({ where: { id: req.params.messageId, groupId: group.id } });
+  if (!row) throw new ApiError(404, 'Message not found');
+  const role = String(req.user.roleName || '').toUpperCase();
+  const own = String(row.senderUserId) === String(req.user.id);
+  const staff = ['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'].includes(role);
+  const scopeRaw = String(req.body?.scope || req.query?.scope || 'me').toLowerCase();
+  const everyone = scopeRaw === 'everyone' || scopeRaw === 'all';
+  if (everyone) {
+    if (!own && !staff) throw new ApiError(403, 'You can delete only your own messages for everyone.');
+    await row.destroy();
+    await Chat.Message.destroy({ where: { id: row.id, groupId: group.id } }).catch(() => {});
+    return success(res, { message: 'Message deleted for everyone.', scope: 'everyone' });
+  }
+  const current = await hiddenIdsFor(group.id, req.user.id);
+  if (!current.includes(String(row.id))) current.push(String(row.id));
+  const state = await saveChatState(group.id, req.user.id, { hiddenMessageIds: current });
+  if (!state) throw new ApiError(500, 'Could not delete this message for you.');
+  return success(res, { message: 'Message deleted for you.', scope: 'me' });
 });
 
 const joinGroup = asyncHandler(async (req, res) => {
@@ -918,4 +984,4 @@ const getResidentDetails = asyncHandler(async (req, res) => {
   return success(res, { data });
 });
 
-module.exports = { listGroups, createGroup, deleteGroup, listMessages, sendMessage, image, clearChat, markRead, joinGroup, leaveGroup, archiveOldChats, cleanupOldMessages, ensureNagarsevakGroup, archiveNagarsevakGroup, reconcileWardGroupMembers, ensureWardGroup, archiveWardGroups, ensureAllNagarsevakGroups, getResidentDetails };
+module.exports = { listGroups, createGroup, deleteGroup, listMessages, sendMessage, deleteMessage, image, clearChat, markRead, joinGroup, leaveGroup, archiveOldChats, cleanupOldMessages, ensureNagarsevakGroup, archiveNagarsevakGroup, reconcileWardGroupMembers, ensureWardGroup, archiveWardGroups, ensureAllNagarsevakGroups, getResidentDetails };
