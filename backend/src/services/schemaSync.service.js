@@ -204,6 +204,29 @@ async function ensureDatabaseSchema(sequelize) {
       }
     }
 
+    if (tables.includes('persons')) {
+      const desc = await queryInterface.describeTable('persons').catch(() => ({}));
+      if (!desc.is_retired && !desc.isRetired) {
+        await queryInterface.addColumn('persons', 'is_retired', {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn persons.is_retired:', e.message));
+      }
+      if (!desc.retired_from && !desc.retiredFrom) {
+        await queryInterface.addColumn('persons', 'retired_from', {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn persons.retired_from:', e.message));
+      }
+      if (!desc.retired_service && !desc.retiredService) {
+        await queryInterface.addColumn('persons', 'retired_service', {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn persons.retired_service:', e.message));
+      }
+    }
+
     // 8. ward_portal_configs table
     if (!tables.includes('ward_portal_configs')) {
       console.log('[SCHEMA-SYNC] Creating table ward_portal_configs...');

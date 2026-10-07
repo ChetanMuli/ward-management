@@ -291,24 +291,21 @@ export default function PortalManagement() {
         });
         const cfgMeta = loadedMeta;
         setDashboardWorkOrder(Array.isArray(cfgMeta.dashboardWorkOrder) ? cfgMeta.dashboardWorkOrder.map(String) : []);
-        const list = Array.isArray(cfgRes.data.nagarsevaks) ? cfgRes.data.nagarsevaks : [];
         const purchasedList = Array.isArray(cfgRes.data.purchasedNagarsevaks) && cfgRes.data.purchasedNagarsevaks.length
           ? cfgRes.data.purchasedNagarsevaks
-          : [];
+          : (Array.isArray(cfgRes.data.nagarsevaks) ? cfgRes.data.nagarsevaks : []);
         const purchasedId = cfgRes.data.config?.purchasedNagarsevakUserId
           || cfgRes.data.activation?.purchasedNagarsevakUserId
           || purchasedList[0]?.id
           || null;
         let featured = purchasedList.find((n) => String(n.id) === String(purchasedId))
-          || list.find((n) => String(n.id) === String(purchasedId))
-          || (purchasedId ? cfgRes.data.nagarsevak : null)
+          || (purchasedId ? purchasedList.find((n) => String(n.id) === String(cfgRes.data.nagarsevak?.id)) : null)
+          || purchasedList[0]
           || null;
         if (isNagarsevak(user)) {
-          featured = purchasedList.find((n) => String(n.id) === String(user.id))
-            || (String(purchasedId) === String(user.id) ? list.find((n) => String(n.id) === String(user.id)) : null)
-            || featured;
+          featured = purchasedList.find((n) => String(n.id) === String(user.id)) || null;
         }
-        setNagarsevaks(list);
+        setNagarsevaks(purchasedList);
         setPurchasedNagarsevaks(purchasedList);
         setRepresentative(featured ? {
           ...featured,
@@ -1401,8 +1398,8 @@ export default function PortalManagement() {
                   <h3>{isMr ? 'नगरसेवक प्रोफाइल' : 'Nagarsevak profile'}</h3>
                   <p>
                     {isMr
-                      ? 'आधी वॉर्ड Activate, मग खरेदीदार निवडा. तोच Active नगरसेवक — नागरिकांना तोच दिसेल.'
-                      : 'Activate the ward first, then pick the buyer. That person is the Active Nagarsevak residents see.'}
+                      ? 'फक्त Ward activation मध्ये Active केलेल्या नगरसेवकांची प्रोफाइल येथे दिसते. नागरिकांना तेच दिसतात.'
+                      : 'Only Nagarsevaks you activated in Ward activation appear here. Residents see the same people.'}
                   </p>
                 </div>
                 {!activation?.wardActive && (
@@ -1413,9 +1410,9 @@ export default function PortalManagement() {
                     <a className="portal-inline-link" href="/ward-activation">Ward activation →</a>
                   </div>
                 )}
-                {canSwitchBuyer && nagarsevaks.length > 0 && (
+                {canSwitchBuyer && purchasedNagarsevaks.length > 0 && (
                   <div className="form-section-box nagar-buyer-box">
-                    <label className="form-label">{isMr ? 'खरेदी / Active नगरसेवक' : 'Purchased / Active Nagarsevak'}</label>
+                    <label className="form-label">{isMr ? 'Active नगरसेवक' : 'Active Nagarsevak'}</label>
                     <select
                       className="form-select"
                       value={representative?.id || ''}
@@ -1423,19 +1420,16 @@ export default function PortalManagement() {
                       onChange={(e) => {
                         const nextId = e.target.value;
                         if (!nextId || String(nextId) === String(representative?.id)) return;
-                        const next = nagarsevaks.find((n) => String(n.id) === String(nextId));
+                        const next = purchasedNagarsevaks.find((n) => String(n.id) === String(nextId));
                         if (next) setConfirmSwitch({ from: representative, to: next, isFirst: !representative });
                       }}
                     >
                       {!representative && (
-                        <option value="">{isMr ? 'खरेदीदार निवडा…' : 'Select the buyer…'}</option>
+                        <option value="">{isMr ? 'Active नगरसेवक निवडा…' : 'Select the active Nagarsevak…'}</option>
                       )}
-                      {nagarsevaks.map((n) => (
+                      {purchasedNagarsevaks.map((n) => (
                         <option key={n.id} value={n.id}>
                           {n.name}{n.wardSeat ? ` · ${n.wardSeat}` : ''}{n.mobile ? ` · ${n.mobile}` : ''}
-                          {purchasedNagarsevaks.some((p) => String(p.id) === String(n.id))
-                            ? (isMr ? ' · Active' : ' · Active')
-                            : ''}
                         </option>
                       ))}
                     </select>
@@ -1446,11 +1440,14 @@ export default function PortalManagement() {
                   <Empty>
                     {isMr
                       ? (activation?.wardActive
-                        ? (nagarsevaks.length ? 'वरील यादीतून खरेदीदार निवडा.' : 'आधी स्टाफ मध्ये नगरसेवक तयार करा.')
+                        ? 'या वॉर्डसाठी अजून कोणताही नगरसेवक Active नाही. Ward activation मध्ये ज्यांना Active केले आहे त्यांचीच प्रोफाइल येथे येते.'
                         : 'आधी वॉर्ड Activate करा.')
                       : (activation?.wardActive
-                        ? (nagarsevaks.length ? 'Select the buyer from the list above.' : 'Create a Nagarsevak in Staff first.')
+                        ? 'No active Nagarsevak on this ward yet. Only people you activate in Ward activation appear here.'
                         : 'Activate the ward first.')}
+                    {activation?.wardActive && (
+                      <a className="portal-inline-link" href="/ward-activation">Ward activation →</a>
+                    )}
                   </Empty>
                 ) : (
                   <>

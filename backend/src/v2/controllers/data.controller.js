@@ -409,7 +409,7 @@ const complaints = asyncHandler(async (req, res) => {
   }
 
   const include = [
-    { model: Person, as: 'citizen', include: [{ model: Family, as: 'family', include: [{ model: House, as: 'house' }] }] },
+    { model: Person, as: 'citizen', attributes: { exclude: ['isRetired', 'retiredFrom', 'retiredService'] }, include: [{ model: Family, as: 'family', include: [{ model: House, as: 'house' }] }] },
     { model: House, as: 'house', include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name'] }] },
     { model: require('../../models').Employee, as: 'assignedEmployee', include: [{ model: require('../../models').User, as: 'manager', attributes: ['id', 'name', 'email', 'mobile'] }, { model: require('../../models').User, as: 'User', attributes: ['id', 'name', 'email', 'mobile'] }] },
   ];

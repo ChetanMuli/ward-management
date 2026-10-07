@@ -326,7 +326,7 @@ const getPortalConfig = asyncHandler(async (req, res) => {
       },
       ward: ward ? { id: ward.id, wardNumber: ward.wardNumber, name: ward.name, status: ward.status } : null,
       nagarsevak,
-      nagarsevaks: manager ? nagarsevaks : purchased,
+      nagarsevaks: purchased,
       purchasedNagarsevaks: purchased,
       activation: {
         wardActive: !wardInactive,
@@ -417,9 +417,9 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, 'featuredNagarsevakUserId') && patch.featuredNagarsevakUserId) {
-    const list = await loadWardNagarsevaks(wardId);
-    if (!list.some((n) => String(n.id) === String(patch.featuredNagarsevakUserId))) {
-      throw new ApiError(400, 'Featured nagarsevak must belong to this ward.');
+    const visibleIds = (await getVisibleNagarsevakIds(wardId)).map(String);
+    if (!visibleIds.includes(String(patch.featuredNagarsevakUserId))) {
+      throw new ApiError(400, 'Show only a Nagarsevak you have already activated for this ward.');
     }
   }
 
@@ -461,8 +461,8 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     } else if (wardId && nagarRole) {
       const visibleIds = (await getVisibleNagarsevakIds(wardId)).map(String);
       const requestedId = nagarData.id ? String(nagarData.id) : '';
-      if (requestedId && visibleIds.length && !visibleIds.includes(requestedId)) {
-        throw new ApiError(400, 'Save only the purchased / activated Nagarsevak. Activate the new seat first.');
+      if (requestedId && !visibleIds.includes(requestedId)) {
+        throw new ApiError(400, 'Save only a Nagarsevak you have already activated. Activate the seat in Ward activation first.');
       }
       if (nagarData.id) {
         targetNagar = await User.findOne({

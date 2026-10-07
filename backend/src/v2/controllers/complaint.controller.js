@@ -14,9 +14,11 @@ const SLA_HOURS = { CRITICAL:24, HIGH:48, MEDIUM:72, LOW:168 };
 const STATUSES = ['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED'];
 function wardCode(wardNumber){ return String(wardNumber||'WARD').trim().replace(/[^A-Za-z0-9]+/g,'').toUpperCase() || 'WARD'; }
 function complaintNo(wardNumber){ const d=new Date(); const stamp=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0'),String(d.getHours()).padStart(2,'0'),String(d.getMinutes()).padStart(2,'0')].join(''); return `CMP-${wardCode(wardNumber)}-${stamp}-${uuidv4().slice(0,6).toUpperCase()}`; }
+const PERSON_COMPLAINT_ATTRS = { exclude: ['isRetired', 'retiredFrom', 'retiredService'] };
+
 async function complaintWithContext(id){
   return Complaint.findByPk(id,{include:[
-    {model:Person,as:'citizen',include:[{model:Family,as:'family',include:[{model:House,as:'house',include:[{model:Area,as:'area',include:[{model:Ward,as:'ward'}]}]}]}]},
+    {model:Person,as:'citizen',attributes:PERSON_COMPLAINT_ATTRS,include:[{model:Family,as:'family',include:[{model:House,as:'house',include:[{model:Area,as:'area',include:[{model:Ward,as:'ward'}]}]}]}]},
     {model:House,as:'house',include:[{model:Area,as:'area',include:[{model:Ward,as:'ward'}]}]},
     {model:Employee,as:'assignedEmployee',include:[{model:User,as:'User',attributes:['id','name','email','mobile','wardId']},{model:User,as:'manager',attributes:['id','name','email','mobile','wardId']}]},
     {model:User,as:'submittedBy',attributes:['id','name','email','mobile','wardId']},
@@ -131,7 +133,7 @@ const list = asyncHandler(async(req,res)=>{
     : [
       { model: House, as: 'house', required: false, include: [{ model: Area, as: 'area', required: false, include: [{ model: Ward, as: 'ward', required: false }] }] },
       { model: Employee, as: 'assignedEmployee', required: false, include: [{ model: User, as: 'User', attributes: ['id', 'name', 'mobile'] }, { model: User, as: 'manager', attributes: ['id', 'name', 'mobile'] }] },
-      { model: Person, as: 'citizen', required: false, attributes: ['id', 'fullName', 'mobile'] },
+      { model: Person, as: 'citizen', required: false, attributes: ['id', 'fullName', 'mobile', 'gender', 'dob'] },
       { model: User, as: 'submittedBy', required: false, attributes: ['id', 'name', 'email', 'mobile', 'wardId'] },
       { model: Ward, as: 'ward', required: false, attributes: ['id', 'wardNumber', 'name'] },
       { model: User, as: 'assignedNagarsevak', required: false, attributes: ['id', 'name', 'email', 'mobile', 'wardId', 'roleId'] },
@@ -161,7 +163,7 @@ async function notifyComplaintCitizen(complaint, type, title, message, senderUse
     if(linked?.id) recipients.add(linked.id);
   }
   if(!complaint.submittedByUserId && complaint.citizenPersonId){
-    const citizen=await Person.findByPk(complaint.citizenPersonId,{include:[{model:User,as:'loginAccount',attributes:['id','status']}]});
+    const citizen=await Person.findByPk(complaint.citizenPersonId,{attributes:PERSON_COMPLAINT_ATTRS,include:[{model:User,as:'loginAccount',attributes:['id','status']}]});
     if(citizen?.loginAccount?.status==='ACTIVE') recipients.add(citizen.loginAccount.id);
   }
   for(const userId of recipients){
@@ -223,7 +225,7 @@ const create = asyncHandler(async(req,res)=>{
   if(!isWardAllowed(req,wardId))throw new ApiError(403,'Complaint belongs to another ward');
   const citizenId=citizenPersonId;
   if(!citizenId)throw new ApiError(400,'citizenPersonId is required');
-  const citizen=await Person.findByPk(citizenId,{include:[{model:Family,as:'family',include:[{model:House,as:'house'}]}]});
+  const citizen=await Person.findByPk(citizenId,{attributes:PERSON_COMPLAINT_ATTRS,include:[{model:Family,as:'family',include:[{model:House,as:'house'}]}]});
   if(!citizen)throw new ApiError(400,'Citizen not found');
   if(citizen.family?.house?.id!==house.id)throw new ApiError(400,'Selected citizen does not belong to the selected house');
   let nagarsevak=null;
