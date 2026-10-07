@@ -81,7 +81,7 @@ async function ensureMembershipRow(groupId, userId) {
   if (!member) {
     try {
       member = await Chat.Member.create({
-        id: crypto.randomUUID(), groupId, userId, joinedAt: new Date()
+        id: crypto.randomUUID(), groupId, userId, joinedAt: new Date(), lastReadAt: new Date()
       });
     } catch (error) {
       // A concurrent request or an old duplicate-safe insert may have created the
@@ -91,14 +91,12 @@ async function ensureMembershipRow(groupId, userId) {
       if (!member) throw error;
     }
   }
-  if (member && !member.lastClearedAt) {
+  if (member) {
     const state = await loadChatState(groupId, userId);
-    if (state?.lastClearedAt) {
-      await member.update({
-        lastClearedAt: state.lastClearedAt,
-        lastReadAt: state.lastReadAt || member.lastReadAt,
-      });
-    }
+    const patch = {};
+    if (!member.lastClearedAt && state?.lastClearedAt) patch.lastClearedAt = state.lastClearedAt;
+    if (!member.lastReadAt && state?.lastReadAt) patch.lastReadAt = state.lastReadAt;
+    if (Object.keys(patch).length) await member.update(patch);
   }
   return member;
 }
@@ -361,15 +359,12 @@ async function unreadCountForGroup(groupId, userId, options = {}) {
   ].filter(Boolean);
   let since = sinceDates.sort((a, b) => a.getTime() - b.getTime()).pop() || null;
   if (!since) {
-    // Master/sub-master can browse every group without a real read cursor.
-    // Baseline now so old archive messages are not shown as unread; later
-    // messages still increment until they open the chat.
-    if (options.observer) {
-      await saveChatState(groupId, userId, { lastReadAt: new Date() });
-      return 0;
+    const now = new Date();
+    await saveChatState(groupId, userId, { lastReadAt: now });
+    if (member && !member.lastReadAt) {
+      await member.update({ lastReadAt: now }).catch(() => {});
     }
-    since = asDate(member?.joinedAt) || asDate(options.userCreatedAt) || null;
-    if (!since) return 0;
+    return 0;
   }
   return Message.count({
     where: {
@@ -790,7 +785,13 @@ const clearChat = asyncHandler(async (req, res) => {
 const markRead = asyncHandler(async (req, res) => {
   const { group, member } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
   const now = new Date();
-  await member.update({ lastReadAt: now });
+  if (member) {
+    await member.update({ lastReadAt: now }).catch(() => {});
+  }
+  await Chat.Member.update(
+    { lastReadAt: now },
+    { where: { groupId: group.id, userId: req.user.id } }
+  ).catch(() => {});
   await saveChatState(group.id, req.user.id, { lastReadAt: now });
   return success(res, { success: true });
 });

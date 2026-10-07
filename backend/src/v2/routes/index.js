@@ -228,6 +228,7 @@ router.get('/schemes',requirePermission('VIEW_SCHEMES'),schemes.list);
 router.post('/schemes',requirePermission('CREATE_SCHEMES'),schemes.create);
 router.patch('/schemes/:id',requirePermission('EDIT_SCHEMES'),schemes.update);
 router.delete('/schemes/:id',requirePermission('DELETE_SCHEMES'),schemes.remove);
+router.get('/export/:type/count',requirePermission('EXPORT_DATA'),exporter.exportCount);
 router.get('/export/:type',requirePermission('EXPORT_DATA'),exporter.exportData);
 router.get('/recycle-bin',requirePermission('VIEW_RECYCLE_BIN'),recycle.list);
 router.post('/recycle-bin/:entity/:id/restore',requirePermission('RESTORE_RECYCLE_BIN'),recycle.restore);

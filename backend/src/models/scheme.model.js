@@ -17,10 +17,11 @@ const Scheme = sequelize.define('Scheme', {
   startDate: { type: DataTypes.DATEONLY, allowNull: true },
   endDate: { type: DataTypes.DATEONLY, allowNull: true },
   status: { type: DataTypes.ENUM('DRAFT','PUBLISHED','CLOSED'), allowNull: false, defaultValue: 'PUBLISHED' },
+  createdByUserId: { type: DataTypes.UUID, allowNull: true, field: 'created_by_user_id' },
 }, {
   tableName: 'schemes',
   paranoid: true,
-  deletedAt: 'deletedAt',
+  deletedAt: 'deleted_at',
 });
 
 module.exports = Scheme;

@@ -241,7 +241,7 @@ const Member = {
         const kind = await resolveKind(groupId);
         const Model = modelsFor(kind || 'group').Member;
         try {
-          await Model.create({ id: crypto.randomUUID(), groupId, userId, joinedAt: new Date() });
+          await Model.create({ id: crypto.randomUUID(), groupId, userId, joinedAt: new Date(), lastReadAt: new Date() });
         } catch (error) {
           if (error?.name !== 'SequelizeUniqueConstraintError') throw error;
         }

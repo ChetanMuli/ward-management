@@ -284,24 +284,26 @@ const persons = asyncHandler(async (req, res) => {
       where.dob = { [Op.ne]: null, [Op.gt]: d18 };
     }
   }
-  if (req.query.areaId) {
-    const familyIds = await familyIdsForAreas([req.query.areaId]);
-    if (where.familyId) {
-      if (!familyIds.includes(where.familyId)) {
-        where.familyId = '00000000-0000-0000-0000-000000000000';
-      }
-    } else {
-      where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
-    }
-  } else if (areaIds) {
-    const familyIds = await familyIdsForAreas(areaIds);
-    if (where.familyId) {
-      if (!familyIds.includes(where.familyId)) {
-        where.familyId = '00000000-0000-0000-0000-000000000000';
-      }
-    } else {
-      where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
-    }
+  const targetAreaIds = req.query.areaId ? [req.query.areaId] : areaIds;
+  if (targetAreaIds) {
+    const list = targetAreaIds.length ? targetAreaIds : ['00000000-0000-0000-0000-000000000000'];
+    include[0] = {
+      model: Family,
+      as: 'family',
+      required: true,
+      include: [
+        {
+          model: House,
+          as: 'house',
+          where: { areaId: { [Op.in]: list } },
+          required: true,
+          include: [
+            { model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] },
+            { model: Apartment, as: 'apartment', attributes: ['id', 'name'] }
+          ]
+        }
+      ]
+    };
   }
   const r = await Person.findAndCountAll({ where, include, limit, offset, distinct: true, order: [['fullName', 'ASC']] });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });
@@ -346,11 +348,29 @@ const voters = asyncHandler(async (req, res) => {
     include[0]={...include[0], where:{status:'ACTIVE', presenceStatus:status}};
   }
   if (areaIds) {
-    const familyIds = await familyIdsForAreas(areaIds);
-    const families = familyIds.length ? await Family.findAll({ where:{id:{[Op.in]:familyIds}}, attributes:['id'] }) : [];
-    const ids = families.map(f=>f.id);
-    const personsInWard = ids.length ? await Person.findAll({ where:{familyId:{[Op.in]:ids}, status:'ACTIVE'}, attributes:['id'] }) : [];
-    where.personId = { [Op.in]: personsInWard.length ? personsInWard.map(p=>p.id) : ['00000000-0000-0000-0000-000000000000'] };
+    const list = areaIds.length ? areaIds : ['00000000-0000-0000-0000-000000000000'];
+    include[0] = {
+      model: Person,
+      as: 'Person',
+      where: include[0].where,
+      required: true,
+      include: [
+        {
+          model: Family,
+          as: 'family',
+          required: true,
+          include: [
+            {
+              model: House,
+              as: 'house',
+              where: { areaId: { [Op.in]: list } },
+              required: true,
+              include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }]
+            }
+          ]
+        }
+      ]
+    };
   }
   const r = await VoterProfile.findAndCountAll({ where, include, limit, offset, distinct: true });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });

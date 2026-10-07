@@ -16,10 +16,10 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-30',
     dateFormatted: '३० सप्टेंबर २०२६',
     dateFormattedEn: '30 Sep 2026',
-    location: 'अहिल्यानगर म.न.पा., प्रभाग क्र. ३',
+    location: 'स्थानिक प्रभाग परिसर',
     url: '/gallery/road-construction.svg',
     badge: 'सेवा हाच धर्म, विकास हाच संकल्प',
-    description: 'प्रभाग क्रमांक ३ मधील नागरिकांच्या न्याय्य हक्कांसाठी व शाश्वत विकासासाठी कटिबद्ध. अहिल्यानगर महानगरपालिका अधिकृत नगरसेवक जनसंपर्क अहवाल.'
+    description: 'प्रभागातील नागरिकांच्या न्याय्य हक्कांसाठी व शाश्वत विकासासाठी कटिबद्ध अधिकृत नगरसेवक जनसंपर्क अहवाल.'
   },
   {
     id: 'vid-1',
@@ -32,12 +32,12 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-24',
     dateFormatted: '२४ सप्टेंबर २०२६',
     dateFormattedEn: '24 Sep 2026',
-    location: 'गुलमोहर रोड व प्रोफेसर कॉलनी',
+    location: 'स्थानिक मुख्य रस्ता',
     url: '/gallery/road-construction.svg',
     videoUrl: '/gallery/ward-road-work.mp4',
     duration: '02:15',
     badge: 'व्हिडीओ · VIDEO',
-    description: 'प्रभाग क्रमांक ३ मधील मुख्य रस्ता कॉंक्रिटीकरण व गतिरोधक कामांची प्रत्यक्ष पाहणी करताना नगरसेवक. कामाच्या उच्च दर्जाची खात्री.'
+    description: 'प्रभागातील मुख्य रस्ता कॉंक्रिटीकरण व गतिरोधक कामांची प्रत्यक्ष पाहणी करताना नगरसेवक. कामाच्या उच्च दर्जाची खात्री.'
   },
   {
     id: 'vid-2',
@@ -50,7 +50,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-18',
     dateFormatted: '१८ सप्टेंबर २०२६',
     dateFormattedEn: '18 Sep 2026',
-    location: 'सावेडी जलकुंभ परिसर',
+    location: 'प्रभाग जलकुंभ परिसर',
     url: '/gallery/water-pipeline.svg',
     videoUrl: '/gallery/ward-water-project.mp4',
     duration: '01:45',
@@ -68,7 +68,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-27',
     dateFormatted: '२७ सप्टेंबर २०२६',
     dateFormattedEn: '27 Sep 2026',
-    location: 'जनसंपर्क कार्यालय, सावेडी',
+    location: 'जनसंपर्क कार्यालय',
     url: '/gallery/janta-darbar.svg',
     videoUrl: '/gallery/ward-janta-darbar.mp4',
     duration: '03:10',
@@ -86,7 +86,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-20',
     dateFormatted: '२० सप्टेंबर २०२६',
     dateFormattedEn: '20 Sep 2026',
-    location: 'टी.व्ही. सेंटर चौक व गुलमोहर रस्ता',
+    location: 'प्रमुख चौक व अंतर्गत रस्ते',
     url: '/gallery/smart-led-lights.svg',
     videoUrl: '/gallery/ward-lights-inspection.mp4',
     duration: '02:40',
@@ -104,7 +104,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-08',
     dateFormatted: '०८ सप्टेंबर २०२६',
     dateFormattedEn: '08 Sep 2026',
-    location: 'सावेडी समाज मंदिर हॉल',
+    location: 'स्थानिक समाज मंदिर',
     url: '/gallery/health-camp.svg',
     videoUrl: '/gallery/ward-health-camp.mp4',
     duration: '03:25',
@@ -122,10 +122,10 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-08-12',
     dateFormatted: '१२ ऑगस्ट २०२६',
     dateFormattedEn: '12 Aug 2026',
-    location: 'गुलमोहर रोड व प्रोफेसर कॉलनी',
+    location: 'स्थानिक मुख्य रस्ता',
     url: '/gallery/road-construction.svg',
     badge: 'काम पूर्ण · COMPLETED',
-    description: 'प्रभाग क्रमांक ३ मधील मुख्य रस्ता व अंतर्गत गल्ल्यांचे उच्च दर्जाचे कॉंक्रिटीकरण, गतिरोधक व पेव्हर ब्लॉक बसविण्याचे काम यशस्वीरीत्या पूर्ण करण्यात आले.'
+    description: 'प्रभागातील मुख्य रस्ता व अंतर्गत गल्ल्यांचे उच्च दर्जाचे कॉंक्रिटीकरण, गतिरोधक व पेव्हर ब्लॉक बसविण्याचे काम यशस्वीरीत्या पूर्ण करण्यात आले.'
   },
   {
     id: 'gal-2',
@@ -138,7 +138,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-08-28',
     dateFormatted: '२८ ऑगस्ट २०२६',
     dateFormattedEn: '28 Aug 2026',
-    location: 'पंकज कॉलनी व सावेडी रोड परिसर',
+    location: 'प्रभाग अंतर्गत वसाहत',
     url: '/gallery/water-pipeline.svg',
     badge: '२४/७ पाणी पुरवठा',
     description: 'नागरिकांच्या पाण्याच्या दाबाच्या तक्रारींचे तातडीने निवारण करून नवीन डीआय पाईपलाईन टाकण्यात आली व ड्रेनेज चेंबर दुरुस्ती पूर्ण झाली.'
@@ -154,7 +154,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-05',
     dateFormatted: '०५ सप्टेंबर २०२६',
     dateFormattedEn: '05 Sep 2026',
-    location: 'सावेडी समाज मंदिर हॉल',
+    location: 'स्थानिक समाज मंदिर',
     url: '/gallery/health-camp.svg',
     badge: '८५०+ लाभार्थी',
     description: 'प्रभागातील ज्येष्ठ नागरिक व महिलांसाठी मोफत रक्त तपासणी, ईसीजी आणि मोफत चष्मे वाटप करण्यात आले. तज्ज्ञ डॉक्टरांचे मोफत मार्गदर्शन लाभले.'
@@ -170,7 +170,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-15',
     dateFormatted: '१५ सप्टेंबर २०२६',
     dateFormattedEn: '15 Sep 2026',
-    location: 'अहिल्या उद्यान परिसर, यशवंतनगर',
+    location: 'स्थानिक उद्यान व सार्वजनिक परिसर',
     url: '/gallery/tree-plantation.svg',
     badge: 'पर्यावरण संवर्धन',
     description: 'प्रदूषणमुक्त व निरोगी प्रभागासाठी देशी वृक्षांची लागवड करून संरक्षक जाळ्या बसविण्यात आल्या. स्थानिक नागरिक व तरुणांचा उत्स्फूर्त सहभाग लाभला.'
@@ -186,7 +186,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-20',
     dateFormatted: '२० सप्टेंबर २०२६',
     dateFormattedEn: '20 Sep 2026',
-    location: 'टी.व्ही. सेंटर चौक, प्रा. कॉलनी व गोविंदपुरा',
+    location: 'प्रमुख चौक व अंतर्गत वसाहती',
     url: '/gallery/smart-led-lights.svg',
     badge: '१००% एलईडी प्रकाश',
     description: 'महिला व ज्येष्ठ नागरिकांच्या सुरक्षिततेसाठी प्रभागातील प्रमुख चौकांमध्ये हायमास्ट आणि अंतर्गत रस्त्यांवर ऊर्जाबचत करणारे स्मार्ट एलईडी दिवे कार्यान्वित केले.'
@@ -202,7 +202,7 @@ export const DEFAULT_DEMO_GALLERY = [
     date: '2026-09-26',
     dateFormatted: '२६ सप्टेंबर २०२६',
     dateFormattedEn: '26 Sep 2026',
-    location: 'जनसंपर्क कार्यालय, सावेडी',
+    location: 'जनसंपर्क कार्यालय',
     url: '/gallery/janta-darbar.svg',
     badge: 'थेट निवारण',
     description: 'प्रभागातील नागरिकांशी थेट संवाद साधून त्यांच्या समस्या प्रत्यक्ष ऐकून घेतल्या आणि महापालिका अधिकाऱ्यांमार्फत तात्काळ निवारणाचे आदेश देण्यात आले.'

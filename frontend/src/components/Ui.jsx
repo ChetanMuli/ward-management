@@ -95,7 +95,7 @@ export function Modal({title,onClose,children,wide=false,layer=1,footer}){
 }
 
 function optionSearchText(o){return [o.search,o.label,o.title,o.hint,o.badge].filter(Boolean).join(' ').toLowerCase()}
-export function SearchableSelect({label, value, onChange, options=[], placeholder='Search or select…', searchPlaceholder='Type to search…', disabled=false, required=false, className='', loading=false, compact=false}){
+export function SearchableSelect({label, value, onChange, options=[], placeholder='Search or select…', searchPlaceholder='Type to search…', disabled=false, required=false, clearable=true, className='', loading=false, compact=false}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[menuStyle,setMenuStyle]=useState({});
  const controlRef=useRef(null), menuRef=useRef(null), searchRef=useRef(null), optionsRef=useRef(null);
  const position=()=>{
@@ -147,7 +147,7 @@ export function SearchableSelect({label, value, onChange, options=[], placeholde
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"/></svg>
     </button>
     {required&&<input className="searchable-required" type="text" required value={value||''} onChange={()=>{}} tabIndex={-1} aria-hidden="true"/>}
-    {value&&!disabled&&<button type="button" className="searchable-clear" onClick={()=>choose('')} aria-label="Clear selection">
+    {clearable&&value&&!disabled&&<button type="button" className="searchable-clear" onClick={()=>choose('')} aria-label="Clear selection">
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8"/></svg>
     </button>}
   </div>{menu}
@@ -555,18 +555,19 @@ export function ImageCropField({
   uploadLabel='Upload image',
   adjustLabel='Adjust crop',
 }){
-  const fileRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
-  const STAGE_W=Math.min(560, typeof window==='undefined'?560:Math.max(280, Math.min(560, window.innerWidth-48)));
-  const STAGE_H=Math.round(STAGE_W/Math.max(1.1, Number(aspect)||2.4));
-  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false);
+  const fileRef=useRef(null),stageRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1),stageSizeRef=useRef({w:640,h:267});
+  const ratio=Math.max(1.2, Number(aspect)||2.4);
+  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false),[stageSize,setStageSize]=useState({w:640,h:267});
+  const STAGE_W=Math.max(160, stageSize.w||640);
+  const STAGE_H=Math.max(80, stageSize.h||Math.round(STAGE_W/ratio));
   const cover=Math.max(STAGE_W/(nat.w||1), STAGE_H/(nat.h||1));
   const scale=cover*zoom;
   const dw=(nat.w||1)*scale, dh=(nat.h||1)*scale;
-  function clamp(next, w=nat.w, h=nat.h, z=zoom){
-    const c=Math.max(STAGE_W/(w||1), STAGE_H/(h||1));
+  function clamp(next, w=nat.w, h=nat.h, z=zoom, sw=STAGE_W, sh=STAGE_H){
+    const c=Math.max(sw/(w||1), sh/(h||1));
     const s=c*z;
-    const maxX=Math.max(0,((w||1)*s-STAGE_W)/2);
-    const maxY=Math.max(0,((h||1)*s-STAGE_H)/2);
+    const maxX=Math.max(0,((w||1)*s-sw)/2);
+    const maxY=Math.max(0,((h||1)*s-sh)/2);
     return {x:Math.min(maxX,Math.max(-maxX,next.x||0)),y:Math.min(maxY,Math.max(-maxY,next.y||0))};
   }
   function openCrop(data){
@@ -581,13 +582,29 @@ export function ImageCropField({
     reader.readAsDataURL(file);
   }
   useEffect(()=>{posRef.current=pos;},[pos]);
-  useEffect(()=>{zoomRef.current=zoom;setPos(p=>clamp(p,nat.w,nat.h,zoom));},[zoom,nat.w,nat.h]);
+  useEffect(()=>{zoomRef.current=zoom;setPos(p=>clamp(p,nat.w,nat.h,zoom));},[zoom,nat.w,nat.h,STAGE_W,STAGE_H]);
+  useEffect(()=>{stageSizeRef.current={w:STAGE_W,h:STAGE_H};},[STAGE_W,STAGE_H]);
+  useEffect(()=>{
+    if(!open)return;
+    const el=stageRef.current;
+    if(!el)return;
+    const measure=()=>{
+      const w=Math.round(el.clientWidth), h=Math.round(el.clientHeight);
+      if(w>40 && h>40) setStageSize({w,h});
+    };
+    measure();
+    const ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(measure):null;
+    ro?.observe(el);
+    window.addEventListener('resize',measure);
+    return()=>{ro?.disconnect();window.removeEventListener('resize',measure)};
+  },[open]);
   useEffect(()=>{
     if(!open)return;
     const move=e=>{
       if(!dragRef.current)return;
       e.preventDefault();
-      const next=clamp({x:e.clientX-dragRef.current.x,y:e.clientY-dragRef.current.y},natRef.current.w,natRef.current.h,zoomRef.current);
+      const box=stageSizeRef.current;
+      const next=clamp({x:e.clientX-dragRef.current.x,y:e.clientY-dragRef.current.y},natRef.current.w,natRef.current.h,zoomRef.current,box.w,box.h);
       posRef.current=next;setPos(next);
     };
     const up=()=>{dragRef.current=null};
@@ -601,17 +618,19 @@ export function ImageCropField({
     const img=new Image();
     img.onload=()=>{
       const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
-      const outW=outputWidth, outH=Math.round(outW/(Number(aspect)||2.4));
+      const box=stageSizeRef.current;
+      const sw=Math.max(1,box.w), sh=Math.max(1,box.h);
+      const outW=outputWidth, outH=Math.round(outW/ratio);
       const canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;
       const ctx=canvas.getContext('2d');if(!ctx)return;
       const z=zoomRef.current, p=posRef.current;
-      const s=(Math.max(STAGE_W/w, STAGE_H/h))*z;
-      const left=(STAGE_W-w*s)/2+p.x;
-      const top=(STAGE_H-h*s)/2+p.y;
+      const s=(Math.max(sw/w, sh/h))*z;
+      const left=(sw-w*s)/2+p.x;
+      const top=(sh-h*s)/2+p.y;
       ctx.fillStyle='#0b1624';ctx.fillRect(0,0,outW,outH);
-      ctx.drawImage(img, -left/s, -top/s, STAGE_W/s, STAGE_H/s, 0, 0, outW, outH);
-      let data=canvas.toDataURL('image/jpeg',0.72);
-      if(data.length>700000) data=canvas.toDataURL('image/jpeg',0.58);
+      ctx.drawImage(img, -left/s, -top/s, sw/s, sh/s, 0, 0, outW, outH);
+      let data=canvas.toDataURL('image/jpeg',0.86);
+      if(data.length>900000) data=canvas.toDataURL('image/jpeg',0.7);
       onChange(data);setOpen(false);setSrc('');
     };
     img.src=src;
@@ -622,11 +641,21 @@ export function ImageCropField({
         <div className="modal-header">
           <div>
             <h2>Adjust image</h2>
-            <span>Drag to position, then zoom so the important area fills the frame.</span>
+            <span>Drag to position, then zoom so faces and the important area fill this frame. This is the same frame residents see.</span>
           </div>
           <button type="button" className="icon-btn" onClick={()=>{setOpen(false);setSrc('')}}>×</button>
         </div>
-        <div className="banner-crop-stage" style={{width:STAGE_W,height:STAGE_H}} onPointerDown={e=>{e.preventDefault();e.stopPropagation();dragRef.current={x:e.clientX-posRef.current.x,y:e.clientY-posRef.current.y};}}>
+        <div
+          ref={stageRef}
+          className="banner-crop-stage"
+          style={{aspectRatio:`${ratio} / 1`}}
+          onPointerDown={e=>{e.preventDefault();e.stopPropagation();dragRef.current={x:e.clientX-posRef.current.x,y:e.clientY-posRef.current.y};}}
+          onWheel={e=>{
+            e.preventDefault();
+            const next=Math.min(3, Math.max(1, zoomRef.current+(e.deltaY<0?0.08:-0.08)));
+            zoomRef.current=next;setZoom(next);
+          }}
+        >
           {src&&<img src={src} alt="" draggable="false" onLoad={e=>{const w=e.currentTarget.naturalWidth||1,h=e.currentTarget.naturalHeight||1;natRef.current={w,h};setNat({w,h});setReady(true);setPos(p=>clamp(p,w,h,zoomRef.current));}} style={{width:dw,height:dh,left:(STAGE_W-dw)/2+pos.x,top:(STAGE_H-dh)/2+pos.y}}/>}
           <span className="banner-crop-frame" aria-hidden="true"/>
         </div>

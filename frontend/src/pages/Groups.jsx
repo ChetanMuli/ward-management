@@ -532,10 +532,8 @@ function GroupPage() {
     if (typeof window !== 'undefined' && window.innerWidth <= 800) {
       try { window.history.pushState({ chatOpen: true }, ''); } catch {}
     }
-    if (Number(g.unreadCount) > 0) {
-      api.markChatRead(g.id).then(() => window.dispatchEvent(new CustomEvent('ward:chat-refresh'))).catch(() => {});
-      setGroups(rows => (rows || []).map(x => x.id === g.id ? { ...x, unreadCount: 0 } : x));
-    }
+    api.markChatRead(g.id).then(() => window.dispatchEvent(new CustomEvent('ward:chat-refresh'))).catch(() => {});
+    setGroups(rows => (rows || []).map(x => x.id === g.id ? { ...x, unreadCount: 0 } : x));
   }
 
   function handleBack(e) {

@@ -223,6 +223,26 @@ export default function PortalManagement() {
 
   // Delete confirm modal
   const [deletingItem, setDeletingItem] = useState(null);
+  const [showGalleryBannerModal, setShowGalleryBannerModal] = useState(false);
+
+  const handleSaveGalleryBanner = async () => {
+    if (!effectiveWardId) return;
+    setSaving(true);
+    try {
+      await api.updatePortalConfig({
+        wardId: effectiveWardId,
+        galleryBannerUrl: portalConfig?.galleryBannerUrl || '',
+      });
+      storeIfFile(`ward_gallery_banner_${effectiveWardId}`, portalConfig?.galleryBannerUrl);
+      setShowGalleryBannerModal(false);
+      notifyPortalUpdated();
+      showToast(isMr ? 'गॅलरी बॅनर सेव्ह झाला.' : 'Gallery banner saved.');
+    } catch (err) {
+      showToast(err.message || 'Failed to save gallery banner.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Notification helper
   const showToast = (message, type = 'success') => {
@@ -792,16 +812,28 @@ export default function PortalManagement() {
             : 'Four steps: pick a ward → banner → nagarsevak profile → works (star = citizen home). Save, and residents see it immediately.'
         }
         action={
-          <div className="portal-header-actions">
+          <div className="portal-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <a
-              href={`/citizen-portal${effectiveWardId ? `?wardId=${effectiveWardId}` : ''}`}
+              href={`/citizen-portal${effectiveWardId ? `?wardId=${effectiveWardId}` : ''}&preview=citizen`}
               target="_blank"
               rel="noreferrer"
               className="ghost-btn"
               style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              title={isMr ? 'निवडलेल्या वॉर्डचे नागरिक पोर्टल पहा' : 'View citizen portal for selected ward'}
             >
               <span>👁️</span>
-              <span>{isMr ? 'नागरिक पोर्टल पहा' : 'View Citizen Portal'}</span>
+              <span>{isMr ? 'प्रभाग पोर्टल पहा' : 'View Ward Portal'}</span>
+            </a>
+            <a
+              href="/citizen-default"
+              target="_blank"
+              rel="noreferrer"
+              className="ghost-btn"
+              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              title={isMr ? 'डिफॉल्ट प्लेन मनपा पोर्टल पहा' : 'View default plain municipal portal'}
+            >
+              <span>🏛️</span>
+              <span>{isMr ? 'डिफॉल्ट प्लेन पोर्टल पहा' : 'View Default Plain Portal'}</span>
             </a>
           </div>
         }
@@ -906,49 +938,40 @@ export default function PortalManagement() {
                 <form className="portal-card portal-form-card" onSubmit={handleSavePortalConfig}>
                   <div className="portal-card-header">
                     <h3>{isMr ? 'हिरो बॅनर व मजकूर सेटिंग्ज' : 'Hero Banner & Headline Settings'}</h3>
-                    <p>{isMr ? 'Home, तक्रारी आणि गॅलरीसाठी वेगवेगळे बॅनर इथे बदला.' : 'Set a different banner for Home, My Complaints, and Gallery.'}</p>
+                    <p>{isMr ? 'नागरिक मुख्य पानासाठी बॅनर फोटो आणि स्वागत मजकूर इथे बदला.' : 'Customize the hero banner photo and welcome text for citizen home.'}</p>
                   </div>
 
-                  {/* Section 1: Banner Image Selection */}
+                  {/* Section 1: Hero Banner Image Selection */}
                   <div className="form-section-box">
                     <div className="form-section-header">
                       <span className="form-section-title">
                         <span>🖼️</span>
-                        <span>{isMr ? 'तीन वेगवेगळे बॅनर फोटो' : 'Separate banners for Home, Complaints & Gallery'}</span>
+                        <span>{isMr ? 'नागरिक मुख्य बॅनर (Hero Section Banner)' : 'Citizen Home Hero Banner'}</span>
                       </span>
-                      <span className="form-section-tag">{isMr ? 'तीन पाने' : '3 pages'}</span>
+                      <span className="form-section-tag">{isMr ? 'मुख्य पान' : 'Home Page'}</span>
                     </div>
 
                     <ImageCropField
-                      label={isMr ? '१. नागरिक Home बॅनर' : '1. Citizen Home banner'}
+                      label={isMr ? 'नागरिक Home बॅनर' : 'Citizen Home Banner'}
                       value={portalConfig?.heroBannerUrl || '/hero-ward-default.jpg'}
                       onChange={(url) => setPortalConfig((prev) => ({ ...prev, heroBannerUrl: url || '/hero-ward-default.jpg' }))}
                       aspect={CITIZEN_HERO_ASPECT}
                       outputWidth={1440}
-                      uploadLabel={isMr ? 'Home बॅनर अपलोड करा' : 'Upload home banner'}
-                      adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / adjust frame'}
+                      uploadLabel={isMr ? 'Home बॅनर अपलोड करा' : 'Upload Home Banner'}
+                      adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust Frame'}
                       hint={isMr ? 'इथेच क्रॉप करा — हाच फ्रेम नागरिक Home वर दिसेल.' : 'Crop it here — this is exactly how it appears on Citizen Home.'}
                     />
-                    <ImageCropField
-                      label={isMr ? '२. तक्रार पान बॅनर' : '2. Complaints page banner'}
-                      value={portalConfig?.complaintsBannerUrl || ''}
-                      onChange={(url) => setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: url || '' }))}
-                      aspect={2.4}
-                      outputWidth={1200}
-                      uploadLabel={isMr ? 'तक्रार बॅनर अपलोड करा' : 'Upload complaints banner'}
-                      adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / adjust frame'}
-                      hint={isMr ? 'फक्त My Complaints पानावर. Home पेक्षा वेगळी ठेवता येते.' : 'Shows only on My Complaints. Can differ from Home.'}
-                    />
-                    <ImageCropField
-                      label={isMr ? '३. गॅलरी बॅनर' : '3. Gallery page banner'}
-                      value={portalConfig?.galleryBannerUrl || ''}
-                      onChange={(url) => setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: url || '' }))}
-                      aspect={2.4}
-                      outputWidth={1200}
-                      uploadLabel={isMr ? 'गॅलरी बॅनर अपलोड करा' : 'Upload gallery banner'}
-                      adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / adjust frame'}
-                      hint={isMr ? 'फक्त गॅलरीच्या वरच्या हिरोवर.' : 'Shows only at the top of Gallery.'}
-                    />
+
+                    <div style={{ marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className="ghost-btn-xs"
+                        onClick={() => setPortalConfig((prev) => ({ ...prev, heroBannerUrl: '/hero-ward-default.jpg' }))}
+                        title={isMr ? 'अधिकृत महापालिका बॅनर वापरा' : 'Reset to official municipal civic banner'}
+                      >
+                        🏛️ {isMr ? 'अधिकृत महापालिका बॅनर वापरा' : 'Reset to Official Civic Banner'}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Section 2: Welcome Headlines */}
@@ -1027,46 +1050,6 @@ export default function PortalManagement() {
                             value={portalConfig?.heroSubtitleMr || ''}
                             onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroSubtitleMr: e.target.value }))}
                             placeholder="तुमच्या वॉर्डमधील अपडेट्स, कार्यक्रम, योजना आणि तक्रारींची माहिती एका ठिकाणी..."
-                          />
-                          <span className="lang-corner-badge">MR</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section 4: Live 24/7 Desk Badge */}
-                  <div className="form-section-box">
-                    <div className="form-section-header">
-                      <span className="form-section-title">
-                        <span>📡</span>
-                        <span>{isMr ? '२४/७ थेट सक्रिय बॅज' : '24/7 Live Desk Radar Badge'}</span>
-                      </span>
-                      <span className="form-section-tag">{isMr ? 'थेट रडार' : 'Live Status'}</span>
-                    </div>
-
-                    <div className="form-row-2">
-                      <div className="form-group">
-                        <label className="form-label">{isMr ? 'बॅज मजकूर (इंग्रजी)' : 'Live Badge Text (English)'}</label>
-                        <div className="input-with-lang-badge">
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={portalConfig?.heroBadgeEn || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroBadgeEn: e.target.value }))}
-                            placeholder="OFFICIAL 24/7 WARD DESK · LIVE"
-                          />
-                          <span className="lang-corner-badge">EN</span>
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">{isMr ? 'बॅज मजकूर (मराठी)' : 'Live Badge Text (Marathi)'}</label>
-                        <div className="input-with-lang-badge">
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={portalConfig?.heroBadgeMr || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroBadgeMr: e.target.value }))}
-                            placeholder="२४/७ अधिकृत प्रभाग सेवा कक्ष · थेट सक्रिय"
                           />
                           <span className="lang-corner-badge">MR</span>
                         </div>
@@ -1233,6 +1216,15 @@ export default function PortalManagement() {
                 )}
 
                 <div className="works-toolbar-actions">
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => setShowGalleryBannerModal(true)}
+                    title={isMr ? 'गॅलरी पानाचा मुख्य कव्हर बॅनर बदला' : 'Edit gallery cover banner'}
+                  >
+                    <span>🖼️</span>
+                    <span>{isMr ? 'गॅलरी कव्हर बॅनर' : 'Gallery Banner'}</span>
+                  </button>
                   <button
                     type="button"
                     className={`primary-btn save-order-btn ${orderDirty ? 'is-dirty' : ''}`}
@@ -1618,6 +1610,43 @@ export default function PortalManagement() {
       )}
 
       {/* ============================================================== */}
+      {/* GALLERY COVER BANNER MODAL */}
+      {/* ============================================================== */}
+      {showGalleryBannerModal && (
+        <Modal
+          wide
+          title={isMr ? 'गॅलरी कव्हर बॅनर संपादित करा' : 'Edit Gallery Cover Banner'}
+          onClose={() => setShowGalleryBannerModal(false)}
+        >
+          <div style={{ padding: '4px 0' }}>
+            <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: 14 }}>
+              {isMr
+                ? 'हा बॅनर नागरिक विकास गॅलरी पानाच्या शीर्षस्थानी दिसेल.'
+                : 'This banner appears at the top of the citizen development works gallery page.'}
+            </p>
+            <ImageCropField
+              label={isMr ? 'गॅलरी कव्हर बॅनर' : 'Gallery Cover Banner'}
+              value={portalConfig?.galleryBannerUrl || ''}
+              onChange={(url) => setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: url || '' }))}
+              aspect={2.4}
+              outputWidth={1200}
+              uploadLabel={isMr ? 'गॅलरी बॅनर अपलोड करा' : 'Upload Gallery Banner'}
+              adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust Frame'}
+              hint={isMr ? 'फक्त गॅलरीच्या वरच्या हिरोवर हा फोटो दिसेल.' : 'Displayed at the top of the gallery page.'}
+            />
+            <div className="modal-actions" style={{ marginTop: 20 }}>
+              <button type="button" className="ghost-btn" onClick={() => setShowGalleryBannerModal(false)}>
+                {isMr ? 'रद्द करा' : 'Cancel'}
+              </button>
+              <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveGalleryBanner}>
+                {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'गॅलरी बॅनर सेव्ह करा' : 'Save Gallery Banner')}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ============================================================== */}
       {/* ADD / EDIT WORK ITEM MODAL */}
       {/* ============================================================== */}
       {itemModalOpen && (
@@ -1625,17 +1654,18 @@ export default function PortalManagement() {
           wide
           title={
             editingItem
-              ? (isMr ? 'विकास काम / व्हिडीओ संपादित करा' : 'Edit development work')
-              : (isMr ? 'नवीन विकास काम / व्हिडीओ जोडा' : 'Add development work')
+              ? (isMr ? 'विकास काम संपादित करा' : 'Edit Development Work')
+              : (isMr ? 'नवीन विकास काम जोडा' : 'Add Development Work')
           }
           onClose={() => setItemModalOpen(false)}
         >
-          <form className="form-grid admin-form" onSubmit={handleSaveItem}>
-            <div className="form-section-title span-2">
-              <strong>{isMr ? 'काम / व्हिडीओ' : 'Work details'}</strong>
-              <span>{isMr ? 'शीर्षक, प्रकार आणि फोटो किंवा व्हिडीओ भरा. गॅलरीत दिसेल; मुख्य पानावर फक्त खूण केलेले कार्ड दिसतात.' : 'Add title, type and a photo or video. Gallery shows all published works. Citizen home shows only starred cards.'}</span>
+          <form className="modal-form-grid work-modal-form" onSubmit={handleSaveItem}>
+            <div className="form-section-title span-2" style={{ marginBottom: 4 }}>
+              <strong>{isMr ? 'कामाचा तपशील' : 'Work Details'}</strong>
+              <span>{isMr ? 'शीर्षक, प्रकार आणि फोटो निवडा. मुख्य पानावर दाखवण्यासाठी ⭐ पर्याय निवडा.' : 'Add titles, category, and an image or video. Toggle ⭐ to display on Citizen Dashboard.'}</span>
             </div>
-            <Field label={isMr ? 'प्रकार' : 'Type'}>
+
+            <Field label={isMr ? 'प्रकार (Type)' : 'Type'}>
               <select
                 value={itemFormData.mediaType}
                 onChange={(e) => {
@@ -1648,11 +1678,12 @@ export default function PortalManagement() {
                   }));
                 }}
               >
-                <option value="image">{isMr ? 'फोटो' : 'Photo'}</option>
-                <option value="video">{isMr ? 'व्हिडीओ' : 'Video'}</option>
+                <option value="image">{isMr ? 'फोटो (Photo)' : 'Photo'}</option>
+                <option value="video">{isMr ? 'व्हिडीओ (Video)' : 'Video'}</option>
               </select>
             </Field>
-            <Field label={isMr ? 'विभाग' : 'Category'}>
+
+            <Field label={isMr ? 'विभाग (Category)' : 'Category'}>
               <select
                 value={itemFormData.mediaType === 'video' ? 'VIDEOS' : itemFormData.category}
                 onChange={(e) => setItemFormData((prev) => ({ ...prev, category: e.target.value }))}
@@ -1663,41 +1694,62 @@ export default function PortalManagement() {
                 ))}
               </select>
             </Field>
+
             <Field label={isMr ? 'शीर्षक (मराठी) *' : 'Title (Marathi) *'}>
               <input
                 required
                 value={itemFormData.titleMr}
                 onChange={(e) => setItemFormData((prev) => ({ ...prev, titleMr: e.target.value }))}
-                placeholder="उदा. रस्ते डांबरीकरण"
+                placeholder={isMr ? 'उदा. रस्ते डांबरीकरण काम' : 'e.g. रस्ते डांबरीकरण'}
               />
             </Field>
+
             <Field label={isMr ? 'शीर्षक (इंग्रजी) *' : 'Title (English) *'}>
               <input
                 required
                 value={itemFormData.title}
                 onChange={(e) => setItemFormData((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="e.g. Road repair"
+                placeholder="e.g. Road Asphalting Work"
               />
             </Field>
-            <Field label={isMr ? 'बॅज' : 'Badge'}>
+
+            <Field label={isMr ? 'बॅज / टॅग' : 'Badge / Tag'}>
               <input
                 value={itemFormData.badge}
                 onChange={(e) => setItemFormData((prev) => ({ ...prev, badge: e.target.value }))}
                 placeholder={isMr ? 'काम पूर्ण · COMPLETED' : 'COMPLETED'}
               />
             </Field>
-            <Field label={isMr ? 'स्थिती' : 'Status'}>
+
+            <Field label={isMr ? 'स्थिती (Status)' : 'Status'}>
               <select
                 value={itemFormData.status}
                 onChange={(e) => setItemFormData((prev) => ({ ...prev, status: e.target.value }))}
               >
-                <option value="PUBLISHED">{isMr ? 'प्रकाशित' : 'Published'}</option>
-                <option value="DRAFT">{isMr ? 'मसुदा' : 'Draft'}</option>
+                <option value="PUBLISHED">{isMr ? 'प्रकाशित (Published)' : 'Published'}</option>
+                <option value="DRAFT">{isMr ? 'मसुदा (Draft)' : 'Draft'}</option>
               </select>
             </Field>
+
+            <Field label={isMr ? 'तारीख' : 'Date'}>
+              <input
+                type="date"
+                value={itemFormData.date}
+                onChange={(e) => setItemFormData((prev) => ({ ...prev, date: e.target.value }))}
+              />
+            </Field>
+
+            <Field label={isMr ? 'ठिकाण' : 'Location'}>
+              <input
+                value={itemFormData.location}
+                onChange={(e) => setItemFormData((prev) => ({ ...prev, location: e.target.value }))}
+                placeholder={isMr ? 'उदा. मुख्य रस्ता परिसर' : 'e.g. Main Ward Area'}
+              />
+            </Field>
+
             {itemFormData.mediaType === 'video' ? (
               <>
-                <Field className="span-2" label={isMr ? 'व्हिडीओ URL (MP4)' : 'Video URL (MP4)'}>
+                <Field label={isMr ? 'व्हिडीओ URL (MP4)' : 'Video URL (MP4)'}>
                   <input
                     value={itemFormData.videoUrl || ''}
                     onChange={(e) => setItemFormData((prev) => ({ ...prev, videoUrl: e.target.value }))}
@@ -1713,82 +1765,82 @@ export default function PortalManagement() {
                 </Field>
                 <div className="span-2">
                   <ImageCropField
-                    label={isMr ? 'कव्हर फोटो' : 'Cover image'}
+                    label={isMr ? 'व्हिडीओ कव्हर फोटो' : 'Video Cover Photo'}
                     value={itemFormData.mediaUrl}
                     onChange={(url) => setItemFormData((prev) => ({ ...prev, mediaUrl: url }))}
                     aspect={16 / 9}
                     outputWidth={960}
-                    uploadLabel={isMr ? 'कव्हर अपलोड' : 'Upload cover'}
-                    adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
+                    uploadLabel={isMr ? 'कव्हर फोटो अपलोड करा' : 'Upload Cover Photo'}
+                    adjustLabel={isMr ? 'क्रॉप / फ्रेम' : 'Crop / Adjust'}
                   />
                 </div>
               </>
             ) : (
               <div className="span-2">
                 <ImageCropField
-                  label={isMr ? 'कामाचा फोटो' : 'Work photo'}
+                  label={isMr ? 'कामाचा फोटो' : 'Work Photo'}
                   value={itemFormData.mediaUrl}
                   onChange={(url) => setItemFormData((prev) => ({ ...prev, mediaUrl: url }))}
                   aspect={16 / 9}
                   outputWidth={960}
-                  uploadLabel={isMr ? 'फोटो अपलोड करा' : 'Upload photo'}
-                  adjustLabel={isMr ? 'क्रॉप / फ्रेम' : 'Crop / adjust'}
-                  hint={isMr ? 'फोटो अपलोड केल्यावर फ्रेम ड्रॅग आणि झूम करा.' : 'After upload, drag and zoom to frame the work.'}
+                  uploadLabel={isMr ? 'फोटो अपलोड करा' : 'Upload Photo'}
+                  adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust Frame'}
+                  hint={isMr ? 'फोटो निवडल्यावर फ्रेम ड्रॅग आणि झूम करून अचूक सेट करा.' : 'Drag and zoom to perfectly frame your photo.'}
                 />
               </div>
             )}
-            <Field label={isMr ? 'तारीख' : 'Date'}>
-              <input
-                type="date"
-                value={itemFormData.date}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, date: e.target.value }))}
-              />
-            </Field>
-            <Field label={isMr ? 'ठिकाण' : 'Location'}>
-              <input
-                value={itemFormData.location}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, location: e.target.value }))}
-                placeholder={isMr ? 'उदा. गुलमोहर रोड' : 'e.g. Gulmohar Road'}
-              />
-            </Field>
+
             <Field label={isMr ? 'वर्णन (मराठी)' : 'Description (Marathi)'}>
               <textarea
                 rows={3}
                 value={itemFormData.descriptionMr}
                 onChange={(e) => setItemFormData((prev) => ({ ...prev, descriptionMr: e.target.value }))}
+                placeholder={isMr ? 'कामाबद्दल माहिती लिहा' : 'Describe the development work in Marathi'}
               />
             </Field>
+
             <Field label={isMr ? 'वर्णन (इंग्रजी)' : 'Description (English)'}>
               <textarea
                 rows={3}
                 value={itemFormData.description}
                 onChange={(e) => setItemFormData((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe the development work in English"
               />
             </Field>
-            <Field className="span-2" label={isMr ? 'नागरिक मुख्य पान' : 'Citizen home'}>
-              <label className="dashboard-feature-label-inline">
+
+            <div className="span-2" style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label className="dashboard-feature-label-inline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <input
                   type="checkbox"
+                  style={{ width: 18, height: 18, accentColor: '#2563eb', cursor: 'pointer' }}
                   checked={!!itemFormData.showOnDashboard}
                   onChange={(e) => setItemFormData((prev) => ({ ...prev, showOnDashboard: e.target.checked }))}
                 />
-                <span>{isMr ? 'मुख्य पानावर दाखवा (गॅलरीमध्ये नेहमी दिसेल)' : 'Show on citizen home (gallery still lists all published works)'}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>
+                  {isMr ? '⭐ नागरिक मुख्य पानावर दाखवा (Show on Citizen Dashboard)' : '⭐ Show on Citizen Dashboard'}
+                </span>
               </label>
-              <label className="dashboard-feature-label-inline">
+              <label className="dashboard-feature-label-inline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <input
                   type="checkbox"
+                  style={{ width: 18, height: 18, accentColor: '#2563eb', cursor: 'pointer' }}
                   checked={!!itemFormData.pinFirst}
                   onChange={(e) => setItemFormData((prev) => ({ ...prev, pinFirst: e.target.checked }))}
                 />
-                <span>{isMr ? 'हे काम पहिले दाखवा' : 'Show this work first'}</span>
+                <span style={{ fontSize: 13, color: '#475569' }}>
+                  {isMr ? '📌 हे काम सर्वांत पहिले दाखवा (Pin as First Work)' : '📌 Show this work first in order'}
+                </span>
               </label>
-            </Field>
-            <div className="modal-actions span-2">
+            </div>
+
+            <div className="modal-actions span-2" style={{ marginTop: 12 }}>
               <button type="button" className="ghost-btn" onClick={() => setItemModalOpen(false)}>
                 {isMr ? 'रद्द करा' : 'Cancel'}
               </button>
               <button type="submit" className="primary-btn" disabled={saving}>
-                {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (editingItem ? (isMr ? 'अपडेट करा' : 'Update') : (isMr ? 'जोडा' : 'Add work'))}
+                {saving
+                  ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…')
+                  : (editingItem ? (isMr ? 'अपडेट करा' : 'Update Work') : (isMr ? 'काम जोडा' : 'Add Work'))}
               </button>
             </div>
           </form>

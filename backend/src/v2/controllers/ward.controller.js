@@ -7,6 +7,25 @@ const {logAudit}=require('../../services/audit.service');
 const {allowedWardIds,isWardAllowed}=require('../services/wardScope');
 const {ensureWardGroup,archiveWardGroups}=require('./chat.controller');
 const {syncWardCommunityMembership,setWardActivation}=require('../../services/wardActivation.service');
+const {KEY_AREAS}=require('../data/amcElectionDocs');
+const {wardDigits}=require('../../utils/wardFormat');
+
+function attachOfficialColonies(json){
+  const n=Number(wardDigits(json.wardNumber));
+  const official=KEY_AREAS[n]||[];
+  json.keyAreas=official;
+  const existing=json.areas||[];
+  const seen=new Set(existing.map(a=>String(a.name||'').trim().toLowerCase()).filter(Boolean));
+  const extra=official.filter(name=>!seen.has(String(name).trim().toLowerCase())).map((name,i)=>({
+    id:`display-${json.id}-${i}`,
+    name,
+    description:`${name}, Ahilyanagar`,
+    status:'ACTIVE',
+    official:true
+  }));
+  json.areas=[...existing,...extra];
+  return json;
+}
 
 const list=asyncHandler(async(req,res)=>{
  const where={}; const ids=allowedWardIds(req); if(ids!==null) where.id=ids.length===1?ids[0]:{[Op.in]:ids.length?ids:['00000000-0000-0000-0000-000000000000']};
@@ -22,7 +41,7 @@ const list=asyncHandler(async(req,res)=>{
  }
  const nagarRole=await Role.findOne({where:{name:'NAGARSEVAK'},attributes:['id']});
  const rows=await Ward.findAll({where,include:[
-  {model:Area,as:'areas',separate:true},
+  {model:Area,as:'areas',required:false,separate:true,order:[['name','ASC']]},
   {model:Apartment,as:'apartments',required:false,separate:true,include:[{model:Area,as:'area',attributes:['id','name']}]},
   {model:User,as:'users',attributes:['id','name','mobile','status','roleId'],required:false,separate:true,where:nagarRole?{roleId:nagarRole.id}:undefined,include:[{model:Role,attributes:['name'],required:false}]},
   {model:WardNagarsevakSubscription,as:'nagarsevakSubscriptions',attributes:['id','nagarsevakUserId','status'],required:false,separate:true,include:[{model:User,as:'nagarsevak',attributes:['id','name','mobile','status'],required:false}]}
@@ -31,14 +50,14 @@ const list=asyncHandler(async(req,res)=>{
   const { getVisibleNagarsevakIds } = require('../../services/wardActivation.service');
   const visible=new Set((await getVisibleNagarsevakIds(req.user.wardId)).map(String));
   const sanitized=rows.map(row=>{
-   const json=row.toJSON();
+   const json=attachOfficialColonies(row.toJSON());
    json.users=(json.users||[]).filter(u=>visible.has(String(u.id))).map(u=>({ ...u, mobile: null }));
    json.nagarsevakSubscriptions=(json.nagarsevakSubscriptions||[]).filter(s=>visible.has(String(s.nagarsevakUserId))).map(s=>({ ...s, nagarsevak: s.nagarsevak ? { ...s.nagarsevak, mobile: null } : null }));
    return json;
   });
   return success(res,{data:sanitized});
  }
- return success(res,{data:rows});
+ return success(res,{data:rows.map(row=>attachOfficialColonies(row.toJSON()))});
 });
 const create=asyncHandler(async(req,res)=>{if(req.user.roleName!=='SUPER_ADMIN')throw new ApiError(403,'Only Master Admin can create wards');const payload={...req.body,status:'INACTIVE'};delete payload.areas;['city','district','pincode','latitude','longitude'].forEach(k=>{if(payload[k]==='')payload[k]=null});const ward=await Ward.create(payload);await ensureWardGroup(ward.id);await syncWardCommunityMembership(ward.id).catch(()=>{});await logAudit({user:req.user,action:'CREATE_WARD',entity:'Ward',recordId:ward.id,newValue:payload,ipAddress:req.ip});return success(res,{statusCode:201,data:ward,message:'Ward created as inactive. Activate it from Ward activation before residents can register.'});});
 function canEditWardPlaces(req){

@@ -85,7 +85,7 @@ export default function Wards(){
        master&&{label:'Delete ward',danger:true,onClick:async()=>{if(confirm(`Delete ward ${formatWardNumber(w.wardNumber)}? It will move to the recycle bin.`)){try{await api.deleteWard(w.id);await load()}catch(e){setError(e.message)}}}}
       ]}/>
      </div>
-     <div className="area-list">{areas.map(a=><div className="area-item" key={a.id}><div><strong>{a.name}</strong><span>{a.description||'Colony / area in this ward'}</span></div>{wardEditor&&<div className="card-actions"><button className="small-btn" onClick={()=>setAreaEdit({...emptyArea,...a})}>Edit</button><button className="small-btn danger" onClick={async()=>{if(confirm(`Delete area ${a.name}?`)){try{await api.deleteArea(a.id);load()}catch(e){setError(e.message)}}}}>Delete</button></div>}</div>)}</div>
+     <div className="area-list">{areas.map(a=><div className="area-item" key={a.id}><div><strong>{a.name}</strong><span>{a.description||'Colony / area in this ward'}</span></div>{wardEditor&&!a.official&&<div className="card-actions"><button className="small-btn" onClick={()=>setAreaEdit({...emptyArea,...a})}>Edit</button><button className="small-btn danger" onClick={async()=>{if(confirm(`Delete area ${a.name}?`)){try{await api.deleteArea(a.id);load()}catch(e){setError(e.message)}}}}>Delete</button></div>}</div>)}</div>
     </section>
    );
   })}</div>}

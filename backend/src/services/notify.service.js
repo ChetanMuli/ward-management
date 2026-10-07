@@ -114,6 +114,13 @@ async function notifyMastersAndWardStaff(wardId, payload) {
 async function notifyWardCitizens(wardId, payload) {
   if (!wardId) return 0;
   const ids = await idsForRoles(['CITIZEN'], { wardId });
+  if (!ids.length) return 0;
+  if (ids.length > 500) {
+    setImmediate(() => {
+      notifyUsers(ids, payload).catch((err) => console.error('[ASYNC WARD NOTIFY ERROR]', err.message));
+    });
+    return ids.length;
+  }
   return notifyUsers(ids, payload);
 }
 

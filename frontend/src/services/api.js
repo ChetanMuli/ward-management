@@ -86,6 +86,7 @@ export const api={
  extractGovernmentVoterList:id=>v2Request(`/government-voter-lists/${id}/extract`,{method:'POST'}),
  deleteGovernmentVoterList:id=>v2Request(`/government-voter-lists/${id}`,{method:'DELETE'}),
  downloadGovernmentVoterList:async id=>{const token=getToken();const r=await fetch(`${API_BASE_URL}/v2/government-voter-lists/${id}/download`,{headers:token?{Authorization:`Bearer ${token}`}:{}});if(!r.ok)throw new Error((await r.json().catch(()=>null))?.message||`Download failed (${r.status})`);const blob=await r.blob();const cd=r.headers.get('content-disposition')||'';const match=cd.match(/filename=\"?([^\";]+)\"?/i);const filename=match?.[1]||'government-voter-list';const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);},
+ governmentVoterListFileUrl:async id=>{const token=getToken();const r=await fetch(`${API_BASE_URL}/v2/government-voter-lists/${id}/download`,{headers:token?{Authorization:`Bearer ${token}`}:{}});if(!r.ok)throw new Error((await r.json().catch(()=>null))?.message||`Could not open the original file (${r.status})`);const blob=await r.blob();return {url:URL.createObjectURL(blob),type:blob.type||'',filename:(r.headers.get('content-disposition')||'').match(/filename=\"?([^\";]+)\"?/i)?.[1]||'voter-list'};},
  createDeath:(personId,d)=>v2Request(`/persons/${personId}/death`,{method:'POST',body:JSON.stringify(d)}),
  wards:(p={})=>v2('/wards',p),
  createWard:d=>v2Request('/wards',{method:'POST',body:JSON.stringify(d)}),
@@ -197,4 +198,30 @@ archiveWardUpdate:id=>v2Request(`/ward-updates/${id}/archive`,{method:'PATCH'}),
  updateGalleryItem:(id,d)=>v2Request(`/gallery-items/${id}`,{method:'PATCH',body:JSON.stringify(d),silent:true}),
  deleteGalleryItem:id=>v2Request(`/gallery-items/${id}`,{method:'DELETE'}),
  reorderGalleryItems:(items,wardId)=>v2Request('/gallery-items/reorder',{method:'POST',body:JSON.stringify({items,wardId}),silent:true}),
+ exportCount:(type,params={})=>v2(`/export/${type}/count`,params),
+ exportRows:(type,params={})=>v2(`/export/${type}`,{...params,format:'json'}),
+ exportDownload:async(type,params={})=>{
+  const token=getToken();
+  const query=qs(params);
+  const r=await fetch(`${API_BASE_URL}/v2/export/${type}${query}`,{
+   headers:token?{Authorization:`Bearer ${token}`}:{}
+  });
+  if(!r.ok){
+   const err=await r.json().catch(()=>null);
+   throw new Error(err?.message||err?.error||`Export failed (${r.status})`);
+  }
+  const blob=await r.blob();
+  const cd=r.headers.get('content-disposition')||'';
+  let filename=`ward-${type}.${params.format==='pdf'?'pdf':'xlsx'}`;
+  const m=cd.match(/filename="?([^"]+)"?/);
+  if(m&&m[1]) filename=m[1];
+  const url=window.URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>window.URL.revokeObjectURL(url),1000);
+ },
 };

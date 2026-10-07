@@ -66,7 +66,7 @@ function heroHeadline(title, fullName, welcomeWord) {
   return `${raw.replace(/[.,]+$/, '')}, ${n}`;
 }
 
-export default function UserPanel() {
+export default function UserPanel({ plainMode = false } = {}) {
   const navigate = useNavigate();
   const user = getUser();
   const mr = (localStorage.getItem('ward_language') || 'en') === 'mr';
@@ -98,6 +98,14 @@ export default function UserPanel() {
   const [toast, setToast] = useState(null);
 
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const isPlainFromUrl = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/citizen-default') ||
+    window.location.pathname === '/plain' ||
+    searchParams.get('plain') === '1' ||
+    searchParams.get('plain') === 'true' ||
+    searchParams.get('mode') === 'plain'
+  );
+  const isPlain = Boolean(plainMode || isPlainFromUrl);
   const queryWardId = searchParams.get('wardId') || null;
   const citizenWardId = queryWardId || user?.wardId || null;
   if (citizenWardId && _userPanelCache?.wardId && _userPanelCache.wardId !== citizenWardId) _userPanelCache = null;
@@ -325,90 +333,154 @@ export default function UserPanel() {
         </div>
       )}
 
-      {/* Hero Section with Nagarsevak Photo Spotlight Card */}
-      <section
-        className={`user-hero ${shownHero || heroSrc ? 'has-portal-banner' : 'is-hero-loading'} ${portalConfig?.demoMode ? 'is-civic-hero' : 'has-custom-hero'}`}
-        style={(shownHero || heroSrc) ? { '--portal-hero-bg': `url("${String(shownHero || heroSrc).replace(/"/g, '')}")` } : undefined}
-      >
-        <div className="user-hero-media" aria-hidden="true">
-          {(shownHero || heroSrc) ? (
-            <img
-              className="user-hero-bg-photo"
-              src={shownHero || heroSrc}
-              alt=""
-              onError={(e) => {
-                if (cachedHero && e.currentTarget.src !== cachedHero) {
-                  e.currentTarget.src = cachedHero;
-                  return;
-                }
-                if (portalConfig?.demoMode) e.currentTarget.src = CIVIC_DEFAULT_HERO;
-              }}
-            />
-          ) : null}
-        </div>
-        <div className="user-hero-ambient-live" aria-hidden="true">
-          <div className="live-orb-1" />
-          <div className="live-orb-2" />
-          <div className="live-shimmer-sweep" />
-        </div>
-        <div className="user-hero-copy">
-          <div className="user-hero-live-badge">
-            <span className="user-hero-radar">
-              <span className="user-hero-pulse-dot" />
-              <span className="user-hero-pulse-ring" />
-            </span>
-            <span>
-              {language === 'mr'
-                ? (portalConfig?.heroBadgeMr || '२४/७ अधिकृत प्रभाग सेवा कक्ष · थेट सक्रिय')
-                : (portalConfig?.heroBadgeEn || 'OFFICIAL 24/7 WARD DESK · LIVE')}
-            </span>
-          </div>
-          <h1>
-            {heroHeadline(
-              language === 'mr' ? portalConfig?.heroTitleMr : portalConfig?.heroTitleEn,
-              user?.name,
-              text.welcome
-            )}
-          </h1>
-          <p className="user-hero-subtitle">
-            {splitHeroSubtitle(
-              language === 'mr'
-                ? (portalConfig?.heroSubtitleMr || text.desc)
-                : (portalConfig?.heroSubtitleEn || text.desc)
-            ).map((line) => (
-              <span key={line} className="user-hero-subline">{line}</span>
-            ))}
-          </p>
-          <div className="user-ward-chip compact">
-            <span className="user-ward-icon">⌖</span>
-            <div>
-              <small>{text.ward.toUpperCase()}</small>
-              <strong>{formatWardLabel(ward, 'Ward')}</strong>
+      {isPlain ? (
+        <>
+          {/* Classic Municipal Clean Hero */}
+          <section className="user-hero is-civic-plain">
+            <div className="user-hero-copy">
+              <span className="user-kicker">{language === 'mr' ? 'स्वागत आहे · डिजिटल प्रभाग' : 'WELCOME · DIGITAL WARD DESK'}</span>
+              <h1>{heroHeadline('', user?.name, text.welcome)}</h1>
+              <p>{text.desc}</p>
+              <div className="user-ward-chip">
+                <span className="user-ward-icon">⌖</span>
+                <div>
+                  <small>{text.ward.toUpperCase()}</small>
+                  <strong>{formatWardLabel(ward || snapshot?.ward, 'Ward')}</strong>
+                </div>
+              </div>
+              <div className="user-hero-actions">
+                <button type="button" className="primary-btn" onClick={() => go('/my-complaints')}>
+                  {language === 'mr' ? 'तक्रार नोंदवा' : 'Raise a complaint'}
+                </button>
+                <button type="button" className="ghost-btn" onClick={() => go('/ward-updates')}>
+                  {language === 'mr' ? 'अपडेट्स पहा' : 'View updates'}
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="user-hero-actions">
-            <button type="button" className="primary-btn" onClick={() => go(portalConfig?.ctaPrimaryLink || '/my-complaints')}>
-              {language === 'mr' ? (portalConfig?.ctaPrimaryTextMr || 'तक्रार नोंदवा') : (portalConfig?.ctaPrimaryTextEn || 'Raise a complaint')}
-            </button>
-            <button type="button" className="ghost-btn" onClick={() => go(portalConfig?.ctaSecondaryLink || '/gallery')}>
-              {language === 'mr' ? (portalConfig?.ctaSecondaryTextMr || 'विकास कामे पहा') : (portalConfig?.ctaSecondaryTextEn || 'View Work')}
-            </button>
-          </div>
-        </div>
-      </section>
+            <div className="user-hero-card">
+              <div className="user-hero-icon">
+                <BrandIcon size={34} variant="light" />
+              </div>
+              <div>
+                <strong>{language === 'mr' ? 'तुमच्या वॉर्डची सर्व माहिती' : 'Everything for your ward'}</strong>
+                <span>{language === 'mr' ? 'नोंदणीकृत वॉर्ड खात्यातून अपडेट्स, योजना आणि तक्रारी ट्रॅक करा.' : 'Updates, schemes and complaint tracking in one secure account.'}</span>
+              </div>
+            </div>
+          </section>
 
-      {/* Nagarsevak Showcase Card with Development Works Gallery Preview */}
-      <NagarsevakShowcase
-        nagarsevaks={nagarsevaksList}
-        ward={ward || snapshot?.ward || team?.ward}
-        language={language}
-        showGallery={portalConfig?.showGalleryPreview !== false}
-        minimalWork={true}
-        minimalCount={Math.max(featuredGallery.length, 1)}
-        portalGallery={featuredGallery}
-        portalConfig={portalConfig}
-        onOpenGallery={() => go('/gallery')}
-      />
+          {/* 4 Stat Cards */}
+          <section className="user-stat-grid">
+            <button onClick={() => go('/ward-updates')} className="user-stat-card">
+              <span className="user-stat-icon">◈</span>
+              <div>
+                <small>{text.statUpdates}</small>
+                <strong>{updateTotal === null ? '—' : updateTotal}</strong>
+                <span>{text.publishedUpdates}</span>
+              </div>
+            </button>
+            <button onClick={() => go('/my-complaints')} className="user-stat-card">
+              <span className="user-stat-icon">⚑</span>
+              <div>
+                <small>{text.statComplaints}</small>
+                <strong>{complaintTotal === null ? '—' : complaintTotal}</strong>
+                <span>{text.myComplaints}</span>
+              </div>
+            </button>
+            <button onClick={() => go('/schemes')} className="user-stat-card">
+              <span className="user-stat-icon">◇</span>
+              <div>
+                <small>{text.statSchemes}</small>
+                <strong>{schemes === null ? '—' : schemes.length}</strong>
+                <span>{text.publishedSchemes}</span>
+              </div>
+            </button>
+            <button onClick={() => window.dispatchEvent(new CustomEvent('ward:open-notifications'))} className="user-stat-card">
+              <span className="user-stat-icon">🔔</span>
+              <div>
+                <small>{language === 'mr' ? 'सूचना' : 'NOTIFICATIONS'}</small>
+                <strong>{unread}</strong>
+                <span>{language === 'mr' ? 'न वाचलेल्या सूचना' : 'Unread notifications'}</span>
+              </div>
+            </button>
+          </section>
+        </>
+      ) : (
+        <>
+          {/* Custom Ward Hero Section */}
+          <section
+            className={`user-hero ${shownHero || heroSrc ? 'has-portal-banner' : 'is-hero-loading'} ${portalConfig?.demoMode ? 'is-civic-hero' : 'has-custom-hero'}`}
+            style={(shownHero || heroSrc) ? { '--portal-hero-bg': `url("${String(shownHero || heroSrc).replace(/"/g, '')}")` } : undefined}
+          >
+            <div className="user-hero-media" aria-hidden="true">
+              {(shownHero || heroSrc) ? (
+                <img
+                  className="user-hero-bg-photo"
+                  src={shownHero || heroSrc}
+                  alt=""
+                  onError={(e) => {
+                    if (cachedHero && e.currentTarget.src !== cachedHero) {
+                      e.currentTarget.src = cachedHero;
+                      return;
+                    }
+                    if (portalConfig?.demoMode) e.currentTarget.src = CIVIC_DEFAULT_HERO;
+                  }}
+                />
+              ) : null}
+            </div>
+            <div className="user-hero-ambient-live" aria-hidden="true">
+              <div className="live-orb-1" />
+              <div className="live-orb-2" />
+              <div className="live-shimmer-sweep" />
+            </div>
+            <div className="user-hero-copy">
+              <h1>
+                {heroHeadline(
+                  language === 'mr' ? portalConfig?.heroTitleMr : portalConfig?.heroTitleEn,
+                  user?.name,
+                  text.welcome
+                )}
+              </h1>
+              <p className="user-hero-subtitle">
+                {splitHeroSubtitle(
+                  language === 'mr'
+                    ? (portalConfig?.heroSubtitleMr || text.desc)
+                    : (portalConfig?.heroSubtitleEn || text.desc)
+                ).map((line) => (
+                  <span key={line} className="user-hero-subline">{line}</span>
+                ))}
+              </p>
+              <div className="user-ward-chip compact">
+                <span className="user-ward-icon">⌖</span>
+                <div>
+                  <small>{text.ward.toUpperCase()}</small>
+                  <strong>{formatWardLabel(ward, 'Ward')}</strong>
+                </div>
+              </div>
+              <div className="user-hero-actions">
+                <button type="button" className="primary-btn" onClick={() => go(portalConfig?.ctaPrimaryLink || '/my-complaints')}>
+                  {language === 'mr' ? (portalConfig?.ctaPrimaryTextMr || 'तक्रार नोंदवा') : (portalConfig?.ctaPrimaryTextEn || 'Raise a complaint')}
+                </button>
+                <button type="button" className="ghost-btn" onClick={() => go(portalConfig?.ctaSecondaryLink || '/gallery')}>
+                  {language === 'mr' ? (portalConfig?.ctaSecondaryTextMr || 'विकास कामे पहा') : (portalConfig?.ctaSecondaryTextEn || 'View Work')}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Nagarsevak Showcase Card with Development Works Gallery Preview */}
+          <NagarsevakShowcase
+            nagarsevaks={nagarsevaksList}
+            ward={ward || snapshot?.ward || team?.ward}
+            language={language}
+            showGallery={portalConfig?.showGalleryPreview !== false}
+            minimalWork={true}
+            minimalCount={Math.max(featuredGallery.length, 1)}
+            portalGallery={featuredGallery}
+            portalConfig={portalConfig}
+            onOpenGallery={() => go('/gallery')}
+          />
+        </>
+      )}
 
       {/* Ward Updates & Schemes Grid */}
       <section className="user-content-grid">

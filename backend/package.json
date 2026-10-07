@@ -13,7 +13,8 @@
     "seed": "sequelize-cli db:seed:all",
     "seed:undo": "sequelize-cli db:seed:undo:all",
     "db:reset": "npm run migrate:undo -- --to 0 && npm run migrate && npm run seed",
-    "reset:master": "node scripts/reset-master-password.js"
+    "reset:master": "node scripts/reset-master-password.js",
+    "kill:port": "powershell -Command \"Get-NetTCPConnection -LocalPort 4000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -24,7 +24,7 @@ async function start() {
       new Promise((resolve) => setTimeout(resolve, 4000)),
     ]);
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Ward Management API listening on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
       // Lightweight hourly maintenance: audit logs older than 2 days and recycle records older than 60 days are removed automatically.
       const runMaintenance = async () => {
@@ -43,6 +43,16 @@ async function start() {
       };
       runMaintenance();
       setInterval(runMaintenance, 60*60*1000).unref();
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`\n[PORT CONFLICT] Port ${PORT} is already in use by another running instance.`);
+        console.error(`To release port ${PORT} on Windows, run:\n  npm run kill:port\n`);
+        process.exit(1);
+      } else {
+        console.error('[SERVER ERROR]', err);
+      }
     });
 
     const shutdown = () => {

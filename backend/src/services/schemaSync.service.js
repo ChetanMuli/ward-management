@@ -132,6 +132,19 @@ async function ensureDatabaseSchema(sequelize) {
       }
     }
 
+    // 4b. Ensure schemes has created_by_user_id
+    if (tables.includes('schemes')) {
+      const desc = await queryInterface.describeTable('schemes').catch(() => ({}));
+      if (!desc.created_by_user_id && !desc.createdByUserId) {
+        console.log('[SCHEMA-SYNC] Adding missing column schemes.created_by_user_id...');
+        await queryInterface.addColumn('schemes', 'created_by_user_id', {
+          type: DataTypes.UUID,
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn created_by_user_id to schemes:', e.message));
+        await queryInterface.addIndex('schemes', ['created_by_user_id']).catch(() => {});
+      }
+    }
+
     // 5. Ensure shops_and_offices has property_owner_name, property_owner_mobile, and ownership
     if (tables.includes('shops_and_offices')) {
       const desc = await queryInterface.describeTable('shops_and_offices').catch(() => ({}));
@@ -358,6 +371,32 @@ async function ensureDatabaseSchema(sequelize) {
           await queryInterface.addColumn(table, col, spec)
             .catch((e) => console.warn(`[SCHEMA-SYNC] addColumn ${table}.${col}:`, e.message));
         }
+      }
+    }
+
+    if (!tables.includes('chat_user_state')) {
+      console.log('[SCHEMA-SYNC] Creating table chat_user_state...');
+      await queryInterface.createTable('chat_user_state', {
+        id: { type: DataTypes.UUID, primaryKey: true, allowNull: false },
+        group_id: { type: DataTypes.UUID, allowNull: false },
+        user_id: { type: DataTypes.UUID, allowNull: false },
+        last_read_at: { type: DataTypes.DATE, allowNull: true },
+        last_cleared_at: { type: DataTypes.DATE, allowNull: true },
+      }, { charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
+      await queryInterface.addIndex('chat_user_state', ['group_id', 'user_id'], { unique: true, name: 'chat_user_state_unique' }).catch(() => {});
+      await queryInterface.addIndex('chat_user_state', ['user_id'], { name: 'chat_user_state_user_idx' }).catch(() => {});
+    }
+    for (const table of ['chat_user_state', 'all_chat_members', 'group_chat_members']) {
+      if (!tables.includes(table) && table !== 'chat_user_state') continue;
+      const desc = await queryInterface.describeTable(table).catch(() => ({}));
+      if (!desc || !Object.keys(desc).length) continue;
+      if (!desc.last_read_at && !desc.lastReadAt) {
+        await queryInterface.addColumn(table, 'last_read_at', { type: DataTypes.DATE, allowNull: true })
+          .catch((e) => console.warn(`[SCHEMA-SYNC] addColumn ${table}.last_read_at:`, e.message));
+      }
+      if (!desc.last_cleared_at && !desc.lastClearedAt) {
+        await queryInterface.addColumn(table, 'last_cleared_at', { type: DataTypes.DATE, allowNull: true })
+          .catch((e) => console.warn(`[SCHEMA-SYNC] addColumn ${table}.last_cleared_at:`, e.message));
       }
     }
 

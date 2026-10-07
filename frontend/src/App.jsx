@@ -228,7 +228,8 @@ function AdminNavItem({to,label,icon,itemKey,language,user,updatesOpen,setUpdate
 function HomeEntry(){
   const u=getUser(); 
   if(!u) return <Login mode="user"/>; 
-  const isPreview = typeof window !== 'undefined' && (new URLSearchParams(window.location.search).get('preview') === 'citizen' || new URLSearchParams(window.location.search).get('preview') === 'true');
+  const search = typeof window !== 'undefined' ? window.location.search : '';
+  const isPreview = Boolean(search && (/preview=citizen|preview=true|plain=1|plain=true/.test(search)));
   if(String(u.role||'').toUpperCase()==='CITIZEN' || isPreview) return <CitizenShell><UserPanel/></CitizenShell>; 
   return <Navigate to="/dashboard" replace/>;
 }
@@ -317,7 +318,17 @@ function CitizenShell({children}){
   return()=>clearTimeout(t);
  },[location.pathname]);
  const logout=()=>{if(!window.confirm(language==='mr'?'तुम्ही साइन आउट करू इच्छिता?':'Sign out of your ward account?'))return;clearSession();window.location.replace('/login')}; const toggleLanguage=()=>switchLanguage(language==='en'?'mr':'en');
- const go=p=>{setMenu(false);setMobileNav(false);setShowNotifications(false);navigate(p)};
+ const isCitizenRole = String(user?.role || '').toUpperCase() === 'CITIZEN';
+ const queryWard = new URLSearchParams(location.search).get('wardId');
+ const isPlainView = location.pathname.startsWith('/citizen-default') || location.pathname === '/plain';
+ const homePath = isCitizenRole
+   ? '/'
+   : (isPlainView ? '/citizen-default' : `/citizen-portal${queryWard ? `?wardId=${queryWard}&preview=citizen` : '?preview=citizen'}`);
+ const go=p=>{
+  setMenu(false);setMobileNav(false);setShowNotifications(false);
+  if(p==='/'){ navigate(homePath); return; }
+  navigate(p);
+ };
  const markNotification=async(id)=>{try{await api.markNotificationRead(id);setNotifications(xs=>xs.map(n=>n.id===id?{...n,isRead:true}:n));}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}};
  const openNotification=async(n)=>{try{if(n?.direction!=='SENT'&&!n?.isRead)await api.markNotificationRead(n.id);setNotifications(xs=>xs.map(x=>x.id===n.id?{...x,isRead:true}:x));setShowNotifications(false);navigate(notificationTarget(n,'citizen'));}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}};
  useEffect(()=>{
@@ -330,6 +341,22 @@ function CitizenShell({children}){
  const markAllNotifications=async()=>{try{await api.markAllNotificationsRead();setNotifications(xs=>xs.map(n=>n.direction==='SENT'?n:{...n,isRead:true}));}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}};
  const clearAllNotifications=async()=>{try{await api.clearNotifications();setNotifications([])}catch(e){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:e.message}}))}};
  return <div className="user-portal">
+   {!isCitizenRole && (
+     <aside className="citizen-preview-bar" aria-label="Preview banner">
+       <div className="preview-bar-left">
+         <span className="preview-badge">👁️ {language === 'mr' ? 'नागरिक पोर्टल पूर्वावलोकन' : 'Citizen View Preview'}</span>
+         <span className="preview-sub">{isPlainView ? (language === 'mr' ? 'डिफॉल्ट प्लेन मनपा दृश्य' : 'Default Plain Municipal Baseline') : (language === 'mr' ? 'नागरिकांना दिसणारे थेट दृश्य' : 'Live view as seen by residents')}</span>
+       </div>
+       <div className="preview-bar-actions">
+         <button type="button" className="preview-btn" onClick={() => navigate('/portal-management')}>
+           ← {language === 'mr' ? 'पोर्टल व्यवस्थापन' : 'Portal Management'}
+         </button>
+         <button type="button" className="preview-btn ghost" onClick={() => navigate('/dashboard')}>
+           🏛️ {language === 'mr' ? 'अॅडमिन डॅशबोर्ड' : 'Admin Dashboard'}
+         </button>
+       </div>
+     </aside>
+   )}
    <header className="user-topbar">
     <div className="user-brand" onClick={()=>go('/')} role="button" tabIndex={0}>
       <div className="user-brand-mark notranslate" translate="no">
@@ -829,6 +856,8 @@ export default function App(){
   <Route path="/" element={<HomeEntry/>}/>
   <Route path="/citizen-portal" element={<CitizenShell><UserPanel/></CitizenShell>}/>
   <Route path="/portal" element={<CitizenShell><UserPanel/></CitizenShell>}/>
+  <Route path="/citizen-default" element={<CitizenShell><UserPanel plainMode={true}/></CitizenShell>}/>
+  <Route path="/plain" element={<CitizenShell><UserPanel plainMode={true}/></CitizenShell>}/>
   <Route path="/admin" element={<AdminEntry/>}/>
   <Route path="/login" element={getUser()?(String(getUser()?.role||'').toUpperCase()==='CITIZEN'?<Navigate to="/" replace/>:<Navigate to="/dashboard" replace/>):<Login mode="user"/>}/>
   <Route path="/admin/login" element={<Navigate to="/admin" replace/>}/>

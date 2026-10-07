@@ -18,8 +18,16 @@ function downloadCsv(rows,name){
 }
 function downloadXlsx(rows,name){
  if(!rows.length)return;
- const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Voter List');XLSX.writeFile(wb,name.endsWith('.xlsx')?name:`${name}.xlsx`);
+ const ws=XLSX.utils.json_to_sheet(rows);
+ const keys=Object.keys(rows[0]||{});
+ ws['!cols']=keys.map(k=>{
+  const max=Math.min(36, Math.max(k.length, ...rows.slice(0,80).map(r=>String(r?.[k]??'').length))+2);
+  return {wch:max};
+ });
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Voter List');XLSX.writeFile(wb,name.endsWith('.xlsx')?name:`${name}.xlsx`);
 }
+
+const COL_ALIGN=['Serial','Age','Gender','Page','EPIC No','House No','Relation'];
 
 export default function GovernmentVoterLists(){
  const user=getUser();
@@ -33,6 +41,8 @@ export default function GovernmentVoterLists(){
  const [filterWardId,setFilterWardId]=useState(ownWard);
  const [detail,setDetail]=useState(null);
  const [detailSearch,setDetailSearch]=useState(''),[detailPage,setDetailPage]=useState(1),[detailSize,setDetailSize]=useState(25);
+ const [viewMode,setViewMode]=useState('table');
+ const [filePreview,setFilePreview]=useState(null);
 
  const wardOptions=useMemo(()=>{
   const list=wards||[];
@@ -65,7 +75,7 @@ export default function GovernmentVoterLists(){
   if(!wardId) return setError('Select the ward this official list belongs to.');
   setBusy(true);setError('');
   try{
-   await api.uploadGovernmentVoterList(file,{
+   const uploaded=await api.uploadGovernmentVoterList(file,{
     wardIds:[String(wardId)],
     assignmentMode:'ALL_NAGARSEVAKS',
     assignedNagarsevakIds:[]
@@ -73,6 +83,8 @@ export default function GovernmentVoterLists(){
    setFile(null);if(inputRef.current)inputRef.current.value='';
    if(!nagarsevak) setFilterWardId(String(wardId));
    await load();
+   const newId=uploaded?.data?.id;
+   if(newId) await openDetails(newId);
   }catch(e){setError(e.message)}finally{setBusy(false)}
  }
 
@@ -88,15 +100,28 @@ export default function GovernmentVoterLists(){
   try{
    setError('');
    const d=(await api.governmentVoterList(id)).data;
-   setDetail(d);setDetailSearch('');setDetailPage(1);
+   setDetail(d);setDetailSearch('');setDetailPage(1);setViewMode('table');
+   if(filePreview?.url) URL.revokeObjectURL(filePreview.url);
+   setFilePreview(null);
+   if(String(d?.fileType||'').toUpperCase()==='PDF'){
+    try{
+     const preview=await api.governmentVoterListFileUrl(id);
+     setFilePreview(preview);
+    }catch(_){setFilePreview(null)}
+   }
   }catch(e){setError(e.message)}
+ }
+ async function closeDetails(){
+  if(filePreview?.url) URL.revokeObjectURL(filePreview.url);
+  setFilePreview(null);
+  setDetail(null);
  }
  async function remove(id){
   if(!confirm('Move this government voter list to Recycle Bin? Extracted names stay recoverable for 30 days.')) return;
   setBusy(true);setError('');
   try{
    await api.deleteGovernmentVoterList(id);
-   if(detail?.id===id) setDetail(null);
+   if(detail?.id===id) closeDetails();
    await load();
   }catch(e){setError(e.message)}finally{setBusy(false)}
  }
@@ -120,7 +145,7 @@ export default function GovernmentVoterLists(){
  useEffect(()=>{if(detailPage!==safePage)setDetailPage(safePage)},[detailPage,safePage]);
 
  return <div className="admin-data-page government-voter-page">
-  <PageHeader title="Government voter lists"/>
+  <PageHeader title="Government voter lists" subtitle="Upload the official PDF for a ward. Names, EPIC numbers and house numbers appear in a clean table you can search and export."/>
   <ErrorBox error={error}/>
 
   {canUpload&&<section className="panel government-voter-upload-panel">
@@ -139,7 +164,7 @@ export default function GovernmentVoterLists(){
   <section className="panel">
    <div className="panel-title"><div><h3>Lists by ward</h3><span>Open a file to see every extracted name below.</span></div></div>
    {!nagarsevak&&<div className="filter-toolbar government-voter-filter">
-    <SearchableSelect label="Show ward" value={filterWardId} onChange={v=>{setFilterWardId(v);if(detail&&wardKey(detail)!==String(v)&&v)setDetail(null)}} options={[{value:'',label:'All wards'},...wardOptions.map(w=>({value:String(w.id),label:formatWardLabel(w)}))]} placeholder="All wards"/>
+    <SearchableSelect label="Show ward" value={filterWardId} onChange={v=>{setFilterWardId(v);if(detail&&wardKey(detail)!==String(v)&&v)closeDetails()}} options={[{value:'',label:'None'},...wardOptions.map(w=>({value:String(w.id),label:formatWardLabel(w)}))]} placeholder="None"/>
    </div>}
    {rows===null?<Loading/>:!visibleLists.length?<Empty>{filterWardId?'No government voter list is uploaded for this ward yet.':'No government voter lists uploaded yet.'}</Empty>:<div className="table-wrap government-voter-table"><table><thead><tr><th>File</th><th>Ward</th><th>Type</th><th>Extracted</th><th>Uploaded by</th><th>Date</th><th>Actions</th></tr></thead><tbody>{visibleLists.map(r=>{
     const selected=detail?.id===r.id;
@@ -167,24 +192,34 @@ export default function GovernmentVoterLists(){
    <div className="panel-title">
     <div>
      <h3>{detail.originalFileName}</h3>
-     <span>{wardLabel(wardKey(detail))} · {detail.extractedCount||0} extracted records · independent government source</span>
+     <span>{wardLabel(wardKey(detail))} · {(detail.extractedCount||filtered.length||0).toLocaleString('en-IN')} names extracted</span>
     </div>
-    <button type="button" className="ghost-btn" onClick={()=>setDetail(null)}>Close data</button>
+    <button type="button" className="ghost-btn" onClick={closeDetails}>Close data</button>
    </div>
    <div className="government-voter-summary">
     <div><span>Ward</span><strong>{wardLabel(wardKey(detail))}</strong></div>
     <div><span>File type</span><strong>{detail.fileType}</strong></div>
-    <div><span>Records extracted</span><strong>{detail.extractedCount||0}</strong></div>
+    <div><span>Records extracted</span><strong>{(detail.extractedCount||0).toLocaleString('en-IN')}</strong></div>
     <div><span>Uploaded</span><strong>{formatDate(detail.createdAt||detail.created_at)}</strong></div>
    </div>
-   <div className="government-voter-detail-toolbar">
-    <input className="grow" placeholder="Search name, EPIC, serial, house, age, gender…" value={detailSearch} onChange={e=>{setDetailSearch(e.target.value);setDetailPage(1)}}/>
-    <button className="small-btn" disabled={!filtered.length} onClick={()=>downloadCsv(filtered,`${String(detail.originalFileName).replace(/\.(pdf|xlsx|csv)$/i,'')}-extracted`)}>Export CSV</button>
-    <button className="small-btn" disabled={!filtered.length} onClick={()=>downloadXlsx(filtered,`${String(detail.originalFileName).replace(/\.(pdf|xlsx|csv)$/i,'')}-extracted`)}>Export Excel</button>
-    <button className="small-btn" onClick={()=>api.downloadGovernmentVoterList(detail.id).catch(e=>setError(e.message))}>Download original</button>
+   <div className="government-voter-view-tabs">
+    <button type="button" className={viewMode==='table'?'is-on':''} onClick={()=>setViewMode('table')}>Extracted table</button>
+    {filePreview&&<button type="button" className={viewMode==='pdf'?'is-on':''} onClick={()=>setViewMode('pdf')}>Original PDF</button>}
    </div>
-   {!filtered.length?<Empty>No extracted rows match this search. Upload the PDF again or choose Extract again if the original file is still on the server.</Empty>:<div className="table-wrap government-voter-preview"><table><thead><tr>{columns.map(k=><th key={k}>{k}</th>)}</tr></thead><tbody>{pageRows.map((row,i)=><tr key={i}>{columns.map(k=><td key={k}>{String(row?.[k]??'')}</td>)}</tr>)}</tbody></table></div>}
-   {filtered.length>0&&<PaginationBar page={safePage} pages={totalPages} total={filtered.length} limit={detailSize} onPage={setDetailPage} onLimit={n=>{setDetailSize(n);setDetailPage(1)}}/>}
+   {viewMode==='pdf'&&filePreview?(
+    <iframe className="government-voter-pdf-frame" title="Original government voter list PDF" src={filePreview.url}/>
+   ):(
+    <>
+     <div className="government-voter-detail-toolbar">
+      <input className="grow" placeholder="Search name, EPIC, serial, house, age, gender…" value={detailSearch} onChange={e=>{setDetailSearch(e.target.value);setDetailPage(1)}}/>
+      <button className="small-btn" disabled={!filtered.length} onClick={()=>downloadCsv(filtered,`${String(detail.originalFileName).replace(/\.(pdf|xlsx|csv)$/i,'')}-extracted`)}>Export CSV</button>
+      <button className="small-btn" disabled={!filtered.length} onClick={()=>downloadXlsx(filtered,`${String(detail.originalFileName).replace(/\.(pdf|xlsx|csv)$/i,'')}-extracted`)}>Export Excel</button>
+      <button className="small-btn" onClick={()=>api.downloadGovernmentVoterList(detail.id).catch(e=>setError(e.message))}>Download original</button>
+     </div>
+     {!filtered.length?<Empty>No extracted rows match this search. Use Extract again if names are missing.</Empty>:<div className="table-wrap government-voter-preview"><table><thead><tr>{columns.map(k=><th key={k} className={COL_ALIGN.includes(k)?'is-center':''}>{k}</th>)}</tr></thead><tbody>{pageRows.map((row,i)=><tr key={i}>{columns.map(k=><td key={k} data-label={k} className={COL_ALIGN.includes(k)?'is-center':''}>{(row?.[k]===null||row?.[k]===undefined||row?.[k]==='')?'—':String(row[k])}</td>)}</tr>)}</tbody></table></div>}
+     {filtered.length>0&&<PaginationBar page={safePage} pages={totalPages} total={filtered.length} limit={detailSize} onPage={setDetailPage} onLimit={n=>{setDetailSize(n);setDetailPage(1)}}/>}
+    </>
+   )}
   </section>}
  </div>;
 }

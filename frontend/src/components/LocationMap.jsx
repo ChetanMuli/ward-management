@@ -222,11 +222,7 @@ export default function LocationPicker({value,onChange,hint,centerFrom=[]}){
 
  async function useGps(){
   if(typeof window!=='undefined' && !window.isSecureContext && window.location.hostname!=='localhost' && window.location.hostname!=='127.0.0.1'){
-    if(window.location.protocol==='http:'){
-      window.location.href = window.location.href.replace('http:', 'https:');
-      return setNote('Redirecting to HTTPS for GPS…');
-    }
-    return setNote('GPS needs https. Open this page via https:// and try again.');
+    return setNote('GPS requires HTTPS or localhost. Please open via https:// or tap the map to set the pin.');
   }
   setGpsBusy(true);
   setNote('Reading precise GPS… Stand still at the door.');

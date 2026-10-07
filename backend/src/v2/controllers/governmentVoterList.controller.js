@@ -120,12 +120,15 @@ function parseOcrPage(text, pageNumber) {
     let house = (houseMatch?.[1] || '').replace(/\s+/g, ' ').trim();
     if (/^Age\s*:/i.test(house)) house = '';
     entries.push({
+      serialNo: null,
+      epicNo: '',
       name,
       relativeName: (relative?.[1] || '').replace(/[|¦]/g,'I').replace(/\s+/g,' ').trim(),
       relativeType: relativeType?.[1] || '',
       houseNumber: house.replace(/[|¦]/g,'I'),
       age: Number(ageGender[1]),
       gender: ageGender[2],
+      page: pageNumber,
     });
   }
 
@@ -135,10 +138,10 @@ function parseOcrPage(text, pageNumber) {
     .map(m => Number(m[1])).find(n => n > 0 && n <= MAX_ROWS);
   const start = firstSerial || serials[0] || null;
   return entries.map((entry, index) => ({
-    page: pageNumber,
-    serialNo: start ? start + index : index + 1,
-    epicNo: epics[index] || '',
     ...entry,
+    page: pageNumber,
+    serialNo: start ? start + index : (entry.serialNo || index + 1),
+    epicNo: epics[index] || entry.epicNo || '',
   }));
 }
 
@@ -182,16 +185,99 @@ async function extractPdf(filePath) {
       const name=((chunk.match(/^Name\s*:\s*(.+)$/m)||[])[1]||'').replace(/[|¦]/g,'I').replace(/\s+/g,' ').trim();
       const ageGender=chunk.match(/Age\s*:\s*(\d+)\s+Gender\s*:\s*(Male|Female|Third Gender)/i);
       const relative=chunk.match(/(?:Father's|Husband's|Mother's)\s+Name\s*:\s*(.+)$/m);
-      return {name,relativeName:(relative?.[1]||'').trim(),age:ageGender?Number(ageGender[1]):null,gender:ageGender?.[2]||'',line:index+1,text:chunk.trim()};
+      const relativeType=chunk.match(/(Father's|Husband's|Mother's)\s+Name\s*:/i);
+      const houseMatch=chunk.match(/House Number\s*:\s*(.*?)(?=\n(?:Photo|Age\s*:)|$)/s);
+      const epic=((chunk.match(/\b[A-Z]{2,3}\/?\d{6,10}\b/)||[])[0]||'');
+      return {
+        serialNo: index+1,
+        epicNo: epic,
+        name,
+        relativeName:(relative?.[1]||'').trim(),
+        relativeType: relativeType?.[1] || '',
+        houseNumber: (houseMatch?.[1]||'').replace(/\s+/g,' ').trim(),
+        age:ageGender?Number(ageGender[1]):null,
+        gender:ageGender?.[2]||'',
+        page: 1,
+      };
     }).filter(r=>r.name);
     if (rows.length >= 5) return rows.slice(0,MAX_ROWS);
   }
   return extractPdfOcr(filePath);
 }
 
+function pickField(row, names) {
+  if (!row || typeof row !== 'object') return '';
+  const entries = Object.entries(row);
+  for (const name of names) {
+    const want = String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (const [key, value] of entries) {
+      const have = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (have === want && value !== null && value !== undefined && String(value).trim() !== '') {
+        return String(value).trim();
+      }
+    }
+  }
+  for (const name of names) {
+    const want = String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (const [key, value] of entries) {
+      const have = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (have.includes(want) && value !== null && value !== undefined && String(value).trim() !== '') {
+        return String(value).trim();
+      }
+    }
+  }
+  return '';
+}
+
+function normalizeVoterRow(row, index) {
+  const serial = pickField(row, ['serialNo', 'serial', 'srno', 'sno', 'slno', 'line']);
+  const epic = pickField(row, ['epicNo', 'epic', 'voterid', 'epicid']);
+  const name = pickField(row, ['name', 'fullname', 'votername', 'electorname']);
+  const relative = pickField(row, ['relativeName', 'relative', 'fathername', 'husbandname', 'mothername', 'guardian']);
+  const relation = pickField(row, ['relativeType', 'relation', 'relationship']);
+  const house = pickField(row, ['houseNumber', 'houseno', 'house', 'doorno']);
+  const age = pickField(row, ['age']);
+  const gender = pickField(row, ['gender', 'sex']);
+  const page = pickField(row, ['page', 'pageno']);
+  if (!name && !epic && !serial) return null;
+  return {
+    'Serial': serial || String(index + 1),
+    'EPIC No': epic,
+    'Name': name,
+    'Relative': relative,
+    'Relation': relation,
+    'House No': house,
+    'Age': age,
+    'Gender': gender,
+    'Page': page,
+  };
+}
+
+function looksLikeElectoralRoll(rows) {
+  if (!rows.length) return false;
+  const keys = Object.keys(rows[0] || {}).map(k => String(k).toLowerCase());
+  return keys.some(k => /name|epic|serial|age|gender|house/.test(k));
+}
+
+function normalizeExtractedRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  if (!rows.length) return [];
+  if (looksLikeElectoralRoll(rows)) {
+    return rows.map((row, i) => normalizeVoterRow(row, i)).filter(Boolean);
+  }
+  return rows.map((row) => {
+    const out = {};
+    Object.entries(row || {}).forEach(([key, value]) => {
+      if (key === 'text' || key === 'line') return;
+      out[key] = value == null ? '' : String(value).trim();
+    });
+    return out;
+  });
+}
+
 async function extractFile(filePath, fileType) {
-  if (fileType === 'PDF') return extractPdf(filePath);
-  return extractXlsx(filePath, fileType === 'CSV');
+  const raw = fileType === 'PDF' ? await extractPdf(filePath) : await extractXlsx(filePath, fileType === 'CSV');
+  return normalizeExtractedRows(raw);
 }
 
 const list = asyncHandler(async (req, res) => {
@@ -330,8 +416,11 @@ const details = asyncHandler(async (req, res) => {
   if (!row) throw new ApiError(404, 'Voter list not found');
   await assertListAccess(row, req);
   const json=row.toJSON();
+  const extractedData = normalizeExtractedRows(json.extractedData);
   return success(res, { data: {
     ...json,
+    extractedData,
+    extractedCount: extractedData.length || json.extractedCount || 0,
     wardIds: parseJsonArray(row.wardIds),
     assignedNagarsevakIds: parseJsonArray(row.assignedNagarsevakIds),
   } });
