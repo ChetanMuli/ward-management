@@ -20,6 +20,12 @@ function notifyPortalUpdated() {
   window.dispatchEvent(new CustomEvent('ward:portal-updated', { bubbles: true }));
 }
 
+function rememberBannerUrl(key, url) {
+  try {
+    if (url && !String(url).startsWith('data:')) localStorage.setItem(key, url);
+  } catch { /* ignore */ }
+}
+
 const CATEGORIES = [
   { id: 'DEVELOPMENT', labelEn: 'Development', labelMr: 'विकास कामे', icon: '🏗️' },
   { id: 'VIDEOS', labelEn: 'Video Report', labelMr: 'व्हिडीओ अहवाल', icon: '🎥' },
@@ -233,10 +239,11 @@ export default function PortalManagement() {
         wardId: effectiveWardId,
         galleryBannerUrl: portalConfig?.galleryBannerUrl || '',
       });
-      storeIfFile(`ward_gallery_banner_${effectiveWardId}`, portalConfig?.galleryBannerUrl);
+      rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}`, portalConfig?.galleryBannerUrl);
       setShowGalleryBannerModal(false);
       notifyPortalUpdated();
       showToast(isMr ? 'गॅलरी बॅनर सेव्ह झाला.' : 'Gallery banner saved.');
+      loadData();
     } catch (err) {
       showToast(err.message || 'Failed to save gallery banner.', 'error');
     } finally {
@@ -372,13 +379,10 @@ export default function PortalManagement() {
         dashboardWorkOrder,
       });
       try {
-        const storeIfFile = (key, url) => {
-          if (url && !String(url).startsWith('data:')) localStorage.setItem(key, url);
-        };
-        storeIfFile(`ward_hero_banner_${effectiveWardId}`, portalConfig?.heroBannerUrl);
+        rememberBannerUrl(`ward_hero_banner_${effectiveWardId}`, portalConfig?.heroBannerUrl);
         localStorage.setItem(`ward_hero_banner_v_${effectiveWardId}`, String(Date.now()));
-        storeIfFile(`ward_complaints_banner_${effectiveWardId}`, portalConfig?.complaintsBannerUrl);
-        storeIfFile(`ward_gallery_banner_${effectiveWardId}`, portalConfig?.galleryBannerUrl);
+        rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}`, portalConfig?.complaintsBannerUrl);
+        rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}`, portalConfig?.galleryBannerUrl);
       } catch { /* ignore */ }
       showToast(isMr ? 'तीन बॅनर या वॉर्डसाठी सेव्ह झाले.' : 'Home, complaints and gallery banners saved for this ward.');
       notifyPortalUpdated();
@@ -1641,188 +1645,213 @@ export default function PortalManagement() {
           }
           onClose={() => setItemModalOpen(false)}
         >
-          <form className="modal-form-grid work-modal-form" onSubmit={handleSaveItem}>
-            <div className="form-section-title span-2" style={{ marginBottom: 4 }}>
-              <strong>{isMr ? 'कामाचा तपशील' : 'Work Details'}</strong>
-              <span>{isMr ? 'शीर्षक, प्रकार आणि फोटो निवडा. मुख्य पानावर दाखवण्यासाठी ⭐ पर्याय निवडा.' : 'Add titles, category, and an image or video. Toggle ⭐ to display on Citizen Dashboard.'}</span>
+          <form className="work-item-form" onSubmit={handleSaveItem}>
+            <p className="work-form-lead">
+              {isMr
+                ? 'फोटो किंवा व्हिडीओ निवडा, शीर्षक भरा आणि नागरिकांना कुठे दिसेल ते ठरवा.'
+                : 'Choose photo or video, add titles, then decide where residents will see this work.'}
+            </p>
+
+            <div className="work-form-type" role="tablist" aria-label={isMr ? 'माध्यम प्रकार' : 'Media type'}>
+              <button
+                type="button"
+                className={`work-form-type-btn ${itemFormData.mediaType !== 'video' ? 'is-on' : ''}`}
+                onClick={() => setItemFormData((prev) => ({
+                  ...prev,
+                  mediaType: 'image',
+                  category: prev.category === 'VIDEOS' ? 'DEVELOPMENT' : prev.category,
+                  badge: prev.badge === 'व्हिडीओ · VIDEO' ? 'काम पूर्ण · COMPLETED' : prev.badge,
+                }))}
+              >
+                <strong>{isMr ? 'फोटो' : 'Photo'}</strong>
+                <span>{isMr ? 'कामाचा स्थिर फोटो' : 'Still image of the work'}</span>
+              </button>
+              <button
+                type="button"
+                className={`work-form-type-btn ${itemFormData.mediaType === 'video' ? 'is-on' : ''}`}
+                onClick={() => setItemFormData((prev) => ({
+                  ...prev,
+                  mediaType: 'video',
+                  category: 'VIDEOS',
+                  badge: 'व्हिडीओ · VIDEO',
+                }))}
+              >
+                <strong>{isMr ? 'व्हिडीओ' : 'Video'}</strong>
+                <span>{isMr ? 'MP4 लिंक + कव्हर' : 'MP4 link and cover'}</span>
+              </button>
             </div>
 
-            <Field label={isMr ? 'प्रकार (Type)' : 'Type'}>
-              <select
-                value={itemFormData.mediaType}
-                onChange={(e) => {
-                  const mediaType = e.target.value;
-                  setItemFormData((prev) => ({
-                    ...prev,
-                    mediaType,
-                    category: mediaType === 'video' ? 'VIDEOS' : (prev.category === 'VIDEOS' ? 'DEVELOPMENT' : prev.category),
-                    badge: mediaType === 'video' ? 'व्हिडीओ · VIDEO' : (prev.badge === 'व्हिडीओ · VIDEO' ? 'काम पूर्ण · COMPLETED' : prev.badge),
-                  }));
-                }}
-              >
-                <option value="image">{isMr ? 'फोटो (Photo)' : 'Photo'}</option>
-                <option value="video">{isMr ? 'व्हिडीओ (Video)' : 'Video'}</option>
-              </select>
-            </Field>
-
-            <Field label={isMr ? 'विभाग (Category)' : 'Category'}>
-              <select
-                value={itemFormData.mediaType === 'video' ? 'VIDEOS' : itemFormData.category}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, category: e.target.value }))}
-                disabled={itemFormData.mediaType === 'video'}
-              >
-                {(itemFormData.mediaType === 'video' ? CATEGORIES.filter((c) => c.id === 'VIDEOS') : CATEGORIES.filter((c) => c.id !== 'VIDEOS')).map((c) => (
-                  <option key={c.id} value={c.id}>{isMr ? c.labelMr : c.labelEn}</option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label={isMr ? 'शीर्षक (मराठी) *' : 'Title (Marathi) *'}>
-              <input
-                required
-                value={itemFormData.titleMr}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, titleMr: e.target.value }))}
-                placeholder={isMr ? 'उदा. रस्ते डांबरीकरण काम' : 'e.g. रस्ते डांबरीकरण'}
-              />
-            </Field>
-
-            <Field label={isMr ? 'शीर्षक (इंग्रजी) *' : 'Title (English) *'}>
-              <input
-                required
-                value={itemFormData.title}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="e.g. Road Asphalting Work"
-              />
-            </Field>
-
-            <Field label={isMr ? 'बॅज / टॅग' : 'Badge / Tag'}>
-              <input
-                value={itemFormData.badge}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, badge: e.target.value }))}
-                placeholder={isMr ? 'काम पूर्ण · COMPLETED' : 'COMPLETED'}
-              />
-            </Field>
-
-            <Field label={isMr ? 'स्थिती (Status)' : 'Status'}>
-              <select
-                value={itemFormData.status}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, status: e.target.value }))}
-              >
-                <option value="PUBLISHED">{isMr ? 'प्रकाशित (Published)' : 'Published'}</option>
-                <option value="DRAFT">{isMr ? 'मसुदा (Draft)' : 'Draft'}</option>
-              </select>
-            </Field>
-
-            <Field label={isMr ? 'तारीख' : 'Date'}>
-              <input
-                type="date"
-                value={itemFormData.date}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, date: e.target.value }))}
-              />
-            </Field>
-
-            <Field label={isMr ? 'ठिकाण' : 'Location'}>
-              <input
-                value={itemFormData.location}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, location: e.target.value }))}
-                placeholder={isMr ? 'उदा. मुख्य रस्ता परिसर' : 'e.g. Main Ward Area'}
-              />
-            </Field>
-
-            {itemFormData.mediaType === 'video' ? (
-              <>
-                <Field label={isMr ? 'व्हिडीओ URL (MP4)' : 'Video URL (MP4)'}>
-                  <input
-                    value={itemFormData.videoUrl || ''}
-                    onChange={(e) => setItemFormData((prev) => ({ ...prev, videoUrl: e.target.value }))}
-                    placeholder="https://… or /gallery/ward-road-work.mp4"
-                  />
-                </Field>
-                <Field label={isMr ? 'कालावधी' : 'Duration'}>
-                  <input
-                    value={itemFormData.duration}
-                    onChange={(e) => setItemFormData((prev) => ({ ...prev, duration: e.target.value }))}
-                    placeholder="02:15"
-                  />
-                </Field>
-                <div className="span-2">
+            <section className="work-form-card">
+              <header className="work-form-card-head">
+                <strong>{isMr ? 'माध्यम' : 'Media'}</strong>
+                <span>{isMr ? 'नागरिक गॅलरीत हा फोटो / कव्हर दिसेल.' : 'This is what residents see on the gallery card.'}</span>
+              </header>
+              {itemFormData.mediaType === 'video' ? (
+                <>
+                  <div className="work-form-grid">
+                    <Field label={isMr ? 'व्हिडीओ URL (MP4)' : 'Video URL (MP4)'}>
+                      <input
+                        value={itemFormData.videoUrl || ''}
+                        onChange={(e) => setItemFormData((prev) => ({ ...prev, videoUrl: e.target.value }))}
+                        placeholder="https://… or /gallery/ward-road-work.mp4"
+                      />
+                    </Field>
+                    <Field label={isMr ? 'कालावधी' : 'Duration'}>
+                      <input
+                        value={itemFormData.duration}
+                        onChange={(e) => setItemFormData((prev) => ({ ...prev, duration: e.target.value }))}
+                        placeholder="02:15"
+                      />
+                    </Field>
+                  </div>
                   <ImageCropField
-                    label={isMr ? 'व्हिडीओ कव्हर फोटो' : 'Video Cover Photo'}
+                    label={isMr ? 'व्हिडीओ कव्हर फोटो' : 'Video cover photo'}
                     value={itemFormData.mediaUrl}
                     onChange={(url) => setItemFormData((prev) => ({ ...prev, mediaUrl: url }))}
                     aspect={16 / 9}
                     outputWidth={960}
-                    uploadLabel={isMr ? 'कव्हर फोटो अपलोड करा' : 'Upload Cover Photo'}
+                    uploadLabel={isMr ? 'कव्हर फोटो अपलोड करा' : 'Upload cover photo'}
                     adjustLabel={isMr ? 'क्रॉप / फ्रेम' : 'Crop / Adjust'}
                   />
-                </div>
-              </>
-            ) : (
-              <div className="span-2">
+                </>
+              ) : (
                 <ImageCropField
-                  label={isMr ? 'कामाचा फोटो' : 'Work Photo'}
+                  label={isMr ? 'कामाचा फोटो' : 'Work photo'}
                   value={itemFormData.mediaUrl}
                   onChange={(url) => setItemFormData((prev) => ({ ...prev, mediaUrl: url }))}
                   aspect={16 / 9}
                   outputWidth={960}
-                  uploadLabel={isMr ? 'फोटो अपलोड करा' : 'Upload Photo'}
-                  adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust Frame'}
-                  hint={isMr ? 'फोटो निवडल्यावर फ्रेम ड्रॅग आणि झूम करून अचूक सेट करा.' : 'Drag and zoom to perfectly frame your photo.'}
+                  uploadLabel={isMr ? 'फोटो अपलोड करा' : 'Upload photo'}
+                  adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust frame'}
+                  hint={isMr ? 'फोटो निवडल्यावर फ्रेम ड्रॅग आणि झूम करून अचूक सेट करा.' : 'After upload, drag and zoom so the work fills the frame.'}
                 />
+              )}
+            </section>
+
+            <section className="work-form-card">
+              <header className="work-form-card-head">
+                <strong>{isMr ? 'कामाचा तपशील' : 'Work details'}</strong>
+                <span>{isMr ? 'मराठी आणि इंग्रजी शीर्षक आवश्यक आहेत.' : 'Marathi and English titles are required.'}</span>
+              </header>
+              <div className="work-form-grid">
+                <Field label={isMr ? 'शीर्षक (मराठी) *' : 'Title (Marathi) *'}>
+                  <input
+                    required
+                    value={itemFormData.titleMr}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, titleMr: e.target.value }))}
+                    placeholder={isMr ? 'उदा. रस्ते डांबरीकरण काम' : 'e.g. रस्ते डांबरीकरण'}
+                  />
+                </Field>
+                <Field label={isMr ? 'शीर्षक (इंग्रजी) *' : 'Title (English) *'}>
+                  <input
+                    required
+                    value={itemFormData.title}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="e.g. Road Asphalting Work"
+                  />
+                </Field>
+                <Field label={isMr ? 'विभाग' : 'Category'}>
+                  <select
+                    value={itemFormData.mediaType === 'video' ? 'VIDEOS' : itemFormData.category}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, category: e.target.value }))}
+                    disabled={itemFormData.mediaType === 'video'}
+                  >
+                    {(itemFormData.mediaType === 'video' ? CATEGORIES.filter((c) => c.id === 'VIDEOS') : CATEGORIES.filter((c) => c.id !== 'VIDEOS')).map((c) => (
+                      <option key={c.id} value={c.id}>{isMr ? c.labelMr : c.labelEn}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label={isMr ? 'स्थिती' : 'Status'}>
+                  <select
+                    value={itemFormData.status}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, status: e.target.value }))}
+                  >
+                    <option value="PUBLISHED">{isMr ? 'प्रकाशित' : 'Published'}</option>
+                    <option value="DRAFT">{isMr ? 'मसुदा' : 'Draft'}</option>
+                  </select>
+                </Field>
+                <Field label={isMr ? 'तारीख' : 'Date'}>
+                  <input
+                    type="date"
+                    value={itemFormData.date}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, date: e.target.value }))}
+                  />
+                </Field>
+                <Field label={isMr ? 'ठिकाण' : 'Location'}>
+                  <input
+                    value={itemFormData.location}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, location: e.target.value }))}
+                    placeholder={isMr ? 'उदा. मुख्य रस्ता परिसर' : 'e.g. Main Ward Area'}
+                  />
+                </Field>
+                <Field className="work-form-span" label={isMr ? 'बॅज / टॅग' : 'Badge / Tag'}>
+                  <input
+                    value={itemFormData.badge}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, badge: e.target.value }))}
+                    placeholder={isMr ? 'काम पूर्ण · COMPLETED' : 'COMPLETED'}
+                  />
+                </Field>
               </div>
-            )}
+            </section>
 
-            <Field label={isMr ? 'वर्णन (मराठी)' : 'Description (Marathi)'}>
-              <textarea
-                rows={3}
-                value={itemFormData.descriptionMr}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, descriptionMr: e.target.value }))}
-                placeholder={isMr ? 'कामाबद्दल माहिती लिहा' : 'Describe the development work in Marathi'}
-              />
-            </Field>
+            <section className="work-form-card">
+              <header className="work-form-card-head">
+                <strong>{isMr ? 'वर्णन' : 'Description'}</strong>
+                <span>{isMr ? 'ऐच्छिक. कामाबद्दल थोडक्यात माहिती.' : 'Optional. A short note about the work.'}</span>
+              </header>
+              <div className="work-form-grid">
+                <Field label={isMr ? 'वर्णन (मराठी)' : 'Description (Marathi)'}>
+                  <textarea
+                    rows={3}
+                    value={itemFormData.descriptionMr}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, descriptionMr: e.target.value }))}
+                    placeholder={isMr ? 'कामाबद्दल माहिती लिहा' : 'Describe the work in Marathi'}
+                  />
+                </Field>
+                <Field label={isMr ? 'वर्णन (इंग्रजी)' : 'Description (English)'}>
+                  <textarea
+                    rows={3}
+                    value={itemFormData.description}
+                    onChange={(e) => setItemFormData((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Describe the development work in English"
+                  />
+                </Field>
+              </div>
+            </section>
 
-            <Field label={isMr ? 'वर्णन (इंग्रजी)' : 'Description (English)'}>
-              <textarea
-                rows={3}
-                value={itemFormData.description}
-                onChange={(e) => setItemFormData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe the development work in English"
-              />
-            </Field>
-
-            <div className="span-2" style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <label className="dashboard-feature-label-inline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <section className="work-form-card work-form-publish">
+              <label className="work-form-check">
                 <input
                   type="checkbox"
-                  style={{ width: 18, height: 18, accentColor: '#2563eb', cursor: 'pointer' }}
                   checked={!!itemFormData.showOnDashboard}
                   onChange={(e) => setItemFormData((prev) => ({ ...prev, showOnDashboard: e.target.checked }))}
                 />
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>
-                  {isMr ? '⭐ नागरिक मुख्य पानावर दाखवा (Show on Citizen Dashboard)' : '⭐ Show on Citizen Dashboard'}
+                <span>
+                  <strong>{isMr ? 'नागरिक मुख्य पानावर दाखवा' : 'Show on citizen Home'}</strong>
+                  <em>{isMr ? 'गॅलरीत राहीलच; होमवरही दिसेल.' : 'Stays in Gallery, and also appears on Home.'}</em>
                 </span>
               </label>
-              <label className="dashboard-feature-label-inline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <label className="work-form-check">
                 <input
                   type="checkbox"
-                  style={{ width: 18, height: 18, accentColor: '#2563eb', cursor: 'pointer' }}
                   checked={!!itemFormData.pinFirst}
                   onChange={(e) => setItemFormData((prev) => ({ ...prev, pinFirst: e.target.checked }))}
                 />
-                <span style={{ fontSize: 13, color: '#475569' }}>
-                  {isMr ? '📌 हे काम सर्वांत पहिले दाखवा (Pin as First Work)' : '📌 Show this work first in order'}
+                <span>
+                  <strong>{isMr ? 'हे काम सर्वांत पहिले दाखवा' : 'Pin this work first'}</strong>
+                  <em>{isMr ? 'गॅलरी यादीच्या वर दिसेल.' : 'Appears at the top of the gallery list.'}</em>
                 </span>
               </label>
-            </div>
+            </section>
 
-            <div className="modal-actions span-2" style={{ marginTop: 12 }}>
+            <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => setItemModalOpen(false)}>
                 {isMr ? 'रद्द करा' : 'Cancel'}
               </button>
               <button type="submit" className="primary-btn" disabled={saving}>
                 {saving
                   ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…')
-                  : (editingItem ? (isMr ? 'अपडेट करा' : 'Update Work') : (isMr ? 'काम जोडा' : 'Add Work'))}
+                  : (editingItem ? (isMr ? 'अपडेट करा' : 'Update work') : (isMr ? 'काम जोडा' : 'Add work'))}
               </button>
             </div>
           </form>

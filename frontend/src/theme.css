@@ -11046,6 +11046,179 @@ html body .portal-management-page .ward-portal-hint{
   }
 }
 
+html body .photo-crop-backdrop{
+  z-index:200040 !important;
+}
+
+html body .modal:has(.work-item-form),
+html body .modal-wide:has(.work-item-form){
+  width:min(780px,calc(100vw - 28px)) !important;
+  max-width:min(780px,calc(100vw - 28px)) !important;
+}
+html body .work-item-form{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:14px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+html body .work-form-lead{
+  margin:0 !important;
+  color:#64748b !important;
+  font-size:13px !important;
+  line-height:1.5 !important;
+}
+html body .work-form-type{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:10px !important;
+}
+html body .work-form-type-btn{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  gap:2px !important;
+  text-align:left !important;
+  padding:12px 14px !important;
+  border:1px solid #dbe3ee !important;
+  border-radius:14px !important;
+  background:#f8fafc !important;
+  color:#334155 !important;
+  box-shadow:none !important;
+  width:100% !important;
+  min-height:64px !important;
+}
+html body .work-form-type-btn strong{
+  font-size:14px !important;
+  font-weight:700 !important;
+  color:#0f172a !important;
+}
+html body .work-form-type-btn span{
+  font-size:12px !important;
+  font-weight:500 !important;
+  color:#64748b !important;
+}
+html body .work-form-type-btn.is-on{
+  background:#eff6ff !important;
+  border-color:#93c5fd !important;
+  box-shadow:0 0 0 3px rgba(37,99,235,.12) !important;
+}
+html body .work-form-card{
+  background:#fff !important;
+  border:1px solid #e2e8f0 !important;
+  border-radius:16px !important;
+  padding:14px 16px 16px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:12px !important;
+}
+html body .work-form-card-head{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:2px !important;
+  padding-bottom:8px !important;
+  border-bottom:1px solid #eef2f7 !important;
+}
+html body .work-form-card-head strong{
+  font-size:13px !important;
+  color:#0f172a !important;
+}
+html body .work-form-card-head span{
+  font-size:12px !important;
+  color:#64748b !important;
+  font-weight:500 !important;
+}
+html body .work-form-grid{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:12px 14px !important;
+}
+html body .work-form-grid > .work-form-span{
+  grid-column:1 / -1 !important;
+}
+html body .work-form-grid label,
+html body .work-item-form label{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:6px !important;
+  font-size:12px !important;
+  font-weight:650 !important;
+  color:#334155 !important;
+  margin:0 !important;
+}
+html body .work-item-form input,
+html body .work-item-form select,
+html body .work-item-form textarea{
+  width:100% !important;
+  min-height:42px !important;
+  border:1px solid #d6dee9 !important;
+  border-radius:10px !important;
+  padding:8px 12px !important;
+  background:#fbfcfe !important;
+  color:#0f172a !important;
+  box-sizing:border-box !important;
+}
+html body .work-item-form textarea{
+  min-height:88px !important;
+  resize:vertical !important;
+}
+html body .work-item-form input:focus,
+html body .work-item-form select:focus,
+html body .work-item-form textarea:focus{
+  background:#fff !important;
+  border-color:#93c5fd !important;
+  outline:none !important;
+  box-shadow:0 0 0 3px rgba(37,99,235,.12) !important;
+}
+html body .work-form-publish{
+  gap:10px !important;
+  background:#f8fafc !important;
+}
+html body .work-form-check{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:flex-start !important;
+  gap:12px !important;
+  cursor:pointer !important;
+  padding:10px 12px !important;
+  border-radius:12px !important;
+  background:#fff !important;
+  border:1px solid #e2e8f0 !important;
+}
+html body .work-form-check input{
+  width:18px !important;
+  height:18px !important;
+  min-height:18px !important;
+  margin-top:2px !important;
+  flex:none !important;
+  accent-color:#2563eb !important;
+}
+html body .work-form-check span{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:2px !important;
+}
+html body .work-form-check strong{
+  font-size:13px !important;
+  color:#0f172a !important;
+  font-weight:700 !important;
+}
+html body .work-form-check em{
+  font-style:normal !important;
+  font-size:12px !important;
+  font-weight:500 !important;
+  color:#64748b !important;
+}
+html body .work-item-form .banner-crop-preview{
+  aspect-ratio:16 / 9 !important;
+}
+@media (max-width:700px){
+  html body .work-form-grid,
+  html body .work-form-type{
+    grid-template-columns:1fr !important;
+  }
+}
+
 
 
 

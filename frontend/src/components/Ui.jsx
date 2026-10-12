@@ -638,7 +638,7 @@ export function ImageCropField({
     img.src=src;
   }
   const node=open?(
-    <div className="photo-crop-backdrop" onPointerDown={()=>{setOpen(false);setSrc('')}}>
+    <div className="photo-crop-backdrop" style={{zIndex:200040}} onPointerDown={()=>{setOpen(false);setSrc('')}}>
       <div className="photo-crop-modal banner-crop-modal" onPointerDown={e=>e.stopPropagation()}>
         <div className="modal-header">
           <div>
@@ -780,7 +780,7 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
  };
 
  const node=open?(
-  <div className="photo-crop-backdrop" onPointerDown={()=>{setOpen(false);setSrc('')}}>
+  <div className="photo-crop-backdrop" style={{zIndex:200040}} onPointerDown={()=>{setOpen(false);setSrc('')}}>
    <div className="photo-crop-modal" onPointerDown={e=>e.stopPropagation()}>
     <div className="modal-header"><div><h2>Adjust profile photo</h2><span>Drag to centre the face, then zoom until it fills the circle.</span></div><button type="button" className="icon-btn" onClick={()=>{setOpen(false);setSrc('')}}>×</button></div>
     <div className="photo-crop-stage" style={{width:STAGE,height:STAGE}} onPointerDown={onPointerDown}>
