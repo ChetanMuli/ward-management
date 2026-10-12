@@ -1,6 +1,7 @@
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {getLanguage, MR_TERMS} from '../language';
+import { publicMediaUrl } from '../utils/portalDefaults';
 
 export function scrollMainToTop(){
  const jump=()=>{
@@ -555,6 +556,7 @@ export function ImageCropField({
   uploadLabel='Upload image',
   adjustLabel='Adjust crop',
 }){
+  const shown=publicMediaUrl(value);
   const fileRef=useRef(null),stageRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1),stageSizeRef=useRef({w:640,h:267});
   const ratio=Math.max(1.2, Number(aspect)||2.4);
   const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false),[stageSize,setStageSize]=useState({w:640,h:267});
@@ -670,20 +672,20 @@ export function ImageCropField({
   return (
     <div className="banner-crop-field">
       {label?<div className="section-label">{label}</div>:null}
-      {value?(
+      {shown?(
         <div
           className="banner-crop-preview"
           style={{
-            backgroundImage: `url(${value})`,
+            backgroundImage: `url(${shown})`,
             aspectRatio: `${Number(aspect) || 2.4} / 1`,
             height: 'auto',
           }}
         />
       ):null}
       <div className="banner-crop-actions">
-        <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{value?'Replace image':uploadLabel}</button>
-        {value?<button type="button" className="small-btn" onClick={()=>openCrop(value)}>{adjustLabel}</button>:null}
-        {value?<button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button>:null}
+        <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{shown?'Replace image':uploadLabel}</button>
+        {shown?<button type="button" className="small-btn" onClick={()=>openCrop(shown)}>{adjustLabel}</button>:null}
+        {shown?<button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button>:null}
       </div>
       {hint?<p className="muted" style={{margin:'6px 0 0'}}>{hint}</p>:null}
       <input ref={fileRef} type="file" accept="image/*" className="camera-hidden-input" onChange={e=>{readFile(e.target.files?.[0]);e.target.value='';}}/>

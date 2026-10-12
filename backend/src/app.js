@@ -51,7 +51,9 @@ app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 const path = require('path');
 const fs = require('fs');
 const uploadsRoot = path.resolve(__dirname, '../uploads');
-app.use('/uploads', express.static(uploadsRoot, { maxAge: '7d', fallthrough: true }));
+const uploadsStatic = express.static(uploadsRoot, { maxAge: '7d', fallthrough: true });
+app.use('/uploads', uploadsStatic);
+app.use('/api/uploads', uploadsStatic);
 
 // General API rate limit; auth routes carry their own tighter limiter.
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 2000, standardHeaders: true, legacyHeaders: false }));

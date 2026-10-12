@@ -385,7 +385,10 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
   }
   persistImageFields(patch, ['heroBannerUrl'], `hero-${String(wardId).slice(0, 8)}`);
   if (typeof patch.heroBannerUrl === 'string' && patch.heroBannerUrl.startsWith('data:')) {
-    patch.heroBannerUrl = config?.heroBannerUrl || DEFAULT_PORTAL_CONFIG.heroBannerUrl;
+    throw new ApiError(400, 'Could not store the hero banner on the server. Check that the uploads/portal folder is writable.');
+  }
+  if (typeof patch.heroBannerUrl === 'string') {
+    patch.heroBannerUrl = publicImageUrl(patch.heroBannerUrl, patch.heroBannerUrl);
   }
 
   const existingMeta = (config && config.meta && typeof config.meta === 'object') ? config.meta : {};

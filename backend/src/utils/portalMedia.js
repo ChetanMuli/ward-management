@@ -20,15 +20,17 @@ function persistDataUrl(value, prefix = 'img') {
   } catch (_) {
     return str;
   }
-  if (!buf.length || buf.length > 4 * 1024 * 1024) return str;
+  if (!buf.length || buf.length > 8 * 1024 * 1024) return str;
   const ext = /png/i.test(m[1]) ? 'png' : /webp/i.test(m[1]) ? 'webp' : 'jpg';
   const name = `${String(prefix || 'img').replace(/[^a-z0-9_-]/gi, '').slice(0, 40)}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
   try {
+    fs.mkdirSync(ROOT, { recursive: true });
     fs.writeFileSync(path.join(ROOT, name), buf);
-  } catch (_) {
+  } catch (err) {
+    console.error('[PORTAL MEDIA WRITE]', ROOT, err.message);
     return str;
   }
-  return `/uploads/portal/${name}`;
+  return `/api/uploads/portal/${name}`;
 }
 
 function persistImageFields(obj, keys, prefix) {
@@ -38,6 +40,9 @@ function persistImageFields(obj, keys, prefix) {
     if (typeof obj[key] === 'string' && obj[key].startsWith('data:image/')) {
       obj[key] = persistDataUrl(obj[key], prefix || key);
     }
+    if (typeof obj[key] === 'string') {
+      obj[key] = publicImageUrl(obj[key], obj[key]);
+    }
   }
   return obj;
 }
@@ -46,6 +51,8 @@ function publicImageUrl(value, fallback = '') {
   if (value == null) return fallback;
   const str = String(value).trim();
   if (!str || str.startsWith('data:')) return fallback;
+  if (str.startsWith('/uploads/')) return `/api${str}`;
+  if (str.startsWith('uploads/')) return `/api/${str}`;
   return str;
 }
 

@@ -1,4 +1,13 @@
 export const CIVIC_DEFAULT_HERO = '/hero-ward-default.jpg';
+
+/** Production nginx usually proxies only /api, not /uploads. */
+export function publicMediaUrl(url) {
+  const s = String(url || '').trim();
+  if (!s) return s;
+  if (s.startsWith('/uploads/')) return `/api${s}`;
+  if (s.startsWith('uploads/')) return `/api/${s}`;
+  return s;
+}
 /** Same frame as Citizen Home hero (desktop overlay card). */
 export const CITIZEN_HERO_ASPECT = 2.4;
 export const CAMPAIGN_STOCK_RE = /hero-campaign-banner|hero-gauri-ajinkya|hero-poster-card|hero-civic-default/i;
@@ -24,7 +33,7 @@ export function isGenericDefaultHero(url) {
 /** One banner for desktop + mobile. Inactive wards use the building default. */
 export function resolveCitizenHeroUrl(url, { demoMode = false } = {}) {
   if (demoMode) return CIVIC_DEFAULT_HERO;
-  const live = String(Array.isArray(url) ? url[0] : url || '').trim();
+  const live = publicMediaUrl(String(Array.isArray(url) ? url[0] : url || '').trim());
   const usable = live && !live.startsWith('data:');
   return usable ? live : CIVIC_DEFAULT_HERO;
 }

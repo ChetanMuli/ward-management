@@ -281,11 +281,9 @@ export default function PortalManagement() {
       if (cfgRes?.data) {
         const loaded = cfgRes.data.config || {};
         const loadedMeta = loaded.meta && typeof loaded.meta === 'object' ? loaded.meta : {};
-        const activationInfo = cfgRes.data.activation || {};
-        const useDefaultHero = Boolean(activationInfo.demoMode) || activationInfo.wardActive === false;
         setPortalConfig({
           ...loaded,
-          heroBannerUrl: useDefaultHero ? '/hero-ward-default.jpg' : (loaded.heroBannerUrl || '/hero-ward-default.jpg'),
+          heroBannerUrl: loaded.heroBannerUrl || '/hero-ward-default.jpg',
           complaintsBannerUrl: loaded.complaintsBannerUrl || loadedMeta.complaintsBannerUrl || '',
           galleryBannerUrl: loaded.galleryBannerUrl || loadedMeta.galleryBannerUrl || '',
         });
