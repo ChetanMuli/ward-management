@@ -35,6 +35,9 @@ const authenticateV2 = asyncHandler(async (req, res, next) => {
   // resident portal so the UI never exposes raw RBAC errors for normal navigation.
   // Ward scope is still enforced by the controllers, so a citizen can only see
   // data belonging to their registered ward.
+  if (roleName === 'SUB_MASTER_ADMIN' && !permissions.includes('DELETE_COMPLAINTS')) {
+    permissions.push('DELETE_COMPLAINTS');
+  }
   if (roleName === 'CITIZEN') {
     const citizenPortalPermissions = [
       'VIEW_DASHBOARD', 'VIEW_WARDS', 'VIEW_WARD_INFORMATION', 'VIEW_WARD_UPDATES',

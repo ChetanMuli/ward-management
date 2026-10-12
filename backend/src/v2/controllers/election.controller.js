@@ -31,7 +31,7 @@ const list = asyncHandler(async (req, res) => {
   return success(res, {
     data: {
       ...electionPayload,
-      sirLists: citySir ? [citySir] : [],
+      sirLists: electionPayload.sirLists || [],
       sirUrl: citySir?.asddUrl || electionPayload.sirUrl,
       sirEarlierUrl: citySir?.earlierUrl || electionPayload.sirEarlierUrl,
       rows,

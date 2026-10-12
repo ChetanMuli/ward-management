@@ -30,12 +30,13 @@ export default function Register(){
  useEffect(()=>{
   setLoadingWards(true);
   api.registrationWards(invite||undefined).then(r=>{
-   const open=r.data||[];
+   const raw=r?.data;
+   const open=Array.isArray(raw)?raw:(Array.isArray(raw?.wards)?raw.wards:[]);
    setWards(open);
-   setForm(f=>{
-    const nextId=open[0]?.id||'';
-    return {...f,wardId:nextId};
-   });
+   setForm(f=>({
+    ...f,
+    wardId: open.length===1 ? open[0].id : (open.some(w=>String(w.id)===String(f.wardId))?f.wardId:'')
+   }));
   }).catch(e=>setError(e.message)).finally(()=>setLoadingWards(false));
  },[invite]);
  useEffect(()=>{try{const safe={...form,password:'',confirmPassword:''};sessionStorage.setItem(KEY,JSON.stringify(safe))}catch{}},[form]);
@@ -71,8 +72,8 @@ export default function Register(){
   );
  }
 
- const ward=wards[0];
- const wardLabel=formatWardLabel(ward,'');
+ const inviteLocked=Boolean(invite) && wards.length===1;
+ const selectedWard=wards.find(w=>String(w.id)===String(form.wardId))||(inviteLocked?wards[0]:null);
  const closed=!loadingWards&&!wards.length&&!error;
 
  return shell(isMr?'तुमचे खाते तयार करा':'Create your account',isMr?'अपडेट्स, योजना, संदेश आणि तक्रारींसाठी एकदाच नोंदणी करा.':'Register once for updates, schemes, messages and complaints.',
@@ -97,16 +98,24 @@ export default function Register(){
     <label className="register-ward-field">{isMr?'वॉर्ड':'Ward'}
      {loadingWards?(
       <div className="register-ward-locked">{isMr?'वॉर्ड लोड होत आहे…':'Loading ward…'}</div>
-     ):ward?(
+     ):inviteLocked?(
       <div className="register-ward-locked">
-       <strong>{wardLabel}</strong>
+       <strong>{formatWardLabel(selectedWard)}</strong>
+       <span>{isMr?'नोंदणी लिंक या वॉर्डसाठी आहे':'This registration link is for this ward'}</span>
       </div>
+     ):wards.length?(
+      <select className="register-ward-select" value={form.wardId||''} onChange={e=>update('wardId',e.target.value)} required>
+       {wards.length>1?<option value="">{isMr?'आपला वॉर्ड निवडा':'Select your ward'}</option>:null}
+       {wards.map(w=>(
+        <option key={w.id} value={w.id}>{formatWardLabel(w)}</option>
+       ))}
+      </select>
      ):error?(
       <div className="register-ward-locked">{isMr?'वॉर्ड लोड करता आला नाही':'Unable to load ward'}</div>
      ):(
       <div className="register-ward-locked is-closed">{isMr?'नोंदणीसाठी वॉर्ड उघडे नाही':'No ward is open'}</div>
      )}
-     <input type="hidden" name="wardId" value={form.wardId||''}/>
+     {inviteLocked?<input type="hidden" name="wardId" value={form.wardId||''}/>:null}
     </label>
    </div>
    <div className="auth-field-row">

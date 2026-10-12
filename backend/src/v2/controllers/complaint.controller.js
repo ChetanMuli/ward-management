@@ -73,7 +73,6 @@ function cleanResolutionImages(body){
 }
 
 const list = asyncHandler(async(req,res)=>{
-  archiveOldComplaints(60).catch(() => {});
   const page=Math.max(Number(req.query.page)||1,1);
   const limit=Math.min(Math.max(Number(req.query.limit)||25,1),100);
   const offset=(page-1)*limit;
@@ -89,7 +88,9 @@ const list = asyncHandler(async(req,res)=>{
   }
 
   if(req.user.roleName==='CITIZEN'){
-    where.submittedByUserId=req.user.id;
+    const citizenMatch=[{submittedByUserId:req.user.id}];
+    if(req.user.personId) citizenMatch.push({citizenPersonId:req.user.personId});
+    where[Op.or]=citizenMatch;
   } else if(req.user.roleName==='EMPLOYEE'){
     if(!req.user.employeeProfile?.id) throw new ApiError(403,'Employee profile is missing');
     where.assignedEmployeeId=req.user.employeeProfile.id;
@@ -106,6 +107,13 @@ const list = asyncHandler(async(req,res)=>{
       const ids=scopeWardIds.length?scopeWardIds:['00000000-0000-0000-0000-000000000000'];
       where[Op.or]=[{wardId:{[Op.in]:ids}},{'$house.area.ward.id$':{[Op.in]:ids}}];
     }
+  }
+
+  const fromDate=isoDay(req.query.fromDate);
+  const toDate=isoDay(req.query.toDate);
+  if(fromDate||toDate){
+    const range=istDayRange(fromDate,toDate);
+    where.createdAt={[Op.gte]:range.start,[Op.lte]:range.end};
   }
 
   const search=String(req.query.search||'').trim();
@@ -147,7 +155,7 @@ const list = asyncHandler(async(req,res)=>{
     limit,
     offset,
     distinct: true,
-    subQuery: false,
+    col: 'id',
   });
   return success(res, { data: await attachNagarPhotos(r.rows), meta: { total: r.count, page, limit, pages: Math.max(1, Math.ceil(r.count / limit)) } });
 });
@@ -167,7 +175,9 @@ async function notifyComplaintCitizen(complaint, type, title, message, senderUse
     if(citizen?.loginAccount?.status==='ACTIVE') recipients.add(citizen.loginAccount.id);
   }
   for(const userId of recipients){
-    await notify(userId,type,title,message,'IN_APP',senderUserId,`/my-complaints?open=${complaint.id}`);
+    if(type==='COMPLAINT_DELETED' && String(userId)===String(senderUserId||'')) continue;
+    const actionUrl=type==='COMPLAINT_DELETED'?'/my-complaints':`/my-complaints?open=${complaint.id}`;
+    await notify(userId,type,title,message,'IN_APP',senderUserId,actionUrl);
   }
 }
 
@@ -405,22 +415,52 @@ const detail = asyncHandler(async(req,res)=>{
   return success(res,{data});
 });
 
-const archiveOldComplaints = async (days = 75) => {
-  try {
-    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    // Complaint has paranoid: true, so destroy() soft-deletes (sets deletedAt),
-    // automatically moving complaints older than 75 days to Recycle Bin!
-    const count = await Complaint.destroy({
-      where: {
-        createdAt: { [Op.lt]: cutoff }
-      }
-    });
-    if (count) console.log(`[COMPLAINT ARCHIVE] moved ${count} complaint(s) older than ${days} days to recycle bin`);
-    return count;
-  } catch (err) {
-    console.error('Archive old complaints error:', err.message);
-    return 0;
-  }
-};
+const archiveOldComplaints = async () => 0;
 
-module.exports={list,create,assign,updateStatus,detail,closeResolvedOvernight,archiveOldComplaints};
+const destroyComplaint = asyncHandler(async (req, res) => {
+  const role = String(req.user.roleName || '');
+  if (!['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'].includes(role)) {
+    throw new ApiError(403, 'Only Master Admin, Sub Master Admin or Nagarsevak can delete a complaint.');
+  }
+  const row = await assertComplaint(req.params.id, req);
+  await notifyComplaintCitizen(
+    row,
+    'COMPLAINT_DELETED',
+    'Your complaint was removed',
+    `${row.complaintNumber} was removed by the ward office and is no longer on My Complaints.`,
+    req.user.id
+  );
+  await row.destroy();
+  await logAudit({
+    user: req.user,
+    action: 'SOFT_DELETE_COMPLAINT',
+    entity: 'Complaint',
+    recordId: row.id,
+    newValue: { deleted: true, wardId: row.wardId },
+    ipAddress: req.ip,
+  });
+  return success(res, { message: 'Complaint deleted from the ward desk and from the citizen’s My Complaints.' });
+});
+
+function isoDay(value) {
+  const day = String(value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : '';
+}
+
+function istDayRange(fromDate, toDate, { bothRequired = false } = {}) {
+  let from = isoDay(fromDate);
+  let to = isoDay(toDate);
+  if (bothRequired && (!from || !to)) throw new ApiError(400, 'Select From date and To date.');
+  if (!from && !to) throw new ApiError(400, 'Select From date and To date.');
+  if (!from) from = to;
+  if (!to) to = from;
+  if (from > to) throw new ApiError(400, 'From date cannot be after To date.');
+  return {
+    from,
+    to,
+    start: new Date(`${from}T00:00:00+05:30`),
+    end: new Date(`${to}T23:59:59.999+05:30`),
+  };
+}
+
+module.exports={list,create,assign,updateStatus,detail,closeResolvedOvernight,archiveOldComplaints,destroyComplaint};

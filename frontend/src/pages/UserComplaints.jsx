@@ -7,6 +7,7 @@ import {packComplaintImages,parseComplaintImages} from '../complaintMedia';
 import {openDirections, getTimelineDescription, formatStatusLabel} from './Complaints';
 import {getAccurateLocation} from '../location';
 import {formatWardLabel} from '../wardFormat';
+import { publicMediaUrl } from '../utils/portalDefaults';
 
 export const COMPLAINT_CATEGORIES=[
   ['WATER','Water Supply','पाणी पुरवठा'],
@@ -59,7 +60,7 @@ export default function UserComplaints({language='en'}){
    if(portalNagarsevaks.length) return portalNagarsevaks.filter(n=>n&&n.id&&!n.isDemo);
    return team?.nagarsevaks||[];
  },[team, portalNagarsevaks]);
- const liveComplaints=(portalConfig?.complaintsBannerUrl||portalConfig?.meta?.complaintsBannerUrl||'');
+ const liveComplaints=publicMediaUrl(portalConfig?.complaintsBannerUrl||portalConfig?.meta?.complaintsBannerUrl||'');
  const liveHero=(liveComplaints&&!String(liveComplaints).startsWith('data:'))?liveComplaints:null;
  const heroBanner=liveHero||cachedHero()||null;
  const nextAction=(status)=>({SUBMITTED:mr?'तक्रार नोंद झाली असून नगरसेवक / कर्मचाऱ्यांकडे पाठवली आहे.':'Complaint is open and waiting for ward assignment/action.',PENDING:mr?'तक्रारीवर पुढील कार्यवाहीची प्रतीक्षा.':'Waiting for the next ward action.',ASSIGNED:mr?'नियुक्त कर्मचारी काम सुरू करेल.':'Assigned employee should start the work.',IN_PROGRESS:mr?'काम सुरू आहे; पूर्ण झाल्यावर फोटोसह अपडेट होईल.':'Work is in progress; the responsible person should update it when completed.',RESOLVED:mr?'काम पूर्ण झाले आहे; प्रशासनाकडून बंद करण्याची प्रक्रिया बाकी.':'Work is marked complete; ward management can close the complaint.',REOPENED:mr?'तक्रार पुन्हा उघडली आहे; पुढील कार्यवाही अपेक्षित.':'Complaint was reopened and needs further action.',CLOSED:mr?'तक्रार बंद करण्यात आली आहे.':'Complaint is closed.'}[status]||'—');
@@ -180,8 +181,8 @@ export default function UserComplaints({language='en'}){
    <button type="button" className="small-btn" onClick={()=>{setSearch('');setStatusFilter('');setCategoryFilter('');setPriorityFilter('');setNagarsevakFilter('')}}>{mr?'फिल्टर साफ करा':'Clear filters'}</button>
  </div>
   {error&&<div className="user-error"><span>{error}</span><button onClick={load}>Retry</button></div>}
-  <section className={`ward-info-card ${heroBanner?'has-portal-banner':''}`} style={heroBanner?{'--portal-hero-bg':`url("${String(heroBanner).replace(/"/g,'')}")`}:undefined}>
-   {heroBanner?<img className="ward-info-banner-photo" src={heroBanner} alt="" onError={(e)=>{e.currentTarget.style.display='none'}}/>:null}
+  <section className={`ward-info-card ${heroBanner?'has-portal-banner':''}`}>
+   {heroBanner?<img className="ward-info-banner-photo" src={heroBanner} alt="" decoding="async" onError={(e)=>{e.currentTarget.style.display='none'}}/>:null}
    <div className="ward-info-main">
     <span className="user-kicker">{mr?'तुमचा वॉर्ड':'Your ward'}</span>
     <h2>{formatWardLabel(team?.ward||user?.ward,'')}</h2>

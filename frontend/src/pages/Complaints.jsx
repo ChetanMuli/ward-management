@@ -23,8 +23,6 @@ const STATUS_FILTER_OPTIONS = [
   { value: 'CLOSED', label: 'Closed' }
 ];
 const blank={houseId:'',citizenPersonId:'',category:'WATER',customCategory:'',location:'',description:'',reportedImages:[]};
-const wa=(mobile,message)=>{let n=String(mobile||'').replace(/\D/g,'');if(n.length===10)n='91'+n;if(n.length<11)throw new Error('Valid mobile number is not available for WhatsApp.');window.open(`https://wa.me/${n}?text=${encodeURIComponent(message)}`,'_blank','noopener,noreferrer')};
-
 export function openDirections(locationStr, house, wardName) {
   let query = String(locationStr || '').trim();
   if (!query && house) {
@@ -116,10 +114,10 @@ export default function Complaints(){
   const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
  const user=getUser();const location=useLocation();const {selectedWardId}=useWardFilter();
- const [rows,setRows]=useState(null),[meta,setMeta]=useState({total:0,page:1,limit:25}),[page,setPage]=useState(1),[limit,setLimit]=useState(25),[filters,setFilters]=useState({search:'',status:'',assignedEmployeeId:''});
+ const [rows,setRows]=useState(null),[meta,setMeta]=useState({total:0,page:1,limit:25}),[page,setPage]=useState(1),[limit,setLimit]=useState(25),[filters,setFilters]=useState({search:'',status:'',assignedEmployeeId:'',fromDate:'',toDate:''});
  const [showFilters,setShowFilters]=useState(false);
  const [people,setPeople]=useState([]),[houses,setHouses]=useState([]),[employees,setEmployees]=useState([]),[nagarsevaks,setNagarsevaks]=useState([]);
- const [open,setOpen]=useState(false),[detail,setDetail]=useState(null),[editing,setEditing]=useState(null),[assigning,setAssigning]=useState(null);
+ const [open,setOpen]=useState(false),[detail,setDetail]=useState(null),[editing,setEditing]=useState(null),[assigning,setAssigning]=useState(null),[removing,setRemoving]=useState(null);
  const [form,setForm]=useState(blank),[error,setError]=useState(''),[busy,setBusy]=useState(false),[locating,setLocating]=useState(false),[previewImage,setPreviewImage]=useState(null);
 
  const handleGetLocation = async () => {
@@ -141,7 +139,7 @@ export default function Complaints(){
  async function load(nextFilters=filters,nextPage=page,nextLimit=limit){
    try{
     setError('');
-    const p={...nextFilters,page:nextPage,limit:nextLimit,wardId:selectedWardId||undefined};
+    const p={...nextFilters,page:nextPage,limit:nextLimit,wardId:selectedWardId||undefined,fromDate:/^\d{4}-\d{2}-\d{2}$/.test(nextFilters.fromDate||'')?nextFilters.fromDate:undefined,toDate:/^\d{4}-\d{2}-\d{2}$/.test(nextFilters.toDate||'')?nextFilters.toDate:undefined};
     const r=await api.complaints(p);
     setRows(r.data||[]);setMeta(r.meta||{total:(r.data||[]).length,page:nextPage,limit:nextLimit});
    }catch(e){setError(e.message);setRows([]);setMeta({total:0,page:1,limit:nextLimit})}
@@ -161,14 +159,15 @@ export default function Complaints(){
    }catch(_){}
  }
  useEffect(()=>{loadReferences()},[selectedWardId]);
- useEffect(()=>{setPage(1)},[selectedWardId,filters.search,filters.status,filters.assignedEmployeeId]);
- useEffect(()=>{const t=setTimeout(()=>load(filters,page,limit),300);return()=>clearTimeout(t)},[selectedWardId,filters.search,filters.status,filters.assignedEmployeeId,page,limit]);
+ useEffect(()=>{setPage(1)},[selectedWardId,filters.search,filters.status,filters.assignedEmployeeId,filters.fromDate,filters.toDate]);
+ useEffect(()=>{const t=setTimeout(()=>load(filters,page,limit),300);return()=>clearTimeout(t)},[selectedWardId,filters.search,filters.status,filters.assignedEmployeeId,filters.fromDate,filters.toDate,page,limit]);
  const pages=Math.max(1,Math.ceil((meta.total||0)/(meta.limit||limit)));
  const wardPeople=people,wardHouses=houses;
  const assignable=employees.filter(e=>isMaster(user)||e.managerUserId===user?.id);
  const visible=useMemo(()=>rows||[],[rows]);
 
- function resetFilters(){const emptyFilters={search:'',status:'',assignedEmployeeId:''};setFilters(emptyFilters);setPage(1);setShowFilters(false);}
+ function resetFilters(){const emptyFilters={search:'',status:'',assignedEmployeeId:'',fromDate:'',toDate:''};setFilters(emptyFilters);setPage(1);setShowFilters(false);}
+ const canDeleteComplaint=(isMaster(user)||isSubMaster(user)||isNagarsevak(user))&&can('DELETE_COMPLAINTS');
  async function create(e){
   e.preventDefault();
   if(form.category === 'OTHER' && !String(form.customCategory||'').trim()){
@@ -248,11 +247,13 @@ export default function Complaints(){
   <PageHeader kicker="Daily work" title="Complaints" action={can('CREATE_COMPLAINTS')?<button className="primary-btn" onClick={()=>{setError('');setOpen(true)}}>+ New complaint</button>:null}/>
   <ErrorBox error={error}/>
   <section className="panel complaint-filters">
-   <div className="filter-panel-head"><div><span className="eyebrow">COMPLAINTS</span><h3>Find a complaint</h3><p>Use search first. Extra filters stay collapsed on mobile.</p></div><div className="filter-actions"><button type="button" className="small-btn filter-toggle" onClick={()=>setShowFilters(v=>!v)}>{showFilters?'Hide filters':'Filters'}{(filters.status||filters.assignedEmployeeId)?' · 1+':''}</button><button type="button" className="small-btn" onClick={resetFilters}>Reset</button></div></div>
+   <div className="filter-panel-head"><div><span className="eyebrow">COMPLAINTS</span><h3>Find a complaint</h3><p>Use search first. Extra filters stay collapsed on mobile.</p></div><div className="filter-actions"><button type="button" className="small-btn filter-toggle" onClick={()=>setShowFilters(v=>!v)}>{showFilters?'Hide filters':'Filters'}{(filters.status||filters.assignedEmployeeId||filters.fromDate||filters.toDate)?' · 1+':''}</button><button type="button" className="small-btn" onClick={resetFilters}>Reset</button></div></div>
    <div className="complaint-filter-grid">
     <WardFilter/>
     <Field className="filter-search" label="Search"><input placeholder="Complaint ID, citizen or mobile…" value={filters.search} onChange={e=>setFilters({...filters,search:e.target.value})}/></Field>
     <div className={`complaint-extra-filters ${showFilters?'is-open':''}`}>
+      <Field label="From date"><input type="date" value={filters.fromDate} onChange={e=>setFilters({...filters,fromDate:e.target.value})}/></Field>
+      <Field label="To date"><input type="date" value={filters.toDate} onChange={e=>setFilters({...filters,toDate:e.target.value})}/></Field>
       <Field label="Status"><select value={filters.status} onChange={e=>setFilters({...filters,status:e.target.value})}><option value="">All status</option>{STATUS_FILTER_OPTIONS.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
       {!isEmployee(user)&&assignable.length>0&&<SearchableSelect label="Employee" value={filters.assignedEmployeeId} onChange={v=>setFilters({...filters,assignedEmployeeId:v})} options={[{value:'',label:'All employees'},...assignable.map(e=>({value:e.id,label:`${e.User?.name||'Employee'}${e.designation?` · ${e.designation}`:''}`}))]} placeholder="Search employee…"/>}
     </div>
@@ -302,7 +303,7 @@ export default function Complaints(){
      <div className="muted">Employee: {c.assignedEmployee?.User?.name||'Not assigned'}</div>
     </td>
    <td data-label="Created">{fmtDateTime(c.createdAt)}</td>
-   <td data-label="Actions"><RowMenu items={[
+   <td data-label="Actions"><div className="complaint-row-actions">{canDeleteComplaint&&<button type="button" className="small-btn danger" onClick={()=>setRemoving(c)}>Delete</button>}<RowMenu items={[
      {label:'View details',onClick:()=>openDetail(c.id)},
      (isMaster(user)||isNagarsevak(user)||isSubMaster(user))&&!['RESOLVED','CLOSED'].includes(c.status)&&{
        label:(c.assignedEmployeeId || c.assignedEmployee)?'Reassign':'Assign',
@@ -331,10 +332,8 @@ export default function Complaints(){
          reassignToSelf:false
        })
      },
-     can('EDIT_COMPLAINTS')&&!isEmployee(user)&&c.status==='RESOLVED'&&{label:'Close',onClick:async()=>{if(!window.confirm(`Close complaint ${c.complaintNumber}?`))return;try{await api.updateComplaintStatus(c.id,{status:'CLOSED',comment:'Closed after resolution.'});await load()}catch(e){setError(e.message)}}},
-     c.assignedEmployee?.manager?.mobile&&{label:'WhatsApp Nagarsevak',onClick:()=>{try{wa(c.assignedEmployee.manager.mobile,`Complaint ${c.complaintNumber}: ${c.status}. Please review/coordinate this complaint.`)}catch(e){setError(e.message)}}},
-     can('DELETE_COMPLAINTS')&&{label:'Delete',danger:true,onClick:async()=>{if(!window.confirm(`Move complaint ${c.complaintNumber} to recycle bin?`))return;try{await api.deleteComplaint(c.id);await load()}catch(e){setError(e.message)}}}
-   ]}/></td>
+     can('EDIT_COMPLAINTS')&&!isEmployee(user)&&c.status==='RESOLVED'&&{label:'Close',onClick:async()=>{if(!window.confirm(`Close complaint ${c.complaintNumber}?`))return;try{await api.updateComplaintStatus(c.id,{status:'CLOSED',comment:'Closed after resolution.'});await load()}catch(e){setError(e.message)}}}
+   ]}/></div></td>
   </tr>)}</tbody></table></div>}
   {rows&&visible.length>0&&<PaginationBar page={page} pages={pages} total={meta.total||0} limit={limit} onPage={setPage} onLimit={setLimit}/>}
 
@@ -648,6 +647,30 @@ export default function Complaints(){
        setDetail(null);
      }}>Update Status</button>}
      {can('EDIT_COMPLAINTS')&&!isEmployee(user)&&detail.status==='RESOLVED'&&<button className="primary-btn" onClick={async()=>{try{await api.updateComplaintStatus(detail.id,{status:'CLOSED',comment:'Closed after resolution.'});setDetail(null);await load()}catch(e){setError(e.message)}}}>Mark closed</button>}
+     {canDeleteComplaint&&<button type="button" className="primary-btn danger" onClick={()=>setRemoving(detail)}>Delete</button>}
+   </div>
+  </Modal>}
+
+  {removing&&<Modal title={`Delete ${removing.complaintNumber}?`} onClose={()=>!busy&&setRemoving(null)}>
+   <p className="activation-confirm-copy">This complaint will be removed from the ward desk and from the citizen’s My Complaints. It stays in Recycle bin for 30 days if you need to restore it.</p>
+   <dl className="nagar-activation-facts" style={{margin:'12px 0 16px'}}>
+    <div><dt>Ward</dt><dd>{formatWardNumber(removing.ward?.wardNumber||removing.house?.area?.ward?.wardNumber)||'—'}{removing.ward?.name||removing.house?.area?.ward?.name?` · ${removing.ward?.name||removing.house?.area?.ward?.name}`:''}</dd></div>
+    <div><dt>Citizen</dt><dd>{removing.citizen?.fullName||removing.submittedBy?.name||'Registered user'}</dd></div>
+    <div><dt>Mobile</dt><dd>{removing.citizen?.mobile||removing.submittedBy?.mobile||'—'}</dd></div>
+    <div className="span-2"><dt>Problem</dt><dd>{removing.description||removing.category||'—'}</dd></div>
+   </dl>
+   <div className="modal-actions">
+    <button type="button" className="ghost-btn" disabled={busy} onClick={()=>setRemoving(null)}>Keep complaint</button>
+    <button type="button" className="primary-btn danger" disabled={busy} onClick={async()=>{
+      setBusy(true);
+      try{
+        await api.deleteComplaint(removing.id);
+        setRemoving(null);
+        setDetail(null);
+        await load();
+      }catch(e){setError(e.message)}
+      finally{setBusy(false)}
+    }}>{busy?'Please wait…':'Delete'}</button>
    </div>
   </Modal>}
 

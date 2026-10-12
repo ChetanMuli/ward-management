@@ -587,7 +587,7 @@ function GlobalPagination(){
   return()=>items.forEach(el=>{el.style.display='';});
  },[state.root,state.count,page,pageSize]);
 
- if(['/groups','/messages','/deaths','/people','/voters','/complaints','/government-voter-lists','/staff','/users','/houses','/nagarsevak-subscriptions'].includes(location.pathname)||!state.count)return null;
+ if(['/groups','/messages','/deaths','/people','/voters','/complaints','/government-voter-lists','/staff','/users','/houses','/families','/shops','/nagarsevak-subscriptions','/ward-activation','/stakeholders','/sub-admins','/recycle-bin','/schemes'].includes(location.pathname)||!state.count)return null;
  const totalPages=Math.max(1,Math.ceil(state.count/pageSize));
  const current=Math.min(page,totalPages);
  const go=p=>setPage(Math.max(1,Math.min(totalPages,p)));

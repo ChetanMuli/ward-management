@@ -26,6 +26,15 @@ const schedule=require('../controllers/schedule.controller');
 const portalConfig=require('../controllers/portalConfig.controller');
 const multer=require('multer');
 const voterListUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:100*1024*1024},fileFilter:(req,file,cb)=>{const ext=require('path').extname(file.originalname||'').toLowerCase();cb(null,['.pdf','.xlsx','.csv'].includes(ext));}});
+const portalMediaUpload=multer({
+  storage:multer.memoryStorage(),
+  limits:{fileSize:60*1024*1024},
+  fileFilter:(req,file,cb)=>{
+    const mime=String(file.mimetype||'').toLowerCase();
+    const ok=mime.startsWith('video/')||mime.startsWith('image/');
+    cb(ok?null:new Error('Only video or image files are allowed.'), ok);
+  }
+});
 const router=express.Router();
 const registrationLimiter=rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false});
 const registrationWardsLimiter=rateLimit({windowMs:15*60*1000,max:120,standardHeaders:true,legacyHeaders:false});
@@ -211,7 +220,7 @@ router.get('/complaints',(req,res,next)=>req.user.roleName==='CITIZEN'?next():re
 router.post('/complaints',(req,res,next)=>req.user.roleName==='CITIZEN'?next():requirePermission('CREATE_COMPLAINTS')(req,res,next),complaints.create);
 router.post('/complaints/:id/assign',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK'),complaints.assign);
 router.patch('/complaints/:id/status',requirePermission('EDIT_COMPLAINTS'),complaints.updateStatus);
-router.delete('/complaints/:id',requirePermission('DELETE_COMPLAINTS'),data.deleteComplaint);
+router.delete('/complaints/:id',requirePermission('DELETE_COMPLAINTS'),complaints.destroyComplaint);
 router.get('/complaints/:id',(req,res,next)=>req.user.roleName==='CITIZEN'?next():requirePermission('VIEW_COMPLAINTS')(req,res,next),complaints.detail);
 router.get('/18plus',requirePermission('VIEW_18PLUS'),data.upcoming18);
 router.get('/death-records',requirePermission('VIEW_DEATH_RECORDS'),deaths.list);
@@ -244,6 +253,7 @@ router.delete('/schedules/:id',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','N
 
 // Citizen Portal & Gallery CMS Management (Nagarsevak & Admin)
 router.patch('/portal-config', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.updatePortalConfig);
+router.post('/portal-media', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalMediaUpload.single('file'), portalConfig.uploadPortalMedia);
 router.post('/gallery-items', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.createGalleryItem);
 router.patch('/gallery-items/:id', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.updateGalleryItem);
 router.delete('/gallery-items/:id', requireV2Role('SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'), portalConfig.deleteGalleryItem);

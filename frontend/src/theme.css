@@ -11219,6 +11219,269 @@ html body .work-item-form .banner-crop-preview{
   }
 }
 
+html body .portal-live-banner-card{
+  background:#fff !important;
+  border:1px solid #dbe3ee !important;
+  border-radius:16px !important;
+  padding:14px 16px 16px !important;
+  margin:0 0 14px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:12px !important;
+}
+html body .portal-live-banner-head{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:space-between !important;
+  gap:12px !important;
+  flex-wrap:wrap !important;
+}
+html body .portal-live-banner-head strong{
+  display:block !important;
+  font-size:14px !important;
+  color:#0f172a !important;
+}
+html body .portal-live-banner-head span{
+  display:block !important;
+  font-size:12px !important;
+  color:#64748b !important;
+  margin-top:2px !important;
+}
+html body .portal-live-banner-photo{
+  width:100% !important;
+  min-height:120px !important;
+  border-radius:14px !important;
+  background:#0b1624 center / cover no-repeat !important;
+  border:1px solid #d6dee9 !important;
+}
+html body .portal-live-banner-empty{
+  min-height:88px !important;
+  display:grid !important;
+  place-items:center !important;
+  border:1px dashed #cbd5e1 !important;
+  border-radius:14px !important;
+  background:#f8fafc !important;
+  color:#64748b !important;
+  font-size:13px !important;
+  padding:16px !important;
+  text-align:center !important;
+}
+html body .portal-section-save{
+  margin-top:10px !important;
+}
+html body .work-video-upload{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:10px !important;
+}
+html body .work-video-preview{
+  width:100% !important;
+  max-height:280px !important;
+  border-radius:14px !important;
+  background:#0b1624 !important;
+  border:1px solid #d6dee9 !important;
+}
+html body .work-video-empty{
+  min-height:88px !important;
+  display:grid !important;
+  place-items:center !important;
+  border:1px dashed #cbd5e1 !important;
+  border-radius:14px !important;
+  background:#f8fafc !important;
+  color:#64748b !important;
+  font-size:13px !important;
+  text-align:center !important;
+  padding:16px !important;
+}
+html body .work-video-actions{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:8px !important;
+  align-items:center !important;
+}
+html body .work-video-file-btn{
+  position:relative !important;
+  overflow:hidden !important;
+  margin:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-height:42px !important;
+  padding:0 18px !important;
+  border-radius:999px !important;
+  background:#0f766e !important;
+  color:#fff !important;
+  border:0 !important;
+  font-weight:700 !important;
+  font-size:13px !important;
+  cursor:pointer !important;
+}
+html body .work-video-file-btn:hover{
+  background:#0d9488 !important;
+}
+html body .user-portal .user-hero.has-portal-banner,
+html body .user-portal .user-hero.is-hero-loading,
+html body .user-portal .user-hero.has-custom-hero,
+html body .user-portal .user-hero.is-civic-hero{
+  background-image:none !important;
+  background-color:#0b1624 !important;
+}
+html body .user-hero-ambient-live{
+  display:none !important;
+}
+html body .ward-info-card.has-portal-banner{
+  background-image:none !important;
+}
+html body .work-video-file-btn input[type=file]{
+  position:absolute !important;
+  inset:0 !important;
+  opacity:0 !important;
+  cursor:pointer !important;
+  min-height:0 !important;
+  padding:0 !important;
+  border:0 !important;
+}
+
+html body .register-page .register-ward-field select,
+html body .register-page .register-ward-select{
+  display:block !important;
+  width:100% !important;
+  min-height:46px !important;
+  border:1px solid #94a3b8 !important;
+  border-radius:12px !important;
+  padding:10px 36px 10px 12px !important;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%230f172a' d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 14px center !important;
+  appearance:none !important;
+  -webkit-appearance:none !important;
+  font-size:14px !important;
+  font-weight:700 !important;
+  color:#0f172a !important;
+  cursor:pointer !important;
+}
+
+@media (min-width:801px){
+  html body .app-shell .table-wrap tbody td[data-label="Actions"],
+  html body .app-shell .table-wrap tbody td[data-label="Panel"],
+  html body .app-shell .table-wrap tbody td.staff-actions,
+  html body .ward-activation-page .activation-board-table td[data-label="Actions"]{
+    display:table-cell !important;
+    width:auto !important;
+    min-width:268px !important;
+    max-width:320px !important;
+    vertical-align:middle !important;
+    grid-template-columns:none !important;
+  }
+  html body .ward-activation-page .table-wrap,
+  html body .nagarsevak-sub-page .table-wrap,
+  html body .community-page .table-wrap,
+  html body .subadmins-page .table-wrap,
+  html body .staff-page .table-wrap{
+    overflow-x:auto !important;
+  }
+  html body .ward-activation-page .activation-board-table{
+    min-width:1080px !important;
+    width:100% !important;
+    table-layout:auto !important;
+  }
+}
+
+html body .ward-activation-page .activation-row-actions,
+html body .nagarsevak-sub-page .sub-panel-actions,
+html body .community-page td[data-label="Action"],
+html body .community-page td[data-label="Actions"]{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:stretch !important;
+  justify-content:flex-start !important;
+  gap:8px !important;
+  width:260px !important;
+  max-width:100% !important;
+  min-width:0 !important;
+}
+html body .ward-activation-page .activation-row-actions .small-btn,
+html body .nagarsevak-sub-page .sub-panel-actions .small-btn,
+html body .community-page td[data-label="Action"] .small-btn,
+html body .community-page td[data-label="Actions"] .small-btn{
+  flex:1 1 calc(50% - 8px) !important;
+  width:auto !important;
+  min-width:120px !important;
+  max-width:none !important;
+  height:36px !important;
+  min-height:36px !important;
+  justify-content:center !important;
+  white-space:nowrap !important;
+  padding:0 10px !important;
+  font-size:12px !important;
+  line-height:1 !important;
+}
+html body .ward-activation-page .activation-manage-btn{
+  flex:1 1 100% !important;
+}
+
+html body .complaints-page .complaint-row-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  flex-wrap:nowrap !important;
+}
+html body .complaints-page .complaint-row-actions .small-btn.danger{
+  height:36px !important;
+  min-height:36px !important;
+  white-space:nowrap !important;
+  padding:0 12px !important;
+}
+html body .complaints-page .complaint-extra-filters{
+  grid-column:1 / -1 !important;
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:12px !important;
+}
+html body .complaints-page .complaint-extra-filters > *{
+  grid-column:auto !important;
+  min-width:0 !important;
+  width:100% !important;
+}
+@media (max-width:900px){
+  html body .complaints-page .complaint-extra-filters{
+    display:none !important;
+  }
+  html body .complaints-page .complaint-extra-filters.is-open{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+  }
+  html body .complaints-page .complaint-row-actions{
+    justify-content:flex-start !important;
+  }
+}
+@media (max-width:600px){
+  html body .complaints-page .complaint-extra-filters.is-open{
+    grid-template-columns:1fr !important;
+  }
+}
+html body .staff-page .row-menu,
+html body .subadmins-page .row-menu,
+html body .users-page .row-menu{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+}
+@media (max-width:800px){
+  html body .ward-activation-page .activation-row-actions,
+  html body .nagarsevak-sub-page .sub-panel-actions,
+  html body .community-page td[data-label="Action"],
+  html body .community-page td[data-label="Actions"]{
+    width:100% !important;
+  }
+  html body .ward-activation-page .activation-board-table td[data-label="Actions"],
+  html body .ward-activation-page .table-wrap tbody td[data-label="Actions"]{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+  }
+}
+
 
 
 

@@ -94,8 +94,8 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Automated 2-stage data lifecycle:
-// Stage 1: Active daily tasks/schedules, complaints, and chats older than 75 days are moved to the Recycle Bin.
-// Stage 2: Any records in the Recycle Bin (manual deletions across all sections or 75-day auto-archived records) are permanently deleted after 30 days.
+// Stage 1: Active daily tasks/schedules and chats older than 75 days are archived. Complaints stay on the Complaints list until an admin deletes them.
+// Stage 2: Any records in the Recycle Bin (manual deletions) are permanently deleted after 30 days.
 // Audit logs older than 2 days are also cleared.
 try {
   const { cleanupAuditLogs, cleanupRecycleBin } = require('./v2/controllers/maintenance.controller');
@@ -103,12 +103,14 @@ try {
   const { archiveOldComplaints } = require('./v2/controllers/complaint.controller');
   const { archiveOldChats } = require('./v2/controllers/chat.controller');
 
+  const { sweepPortalUploads } = require('./utils/portalMedia');
   const runMaintenance = () => Promise.all([
     cleanupAuditLogs(2),
     archiveOldChats(75),
-    archiveOldComplaints(75),
+    archiveOldComplaints(),
     archiveOldSchedules(75),
     cleanupRecycleBin(30),
+    sweepPortalUploads(),
   ]).catch((err) => {
     console.error('[MAINTENANCE ERROR]', err.message);
   });

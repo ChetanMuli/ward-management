@@ -129,11 +129,15 @@ async function scopeAreaIds(req, requestedWardId) {
 
 async function familyIdsForAreas(areaIds) {
   if (!areaIds) return null;
-  const houses = await House.findAll({ where: { areaId: { [Op.in]: areaIds.length ? areaIds : ['00000000-0000-0000-0000-000000000000'] } }, attributes: ['id'] });
-  const houseIds = houses.map(h => h.id);
-  if (!houseIds.length) return [];
-  const families = await Family.findAll({ where: { houseId: { [Op.in]: houseIds } }, attributes: ['id'] });
-  return families.map(f => f.id);
+  if (!areaIds.length) return [];
+  const [rows] = await Family.sequelize.query(
+    `SELECT f.id AS id FROM families f
+     INNER JOIN houses h ON h.id = f.house_id AND h.deleted_at IS NULL
+     WHERE f.deleted_at IS NULL AND h.area_id IN (:areaIds)
+     LIMIT 20000`,
+    { replacements: { areaIds } }
+  );
+  return (rows || []).map((r) => r.id);
 }
 
 async function houseWhere(req, extra = {}) {
@@ -171,7 +175,7 @@ const houses = asyncHandler(async (req, res) => {
   const r = await House.findAndCountAll({
     where,
     include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name','areaId'] }],
-    limit, offset, order: [['createdAt', 'DESC']], distinct: true,
+    limit, offset, order: [['createdAt', 'DESC']], distinct: true, col: 'id',
   });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });
 });
@@ -207,7 +211,7 @@ const families = asyncHandler(async (req, res) => {
   if (areaIds) {
     include[1] = { ...include[1], where: { areaId: { [Op.in]: areaIds.length ? areaIds : ['00000000-0000-0000-0000-000000000000'] } }, required: true };
   }
-  const r = await Family.findAndCountAll({ where, include, limit, offset, distinct: true, order: [['createdAt', 'DESC'], ['familyName', 'ASC']] });
+  const r = await Family.findAndCountAll({ where, include, limit, offset, distinct: true, col: 'id', order: [['createdAt', 'DESC'], ['familyName', 'ASC']] });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });
 });
 const family = asyncHandler(async (req, res) => { const row = await assertFamily(req.params.id, req); const full = await Family.findByPk(row.id, { include: familyInclude }); return success(res, { data: full }); });
@@ -305,7 +309,7 @@ const persons = asyncHandler(async (req, res) => {
       ]
     };
   }
-  const r = await Person.findAndCountAll({ where, include, limit, offset, distinct: true, order: [['fullName', 'ASC']] });
+  const r = await Person.findAndCountAll({ where, include, limit, offset, distinct: true, col: 'id', order: [['fullName', 'ASC']] });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });
 });
 const person = asyncHandler(async (req, res) => {
@@ -414,7 +418,7 @@ const complaints = asyncHandler(async (req, res) => {
     { model: require('../../models').Employee, as: 'assignedEmployee', include: [{ model: require('../../models').User, as: 'manager', attributes: ['id', 'name', 'email', 'mobile'] }, { model: require('../../models').User, as: 'User', attributes: ['id', 'name', 'email', 'mobile'] }] },
   ];
   if (areaIds) include[1] = { ...include[1], where: { areaId: { [Op.in]: areaIds.length ? areaIds : ['00000000-0000-0000-0000-000000000000'] } }, required: true };
-  const r = await Complaint.findAndCountAll({ where, include, limit, offset, order: [['createdAt', 'DESC']], distinct: true, subQuery:false });
+  const r = await Complaint.findAndCountAll({ where, include, limit, offset, order: [['createdAt', 'DESC']], distinct: true, col: 'id' });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });
 });
 const complaint = asyncHandler(async (req, res) => success(res, { data: await assertComplaint(req.params.id, req) }));
@@ -432,7 +436,7 @@ const upcoming18 = asyncHandler(async (req, res) => {
     status: 'ACTIVE',
     dob: { [Op.between]: [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)] },
   };
-  if (areaIds) {
+  if (req.query.areaId && areaIds) {
     const familyIds = await familyIdsForAreas(areaIds);
     where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
   }
@@ -455,8 +459,10 @@ const birthdays = asyncHandler(async (req, res) => {
   }
   const bdayWhere = { status: 'ACTIVE', [Op.or]: pairs };
   if (req.query.wardId) bdayWhere.wardId = req.query.wardId;
-  let personIds = null;
-  if (areaIds) {
+  if (req.query.areaId && areaIds) {
+    const familyIds = await familyIdsForAreas(areaIds);
+    bdayWhere.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
+  } else if (!req.query.wardId && areaIds) {
     const familyIds = await familyIdsForAreas(areaIds);
     bdayWhere.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
   }
@@ -711,6 +717,15 @@ const createPerson = asyncHandler(async(req,res)=>{
   return success(res,{statusCode:201,data:full,message:'Citizen created and added to family registers'});
 });
 const deletePerson = asyncHandler(async(req,res)=>{const row=await assertPerson(req.params.id,req);if(row.status==='DECEASED') throw new ApiError(409,'Deceased citizens stay in Death Records. Restore the death record first if this was marked by mistake.');await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_CITIZEN',entity:'Person',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Citizen moved to recycle bin'});});
-const deleteComplaint = asyncHandler(async(req,res)=>{const row=await assertComplaint(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_COMPLAINT',entity:'Complaint',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'Complaint moved to recycle bin'});});
+const deleteComplaint = asyncHandler(async(req,res)=>{
+  const role=String(req.user.roleName||'');
+  if(!['SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK'].includes(role)){
+    throw new ApiError(403,'Only Master Admin, Sub Master Admin or Nagarsevak can delete a complaint.');
+  }
+  const row=await assertComplaint(req.params.id,req);
+  await row.destroy();
+  await logAudit({user:req.user,action:'SOFT_DELETE_COMPLAINT',entity:'Complaint',recordId:row.id,newValue:{deleted:true,wardId:row.wardId},ipAddress:req.ip});
+  return success(res,{message:'Complaint moved to recycle bin. Restore it from Recycle bin if this was a mistake.'});
+});
 
 module.exports={houses,house,createHouse,updateHouse,deleteHouse,families,family,createFamily,updateFamily,deleteFamily,persons,person,createPerson,updatePerson,deletePerson,voters,updateVoter,complaints,complaint,deleteComplaint,upcoming18,birthdays};

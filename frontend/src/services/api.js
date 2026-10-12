@@ -63,7 +63,7 @@ export const api={
  login:(identifier,password)=>v2Request('/auth/login',{method:'POST',body:JSON.stringify({identifier,password})}),
  forgotRequest:d=>v2Request('/auth/forgot/request',{method:'POST',body:JSON.stringify(d)}),
  forgotReset:d=>v2Request('/auth/forgot/reset',{method:'POST',body:JSON.stringify(d)}),
- registrationWards:(invite)=>v2('/auth/registration-wards',invite?{invite}:{}),
+ registrationWards:(invite)=>v2('/auth/registration-wards',invite?{invite,t:Date.now()}:{t:Date.now()}),
  registerCitizen:d=>v2Request('/auth/register',{method:'POST',body:JSON.stringify(d)}),
  me:()=>v2('/me'),
  updateProfile:d=>v2Request('/profile',{method:'PATCH',body:JSON.stringify(d)}),
@@ -195,6 +195,19 @@ archiveWardUpdate:id=>v2Request(`/ward-updates/${id}/archive`,{method:'PATCH'}),
  deleteSchedule:id=>v2Request(`/schedules/${id}`,{method:'DELETE'}),
  portalConfig:(p={})=>v2('/portal-config',p),
  updatePortalConfig:d=>v2Request('/portal-config',{method:'PATCH',body:JSON.stringify(d),silent:true}),
+ uploadPortalMedia:async(file)=>{
+  const token=getToken();
+  const body=new FormData();
+  body.append('file',file);
+  const response=await fetch(`${API_BASE_URL}/v2/portal-media`,{
+    method:'POST',
+    headers:token?{Authorization:`Bearer ${token}`}:{},
+    body,
+  });
+  let payload=null; try{payload=await response.json()}catch{}
+  if(!response.ok) throw new Error(payload?.message||payload?.error||'Upload failed');
+  return payload;
+ },
  galleryItems:(p={})=>v2('/gallery-items',p),
  createGalleryItem:d=>v2Request('/gallery-items',{method:'POST',body:JSON.stringify(d),silent:true}),
  updateGalleryItem:(id,d)=>v2Request(`/gallery-items/${id}`,{method:'PATCH',body:JSON.stringify(d),silent:true}),

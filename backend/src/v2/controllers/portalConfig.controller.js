@@ -12,7 +12,8 @@ const asyncHandler = require('../../utils/asyncHandler');
 const ApiError = require('../../utils/ApiError');
 const { success } = require('../../utils/apiResponse');
 const { isWardAllowed } = require('../services/wardScope');
-const { persistDataUrl, persistImageFields, publicImageUrl, persistInBackground } = require('../../utils/portalMedia');
+const { persistDataUrl, persistVideoUrl, persistImageFields, publicImageUrl, persistInBackground, writePortalFile, retireIfReplaced, retirePortalUrl } = require('../../utils/portalMedia');
+const path = require('path');
   const {
   CIVIC_DEFAULT_HERO,
   isProtectedCustomWard,
@@ -383,6 +384,7 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
       patch[field] = req.body[field];
     }
   }
+  const prevHero = config?.heroBannerUrl;
   persistImageFields(patch, ['heroBannerUrl'], `hero-${String(wardId).slice(0, 8)}`);
   if (typeof patch.heroBannerUrl === 'string' && patch.heroBannerUrl.startsWith('data:')) {
     throw new ApiError(400, 'Could not store the hero banner on the server. Check that the uploads/portal folder is writable.');
@@ -411,6 +413,9 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     persistImageFields(patch.meta, ['repPhoto'], `rep-${String(wardId).slice(0, 8)}`);
     persistImageFields(patch.meta, ['complaintsBannerUrl'], `complaints-${String(wardId).slice(0, 8)}`);
     persistImageFields(patch.meta, ['galleryBannerUrl'], `gallery-${String(wardId).slice(0, 8)}`);
+    retireIfReplaced(existingMeta.repPhoto, patch.meta.repPhoto);
+    retireIfReplaced(existingMeta.complaintsBannerUrl, patch.meta.complaintsBannerUrl);
+    retireIfReplaced(existingMeta.galleryBannerUrl, patch.meta.galleryBannerUrl);
     for (const key of Object.keys(patch.meta)) {
       if (typeof patch.meta[key] === 'string' && patch.meta[key].startsWith('data:')) {
         const stored = persistDataUrl(patch.meta[key], `meta-${key}`);
@@ -424,6 +429,10 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     if (!visibleIds.includes(String(patch.featuredNagarsevakUserId))) {
       throw new ApiError(400, 'Show only a Nagarsevak you have already activated for this ward.');
     }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, 'heroBannerUrl')) {
+    retireIfReplaced(prevHero, patch.heroBannerUrl);
   }
 
   if (isCreate) {
@@ -497,6 +506,9 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
         }
       }
       persistImageFields(accPatch, ['photo'], `nagar-${String(targetNagar.id).slice(0, 8)}`);
+      if (Object.prototype.hasOwnProperty.call(accPatch, 'photo')) {
+        retireIfReplaced(acc?.photo, accPatch.photo);
+      }
 
       if (acc) {
         await acc.update(accPatch);
@@ -599,6 +611,8 @@ const listGalleryItems = asyncHandler(async (req, res) => {
   const rows = items.map((row) => {
     const json = typeof row.toJSON === 'function' ? row.toJSON() : row;
     json.showOnDashboard = asDashboardFlag(json.showOnDashboard);
+    json.mediaUrl = publicImageUrl(json.mediaUrl, json.mediaUrl || '');
+    json.videoUrl = publicImageUrl(json.videoUrl, json.videoUrl || '');
     return json;
   });
   const homeIds = await portalLayout.listHomeWorkIds(wardId);
@@ -681,6 +695,7 @@ const createGalleryItem = asyncHandler(async (req, res) => {
   }
 
   const storedMedia = persistDataUrl(mediaUrl, `work-${String(wardId).slice(0, 8)}`);
+  const storedVideo = persistVideoUrl(videoUrl, `vid-${String(wardId).slice(0, 8)}`);
 
   const item = await WardGalleryItem.create({
     wardId,
@@ -692,7 +707,7 @@ const createGalleryItem = asyncHandler(async (req, res) => {
     categoryLabelMr: categoryLabelMr || null,
     mediaType: mediaType === 'video' ? 'video' : 'image',
     mediaUrl: storedMedia || (mediaType === 'video' ? '/gallery/road-construction.svg' : ''),
-    videoUrl: videoUrl || null,
+    videoUrl: storedVideo || null,
     duration: duration || null,
     date: date || new Date().toISOString().split('T')[0],
     dateFormatted: dateFormatted || null,
@@ -766,6 +781,11 @@ const updateGalleryItem = asyncHandler(async (req, res) => {
     }
   }
   persistImageFields(patch, ['mediaUrl'], `work-${String(item.id).slice(0, 8)}`);
+  if (typeof patch.videoUrl === 'string') {
+    patch.videoUrl = persistVideoUrl(patch.videoUrl, `vid-${String(item.id).slice(0, 8)}`);
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'mediaUrl')) retireIfReplaced(item.mediaUrl, patch.mediaUrl);
+  if (Object.prototype.hasOwnProperty.call(patch, 'videoUrl')) retireIfReplaced(item.videoUrl, patch.videoUrl);
   if (Object.prototype.hasOwnProperty.call(patch, 'showOnDashboard')) {
     patch.showOnDashboard = asDashboardFlag(patch.showOnDashboard);
   }
@@ -806,6 +826,8 @@ const deleteGalleryItem = asyncHandler(async (req, res) => {
   }
 
   await portalLayout.removeHomeWork(item.wardId, item.id);
+  retirePortalUrl(item.mediaUrl);
+  retirePortalUrl(item.videoUrl);
   await item.destroy();
 
   return success(res, {
@@ -843,6 +865,41 @@ const reorderGalleryItems = asyncHandler(async (req, res) => {
   });
 });
 
+const uploadPortalMedia = asyncHandler(async (req, res) => {
+  if (!canManage(req)) {
+    throw new ApiError(403, 'Permission denied.');
+  }
+  const file = req.file;
+  if (!file || !file.buffer || !file.buffer.length) {
+    throw new ApiError(400, 'Please choose a video or image file.');
+  }
+  const mime = String(file.mimetype || '').toLowerCase();
+  const orig = String(file.originalname || '').toLowerCase();
+  let ext = 'bin';
+  if (mime.includes('webm') || orig.endsWith('.webm')) ext = 'webm';
+  else if (mime.includes('ogg') || orig.endsWith('.ogg')) ext = 'ogg';
+  else if (mime.includes('mp4') || mime.includes('quicktime') || orig.endsWith('.mp4') || orig.endsWith('.mov')) ext = 'mp4';
+  else if (mime.includes('png') || orig.endsWith('.png')) ext = 'png';
+  else if (mime.includes('webp') || orig.endsWith('.webp')) ext = 'webp';
+  else if (mime.includes('jpeg') || mime.includes('jpg') || orig.endsWith('.jpg') || orig.endsWith('.jpeg')) ext = 'jpg';
+  else if (mime.startsWith('video/')) ext = 'mp4';
+  else if (mime.startsWith('image/')) ext = 'jpg';
+  else {
+    throw new ApiError(400, 'Only MP4/WebM video or image files are allowed.');
+  }
+  let url;
+  try {
+    url = writePortalFile(file.buffer, ext, mime.startsWith('video/') ? 'vid' : 'img');
+  } catch (err) {
+    console.error('[PORTAL MEDIA UPLOAD]', err.message);
+    throw new ApiError(500, 'Could not save the uploaded file.');
+  }
+  return success(res, {
+    message: 'File uploaded.',
+    data: { url, mime: file.mimetype, size: file.size, name: path.basename(url) },
+  });
+});
+
 module.exports = {
   getPortalConfig,
   updatePortalConfig,
@@ -851,4 +908,5 @@ module.exports = {
   updateGalleryItem,
   deleteGalleryItem,
   reorderGalleryItems,
+  uploadPortalMedia,
 };

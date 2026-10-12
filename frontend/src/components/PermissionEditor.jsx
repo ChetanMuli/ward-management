@@ -21,7 +21,7 @@ export const PERMISSION_MODULES = [
       { id: 'CREATE_COMPLAINTS', label: 'Register Complaints', desc: 'File new complaints on behalf of ward citizens', scope: 'WRITE' },
       { id: 'EDIT_COMPLAINTS', label: 'Update & Resolve', desc: 'Change progress status, add notes and upload proof photos', scope: 'WRITE' },
       { id: 'ASSIGN_COMPLAINTS', label: 'Give work to staff', desc: 'Assign a complaint to an employee', scope: 'ADMIN' },
-      { id: 'DELETE_COMPLAINTS', label: 'Delete complaints', desc: 'Remove duplicate or invalid complaints', scope: 'DELETE' },
+      { id: 'DELETE_COMPLAINTS', label: 'Delete complaints', desc: 'Delete a complaint from the ward desk and from the citizen’s My Complaints', scope: 'DELETE' },
     ],
   },
   {

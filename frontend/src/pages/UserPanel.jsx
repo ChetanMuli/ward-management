@@ -4,7 +4,7 @@ import { api, getUser } from '../services/api';
 import { Loading, FaceAvatar } from '../components/Ui';
 import BrandIcon from '../components/BrandIcon';
 import NagarsevakShowcase from '../components/NagarsevakShowcase';
-import { CIVIC_DEFAULT_HERO, isGenericDefaultHero, resolveCitizenHeroUrl, withHeroCacheBust } from '../utils/portalDefaults';
+import { CIVIC_DEFAULT_HERO, isGenericDefaultHero, resolveCitizenHeroUrl } from '../utils/portalDefaults';
 import { formatWardLabel, formatWardNumber } from '../wardFormat';
 
 function typeLabel(v, mr) {
@@ -264,23 +264,11 @@ export default function UserPanel({ plainMode = false } = {}) {
     ? resolveCitizenHeroUrl(portalConfig.heroBannerUrl, { demoMode: Boolean(portalConfig.demoMode) })
     : '';
   const heroBanner = liveHero || cachedHero || shownHero || '';
-  const heroSrc = heroBanner
-    ? withHeroCacheBust(
-      heroBanner,
-      portalConfig?.updatedAt || (typeof localStorage !== 'undefined' ? localStorage.getItem('ward_portal_updated') : '')
-    )
-    : '';
+  const heroSrc = heroBanner || '';
 
   useEffect(() => {
-    if (!heroSrc) return;
-    if (heroSrc === shownHero) return;
-    let cancelled = false;
-    const img = new Image();
-    img.onload = () => { if (!cancelled) setShownHero(heroSrc); };
-    img.onerror = () => { if (!cancelled && cachedHero) setShownHero(cachedHero); };
-    img.src = heroSrc;
-    return () => { cancelled = true; };
-  }, [heroSrc, shownHero, cachedHero]);
+    if (heroSrc && heroSrc !== shownHero) setShownHero(heroSrc);
+  }, [heroSrc, shownHero]);
 
   const nagarsevaksList = useMemo(() => {
     if (portalNagarsevaks.length) return portalNagarsevaks.filter((n) => n && n.id && !n.employeeProfile);
@@ -409,7 +397,6 @@ export default function UserPanel({ plainMode = false } = {}) {
           {/* Custom Ward Hero Section */}
           <section
             className={`user-hero ${shownHero || heroSrc ? 'has-portal-banner' : 'is-hero-loading'} ${portalConfig?.demoMode ? 'is-civic-hero' : 'has-custom-hero'}`}
-            style={(shownHero || heroSrc) ? { '--portal-hero-bg': `url("${String(shownHero || heroSrc).replace(/"/g, '')}")` } : undefined}
           >
             <div className="user-hero-media" aria-hidden="true">
               {(shownHero || heroSrc) ? (
@@ -417,6 +404,7 @@ export default function UserPanel({ plainMode = false } = {}) {
                   className="user-hero-bg-photo"
                   src={shownHero || heroSrc}
                   alt=""
+                  decoding="async"
                   onError={(e) => {
                     if (cachedHero && e.currentTarget.src !== cachedHero) {
                       e.currentTarget.src = cachedHero;
@@ -426,11 +414,6 @@ export default function UserPanel({ plainMode = false } = {}) {
                   }}
                 />
               ) : null}
-            </div>
-            <div className="user-hero-ambient-live" aria-hidden="true">
-              <div className="live-orb-1" />
-              <div className="live-orb-2" />
-              <div className="live-shimmer-sweep" />
             </div>
             <div className="user-hero-copy">
               <h1>

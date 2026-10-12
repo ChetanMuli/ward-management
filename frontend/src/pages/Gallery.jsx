@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { api, getUser } from '../services/api';
 import { Loading } from '../components/Ui';
-import { isCampaignStockUrl, resolveCitizenHeroUrl } from '../utils/portalDefaults';
+import { isCampaignStockUrl, publicMediaUrl, resolveCitizenHeroUrl } from '../utils/portalDefaults';
 import { formatWardNumber } from '../wardFormat';
 
 let _galleryCache = null;
@@ -307,7 +307,7 @@ export default function Gallery() {
               <div className="nagar-lightbox-img-frame">
                 {(activeLightboxItem.type === 'video' || activeLightboxItem.videoUrl) ? (
                   <video
-                    src={activeLightboxItem.videoUrl}
+                    src={publicMediaUrl(activeLightboxItem.videoUrl)}
                     poster={activeLightboxItem.url}
                     controls
                     autoPlay

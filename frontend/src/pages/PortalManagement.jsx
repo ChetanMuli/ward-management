@@ -4,7 +4,7 @@ import { isMaster, isSubMaster, isNagarsevak } from '../rbac';
 import { useWardFilter } from '../wardFilter';
 import { PageHeader, Loading, Empty, Modal, ImageCropField, CirclePhotoField, Field, Toolbar } from '../components/Ui';
 import WardFilter from '../components/WardFilter';
-import { CITIZEN_HERO_ASPECT, EMPTY_HIGHLIGHT_CARDS, HIGHLIGHT_ICONS, normalizeHighlightCards, highlightHasText, displayHighlightCard } from '../utils/portalDefaults';
+import { CITIZEN_HERO_ASPECT, EMPTY_HIGHLIGHT_CARDS, HIGHLIGHT_ICONS, normalizeHighlightCards, highlightHasText, displayHighlightCard, publicMediaUrl } from '../utils/portalDefaults';
 import NagarsevakShowcase from '../components/NagarsevakShowcase';
 
 function onCitizenHome(item, dashOrder = []) {
@@ -24,6 +24,24 @@ function rememberBannerUrl(key, url) {
   try {
     if (url && !String(url).startsWith('data:')) localStorage.setItem(key, url);
   } catch { /* ignore */ }
+}
+
+function LiveBannerPreview({ url, emptyLabel, aspect = 2.4 }) {
+  const shown = publicMediaUrl(url);
+  if (!shown) {
+    return <div className="portal-live-banner-empty">{emptyLabel}</div>;
+  }
+  return (
+    <div
+      className="portal-live-banner-photo"
+      style={{
+        backgroundImage: `url("${String(shown).replace(/"/g, '')}")`,
+        aspectRatio: `${aspect} / 1`,
+      }}
+      role="img"
+      aria-label="Current banner"
+    />
+  );
 }
 
 const CATEGORIES = [
@@ -230,6 +248,25 @@ export default function PortalManagement() {
   // Delete confirm modal
   const [deletingItem, setDeletingItem] = useState(null);
   const [showGalleryBannerModal, setShowGalleryBannerModal] = useState(false);
+
+  const handleSaveComplaintsBanner = async () => {
+    if (!effectiveWardId) return;
+    setSaving(true);
+    try {
+      await api.updatePortalConfig({
+        wardId: effectiveWardId,
+        complaintsBannerUrl: portalConfig?.complaintsBannerUrl || '',
+      });
+      rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}`, portalConfig?.complaintsBannerUrl);
+      notifyPortalUpdated();
+      showToast(isMr ? 'तक्रार पानाचा बॅनर सेव्ह झाला.' : 'Complaints banner saved.');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to save complaints banner.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSaveGalleryBanner = async () => {
     if (!effectiveWardId) return;
@@ -536,7 +573,7 @@ export default function PortalManagement() {
         : (itemFormData.category === 'VIDEOS' ? 'DEVELOPMENT' : itemFormData.category);
       const catObj = CATEGORIES.find((c) => c.id === resolvedCategory) || CATEGORIES[0];
       const workDate = itemFormData.date || new Date().toISOString().split('T')[0];
-      const { pinFirst, ...itemFields } = itemFormData;
+      const { pinFirst, videoUploading, ...itemFields } = itemFormData;
       const payload = {
         ...itemFields,
         showOnDashboard: !!itemFormData.showOnDashboard,
@@ -960,6 +997,36 @@ export default function PortalManagement() {
                     </div>
                   </div>
 
+                  <div className="form-section-box">
+                    <div className="form-section-header">
+                      <span className="form-section-title">
+                        <span>📣</span>
+                        <span>{isMr ? 'तक्रार पानाचा बॅनर' : 'Complaints page banner'}</span>
+                      </span>
+                      <span className="form-section-tag">{isMr ? 'तक्रारी' : 'Complaints'}</span>
+                    </div>
+                    <LiveBannerPreview
+                      url={portalConfig?.complaintsBannerUrl}
+                      emptyLabel={isMr ? 'अजून तक्रार बॅनर सेट नाही.' : 'No complaints banner set yet.'}
+                      aspect={2.4}
+                    />
+                    <ImageCropField
+                      label={isMr ? 'तक्रार पानाचा कव्हर बॅनर' : 'Complaints cover banner'}
+                      value={portalConfig?.complaintsBannerUrl || ''}
+                      onChange={(url) => setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: url || '' }))}
+                      aspect={2.4}
+                      outputWidth={1200}
+                      uploadLabel={isMr ? 'तक्रार बॅनर अपलोड करा' : 'Upload complaints banner'}
+                      adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust frame'}
+                      hint={isMr ? 'हा फोटो नागरिक तक्रार पानाच्या वर दिसेल.' : 'This photo appears at the top of the citizen complaints page.'}
+                    />
+                    <div className="portal-section-save">
+                      <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveComplaintsBanner}>
+                        {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'तक्रार बॅनर सेव्ह करा' : 'Save complaints banner')}
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Section 2: Welcome Headlines */}
                   <div className="form-section-box">
                     <div className="form-section-header">
@@ -1098,23 +1165,6 @@ export default function PortalManagement() {
                     </div>
                   </div>
 
-                  {/* Section 6: Citizen Dashboard Works Info */}
-                  <div className="form-section-box citizen-works-info-box" style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                      <span style={{ fontSize: '20px' }}>⭐</span>
-                      <div>
-                        <strong style={{ fontSize: '14px', color: '#1e293b', display: 'block', marginBottom: '4px' }}>
-                          {isMr ? 'नागरिक मुख्य पानावर दिसणारी विकास कामे' : 'Featured Works on Citizen Homepage'}
-                        </strong>
-                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>
-                          {isMr
-                            ? 'तुम्ही "विकास कामे व व्हिडीओ" टॅबमधून थेट कोणती कामे डॅशबोर्डवर दिसावीत ते ⭐ एका क्लिकवर ठरवू शकता आणि त्यांचा क्रम ↑ / ↓ बटणांनी बदलू शकता.'
-                            : 'You can directly pick which cards appear on the citizen dashboard and reorder them with ↑ / ↓ buttons directly in the "Works & Videos" tab.'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="form-actions-footer">
                     <button type="submit" className="primary-btn portal-save-btn" disabled={saving}>
                       {saving ? (isMr ? 'सेव्ह होत आहे...' : 'Saving...') : (isMr ? '✓ या वॉर्डचा बॅनर सेव्ह करा' : '✓ Save this ward’s banner')}
@@ -1150,6 +1200,24 @@ export default function PortalManagement() {
                   <span>{isMr ? `${galleryItems.length} कार्ड · सर्व फोटो/व्हिडीओ` : `${galleryItems.length} cards · all photos/videos`}</span>
                 </button>
               </div>
+              {galleryFilter !== 'DASHBOARD' && (
+                <div className="portal-live-banner-card">
+                  <div className="portal-live-banner-head">
+                    <div>
+                      <strong>{isMr ? 'गॅलरी कव्हर बॅनर' : 'Gallery cover banner'}</strong>
+                      <span>{isMr ? 'सध्या नागरिक गॅलरी पानावर हा फोटो आहे.' : 'This is the photo currently on the citizen gallery page.'}</span>
+                    </div>
+                    <button type="button" className="ghost-btn" onClick={() => setShowGalleryBannerModal(true)}>
+                      {isMr ? 'बॅनर बदला' : 'Change banner'}
+                    </button>
+                  </div>
+                  <LiveBannerPreview
+                    url={portalConfig?.galleryBannerUrl}
+                    emptyLabel={isMr ? 'अजून गॅलरी बॅनर सेट नाही. Change banner दाबा.' : 'No gallery banner set yet. Click Change banner.'}
+                    aspect={2.4}
+                  />
+                </div>
+              )}
               <div className="portal-works-hint">
                 {galleryFilter === 'DASHBOARD'
                   ? (isMr
@@ -1688,12 +1756,86 @@ export default function PortalManagement() {
               </header>
               {itemFormData.mediaType === 'video' ? (
                 <>
+                  <div className="work-video-upload">
+                    {itemFormData.videoUrl && !String(itemFormData.videoUrl).startsWith('data:') ? (
+                      <video
+                        className="work-video-preview"
+                        src={publicMediaUrl(itemFormData.videoUrl)}
+                        controls
+                        playsInline
+                      />
+                    ) : (
+                      <div className="work-video-empty">
+                        {isMr ? 'व्हिडीओ अपलोड करा किंवा लिंक पेस्ट करा.' : 'Upload a video file or paste a link.'}
+                      </div>
+                    )}
+                    <div className="work-video-actions">
+                      <label className="work-video-file-btn">
+                        {itemFormData.videoUploading
+                          ? (isMr ? 'अपलोड होत आहे…' : 'Uploading…')
+                          : (itemFormData.videoUrl ? (isMr ? 'व्हिडीओ बदला' : 'Replace video') : (isMr ? 'व्हिडीओ अपलोड करा' : 'Upload video'))}
+                        <input
+                          type="file"
+                          accept="video/mp4,video/webm,video/quicktime,video/*"
+                          disabled={!!itemFormData.videoUploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            if (!String(file.type || '').startsWith('video/')) {
+                              showToast(isMr ? 'कृपया व्हिडीओ फाइल निवडा.' : 'Please choose a video file.', 'error');
+                              return;
+                            }
+                            if (file.size > 60 * 1024 * 1024) {
+                              showToast(isMr ? 'व्हिडीओ ६० MB पेक्षा मोठा असू नये.' : 'Video must be 60MB or smaller.', 'error');
+                              return;
+                            }
+                            setItemFormData((prev) => ({ ...prev, videoUploading: true }));
+                            try {
+                              const res = await api.uploadPortalMedia(file);
+                              const url = res?.data?.url || '';
+                              if (!url) throw new Error('Upload failed');
+                              let duration = itemFormData.duration;
+                              try {
+                                const probe = document.createElement('video');
+                                probe.preload = 'metadata';
+                                probe.src = URL.createObjectURL(file);
+                                await new Promise((resolve) => {
+                                  probe.onloadedmetadata = resolve;
+                                  probe.onerror = resolve;
+                                });
+                                if (Number.isFinite(probe.duration) && probe.duration > 0) {
+                                  const m = Math.floor(probe.duration / 60);
+                                  const s = Math.floor(probe.duration % 60).toString().padStart(2, '0');
+                                  duration = `${m}:${s}`;
+                                }
+                                URL.revokeObjectURL(probe.src);
+                              } catch { /* ignore duration probe */ }
+                              setItemFormData((prev) => ({ ...prev, videoUrl: url, duration, videoUploading: false }));
+                            } catch (err) {
+                              setItemFormData((prev) => ({ ...prev, videoUploading: false }));
+                              showToast(err.message || 'Video upload failed.', 'error');
+                            }
+                          }}
+                        />
+                      </label>
+                      {itemFormData.videoUrl ? (
+                        <button
+                          type="button"
+                          className="small-btn danger"
+                          onClick={() => setItemFormData((prev) => ({ ...prev, videoUrl: '' }))}
+                        >
+                          {isMr ? 'काढा' : 'Remove'}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                   <div className="work-form-grid">
-                    <Field label={isMr ? 'व्हिडीओ URL (MP4)' : 'Video URL (MP4)'}>
+                    <Field label={isMr ? 'किंवा व्हिडीओ लिंक (ऐच्छिक)' : 'Or video link (optional)'}>
                       <input
                         value={itemFormData.videoUrl || ''}
                         onChange={(e) => setItemFormData((prev) => ({ ...prev, videoUrl: e.target.value }))}
-                        placeholder="https://… or /gallery/ward-road-work.mp4"
+                        placeholder="https://… or /api/uploads/portal/video.mp4"
                       />
                     </Field>
                     <Field label={isMr ? 'कालावधी' : 'Duration'}>

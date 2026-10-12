@@ -10,7 +10,7 @@ const {
   getResidentWardSnapshot,
   syncWardCommunityMembership,
 } = require('../../services/wardActivation.service');
-const { setPublicOpenWard, createStaffInvite } = require('../../services/registrationInvite.service');
+const { setWardRegistrationOpen, createStaffInvite } = require('../../services/registrationInvite.service');
 const { formatWardLabel } = require('../../utils/wardFormat');
 
 function requireMaster(req) {
@@ -86,12 +86,12 @@ const sync = asyncHandler(async (req, res) => {
 const setRegistrationOpen = asyncHandler(async (req, res) => {
   requireMaster(req);
   const open = req.body.open !== false && req.body.open !== 'false' && req.body.open !== 0;
-  const ward = await setPublicOpenWard(open ? req.params.wardId : null, req.user);
+  const ward = await setWardRegistrationOpen(req.params.wardId, open, req.user);
   return success(res, {
     data: ward,
-    message: ward
-      ? `Public signup is now only for ${formatWardLabel(ward, 'this ward')}. Other wards stay closed unless a staff link is used.`
-      : 'Public signup is closed. Residents can still register with a Nagarsevak or employee link.',
+    message: open
+      ? `Public signup is open for ${formatWardLabel(ward, 'this ward')}. Other open wards stay open.`
+      : `Public signup is closed for ${formatWardLabel(ward, 'this ward')}. Other open wards are unchanged.`,
   });
 });
 

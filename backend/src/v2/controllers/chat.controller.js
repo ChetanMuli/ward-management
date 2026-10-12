@@ -207,7 +207,10 @@ async function employeeRoleId() {
 
 async function syncGroupMembers(group, users, nagarRoleId, visibleNagarsevakIds) {
   const empRole = await employeeRoleId();
-  const empRows = await Employee.findAll({ attributes: ['userId', 'managerUserId'] }).catch(() => []);
+  const staffIds = (users || []).map((u) => u.id).filter(Boolean);
+  const empRows = staffIds.length
+    ? await Employee.findAll({ where: { userId: { [Op.in]: staffIds } }, attributes: ['userId', 'managerUserId'] }).catch(() => [])
+    : [];
   const employeeManagerMap = new Map(empRows.map(e => [String(e.userId), e.managerUserId]));
   const allowedUserIds = memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, empRole, employeeManagerMap);
   for (const userId of allowedUserIds) {

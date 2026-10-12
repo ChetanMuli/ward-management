@@ -149,7 +149,7 @@ const electionPayload = {
   gazetteUrl: `${BASE}/2026/01/Nashik-Part-1-A-19-1-2026-Ahilyanagar.pdf`,
   gazetteAltUrl: `${BASE}/GazetteAhilyanagar.pdf`,
   finalWardNoticeUrl: `${BASE}/FINAL_WARD_22.1.26.pdf`,
-  sirLists: SIR_ASDD.filter((x) => x.ac === 225),
+  sirLists: SIR_ASDD,
   sirUrl: SIR_ASDD.find((x) => x.ac === 225).asddUrl,
   sirEarlierUrl: SIR_ASDD.find((x) => x.ac === 225).earlierUrl,
   rows: wardRows(),

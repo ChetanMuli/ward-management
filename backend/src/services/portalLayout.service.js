@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const { WardPortalBanner, WardHomeWork, WardGalleryItem } = require('../models');
-const { persistDataUrl, persistImageFields, publicImageUrl } = require('../utils/portalMedia');
+const { persistDataUrl, persistImageFields, publicImageUrl, retireIfReplaced } = require('../utils/portalMedia');
 
 function pickHeroUrl(primary, secondary) {
   const a = publicImageUrl(primary, '');
@@ -56,6 +56,11 @@ async function upsertBanners(wardId, urls = {}, userId = null) {
     }
   }
   if (existing) {
+    for (const key of ['homeBannerUrl', 'complaintsBannerUrl', 'galleryBannerUrl']) {
+      if (Object.prototype.hasOwnProperty.call(patch, key)) {
+        retireIfReplaced(existing[key], patch[key]);
+      }
+    }
     await existing.update(patch);
     return existing;
   }

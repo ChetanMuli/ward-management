@@ -46,8 +46,8 @@ export default function RecycleBin(){
     <div className="recycle-retention-banner" style={{display:'flex',alignItems:'center',gap:'14px',padding:'14px 18px',background:'var(--bg-subtle,#f8fafc)',borderRadius:'10px',border:'1px solid var(--border-color,#e2e8f0)',marginBottom:'16px'}}>
       <span style={{fontSize:'24px'}}>🛡️</span>
       <div style={{fontSize:'13px',lineHeight:'1.5'}}>
-        <strong style={{display:'block',color:'var(--text-primary,#0f172a)',fontWeight:'600',marginBottom:'2px'}}>30-Day Safety Retention & 75-Day Auto-Archive Policy (३० दिवसांचे धारणा धोरण)</strong>
-        <span style={{color:'var(--text-muted,#64748b)'}}>All deleted records across all sections (Houses, Families, Citizens, Shops, Complaints, Daily Tasks/Schedules, etc.) are safely preserved in the Recycle Bin for <strong>30 days</strong> before permanent deletion. Active daily tasks and complaints automatically move to the Recycle Bin after <strong>75 days</strong>. Note: Chats are automatically permanently deleted after <strong>75 days</strong> (do not enter the Recycle Bin for privacy).</span>
+        <strong style={{display:'block',color:'var(--text-primary,#0f172a)',fontWeight:'600',marginBottom:'2px'}}>30-Day Recycle Bin (३० दिवसांचे धारणा धोरण)</strong>
+        <span style={{color:'var(--text-muted,#64748b)'}}>Records you delete (Houses, Families, Citizens, Shops, Complaints, Daily Tasks, etc.) stay in Recycle bin for <strong>30 days</strong>, then are permanently removed. Complaints stay on the Complaints page until Master Admin, Sub Master Admin or Nagarsevak deletes that ward’s complaint. Chats still delete after <strong>75 days</strong> for privacy.</span>
       </div>
     </div>
     <div className="filter-panel-head"><div><span className="eyebrow">RECOVERABLE DATA</span><h3>Find deleted records</h3><p>Review complete record information before restoring.</p></div><span className="auto-filter-badge">● Auto updated</span></div>

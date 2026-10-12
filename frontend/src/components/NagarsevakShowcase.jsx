@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FaceAvatar, isUsablePhoto } from './Ui';
 import { formatWardLabel, formatWardNumber } from '../wardFormat';
-import { normalizeHighlightCards, displayHighlightCard } from '../utils/portalDefaults';
+import { normalizeHighlightCards, displayHighlightCard, publicMediaUrl } from '../utils/portalDefaults';
 
 export const DEFAULT_DEMO_GALLERY = [
   {
@@ -718,7 +718,7 @@ export default function NagarsevakShowcase({
               <div className="nagar-lightbox-img-frame">
                 {(activeLightboxItem.type === 'video' || activeLightboxItem.videoUrl) ? (
                   <video
-                    src={activeLightboxItem.videoUrl}
+                    src={publicMediaUrl(activeLightboxItem.videoUrl)}
                     poster={activeLightboxItem.url}
                     controls
                     autoPlay

@@ -333,19 +333,8 @@ async function ensureDatabaseSchema(sequelize) {
           name: 'uq_wards_registration_invite_code',
         }).catch(() => {});
       }
-      const [openRows] = await sequelize.query(
-        'SELECT id FROM wards WHERE registration_open = 1 AND deleted_at IS NULL LIMIT 1'
-      ).catch(() => [[]]);
-      if (!openRows || !openRows.length) {
-        const [firstActive] = await sequelize.query(
-          "SELECT id FROM wards WHERE status = 'ACTIVE' AND deleted_at IS NULL ORDER BY ward_number ASC LIMIT 1"
-        ).catch(() => [[]]);
-        if (firstActive && firstActive[0] && firstActive[0].id) {
-          await sequelize.query('UPDATE wards SET registration_open = 1 WHERE id = :id', {
-            replacements: { id: firstActive[0].id },
-          }).catch(() => {});
-        }
-      }
+      await sequelize.query('ALTER TABLE wards DROP INDEX uq_wards_registration_open').catch(() => {});
+      await sequelize.query('ALTER TABLE wards DROP INDEX wards_registration_open_unique').catch(() => {});
     }
 
     if (!tables.includes('ward_portal_banners')) {

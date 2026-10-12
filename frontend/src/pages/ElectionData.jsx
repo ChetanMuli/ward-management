@@ -37,12 +37,12 @@ export default function ElectionData(){
   </section>
   <div className="election-source-grid">
    <section className="panel election-source-card">
-    <span className="eyebrow">SIR 2026 · AC 225</span>
-    <h2>{mr?'अहिल्यानगर शहर SIR यादी':'Ahilyanagar City SIR list'}</h2>
-    <p>{mr?'जिल्हा निवडणूक कार्यालय — अहिल्यानगर शहर (विधानसभा २२५) ASDD यादी: अनुपस्थित / स्थलांतरित / मृत / दुबार. इतर विधानसभा यादी येथे दाखवल्या जात नाहीत.':'District Election Office — Ahilyanagar City (Assembly Constituency 225) ASDD list: Absent / Shifted / Dead / Duplicate. Other assembly constituencies are not shown here.'}</p>
+    <span className="eyebrow">SIR 2026 · 12 AC</span>
+    <h2>{mr?'अहिल्यानगर जिल्हा SIR यादी':'Ahilyanagar district SIR lists'}</h2>
+    <p>{mr?'जिल्हा निवडणूक कार्यालय — सर्व १२ विधानसभा (२१६–२२७) ASDD: अनुपस्थित / स्थलांतरित / मृत / दुबार. सप्टेंबर २०२६ अधिकृत PDF.':'District Election Office — all 12 assembly constituencies (216–227) ASDD: Absent / Shifted / Dead / Duplicate. Official September 2026 PDFs.'}</p>
     <div className="card-actions">
-     <LinkBtn href={citySir?.asddUrl||data.sirUrl} primary>{mr?'अहिल्यानगर SIR ASDD उघडा':'Open Ahilyanagar SIR ASDD'}</LinkBtn>
-     <LinkBtn href={citySir?.earlierUrl||data.sirEarlierUrl}>{mr?'मे २०२६ यादी':'May 2026 list'}</LinkBtn>
+     <LinkBtn href={citySir?.asddUrl||data.sirUrl} primary>{mr?'अहिल्यानगर शहर ASDD':'Ahilyanagar City ASDD'}</LinkBtn>
+     <LinkBtn href={data.draftRollSirUrl}>{mr?'Draft Roll SIR पोर्टल':'Draft Roll SIR portal'}</LinkBtn>
      <LinkBtn href={data.sirDistrictUrl}>{mr?'जिल्हा निवडणूक कार्यालय':'District Election Office'}</LinkBtn>
     </div>
    </section>
@@ -57,6 +57,21 @@ export default function ElectionData(){
     </div>
    </section>
   </div>
+
+  <section className="panel election-ward-panel">
+   <div className="panel-title"><div><h3>{mr?'SIR २०२६ — सर्व विधानसभा ASDD':'SIR 2026 — all assembly ASDD lists'}</h3><span>{mr?'अधिकृत जिल्हा निवडणूक कार्यालय · सप्टेंबर २०२६':'Official District Election Office · September 2026'}</span></div><strong>{(data.sirLists||[]).length} {mr?'यादी':'lists'}</strong></div>
+   <div className="table-wrap"><table>
+    <thead><tr><th>{mr?'विधानसभा':'AC'}</th><th>{mr?'नाव':'Name'}</th><th>{mr?'सप्टेंबर ASDD':'Sept ASDD'}</th><th>{mr?'मे २०२६ यादी':'May 2026 list'}</th></tr></thead>
+    <tbody>{(data.sirLists||[]).map(s=>
+     <tr key={s.ac}>
+      <td data-label={mr?'विधानसभा':'AC'}><strong>{s.ac}{s.city?` · ${mr?'शहर':'City'}`:''}</strong></td>
+      <td data-label={mr?'नाव':'Name'}>{mr?s.nameMr:s.name}</td>
+      <td data-label={mr?'सप्टेंबर ASDD':'Sept ASDD'}><a className="table-link" href={s.asddUrl} target="_blank" rel="noreferrer">{mr?'ASDD ↗':'ASDD ↗'}</a></td>
+      <td data-label={mr?'मे २०२६ यादी':'May 2026 list'}>{s.earlierUrl?<a className="table-link" href={s.earlierUrl} target="_blank" rel="noreferrer">{mr?'मे यादी ↗':'May list ↗'}</a>:<span className="muted">—</span>}</td>
+     </tr>
+    )}</tbody>
+   </table></div>
+  </section>
 
   <section className="panel election-ward-panel">
    <div className="panel-title"><div><h3>{locked&&ownWard?`${mr?'तुमचा प्रभाग':'Your ward'} · ${formatWardNumber(ownWard)}`:(selectedDigits?`${mr?'निवडलेला प्रभाग':'Selected ward'} · ${formatWardNumber(selectedDigits)}`:(mr?'प्रभागनिहाय अंतिम मतदार यादी':'Ward-wise final voter lists'))}</h3><span>{mr?'AMC अंतिम यादी · १५ डिसेंबर २०२५ · अहिल्यानगर शहर SIR AC २२५':'AMC final lists · 15 December 2025 · Ahilyanagar City SIR AC 225'}</span></div><strong>{total.toLocaleString('en-IN')} {mr?'एकूण':'total'}</strong></div>

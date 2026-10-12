@@ -2,10 +2,7 @@
 
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { Op } = require('sequelize');
-const sequelize = require('../config/database');
 const { Ward, User } = require('../models');
-const { formatWardLabel } = require('../utils/wardFormat');
 const ApiError = require('../utils/ApiError');
 
 const INVITE_TYP = 'ward_reg';
@@ -54,30 +51,48 @@ async function issueInviteCode(ward, { rotate = false } = {}) {
   throw new ApiError(500, 'Unable to create a registration link. Try again.');
 }
 
+async function getPublicOpenWards() {
+  const [rows] = await Ward.sequelize.query(
+    `SELECT id, ward_number AS wardNumber, name, status, registration_open AS registrationOpen
+     FROM wards
+     WHERE registration_open = 1 AND status = 'ACTIVE' AND deleted_at IS NULL
+     ORDER BY ward_number ASC`
+  );
+  return (rows || []).map((row) => ({
+    id: String(row.id),
+    wardNumber: row.wardNumber,
+    name: row.name,
+    status: row.status,
+    registrationOpen: true,
+  }));
+}
+
 async function getPublicOpenWard() {
-  return Ward.findOne({
-    where: { registrationOpen: true, status: 'ACTIVE' },
-    attributes: ['id', 'wardNumber', 'name', 'status', 'registrationOpen'],
-  });
+  const open = await getPublicOpenWards();
+  return open[0] || null;
+}
+
+async function setWardRegistrationOpen(wardId, open, actor) {
+  const ward = await Ward.findByPk(wardId);
+  if (!ward) throw new ApiError(404, 'Ward not found');
+  if (open && String(ward.status).toUpperCase() !== 'ACTIVE') {
+    throw new ApiError(400, 'Activate this ward first, then open it for public signup.');
+  }
+  const sequelize = Ward.sequelize;
+  await sequelize.query(
+    'UPDATE wards SET registration_open = :flag WHERE id = :id AND deleted_at IS NULL',
+    { replacements: { flag: open ? 1 : 0, id: ward.id } }
+  );
+  void actor;
+  return ward.reload();
 }
 
 async function setPublicOpenWard(wardId, actor) {
-  const open = wardId !== null && wardId !== undefined && String(wardId).trim() !== '' && wardId !== false;
-  if (!open) {
-    await Ward.update({ registrationOpen: false }, { where: { registrationOpen: true } });
-    return null;
-  }
-  const ward = await Ward.findByPk(wardId);
-  if (!ward) throw new ApiError(404, 'Ward not found');
-  if (String(ward.status).toUpperCase() !== 'ACTIVE') {
-    throw new ApiError(400, 'Activate this ward first, then open it for public signup.');
-  }
-  await sequelize.transaction(async (t) => {
-    await Ward.update({ registrationOpen: false }, { where: { id: { [Op.ne]: ward.id } }, transaction: t });
-    await ward.update({ registrationOpen: true }, { transaction: t });
-  });
-  void actor;
-  return ward.reload();
+  const id = wardId !== null && wardId !== undefined && String(wardId).trim() !== '' && wardId !== false
+    ? wardId
+    : null;
+  if (!id) return null;
+  return setWardRegistrationOpen(id, true, actor);
 }
 
 async function clearOpenIfDeactivated(ward) {
@@ -173,14 +188,21 @@ async function resolveSignupWard({ inviteToken, requestedWardId }) {
     };
   }
 
-  const open = await getPublicOpenWard();
-  if (!open) {
+  const openWards = await getPublicOpenWards();
+  if (!openWards.length) {
     throw new ApiError(400, 'Public registration is closed. Use the registration link from your ward Nagarsevak or employee.');
   }
-  if (requestedWardId && String(requestedWardId) !== String(open.id)) {
-    throw new ApiError(400, `Registration is open only for ${formatWardLabel(open, 'the open ward')}.`);
+  if (requestedWardId) {
+    const picked = openWards.find((w) => String(w.id) === String(requestedWardId));
+    if (!picked) {
+      throw new ApiError(400, 'Select a ward that is currently open for registration.');
+    }
+    return { ward: picked, source: 'open', invitedBy: null };
   }
-  return { ward: open, source: 'open', invitedBy: null };
+  if (openWards.length === 1) {
+    return { ward: openWards[0], source: 'open', invitedBy: null };
+  }
+  throw new ApiError(400, 'Select your ward from the list.');
 }
 
 async function listRegistrationOptions(inviteToken) {
@@ -194,19 +216,21 @@ async function listRegistrationOptions(inviteToken) {
       locked: true,
     };
   }
-  const open = await getPublicOpenWard();
+  const openWards = await getPublicOpenWards();
   return {
-    wards: open ? [publicWard(open)] : [],
-    source: open ? 'open' : 'closed',
+    wards: openWards.map(publicWard),
+    source: openWards.length ? 'open' : 'closed',
     invitedBy: null,
-    locked: true,
+    locked: openWards.length <= 1,
   };
 }
 
 module.exports = {
   publicWard,
   getPublicOpenWard,
+  getPublicOpenWards,
   setPublicOpenWard,
+  setWardRegistrationOpen,
   clearOpenIfDeactivated,
   createStaffInvite,
   resolveSignupWard,

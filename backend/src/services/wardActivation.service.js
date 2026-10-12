@@ -491,13 +491,12 @@ async function getResidentWardSnapshot(user) {
 
 async function listActivationBoard() {
   const nagarRole = await roleId('NAGARSEVAK');
-  const citizenRole = await roleId('CITIZEN');
   const wards = await Ward.findAll({
     attributes: ['id', 'wardNumber', 'name', 'status', 'activatedAt', 'deactivatedAt', 'registrationOpen'],
     order: [['wardNumber', 'ASC']],
   });
   const wardIds = wards.map((w) => w.id);
-  const [subs, nagars, residentCounts, communities] = await Promise.all([
+  const [subs, nagars, residentCounts, citizenRecordCounts, communities] = await Promise.all([
     WardNagarsevakSubscription.findAll({
       where: { wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
     }),
@@ -520,16 +519,21 @@ async function listActivationBoard() {
         order: [['name', 'ASC']],
       })
       : [],
-    citizenRole
-      ? sequelize.query(
-        `SELECT ward_id AS wardId, COUNT(*) AS cnt
-         FROM users
-         WHERE role_id = :role AND status = 'ACTIVE' AND deleted_at IS NULL
-           AND ward_id IN (:ids)
-         GROUP BY ward_id`,
-        { replacements: { role: citizenRole, ids: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } }
-      ).then(([rows]) => rows)
-      : [],
+    sequelize.query(
+      `SELECT ward_id AS wardId, COUNT(*) AS cnt
+       FROM citizen_users
+       WHERE status = 'ACTIVE' AND deleted_at IS NULL AND ward_id IS NOT NULL
+       GROUP BY ward_id`
+    ).then(([rows]) => rows).catch(() => []),
+    sequelize.query(
+      `SELECT a.ward_id AS wardId, COUNT(p.id) AS cnt
+       FROM persons p
+       INNER JOIN families f ON f.id = p.family_id AND f.deleted_at IS NULL
+       INNER JOIN houses h ON h.id = f.house_id AND h.deleted_at IS NULL
+       INNER JOIN areas a ON a.id = h.area_id AND a.deleted_at IS NULL
+       WHERE p.deleted_at IS NULL AND p.status = 'ACTIVE'
+       GROUP BY a.ward_id`
+    ).then(([rows]) => rows).catch(() => []),
     Chat.findAll({
       where: { type: 'WARD', wardId: { [Op.in]: wardIds.length ? wardIds : ['00000000-0000-0000-0000-000000000000'] } },
       attributes: ['id', 'wardId', 'name', 'isActive'],
@@ -548,10 +552,23 @@ async function listActivationBoard() {
     if (!nagarByWard.has(key)) nagarByWard.set(key, []);
     nagarByWard.get(key).push(n);
   }
+  const asWardKey = (value) => {
+    if (value == null) return '';
+    if (Buffer.isBuffer(value) && value.length === 16) {
+      const hex = value.toString('hex');
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+    return String(value);
+  };
   const residentsByWard = new Map();
   for (const r of residentCounts) {
-    const key = String(r.wardId);
-    residentsByWard.set(key, Number(r.cnt || r.CNT || 0));
+    const key = asWardKey(r.wardId || r.ward_id);
+    if (key) residentsByWard.set(key, Number(r.cnt || r.CNT || 0));
+  }
+  const citizensByWard = new Map();
+  for (const r of citizenRecordCounts || []) {
+    const key = asWardKey(r.wardId || r.ward_id);
+    if (key) citizensByWard.set(key, Number(r.cnt || r.CNT || 0));
   }
   const communityByWard = new Map(communities.map((c) => [String(c.wardId), c]));
 
@@ -599,7 +616,8 @@ async function listActivationBoard() {
       }),
       activeNagarsevakCount: purchased.length,
       community: community ? { id: community.id, name: community.name, active: !!community.isActive } : null,
-      residentCount: residentsByWard.get(String(ward.id)) || 0,
+      residentCount: citizensByWard.get(asWardKey(ward.id)) || 0,
+      registeredCount: residentsByWard.get(asWardKey(ward.id)) || 0,
     };
   });
 }
