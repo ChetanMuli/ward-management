@@ -4,7 +4,7 @@ import {api,getUser,setSession} from '../services/api';
 import BrandIcon from '../components/BrandIcon';
 import {switchLanguage, initLanguage, ensureCurrentLanguage, getLanguage} from '../language';
 
-export const COMPANY_NAME='Kairo IT Solutions PVT LTD';
+export const COMPANY_NAME='KairoEdge Technologies PVT LTD';
 export const COMPANY_EMAIL='chetan.a2zithub@gmail.com';
 export const COMPANY_MOBILE='8523697410';
 export const copyrightLine=`© ${new Date().getFullYear()} ${COMPANY_NAME}`;

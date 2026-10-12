@@ -12,7 +12,7 @@ const otpStore = require('../../services/otp.service');
 const { sanitisePhoto } = require('../../utils/photo');
 const { syncLogin } = require('../../services/accountStore');
 
-const COMPANY = 'Kairo IT Solutions PVT LTD';
+const COMPANY = 'KairoEdge Technologies PVT LTD';
 const COMPANY_EMAIL = 'chetan.a2zithub@gmail.com';
 const COMPANY_MOBILE = '8523697410';
 const COMPANY_CONTACT = { name: COMPANY, email: COMPANY_EMAIL, mobile: COMPANY_MOBILE };

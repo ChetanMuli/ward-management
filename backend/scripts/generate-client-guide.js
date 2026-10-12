@@ -19,7 +19,7 @@ const LINE = '#d5dee9';
 const PAPER = '#f6f8fb';
 const WHITE = '#ffffff';
 
-const COMPANY = 'Kairo IT Solutions PVT LTD';
+const COMPANY = 'KairoEdge Technologies PVT LTD';
 const EMAIL = 'chetan.a2zithub@gmail.com';
 const MOBILE = '8523697410';
 const PRODUCT = 'WardDesk';
@@ -236,7 +236,7 @@ steps([
   'Enter the registered email or 10-digit mobile number, then the password. There is no OTP step.',
   'Use Support if the panel will not open, or Forgot password if the account type allows a reset. Staff passwords are reset by Master Admin, not by the staff member.',
 ]);
-callout('If a Nagarsevak cannot sign in', 'Master Admin must first open the ward, then activate that Nagarsevak panel under Nagarsevak subscriptions. Until then, the login page shows that the panel is not active, with Kairo IT Solutions contact details so the user can reach you.');
+callout('If a Nagarsevak cannot sign in', 'Master Admin must first open the ward, then activate that Nagarsevak panel under Nagarsevak subscriptions. Until then, the login page shows that the panel is not active, with KairoEdge Technologies PVT LTD contact details so the user can reach you.');
 para('After a period of inactivity (30 minutes) the session ends and the user signs in again. This protects the desk if a computer is left open.');
 
 /* ===================== 4 ===================== */

@@ -20,7 +20,7 @@ const { canResidentSeeNagarsevak } = require('./wardActivation.rules');
 const { decorateNagarsevakPhotos } = require('../utils/photo');
 
 const PUBLIC_NAGAR_ATTRS = ['id', 'name', 'email', 'mobile', 'wardId', 'status', 'roleId'];
-const COMPANY_NAME = 'Kairo IT Solutions PVT LTD';
+const COMPANY_NAME = 'KairoEdge Technologies PVT LTD';
 const COMPANY_EMAIL = 'chetan.a2zithub@gmail.com';
 const COMPANY_MOBILE = '8523697410';
 const PANEL_CONTACT = `${COMPANY_NAME}\nEmail: ${COMPANY_EMAIL}\nMobile: ${COMPANY_MOBILE}`;
