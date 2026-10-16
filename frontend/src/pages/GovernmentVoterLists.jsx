@@ -166,7 +166,7 @@ export default function GovernmentVoterLists(){
    {!nagarsevak&&<div className="filter-toolbar government-voter-filter">
     <SearchableSelect label="Show ward" value={filterWardId} onChange={v=>{setFilterWardId(v);if(detail&&wardKey(detail)!==String(v)&&v)closeDetails()}} options={[{value:'',label:'None'},...wardOptions.map(w=>({value:String(w.id),label:formatWardLabel(w)}))]} placeholder="None"/>
    </div>}
-   {rows===null?<Loading/>:!visibleLists.length?<Empty>{filterWardId?'No government voter list is uploaded for this ward yet.':'No government voter lists uploaded yet.'}</Empty>:<div className="table-wrap government-voter-table"><table><thead><tr><th>File</th><th>Ward</th><th>Type</th><th>Extracted</th><th>Uploaded by</th><th>Date</th><th>Actions</th></tr></thead><tbody>{visibleLists.map(r=>{
+   {rows===null?<Loading/>:!visibleLists.length?<Empty>{filterWardId?'No government voter list is uploaded for this ward yet.':'No government voter lists uploaded yet.'}</Empty>:<div className="table-wrap government-voter-table"><table><thead><tr><th>File</th><th>Ward</th><th>Type</th><th>Extracted</th><th>Uploaded by</th><th>Date</th><th style={{ textAlign: 'center' }}>Actions</th></tr></thead><tbody>{visibleLists.map(r=>{
     const selected=detail?.id===r.id;
     return (
      <tr key={r.id} className={selected?'is-selected':''}>
@@ -176,7 +176,7 @@ export default function GovernmentVoterLists(){
       <td data-label="Extracted">{r.extractedCount||0} records</td>
       <td data-label="Uploaded by">{r.uploader?.name||'—'}</td>
       <td data-label="Date">{formatDate(r.createdAt||r.created_at)}</td>
-      <td data-label="Actions"><RowMenu items={[
+      <td data-label="Actions" style={{ textAlign: 'center' }}><RowMenu items={[
        {label:selected?'Showing data':'View extracted data',onClick:()=>openDetails(r.id)},
        {label:'Extract again',onClick:()=>extract(r.id)},
        {label:'Download PDF',onClick:()=>api.downloadGovernmentVoterList(r.id).catch(e=>setError(e.message))},

@@ -3,6 +3,7 @@ import { api, getUser } from '../services/api';
 import { isEmployee, isMaster, isNagarsevak, isSubMaster } from '../rbac';
 import { SearchableSelect } from './Ui';
 import { formatWardLabel, formatWardNumber } from '../wardFormat';
+import { CopyIcon, BuildingIcon, CheckIcon, ExternalLinkIcon } from './Icons';
 
 function isActiveWard(w) {
   return String(w?.status || '').toUpperCase() === 'ACTIVE';
@@ -119,37 +120,67 @@ export default function RegistrationInviteCard({ embedded = true }) {
   return (
     <section className={`panel registration-invite-card ${embedded ? '' : 'is-page'}`}>
       <div className="registration-invite-copy">
-        <span className="eyebrow">RESIDENT REGISTRATION</span>
+        <span className="eyebrow">Resident registration</span>
         <h3>{wardLabel}</h3>
         <p>
           {adminDesk
-            ? 'Choose an active ward first. The registration form is locked to that ward when a resident opens this link.'
-            : 'Share this official registration link with residents of this ward. The registration form is assigned to this ward automatically.'}
+            ? 'Select an active ward. The registration form is locked to that ward when a resident opens this link.'
+            : 'Share this official registration link with residents of this ward. The form is assigned to this ward automatically.'}
         </p>
       </div>
       {adminDesk ? (
-        <SearchableSelect
-          label="Ward"
-          required
-          value={wardId}
-          onChange={setWardId}
-          options={wardOptions}
-          placeholder={wardOptions.length ? 'Select one active ward…' : 'Activate a ward first…'}
-          searchPlaceholder="Search Ward 06, Savedi…"
-        />
+        <div className="registration-invite-ward">
+          <SearchableSelect
+            label="Active ward"
+            required
+            value={wardId}
+            onChange={setWardId}
+            options={wardOptions}
+            placeholder={wardOptions.length ? 'Select one active ward…' : 'Activate a ward first…'}
+            searchPlaceholder="Search Ward 06, Savedi…"
+          />
+          <div className="registration-invite-meta">
+            <BuildingIcon size={14} />
+            <span>{wardOptions.length} active {wardOptions.length === 1 ? 'ward' : 'wards'} available</span>
+          </div>
+        </div>
       ) : null}
       {error ? <div className="error-box">{error}</div> : null}
       <div className="registration-invite-link-row">
         <input
+          className="registration-invite-input"
           readOnly
           value={busy ? 'Preparing link…' : (link || (adminDesk && !wardId ? 'Select a ward to generate a link' : ''))}
           onFocus={(e) => e.target.select()}
           aria-label="Registration link"
+          spellCheck={false}
         />
-        <button type="button" className="primary-btn" disabled={busy || !link} onClick={copy}>{copied ? 'Copied' : 'Copy link'}</button>
+        <button type="button" className="primary-btn" disabled={busy || !link} onClick={copy}>
+          {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+          <span>{copied ? 'Copied' : 'Copy link'}</span>
+        </button>
       </div>
       <div className="registration-invite-actions">
-        <button type="button" className="ghost-btn" disabled={busy || (adminDesk && !wardId)} onClick={() => loadInvite(adminDesk ? wardId : undefined, true)}>Generate new link</button>
+        <button
+          type="button"
+          className="ghost-btn"
+          disabled={busy || (adminDesk && !wardId)}
+          onClick={() => loadInvite(adminDesk ? wardId : undefined, true)}
+        >
+          Generate new link
+        </button>
+        {link ? (
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ghost-btn registration-invite-open-btn"
+            title="Open link in a new tab"
+          >
+            <ExternalLinkIcon size={14} />
+            <span>Open link</span>
+          </a>
+        ) : null}
       </div>
     </section>
   );

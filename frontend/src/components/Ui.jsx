@@ -53,11 +53,14 @@ export function PaginationBar({page=1,pages=1,total=0,limit=10,onPage,onLimit,li
 export function PageHeader({kicker,title,subtitle,action,children}){
  return <div className="page-header"><div className="page-header-title-box">{kicker&&<span className="page-kicker">{kicker}</span>}<h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{action||children}</div>;
 }
-export function StatCard({label,value,hint,tone='',onClick}){
+export function StatCard({label,value,hint,tone='',icon,onClick}){
  const Tag=onClick?'button':'div';
  return (
   <Tag type={onClick?'button':undefined} className={`stat-card ${tone} ${onClick?'stat-card-link':''}`} onClick={onClick}>
-   <span>{label}</span>
+   <div className="stat-card-top">
+     <span>{label}</span>
+     {icon && <div className="stat-card-icon-pill">{icon}</div>}
+   </div>
    <strong>{value??'—'}</strong>
    {hint&&<small>{hint}</small>}
   </Tag>
@@ -88,15 +91,15 @@ export function StatusPill({children}){
   const k=isSubmitted?'open':raw.toLowerCase().replaceAll('_','-');
   return <span className={`pill pill-${k}`}>{label}</span>;
 }
-export function Modal({title,onClose,children,wide=false,layer=1,footer}){
+export function Modal({title,subtitle,onClose,children,wide=false,layer=1,footer,className=''}){
  useEffect(()=>{document.body.classList.add('modal-open');return()=>document.body.classList.remove('modal-open')},[]);
  const z = 100000 + (Number(layer) || 1) * 10;
- const node=<div className={`modal-backdrop ${layer>1?'modal-backdrop-stack':''}`} ref={el=>{if(el)el.style.setProperty('z-index',String(z),'important')}} onPointerDown={onClose}><div className={`modal ${wide?'modal-wide':''} ${footer?'modal-with-footer':''}`} onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{title}</h2></div><button type="button" className="icon-btn" onClick={onClose}>×</button></div>{footer?(<><div className="modal-body">{children}</div><div className="modal-footer">{footer}</div></>):children}</div></div>;
+ const node=<div className={`modal-backdrop ${layer>1?'modal-backdrop-stack':''}`} ref={el=>{if(el)el.style.setProperty('z-index',String(z),'important')}} onPointerDown={onClose}><div className={`modal ${wide?'modal-wide':''} ${footer?'modal-with-footer':''} ${className||''}`} onPointerDown={e=>e.stopPropagation()}><div className="modal-header"><div><h2>{title}</h2>{subtitle?<span className="modal-subtitle">{subtitle}</span>:null}</div><button type="button" className="icon-btn" onClick={onClose}>×</button></div>{footer?(<><div className="modal-body">{children}</div><div className="modal-footer">{footer}</div></>):children}</div></div>;
  return typeof document!=='undefined'?createPortal(node,document.body):node;
 }
 
 function optionSearchText(o){return [o.search,o.label,o.title,o.hint,o.badge].filter(Boolean).join(' ').toLowerCase()}
-export function SearchableSelect({label, value, onChange, options=[], placeholder='Search or select…', searchPlaceholder='Type to search…', disabled=false, required=false, clearable=true, className='', loading=false, compact=false}){
+export function SearchableSelect({label, value, onChange, options=[], placeholder='Search or select…', searchPlaceholder='Type to search…', disabled=false, required=false, clearable=true, className='', loading=false, compact=false, icon=null}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[menuStyle,setMenuStyle]=useState({});
  const controlRef=useRef(null), menuRef=useRef(null), searchRef=useRef(null), optionsRef=useRef(null);
  const position=()=>{
@@ -142,7 +145,13 @@ export function SearchableSelect({label, value, onChange, options=[], placeholde
   </div>,document.body):null;
  return <div className={`searchable-select ${className}`} ref={controlRef}>
   {label&&<div className="section-label">{label}{required?' *':''}</div>}
-  <div className={`searchable-control ${open?'is-open':''} ${disabled?'is-disabled':''}`}>
+  <div className={`searchable-control ${open?'is-open':''} ${disabled?'is-disabled':''} ${icon?'has-leading-ico':''}`}>
+   {icon && (
+     <span className="searchable-leading-wrap">
+       <span className="auth-ico searchable-auth-ico">{icon}</span>
+       <span className="auth-split searchable-auth-split" aria-hidden="true"/>
+     </span>
+   )}
    <button type="button" className="searchable-display" disabled={disabled} onClick={()=>{setOpen(v=>!v);if(open)setQuery('')}} aria-expanded={open} aria-haspopup="listbox">
     <span className={selected?'has-value':'placeholder'}>{loading&&!selected?'Loading…':(selected?.label||placeholder)}</span></button><button type="button" className={`searchable-chevron ${open?'open':''}`} onClick={()=>{if(!disabled){setOpen(v=>!v);if(open)setQuery('')}}} aria-label={open?'Close options':'Open options'}>
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"/></svg>
@@ -917,11 +926,11 @@ export function RowMenu({items=[], menuOnly=false}){
  return (
   <div className={`row-menu ${open?'is-open':''} ${menuOnly?'is-menu-only':''}`} ref={ref}>
    {!menuOnly && primary ? (
-     <button type="button" className={primary.danger?'small-btn danger':(primary.className||'small-btn view-btn')} onClick={primary.onClick}>{primary.label}</button>
+     <button type="button" className={primary.danger?'small-btn danger':(primary.className||'small-btn view-btn')} onClick={primary.onClick}><span>{primary.label}</span></button>
    ) : null}
    {(menuOnly || rest.length>0)&&(
     <>
-     <button type="button" ref={toggleRef} className="small-btn row-menu-toggle" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>More</button>
+     <button type="button" ref={toggleRef} className="small-btn row-menu-toggle" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span>{getLanguage() === 'mr' ? 'अधिक' : 'More'}</span></button>
      {open&&createPortal(
       <>
        <div className="row-menu-scrim" onPointerDown={()=>setOpen(false)}/>

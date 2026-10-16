@@ -4,7 +4,40 @@ import { roleOf, isMaster, isSubMaster, isNagarsevak, isEmployee } from '../rbac
 import { Empty, ErrorBox, Loading, Modal, PageHeader, SearchableSelect, FaceAvatar, isDataImage } from '../components/Ui';
 import WardFilter from '../components/WardFilter';
 import { useWardFilter } from '../wardFilter';
-import {formatWardLabel, formatWardNumber} from '../wardFormat';
+import { formatWardLabel, formatWardNumber } from '../wardFormat';
+import {
+  CalendarIcon,
+  PhoneIcon,
+  SearchIcon,
+  MapPinIcon,
+  UsersIcon,
+  HeartIcon,
+  ClockIcon,
+  PrinterIcon,
+  GiftIcon,
+  EyeIcon,
+  BuildingIcon
+} from '../components/Icons';
+
+function getInitials(name) {
+  if (!name) return 'C';
+  const parts = String(name).trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function getDirectionsUrl(house) {
+  if (house?.latitude && house?.longitude) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${house.latitude},${house.longitude}`;
+  }
+  const parts = [
+    house?.houseNumber ? `House ${house.houseNumber}` : '',
+    house?.address,
+    house?.landmark,
+    house?.area?.name
+  ].filter(Boolean);
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(parts.join(', ') || 'Ahilyanagar')}`;
+}
 
 const previousWindows = [
   { key: 'yesterday', label: 'Yesterday', from: -1, to: -1 },
@@ -1102,6 +1135,7 @@ export default function Birthdays() {
   const [windowKey, setWindowKey] = useState(saved.windowKey || 'next30');
   const [customFrom, setCustomFrom] = useState(saved.customFrom || '');
   const [customTo, setCustomTo] = useState(saved.customTo || '');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     try {
@@ -1141,63 +1175,229 @@ export default function Birthdays() {
       .catch(e => setError(e.message));
   }, [windowKey, customDays?.from, customDays?.to, selectedWardId]);
 
-  const visible = useMemo(() => rows || [], [rows]);
+  // Strictly filter rows by selected ward (double-locking client and backend)
+  const wardScopedRows = useMemo(() => {
+    const list = rows || [];
+    if (!selectedWardId) return list;
+    return list.filter(r => {
+      const p = r.person || {};
+      const f = p.family || {};
+      const h = f.house || {};
+      const a = h.area || {};
+      const w = a.ward || {};
+      const wId = r.wardId || w.id || a.wardId;
+      return String(wId) === String(selectedWardId);
+    });
+  }, [rows, selectedWardId]);
+
+  // KPI Statistics
+  const stats = useMemo(() => {
+    const list = wardScopedRows;
+    let todayCount = 0;
+    let weekCount = 0;
+    let monthCount = 0;
+    for (const r of list) {
+      if (r.daysToBirthday === 0) todayCount += 1;
+      if (r.daysToBirthday >= 0 && r.daysToBirthday <= 7) weekCount += 1;
+      if (r.daysToBirthday >= 0 && r.daysToBirthday <= 30) monthCount += 1;
+    }
+    return {
+      todayCount,
+      weekCount,
+      monthCount,
+      totalCount: list.length
+    };
+  }, [wardScopedRows]);
+
+  // Search filtering
+  const visible = useMemo(() => {
+    let list = wardScopedRows;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(r => {
+        const p = r.person || {};
+        const f = p.family || {};
+        const h = f?.house || {};
+        const a = h?.area || {};
+        return [p.fullName, p.mobile, f?.familyName, h?.houseNumber, h?.address, a?.name]
+          .some(v => String(v || '').toLowerCase().includes(q));
+      });
+    }
+    return list;
+  }, [wardScopedRows, search]);
 
   return (
-    <div>
-      <PageHeader title="Birthday management" />
+    <div className="admin-data-page birthdays-page" style={{ paddingTop: '8px' }}>
+      <PageHeader
+        title="Birthdays"
+        subtitle="Coordinate greetings, generate personalized birthday greeting cards, and plan field outreach for ward citizens."
+      />
       <ErrorBox error={error} />
-      <div className="filter-toolbar birthday-filter-toolbar">
-        <WardFilter />
-        <SearchableSelect
-          label="Birthday type"
-          value={mode}
-          onChange={v => {
-            setMode(v);
-            setWindowKey(v === 'previous' ? 'previous8' : 'next30');
-            setCustomFrom('');
-            setCustomTo('');
-          }}
-          options={[
-            { value: 'previous', label: 'Previous birthdays' },
-            { value: 'upcoming', label: 'Upcoming birthdays' }
-          ]}
-          placeholder="Select type…"
-        />
-        <SearchableSelect
-          label={mode === 'previous' ? 'Previous window' : 'Upcoming window'}
-          value={windowKey}
-          onChange={setWindowKey}
-          options={windows.map(w => ({ value: w.key, label: w.label }))}
-          placeholder="Select window…"
-        />
+
+      {/* KPI Overview Cards (4 cohesive cards) */}
+      <div className="team-kpi-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', marginBottom: '16px' }}>
+        <div className="team-kpi-card">
+          <div className="team-kpi-icon red">
+            <GiftIcon size={20} />
+          </div>
+          <div className="team-kpi-info">
+            <div className="team-kpi-val">{stats.todayCount}</div>
+            <div className="team-kpi-label">Today's Birthdays</div>
+          </div>
+        </div>
+
+        <div className="team-kpi-card">
+          <div className="team-kpi-icon amber">
+            <CalendarIcon size={20} />
+          </div>
+          <div className="team-kpi-info">
+            <div className="team-kpi-val">{stats.weekCount}</div>
+            <div className="team-kpi-label">Next 7 Days</div>
+          </div>
+        </div>
+
+        <div className="team-kpi-card">
+          <div className="team-kpi-icon blue">
+            <HeartIcon size={20} />
+          </div>
+          <div className="team-kpi-info">
+            <div className="team-kpi-val">{stats.monthCount}</div>
+            <div className="team-kpi-label">Upcoming (30 Days)</div>
+          </div>
+        </div>
+
+        <div className="team-kpi-card">
+          <div className="team-kpi-icon green">
+            <UsersIcon size={20} />
+          </div>
+          <div className="team-kpi-info">
+            <div className="team-kpi-val">{stats.totalCount}</div>
+            <div className="team-kpi-label">Total in Scope</div>
+          </div>
+        </div>
       </div>
 
-      {windowKey === 'custom' && (
-        <div className="panel filter-grid">
-          <label>
-            From date
-            <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
-          </label>
-          <label>
-            To date
-            <input type="date" value={customTo} min={customFrom || undefined} onChange={e => setCustomTo(e.target.value)} />
-          </label>
-        </div>
-      )}
+      {/* Professional Cohesive Filter Panel */}
+      <section className="death-filter-panel" style={{ marginBottom: '16px' }}>
+        <div className="prof-filter-grid">
+          {/* Ward Scope */}
+          <div className="prof-filter-field">
+            <label className="prof-filter-label">Ward Scope</label>
+            <WardFilter compact label="Ward" />
+          </div>
 
+          {/* Quick Search */}
+          <div className="prof-filter-field">
+            <label className="prof-filter-label">Search Citizen</label>
+            <div className="prof-search-input-wrap">
+              <SearchIcon size={16} />
+              <input
+                placeholder="Name, mobile, family, house…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Birthday Scope */}
+          <div className="prof-filter-field">
+            <label className="prof-filter-label">Birthday Scope</label>
+            <select
+              className="prof-filter-select"
+              value={mode}
+              onChange={e => {
+                const v = e.target.value;
+                setMode(v);
+                setWindowKey(v === 'previous' ? 'previous8' : 'next30');
+                setCustomFrom('');
+                setCustomTo('');
+              }}
+            >
+              <option value="upcoming">Upcoming Birthdays</option>
+              <option value="previous">Previous Birthdays</option>
+            </select>
+          </div>
+
+          {/* Period Window */}
+          <div className="prof-filter-field">
+            <label className="prof-filter-label">Period Window</label>
+            <select
+              className="prof-filter-select"
+              value={windowKey}
+              onChange={e => setWindowKey(e.target.value)}
+            >
+              {windows.map(w => (
+                <option key={w.key} value={w.key}>
+                  {w.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Custom Date Range */}
+          {windowKey === 'custom' && (
+            <>
+              <div className="prof-filter-field">
+                <label className="prof-filter-label">From Date</label>
+                <input
+                  type="date"
+                  className="prof-filter-select"
+                  style={{ backgroundImage: 'none', paddingRight: '12px' }}
+                  value={customFrom}
+                  onChange={e => setCustomFrom(e.target.value)}
+                />
+              </div>
+              <div className="prof-filter-field">
+                <label className="prof-filter-label">To Date</label>
+                <input
+                  type="date"
+                  className="prof-filter-select"
+                  style={{ backgroundImage: 'none', paddingRight: '12px' }}
+                  value={customTo}
+                  min={customFrom || undefined}
+                  onChange={e => setCustomTo(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Clean Filter Status & Reset Action Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '8px' }}>
+          <div className="muted" style={{ fontSize: '12.5px' }}>
+            Showing <strong>{visible.length}</strong> {visible.length === 1 ? 'birthday' : 'birthdays'}
+          </div>
+          <button
+            type="button"
+            className="small-btn"
+            disabled={!search && mode === 'upcoming' && windowKey === 'next30' && !customFrom && !customTo}
+            onClick={() => {
+              setSearch('');
+              setMode('upcoming');
+              setWindowKey('next30');
+              setCustomFrom('');
+              setCustomTo('');
+            }}
+            style={{ height: '32px', minHeight: '32px', padding: '0 14px', fontSize: '12.5px' }}
+          >
+            Reset Filters
+          </button>
+        </div>
+      </section>
+
+      {/* Main Content */}
       {!rows ? (
         <Loading />
       ) : !visible.length ? (
-        <Empty>No birthdays for the selected day/range.</Empty>
+        <Empty>No birthdays found for the selected ward and filter criteria.</Empty>
       ) : (
-        <div className="birthday-grid">
+        <div className="birthday-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
           {visible.map(r => {
-            const p = r.person;
-            const f = p.family;
-            const h = f?.house;
-            const a = h?.area;
-            const w = a?.ward;
+            const p = r.person || {};
+            const f = p.family || {};
+            const h = f?.house || {};
+            const a = h?.area || {};
+            const w = a?.ward || {};
             const phone = (p.mobile || '').replace(/\D/g, '');
             const nagarsevak = getEffectiveNagarsevak(r, currentUser);
             const hasNagarsevak = nagarsevak?.name && nagarsevak.name !== '-' && nagarsevak.name !== '—';
@@ -1210,56 +1410,150 @@ export default function Birthdays() {
             const party = hasNagarsevak && nagarsevak.partyName ? getPartyData(nagarsevak.partyName, nagarsevak.photo) : null;
             const enrichedRecord = { ...r, nagarsevak };
 
+            const isToday = r.daysToBirthday === 0;
+            const isTomorrow = r.daysToBirthday === 1;
+
             return (
-              <article className="birthday-card" key={p.id}>
-                <div className="confetti">✦</div>
-                <span className="eyebrow">BIRTHDAY</span>
-                <h2>
-                  {r.daysToBirthday === 0
-                    ? 'Today'
-                    : r.daysToBirthday === -1
-                    ? 'Yesterday'
-                    : r.daysToBirthday === -2
-                    ? 'Day before yesterday'
-                    : r.daysToBirthday < 0
-                    ? `${Math.abs(r.daysToBirthday)} days ago`
-                    : `In ${r.daysToBirthday} days`}
-                </h2>
-                <h3>{p.fullName}</h3>
-                <p>
-                  {fmtDate(p.dob)} · {p.age ?? 'Age unavailable'}
-                  {p.gender ? ` · ${p.gender}` : ''}
-                </p>
-                <div className="birthday-house">
-                  <b>Mobile:</b> {p.mobile || 'N/A'}<br />
-                  <b>House:</b> {h?.houseNumber || 'N/A'}<br />
-                  <b>Address:</b> {h?.address || 'N/A'}<br />
-                  <b>Colony:</b> {a?.name || 'N/A'} · <b>Ward:</b> {w?.wardNumber || 'N/A'}<br />
-                  <b>Family:</b> {f?.familyName || 'N/A'}
+              <article
+                className="birthday-card prof-card"
+                key={p.id}
+                style={{
+                  background: '#ffffff',
+                  border: isToday ? '1.5px solid #fb7185' : '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  boxShadow: isToday ? '0 4px 12px rgba(244, 63, 94, 0.08)' : '0 1px 3px rgba(0,0,0,0.04)',
+                  position: 'relative'
+                }}
+              >
+                {/* Header: Citizen details & Milestone Badge */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                    <div className="prof-avatar" style={{ flexShrink: 0 }}>
+                      {getInitials(p.fullName)}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <strong className="prof-text-truncate" style={{ fontSize: '14px', color: '#0f172a', display: 'block' }}>
+                        {p.fullName}
+                      </strong>
+                      <div className="muted" style={{ fontSize: '12px', marginTop: '1px' }}>
+                        <span>DOB: {fmtDate(p.dob)}</span>
+                        {p.age != null ? <span> · Age {p.age}</span> : null}
+                        {p.gender ? <span> · {p.gender}</span> : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Milestone Badge */}
+                  <span
+                    className={`team-badge ${isToday ? 'red' : isTomorrow ? 'amber' : r.daysToBirthday < 0 ? 'gray' : 'blue'}`}
+                    style={{ fontWeight: 700, fontSize: '11px', flexShrink: 0 }}
+                  >
+                    {isToday
+                      ? 'Today'
+                      : isTomorrow
+                      ? 'Tomorrow'
+                      : r.daysToBirthday === -1
+                      ? 'Yesterday'
+                      : r.daysToBirthday === -2
+                      ? '2 days ago'
+                      : r.daysToBirthday < 0
+                      ? `${Math.abs(r.daysToBirthday)}d ago`
+                      : `In ${r.daysToBirthday}d`}
+                  </span>
                 </div>
-                <div className="birthday-nagar">
-                  <FaceAvatar name={hasNagarsevak ? nagarsevak.name : '-'} photo={hasNagarsevak ? nagarsevak.photo : null} />
-                  <div>
-                    <small>Nagarsevak</small>
-                    <strong>{hasNagarsevak ? nagarsevak.name : '-'}</strong>
-                    {hasNagarsevak && nagarsevak?.partyName ? (
-                      <span className="party-badge" title={party?.name || nagarsevak.partyName}>{nagarsevak.partyName}</span>
-                    ) : null}
+
+                {/* Specs Box: Contact & Residence */}
+                <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#334155', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <PhoneIcon size={13} style={{ color: '#0284c7', flexShrink: 0 }} />
+                    {p.mobile ? (
+                      <a href={`tel:${p.mobile}`} className="prof-contact-link notranslate" translate="no" style={{ fontSize: '12px' }}>
+                        {p.mobile}
+                      </a>
+                    ) : (
+                      <span className="muted">No mobile</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <BuildingIcon size={13} style={{ color: '#64748b', flexShrink: 0 }} />
+                    <span className="prof-text-truncate">
+                      {h?.houseNumber ? `House #${h.houseNumber} · ` : ''}
+                      {a?.name || 'Colony —'}
+                      {w?.wardNumber ? ` · ${formatWardNumber(w.wardNumber)}` : ''}
+                    </span>
                   </div>
                 </div>
-                <div className="card-actions">
-                  <button className="primary-btn small-btn" onClick={() => setPreviewRecord(enrichedRecord)}>
-                    Preview Card
+
+                {/* Co-Branded Nagarsevak Pill */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: '#f1f5f9', borderRadius: '6px', fontSize: '11.5px' }}>
+                  <FaceAvatar name={hasNagarsevak ? nagarsevak.name : '-'} photo={hasNagarsevak ? nagarsevak.photo : null} size="sm" />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Nagarsevak</div>
+                    <strong className="prof-text-truncate" style={{ fontSize: '12px', color: '#1e293b', display: 'block' }}>
+                      {hasNagarsevak ? nagarsevak.name : '-'}
+                    </strong>
+                  </div>
+                  {hasNagarsevak && nagarsevak?.partyName ? (
+                    <span className="party-badge" style={{ fontSize: '10px' }} title={party?.name || nagarsevak.partyName}>
+                      {nagarsevak.partyName}
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Card Actions Toolbar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn-action outline-blue"
+                    onClick={() => setPreviewRecord(enrichedRecord)}
+                    style={{ flex: 1, minWidth: '90px', justifyContent: 'center' }}
+                    title="Preview personalized A4 printable greeting card"
+                  >
+                    <EyeIcon size={13} />
+                    <span>Card</span>
                   </button>
-                  <button className="small-btn" onClick={() => printBirthdayCard(enrichedRecord, currentUser)} title="Direct Print">
-                    Print Card
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={() => printBirthdayCard(enrichedRecord, currentUser)}
+                    style={{ flex: 1, minWidth: '70px', justifyContent: 'center' }}
+                    title="Direct print A4 greeting card"
+                  >
+                    <PrinterIcon size={13} />
+                    <span>Print</span>
                   </button>
-                  <button className="primary-outline" onClick={() => setSelected(enrichedRecord)}>
-                    View details
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={() => setSelected(enrichedRecord)}
+                    style={{ padding: '0 10px' }}
+                    title="View full citizen, household and family details"
+                  >
+                    <span>Details</span>
                   </button>
                   {phone.length === 10 && (
-                    <a className="whatsapp-btn" target="_blank" rel="noreferrer" href={`https://wa.me/91${phone}?text=${text}`}>
-                      WhatsApp
+                    <a
+                      className="btn-action whatsapp-action-btn"
+                      target="_blank"
+                      rel="noreferrer"
+                      href={`https://wa.me/91${phone}?text=${text}`}
+                      style={{
+                        background: '#25d366',
+                        color: '#ffffff',
+                        borderColor: '#25d366',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '0 10px',
+                        textDecoration: 'none'
+                      }}
+                      title="Send birthday wishes via WhatsApp"
+                    >
+                      <span>WhatsApp</span>
                     </a>
                   )}
                 </div>
@@ -1269,69 +1563,197 @@ export default function Birthdays() {
         </div>
       )}
 
+      {/* Details Modal with Home Direction */}
       {selected && (() => {
+        const p = selected.person || {};
+        const f = p.family || {};
+        const h = f.house || {};
+        const a = h.area || {};
+        const w = a.ward || {};
         const selectedNagar = selected?.nagarsevak;
         const hasSelectedNagar = selectedNagar?.name && selectedNagar.name !== '-' && selectedNagar.name !== '—';
+
         return (
-          <Modal wide title={`Birthday details · ${selected.person.fullName}`} onClose={() => setSelected(null)}>
-            <div className="detail-grid">
-              <div className="detail-card">
-                <h3>Citizen</h3>
-                <p><b>Name:</b> {selected.person.fullName}</p>
-                <p><b>DOB:</b> {fmtDate(selected.person.dob)}</p>
-                <p><b>Age:</b> {selected.person.age ?? 'N/A'}</p>
-                <p><b>Gender:</b> {selected.person.gender || 'N/A'}</p>
-                <p><b>Mobile:</b> {selected.person.mobile || 'N/A'}</p>
-                <p><b>Alternate:</b> {selected.person.alternateMobile || 'N/A'}</p>
-              </div>
-              <div className="detail-card">
-                <h3>Household</h3>
-                <p><b>Family:</b> {selected.person.family?.familyName || 'N/A'}</p>
-                <p><b>House:</b> {selected.person.family?.house?.houseNumber || 'N/A'}</p>
-                <p><b>Address:</b> {selected.person.family?.house?.address || 'N/A'}</p>
-                <p><b>Landmark:</b> {selected.person.family?.house?.landmark || 'N/A'}</p>
-              </div>
-              <div className="detail-card">
-                <h3>Ward & colony</h3>
-                <p>
-                  <b>Ward:</b> {selected.person.family?.house?.area?.ward?.wardNumber || 'N/A'}
-                  {selected.person.family?.house?.area?.ward?.name ? ` · ${selected.person.family.house.area.ward.name}` : ''}
-                </p>
-                <p><b>Colony / Area:</b> {selected.person.family?.house?.area?.name || 'N/A'}</p>
-                <p><b>Birthday:</b> {fmtDate(selected.person.dob)}</p>
-                <p><b>Days:</b> {selected.daysToBirthday === 0 ? 'Today' : selected.daysToBirthday}</p>
-              </div>
-            </div>
-            <div className="detail-card birthday-nagar-detail">
-              <h3>Nagarsevak</h3>
-              <div className="birthday-nagar">
-                <FaceAvatar
-                  name={hasSelectedNagar ? selectedNagar.name : '-'}
-                  photo={hasSelectedNagar ? selectedNagar.photo : null}
-                  className="staff-face-lg"
-                />
-                <div>
-                  <strong>{hasSelectedNagar ? selectedNagar.name : '-'}</strong>
-                  {hasSelectedNagar && selectedNagar?.partyName ? (
-                    <span className="party-badge">{selectedNagar.partyName}</span>
-                  ) : null}
-                  {hasSelectedNagar && selectedNagar?.mobile ? <p>{selectedNagar.mobile}</p> : null}
+          <Modal wide title={`Birthday Details · ${p.fullName}`} onClose={() => setSelected(null)}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Top Banner */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="prof-avatar" style={{ width: '44px', height: '44px', fontSize: '16px' }}>
+                    {getInitials(p.fullName)}
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: '16px', color: '#0f172a' }}>{p.fullName}</strong>
+                    <div className="muted" style={{ fontSize: '12.5px', marginTop: '2px' }}>
+                      <span>DOB: {fmtDate(p.dob)}</span>
+                      {p.age != null ? <span> · Age: {p.age}</span> : null}
+                      {p.gender ? <span> · {p.gender}</span> : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={() => {
+                      setPreviewRecord(selected);
+                      setSelected(null);
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 14px' }}
+                  >
+                    <EyeIcon size={14} />
+                    <span>Preview Card</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="small-btn"
+                    onClick={() => printBirthdayCard(selected, currentUser)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 14px' }}
+                  >
+                    <PrinterIcon size={14} />
+                    <span>Print Card</span>
+                  </button>
                 </div>
               </div>
-            </div>
-            <div className="detail-card">
-              <h3>Family members</h3>
-              {(selected.person.family?.members || []).map(m => (
-                <p key={m.id}>{m.fullName} · {m.mobile || 'N/A'} · {m.age ?? 'Age N/A'} years</p>
-              ))}
-            </div>
-            <div className="modal-actions" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button type="button" className="primary-btn" onClick={() => setPreviewRecord(selected)}>
-                Preview Card
-              </button>
-              <button type="button" className="small-btn" onClick={() => printBirthdayCard(selected, currentUser)}>
-                Print Card
-              </button>
+
+              {/* Specification Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                {/* Card 1: Citizen Contact */}
+                <div className="prof-detail-card">
+                  <div className="prof-card-title">
+                    <UsersIcon size={16} />
+                    <span>Citizen Information</span>
+                  </div>
+                  <div className="prof-spec-list">
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">Full Name:</span>
+                      <strong className="prof-spec-value">{p.fullName}</strong>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">Date of Birth:</span>
+                      <span className="prof-spec-value">{fmtDate(p.dob)}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">Current Age:</span>
+                      <span className="prof-spec-value">{p.age ?? '—'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">Mobile Number:</span>
+                      <span className="prof-spec-value">{p.mobile || '—'}</span>
+                    </div>
+                    {p.alternateMobile ? (
+                      <div className="prof-spec-row">
+                        <span className="prof-spec-label">Alternate Mobile:</span>
+                        <span className="prof-spec-value">{p.alternateMobile}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Card 2: Household & Residence with Directions */}
+                <div className="prof-detail-card">
+                  <div className="prof-card-title" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <BuildingIcon size={16} />
+                      <span>Household Residence</span>
+                    </div>
+                    {/* Home Directions Button */}
+                    <a
+                      href={getDirectionsUrl(h)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="primary-btn"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '12px',
+                        padding: '4px 12px',
+                        textDecoration: 'none'
+                      }}
+                      title="Open Google Maps directions to this citizen's residence"
+                    >
+                      <MapPinIcon size={14} />
+                      <span>Home Direction</span>
+                    </a>
+                  </div>
+                  <div className="prof-spec-list">
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">Family Name:</span>
+                      <strong className="prof-spec-value">{f.familyName || '—'}</strong>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">House Number:</span>
+                      <span className="prof-spec-value">{h.houseNumber || '—'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">Street / Address:</span>
+                      <span className="prof-spec-value">{h.address || '—'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">Colony / Area:</span>
+                      <span className="prof-spec-value">{a.name || '—'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-label">Ward Scope:</span>
+                      <span className="prof-spec-value">{w.wardNumber ? formatWardNumber(w.wardNumber) : '—'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 3: Co-Branded Nagarsevak */}
+                <div className="prof-detail-card">
+                  <div className="prof-card-title">
+                    <HeartIcon size={16} />
+                    <span>Greeting Authority</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
+                    <FaceAvatar
+                      name={hasSelectedNagar ? selectedNagar.name : '-'}
+                      photo={hasSelectedNagar ? selectedNagar.photo : null}
+                      className="staff-face-lg"
+                    />
+                    <div>
+                      <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block' }}>
+                        {hasSelectedNagar ? selectedNagar.name : '-'}
+                      </strong>
+                      {hasSelectedNagar && selectedNagar?.partyName ? (
+                        <span className="party-badge" style={{ marginTop: '3px', display: 'inline-block' }}>
+                          {selectedNagar.partyName}
+                        </span>
+                      ) : null}
+                      {hasSelectedNagar && selectedNagar?.mobile ? (
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                          {selectedNagar.mobile}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 4: Family Members */}
+                {(f.members || []).length > 0 && (
+                  <div className="prof-detail-card" style={{ gridColumn: '1 / -1' }}>
+                    <div className="prof-card-title">
+                      <UsersIcon size={16} />
+                      <span>Family Members ({f.members.length})</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                      {f.members.map(m => (
+                        <div key={m.id} style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #f1f5f9', fontSize: '12px' }}>
+                          <strong style={{ display: 'block', color: '#1e293b' }}>{m.fullName}</strong>
+                          <span className="muted">
+                            {m.gender ? `${m.gender} · ` : ''}
+                            {m.age != null ? `Age ${m.age}` : 'Age —'}
+                            {m.mobile ? ` · ${m.mobile}` : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </Modal>
         );

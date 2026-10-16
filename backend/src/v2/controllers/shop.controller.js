@@ -61,23 +61,52 @@ const list=asyncHandler(async(req,res)=>{
   }
   if(req.query.areaId) where.areaId=req.query.areaId;
   if(req.query.kind) where.kind=String(req.query.kind).toUpperCase();
-  const search=String(req.query.search||'').trim();
+  if(req.query.ownership){
+    const o=String(req.query.ownership).toUpperCase();
+    if(['OWN','RENT','OTHER'].includes(o)) where.ownership=o;
+  }
+  const search=String(req.query.search||'').trim().slice(0,60).replace(/[%_]/g,'');
   if(search){
+    const like=`%${search}%`;
     where[Op.or]=[
-      {name:{[Op.like]:`%${search}%`}},
-      {address:{[Op.like]:`%${search}%`}},
-      {landmark:{[Op.like]:`%${search}%`}},
-      {ownerName:{[Op.like]:`%${search}%`}},
-      {ownerMobile:{[Op.like]:`%${search}%`}},
-      {category:{[Op.like]:`%${search}%`}},
+      {name:{[Op.like]:like}},
+      {ownerName:{[Op.like]:like}},
+      {ownerMobile:{[Op.like]:`${search}%`}},
+      {landmark:{[Op.like]:like}},
     ];
   }
-  const rows=await Shop.findAll({
-    where,
-    include:[{model:Area,as:'area',where:Object.keys(areaWhere).length?areaWhere:undefined,required:true,include:[{model:Ward,as:'ward',attributes:['id','wardNumber','name']}]}],
-    order:[['name','ASC']]
+  const limit=Math.min(Math.max(Number(req.query.limit)||25,1),50);
+  const page=Math.max(Number(req.query.page)||1,1);
+  const areaInclude={model:Area,as:'area',where:Object.keys(areaWhere).length?areaWhere:undefined,required:true,include:[{model:Ward,as:'ward',attributes:['id','wardNumber','name']}]};
+  const kpiWhere={};
+  if(req.query.areaId) kpiWhere.areaId=req.query.areaId;
+  const [result,totalAll,shopCount,officeCount,owned,rented]=await Promise.all([
+    Shop.findAndCountAll({
+      where,
+      include:[areaInclude],
+      attributes:{exclude:['notes']},
+      limit,
+      offset:(page-1)*limit,
+      order:[['name','ASC'],['id','ASC']],
+      distinct:true,
+      col:'id',
+      subQuery:false,
+    }),
+    Shop.count({ include:[areaInclude], distinct:true }),
+    Shop.count({ where:{kind:'SHOP'}, include:[areaInclude], distinct:true }),
+    Shop.count({ where:{kind:'OFFICE'}, include:[areaInclude], distinct:true }),
+    Shop.count({ where:{ownership:'OWN'}, include:[areaInclude], distinct:true }),
+    Shop.count({ where:{ownership:'RENT'}, include:[areaInclude], distinct:true }),
+  ]);
+  return success(res,{
+    data:result.rows,
+    meta:{
+      total:result.count,
+      page,
+      limit,
+      kpis:{ total:totalAll, shops:shopCount, offices:officeCount, owned, rented },
+    },
   });
-  return success(res,{data:rows});
 });
 
 const detail=asyncHandler(async(req,res)=>{

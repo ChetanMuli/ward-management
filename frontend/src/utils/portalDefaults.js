@@ -30,12 +30,22 @@ export function isGenericDefaultHero(url) {
   return !raw || raw === CIVIC_DEFAULT_HERO || /hero-civic-default|hero-ward-default/i.test(raw);
 }
 
+function heroUrlKey(url) {
+  return publicMediaUrl(String(url || '').trim().split('?')[0]);
+}
+
+export function sameHeroUrl(a, b) {
+  const left = heroUrlKey(a);
+  const right = heroUrlKey(b);
+  return Boolean(left && left === right);
+}
+
 /** One banner for desktop + mobile. Inactive wards use the building default. */
-export function resolveCitizenHeroUrl(url, { demoMode = false } = {}) {
+export function resolveCitizenHeroUrl(url, { demoMode = false, fallback = CIVIC_DEFAULT_HERO } = {}) {
   if (demoMode) return CIVIC_DEFAULT_HERO;
   const live = publicMediaUrl(String(Array.isArray(url) ? url[0] : url || '').trim());
   const usable = live && !live.startsWith('data:');
-  return usable ? live : CIVIC_DEFAULT_HERO;
+  return usable ? live : (fallback || '');
 }
 
 export function withHeroCacheBust(url, version) {

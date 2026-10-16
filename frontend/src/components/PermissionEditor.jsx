@@ -44,7 +44,7 @@ export const PERMISSION_MODULES = [
       { id: 'CREATE_HOUSES', label: 'Add Houses', desc: 'Register new house / building addresses and GPS', scope: 'WRITE' },
       { id: 'EDIT_HOUSES', label: 'Edit Houses', desc: 'Modify house address, landmark, colony and building name', scope: 'WRITE' },
       { id: 'DELETE_HOUSES', label: 'Delete Houses', desc: 'Remove house records from ward registry', scope: 'DELETE' },
-      { id: 'VIEW_FAMILIES', label: 'View Families', desc: 'Browse family heads and household member trees', scope: 'READ' },
+      { id: 'VIEW_FAMILIES', label: 'View Families', desc: 'Browse household members and family houses', scope: 'READ' },
       { id: 'CREATE_FAMILIES', label: 'Add Families', desc: 'Register new household units and ration card info', scope: 'WRITE' },
       { id: 'EDIT_FAMILIES', label: 'Edit Families', desc: 'Update head of family, ration category, and details', scope: 'WRITE' },
       { id: 'DELETE_FAMILIES', label: 'Delete Families', desc: 'Remove family units from ward registry', scope: 'DELETE' },
@@ -78,6 +78,10 @@ export const PERMISSION_MODULES = [
       { id: 'CREATE_SCHEMES', label: 'Add Schemes', desc: 'Publish new public assistance and benefits scheme', scope: 'WRITE' },
       { id: 'EDIT_SCHEMES', label: 'Edit Schemes', desc: 'Update scheme eligibility criteria and required documents', scope: 'WRITE' },
       { id: 'DELETE_SCHEMES', label: 'Delete Schemes', desc: 'Remove welfare schemes from ward portal', scope: 'DELETE' },
+      { id: 'VIEW_HOSPITALS', label: 'View Hospitals', desc: 'See the ward hospital and clinic directory', scope: 'READ' },
+      { id: 'CREATE_HOSPITALS', label: 'Add Hospitals', desc: 'Register a hospital with address and map pin', scope: 'WRITE' },
+      { id: 'EDIT_HOSPITALS', label: 'Edit Hospitals', desc: 'Update hospital contact, hours and location', scope: 'WRITE' },
+      { id: 'DELETE_HOSPITALS', label: 'Delete Hospitals', desc: 'Move a hospital record to recycle bin', scope: 'DELETE' },
       { id: 'VIEW_DEATH_RECORDS', label: 'View Death Records', desc: 'Browse deceased citizens register and certificates', scope: 'READ' },
       { id: 'CREATE_DEATH_RECORDS', label: 'Log Death Records', desc: 'Record death certificates and dates for official record', scope: 'WRITE' },
     ],
@@ -135,6 +139,7 @@ export const PRESETS = {
       'VIEW_COMPLAINTS', 'CREATE_COMPLAINTS', 'EDIT_COMPLAINTS',
       'VIEW_SCHEDULES', 'CREATE_SCHEDULES', 'EDIT_SCHEDULES',
       'VIEW_SCHEMES', 'VIEW_DEATH_RECORDS', 'CREATE_DEATH_RECORDS',
+      'VIEW_HOSPITALS', 'CREATE_HOSPITALS', 'EDIT_HOSPITALS',
       'VIEW_CHAT', 'SEND_CHAT', 'VIEW_RECYCLE_BIN', 'VIEW_WARDS', 'VIEW_ELECTION_DATA'
     ],
   },
@@ -179,6 +184,7 @@ export const PRESETS = {
       'VIEW_VOTERS', 'VIEW_COMPLAINTS', 'ASSIGN_COMPLAINTS', 'EDIT_COMPLAINTS', 'CREATE_COMPLAINTS',
       'VIEW_SCHEDULES', 'CREATE_SCHEDULES', 'EDIT_SCHEDULES',
       'VIEW_18PLUS', 'VIEW_BIRTHDAYS', 'VIEW_SCHEMES',
+      'VIEW_HOSPITALS', 'CREATE_HOSPITALS', 'EDIT_HOSPITALS', 'DELETE_HOSPITALS',
       'VIEW_DEATH_RECORDS', 'CREATE_DEATH_RECORDS', 'VIEW_CHAT', 'SEND_CHAT',
       'VIEW_STAFF', 'VIEW_ELECTION_DATA',
     ],
@@ -196,6 +202,7 @@ export const PRESETS = {
       'VIEW_VOTERS', 'VIEW_COMPLAINTS', 'ASSIGN_COMPLAINTS', 'EDIT_COMPLAINTS',
       'VIEW_SCHEDULES', 'CREATE_SCHEDULES', 'EDIT_SCHEDULES', 'DELETE_SCHEDULES',
       'VIEW_18PLUS', 'VIEW_BIRTHDAYS', 'EXPORT_DATA', 'VIEW_SCHEMES',
+      'VIEW_HOSPITALS', 'CREATE_HOSPITALS', 'EDIT_HOSPITALS', 'DELETE_HOSPITALS',
       'VIEW_DEATH_RECORDS', 'CREATE_DEATH_RECORDS', 'VIEW_CHAT', 'SEND_CHAT',
       'VIEW_RECYCLE_BIN', 'RESTORE_RECYCLE_BIN', 'VIEW_USERS', 'VIEW_WARDS',
       'VIEW_ELECTION_DATA', 'VIEW_GOVERNMENT_VOTER_LISTS', 'CREATE_GOVERNMENT_VOTER_LISTS',
@@ -345,14 +352,14 @@ export default function PermissionEditor({ role = 'EMPLOYEE', values = [], onCha
         <div className="perm-v2-header-top">
           <div className="perm-v2-title-box">
             <div className="perm-v2-role-tag">
-              {isEmp ? 'Ward Worker / Staff (under Nagarsevak)' : isNagar ? 'Nagarsevak' : 'Account'}
+              {isEmp ? 'Employee (under Nagarsevak)' : isNagar ? 'Nagarsevak' : 'Account'}
             </div>
             <h3 className="perm-v2-title">
-              {isEmp ? 'What this ward worker / assistant can use' : isNagar ? 'What this Nagarsevak can use' : 'Account access'}
+              {isEmp ? 'What this employee can use' : isNagar ? 'What this Nagarsevak can use' : 'Account access'}
             </h3>
             <p className="perm-v2-desc">
               {isEmp
-                ? 'Turn ON only the screens this Nagarsevak field worker/assistant should open. OFF means that menu is hidden for them.'
+                ? 'Turn ON only the screens this employee should open. OFF means that menu is hidden for them.'
                 : isNagar
                 ? 'Turn ON the ward tools this Nagarsevak needs. Daily Schedule, complaints and citizens are the usual set.'
                 : 'Turn ON each screen this account is allowed to open.'}

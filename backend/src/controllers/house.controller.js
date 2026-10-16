@@ -20,9 +20,11 @@ const list = asyncHandler(async (req, res) => {
 
   const { rows, count } = await House.findAndCountAll({
     where,
+    distinct: true,
     include: [
       { model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] },
       { model: Apartment, as: 'apartment' },
+      { model: Family, as: 'families', attributes: ['id', 'familyName'] },
     ],
     limit: Number(limit),
     offset: (Number(page) - 1) * Number(limit),

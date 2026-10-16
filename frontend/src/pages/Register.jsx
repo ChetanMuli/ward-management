@@ -1,12 +1,184 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useState,useRef} from 'react';
 import {useNavigate,useParams,useSearchParams} from 'react-router-dom';
 import {api} from '../services/api';
 import {AuthShell} from './Login';
-import {formatWardLabel} from '../wardFormat';
+import {formatWardLabel, formatWardNumber} from '../wardFormat';
 import {getLanguage, initLanguage, ensureCurrentLanguage} from '../language';
 
 const KEY='ward_register_draft';
 const empty={name:'',email:'',mobile:'',wardId:'',password:'',confirmPassword:''};
+
+function IconWardPin() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21s-6.2-5.4-6.2-10.1a6.2 6.2 0 1 1 12.4 0C18.2 15.6 12 21 12 21Z" />
+      <circle cx="12" cy="10.6" r="2.2" />
+    </svg>
+  );
+}
+
+function WardSelectField({ wards, selectedWardId, onSelect, loading, inviteLocked, selectedWard, isMr, error }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+        setSearch('');
+      }
+    }
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setSearch('');
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  if (loading) {
+    return (
+      <div className="auth-input ward-reg-trigger is-loading">
+        <span className="auth-ico"><IconWardPin /></span>
+        <span className="auth-split" aria-hidden="true" />
+        <span className="ward-reg-placeholder">{isMr ? 'वॉर्ड माहिती लोड होत आहे…' : 'Loading available wards…'}</span>
+      </div>
+    );
+  }
+
+  if (inviteLocked) {
+    return (
+      <div className="auth-input ward-reg-trigger is-locked">
+        <span className="auth-ico"><IconWardPin /></span>
+        <span className="auth-split" aria-hidden="true" />
+        <div className="ward-reg-locked-copy">
+          <strong>{formatWardLabel(selectedWard)}</strong>
+          <span>{isMr ? 'नोंदणी लिंक या वॉर्डसाठी निश्चित आहे' : 'Assigned ward for your registration link'}</span>
+        </div>
+        <span className="ward-reg-lock-icon" title="Locked by invite link">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </span>
+        <input type="hidden" name="wardId" value={selectedWardId || ''} />
+      </div>
+    );
+  }
+
+  if (!wards.length) {
+    return (
+      <div className="auth-input ward-reg-trigger is-closed">
+        <span className="auth-ico"><IconWardPin /></span>
+        <span className="auth-split" aria-hidden="true" />
+        <span className="ward-reg-placeholder is-closed">
+          {error ? (isMr ? 'वॉर्ड लोड करता आला नाही' : 'Unable to load ward') : (isMr ? 'नोंदणीसाठी वॉर्ड उपलब्ध नाही' : 'No ward is open for registration')}
+        </span>
+      </div>
+    );
+  }
+
+  const selected = wards.find(w => String(w.id) === String(selectedWardId));
+  const showSearch = wards.length > 7;
+  const filtered = showSearch && search.trim()
+    ? wards.filter(w => {
+        const q = search.trim().toLowerCase();
+        const text = `${formatWardNumber(w.wardNumber)} ${w.name || ''} ${formatWardLabel(w)}`.toLowerCase();
+        return text.includes(q);
+      })
+    : wards;
+
+  return (
+    <div className={`ward-reg-wrap ${open ? 'is-open' : ''}`} ref={wrapRef}>
+      <button
+        type="button"
+        className={`auth-input ward-reg-trigger ${open ? 'is-focused' : ''} ${selected ? 'has-value' : ''}`}
+        onClick={() => setOpen(prev => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="auth-ico"><IconWardPin /></span>
+        <span className="auth-split" aria-hidden="true" />
+        <span className="ward-reg-value-text">
+          {selected ? formatWardLabel(selected) : (isMr ? 'आपला वॉर्ड निवडा…' : 'Select your ward…')}
+        </span>
+        <span className={`ward-reg-chevron ${open ? 'is-rotated' : ''}`}>
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 8 10 12 14 8" />
+          </svg>
+        </span>
+      </button>
+
+      <input type="hidden" name="wardId" value={selectedWardId || ''} />
+
+      {open && (
+        <div className="ward-reg-dropdown" role="listbox">
+          {showSearch && (
+            <div className="ward-reg-search-box">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                autoFocus
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={isMr ? 'वॉर्ड क्रमांक किंवा नाव शोधा…' : 'Search ward number or name…'}
+              />
+              {search && (
+                <button type="button" className="ward-reg-search-clear" onClick={() => setSearch('')}>✕</button>
+              )}
+            </div>
+          )}
+
+          <div className="ward-reg-list">
+            {filtered.length === 0 ? (
+              <div className="ward-reg-empty">{isMr ? 'कोणताही वॉर्ड सापडला नाही' : 'No matching wards found'}</div>
+            ) : (
+              filtered.map(w => {
+                const isSelected = String(w.id) === String(selectedWardId);
+                const wardNo = formatWardNumber(w.wardNumber);
+                const wardName = w.name || wardNo;
+                return (
+                  <button
+                    type="button"
+                    key={w.id}
+                    className={`ward-reg-item ${isSelected ? 'is-selected' : ''}`}
+                    onClick={() => {
+                      onSelect(w.id);
+                      setOpen(false);
+                      setSearch('');
+                    }}
+                    role="option"
+                    aria-selected={isSelected}
+                  >
+                    <span className="ward-reg-badge">{wardNo}</span>
+                    <span className="ward-reg-item-info">
+                      <span className="ward-reg-item-name">{wardName}</span>
+                      <span className="ward-reg-item-hint">{isMr ? 'महानगरपालिका वॉर्ड' : 'Municipal ward'}</span>
+                    </span>
+                    {isSelected && (
+                      <span className="ward-reg-check">
+                        <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="4 10 8 14 16 6" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Register(){
  const navigate=useNavigate();
@@ -41,10 +213,17 @@ export default function Register(){
  },[invite]);
  useEffect(()=>{try{const safe={...form,password:'',confirmPassword:''};sessionStorage.setItem(KEY,JSON.stringify(safe))}catch{}},[form]);
  const update=(key,value)=>setForm(f=>({...f,[key]:value}));
+
  async function submit(e){
   e.preventDefault();
   setError('');
-  if(!form.wardId) return setError(isMr?'नोंदणीसाठी वॉर्ड उपलब्ध नाही.':'No ward is open for registration.');
+  if(!form.wardId) {
+   return setError(
+    wards.length
+     ? (isMr ? 'कृपया आपला वॉर्ड निवडा.' : 'Please select your ward.')
+     : (isMr ? 'नोंदणीसाठी वॉर्ड उपलब्ध नाही.' : 'No ward is open for registration.')
+   );
+  }
   if(form.mobile.replace(/\D/g,'').length!==10) return setError(isMr?'मोबाईल क्रमांक बरोबर १० अंकांचा असावा.':'Mobile must be exactly 10 digits.');
   if(form.password.length<8) return setError(isMr?'पासवर्ड किमान ८ अक्षरांचा असावा.':'Password must be at least 8 characters.');
   if(form.password!==form.confirmPassword) return setError(isMr?'नवीन पासवर्ड आणि कन्फर्म पासवर्ड जुळत नाहीत.':'Password and confirm password do not match.');
@@ -96,26 +275,16 @@ export default function Register(){
      <input inputMode="numeric" value={form.mobile} onChange={e=>update('mobile',e.target.value.replace(/\D/g,'').slice(0,10))} maxLength="10" autoComplete="tel" required placeholder={isMr?'१०-अंकी मोबाईल नंबर':'10-digit mobile'}/>
     </label>
     <label className="register-ward-field">{isMr?'वॉर्ड':'Ward'}
-     {loadingWards?(
-      <div className="register-ward-locked">{isMr?'वॉर्ड लोड होत आहे…':'Loading ward…'}</div>
-     ):inviteLocked?(
-      <div className="register-ward-locked">
-       <strong>{formatWardLabel(selectedWard)}</strong>
-       <span>{isMr?'नोंदणी लिंक या वॉर्डसाठी आहे':'This registration link is for this ward'}</span>
-      </div>
-     ):wards.length?(
-      <select className="register-ward-select" value={form.wardId||''} onChange={e=>update('wardId',e.target.value)} required>
-       {wards.length>1?<option value="">{isMr?'आपला वॉर्ड निवडा':'Select your ward'}</option>:null}
-       {wards.map(w=>(
-        <option key={w.id} value={w.id}>{formatWardLabel(w)}</option>
-       ))}
-      </select>
-     ):error?(
-      <div className="register-ward-locked">{isMr?'वॉर्ड लोड करता आला नाही':'Unable to load ward'}</div>
-     ):(
-      <div className="register-ward-locked is-closed">{isMr?'नोंदणीसाठी वॉर्ड उघडे नाही':'No ward is open'}</div>
-     )}
-     {inviteLocked?<input type="hidden" name="wardId" value={form.wardId||''}/>:null}
+     <WardSelectField
+      wards={wards}
+      selectedWardId={form.wardId}
+      onSelect={id => update('wardId', id)}
+      loading={loadingWards}
+      inviteLocked={inviteLocked}
+      selectedWard={selectedWard}
+      isMr={isMr}
+      error={error}
+     />
     </label>
    </div>
    <div className="auth-field-row">

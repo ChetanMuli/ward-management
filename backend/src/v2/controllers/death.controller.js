@@ -41,7 +41,7 @@ const list = asyncHandler(async (req, res) => {
   const rows = await DeathRecord.findAll({
     where: Object.keys(where).length ? where : undefined,
     include: [
-      { model: Person, as: 'Person', include: fullInclude },
+      { model: Person, as: 'Person', paranoid: false, include: fullInclude },
       { model: User, as: 'reporter', attributes: ['id','name','email','mobile'] },
       { model: DeathObservance, as: 'observance', required: false },
     ],
@@ -53,9 +53,11 @@ const list = asyncHandler(async (req, res) => {
     throw new ApiError(403,'Cross-ward access denied');
   }
   const scopedRows=rows.filter(r=>{
-    const wardId=r.Person?.family?.house?.area?.wardId || r.Person?.family?.house?.area?.ward?.id || null;
+    const wardId=r.observance?.wardId || r.Person?.family?.house?.area?.wardId || r.Person?.family?.house?.area?.ward?.id || null;
     const effectiveWard=requestedWardId || (req.user.roleName==='SUPER_ADMIN'?'':req.user.roleName==='SUB_MASTER_ADMIN'?(req.user.wardIds||[]):req.user.wardId);
-    return Array.isArray(effectiveWard)?effectiveWard.includes(wardId):(!effectiveWard || wardId===effectiveWard);
+    if (!effectiveWard) return true;
+    if (Array.isArray(effectiveWard)) return effectiveWard.map(String).includes(String(wardId));
+    return String(wardId) === String(effectiveWard);
   });
   const q=String(req.query.search||'').trim().toLowerCase();
   const filtered=q?scopedRows.filter(r=>{
@@ -70,6 +72,7 @@ const list = asyncHandler(async (req, res) => {
     const firstDeathAnniversary = r.observance?.firstYearOn || addYears(r.dateOfDeath, 1);
     return {
       id:r.id,
+      wardId: r.observance?.wardId || p?.family?.house?.area?.wardId || p?.family?.house?.area?.ward?.id || null,
       recordStatus:r.recordStatus || 'ACTIVE',
       dateOfDeath:r.dateOfDeath,
       tenthDay,

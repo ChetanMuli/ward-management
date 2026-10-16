@@ -2,6 +2,8 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {api} from '../services/api';
 import {Empty,ErrorBox,Loading,Modal,PageHeader,SearchableSelect} from '../components/Ui';
 import {formatWardLabel} from '../wardFormat';
+import TeamNav from '../components/TeamNav';
+import { UsersIcon, UserCheckIcon, BuildingIcon, ShieldIcon, PhoneIcon } from '../components/Icons';
 
 const P=[
  {id:'VIEW_DASHBOARD',label:'Dashboard'},
@@ -32,6 +34,29 @@ export default function Stakeholders(){
  const [wardId,setWardId]=useState(''),[type,setType]=useState(''),[search,setSearch]=useState('');
  const load=()=>api.stakeholders().then(r=>setRows(r.data||[])).catch(e=>setError(e.message));
  useEffect(()=>{load();api.wards().then(r=>setWards(r.data||[])).catch(e=>setError(e.message))},[]);
+
+ async function deleteMember(record) {
+  if (!window.confirm(`Delete community member ${record.name}? This will remove their login account.`)) return;
+  setError('');
+  try {
+   await api.deleteStakeholder(record.id);
+   await load();
+   window.dispatchEvent(new CustomEvent('ward:toast', { detail: { type: 'success', message: `${record.name} removed successfully.` } }));
+  } catch (e) {
+   setError(e.message || 'Unable to delete community member.');
+  }
+ }
+
+ const stats = useMemo(() => {
+  const list = rows || [];
+  return {
+   total: list.length,
+   socialWorkers: list.filter(r => r.role === 'SOCIAL_WORKER').length,
+   candidates: list.filter(r => r.role === 'CANDIDATE').length,
+   wardsCovered: new Set(list.map(r => r.wardId).filter(Boolean)).size
+  };
+ }, [rows]);
+
  const filtered=useMemo(()=>{
   const q=search.trim().toLowerCase();
   return (rows||[]).filter(r=>(!wardId||String(r.wardId)===String(wardId))&&(!type||r.role===type)&&(!q||[r.name,r.email,r.mobile,r.ward?.wardNumber,r.ward?.name,typeLabel(r.role)].filter(Boolean).some(v=>String(v).toLowerCase().includes(q))));
@@ -44,8 +69,51 @@ export default function Stakeholders(){
     title="Community Members"
     action={<button className="primary-btn" onClick={()=>setEdit({new:true,type:'SOCIAL_WORKER',permissions:['VIEW_DASHBOARD','VIEW_CHAT']})}>+ Add community member</button>}
    />
+
+   <TeamNav current="stakeholders" />
+
    <ErrorBox error={error}/>
-   <div className="info-note community-intro">Use this section when someone is not the sitting Nagarsevak but still needs the software — for example an unelected former Nagarsevak, or a social worker. Sitting Nagarsevaks stay in Nagarsevak & Employees. Move an unelected Nagarsevak from that page, or add a new Samaj Sevak here and grant permissions.</div>
+
+   <div className="team-kpi-grid">
+    <div className="team-kpi-card">
+     <div className="team-kpi-icon blue">
+      <UsersIcon size={20} />
+     </div>
+     <div className="team-kpi-info">
+      <div className="team-kpi-val">{stats.total}</div>
+      <div className="team-kpi-label">Total Members</div>
+     </div>
+    </div>
+    <div className="team-kpi-card">
+     <div className="team-kpi-icon green">
+      <UserCheckIcon size={20} />
+     </div>
+     <div className="team-kpi-info">
+      <div className="team-kpi-val">{stats.socialWorkers}</div>
+      <div className="team-kpi-label">Social Workers</div>
+     </div>
+    </div>
+    <div className="team-kpi-card">
+     <div className="team-kpi-icon purple">
+      <BuildingIcon size={20} />
+     </div>
+     <div className="team-kpi-info">
+      <div className="team-kpi-val">{stats.candidates}</div>
+      <div className="team-kpi-label">Former Nagarsevaks</div>
+     </div>
+    </div>
+    <div className="team-kpi-card">
+     <div className="team-kpi-icon amber">
+      <ShieldIcon size={20} />
+     </div>
+     <div className="team-kpi-info">
+      <div className="team-kpi-val">{stats.wardsCovered}</div>
+      <div className="team-kpi-label">Wards Covered</div>
+     </div>
+    </div>
+   </div>
+
+   <div className="info-note community-intro" style={{ marginBottom: '16px' }}>Use this section when someone is not the sitting Nagarsevak but still needs the software — for example an unelected former Nagarsevak, or a social worker. Sitting Nagarsevaks stay in Nagarsevak & Employees. Move an unelected Nagarsevak from that page, or add a new Samaj Sevak here and grant permissions.</div>
    <div className="filter-toolbar community-filter-toolbar">
     <SearchableSelect label="Ward" value={wardId} onChange={setWardId} options={wardOptions} placeholder="All wards"/>
     <label>Type
@@ -59,15 +127,59 @@ export default function Stakeholders(){
     <button type="button" className="small-btn" onClick={()=>{setWardId('');setType('');setSearch('')}}>Clear filters</button>
    </div>
    {!filtered.length?<Empty>No community members match the selected filters.</Empty>:<div className="panel"><div className="table-wrap"><table>
-    <thead><tr><th>Name</th><th>Type</th><th>Ward</th><th>Mobile</th><th>Permissions</th><th>Action</th></tr></thead>
+    <thead><tr><th>Name</th><th>Type</th><th>Ward</th><th>Mobile</th><th>Permissions</th><th style={{ textAlign: 'center' }}>Action</th></tr></thead>
     <tbody>{filtered.map(r=>(
      <tr key={r.id}>
-      <td><strong>{r.name}</strong><div className="muted">{r.email||'—'}</div></td>
-      <td>{typeLabel(r.role)}</td>
-      <td>{formatWardLabel(r.ward)}</td>
-      <td>{r.mobile||'—'}</td>
-      <td>{r.permissions?.length||0} granted</td>
-      <td><button className="small-btn" onClick={()=>setEdit(r)}>Permissions</button></td>
+      <td data-label="Name">
+       <div className="team-user-cell">
+        <div className="team-avatar-initials community">
+         {(r.name || 'C').slice(0, 2).toUpperCase()}
+        </div>
+        <div style={{ minWidth: 0 }}>
+         <strong style={{ display: 'block', color: 'var(--text, #0f172a)' }}>{r.name}</strong>
+         <div className="muted">{r.email||'—'}</div>
+        </div>
+       </div>
+      </td>
+      <td data-label="Type">
+       <span className={`team-badge ${r.role==='SOCIAL_WORKER'?'green':'purple'}`}>
+        {typeLabel(r.role)}
+       </span>
+      </td>
+      <td data-label="Ward">{formatWardLabel(r.ward)}</td>
+      <td data-label="Mobile">
+       {r.mobile ? (
+        <a href={`tel:${r.mobile}`} className="team-contact-link notranslate" translate="no">
+         <PhoneIcon size={12} />
+         <span>{r.mobile}</span>
+        </a>
+       ) : '—'}
+      </td>
+      <td data-label="Permissions">
+       <span className="team-badge blue">
+        {r.permissions?.length||0} granted
+       </span>
+      </td>
+      <td data-label="Actions" style={{ textAlign: 'center' }}>
+       <div className="team-action-btns" style={{ justifyContent: 'center' }}>
+        <button
+         type="button"
+         className="btn-action outline-blue"
+         onClick={()=>setEdit(r)}
+         title="Edit profile & permissions"
+        >
+         Edit & Access
+        </button>
+        <button
+         type="button"
+         className="btn-action danger"
+         onClick={()=>deleteMember(r)}
+         title="Delete community member"
+        >
+         Delete
+        </button>
+       </div>
+      </td>
      </tr>
     ))}</tbody>
    </table></div></div>}

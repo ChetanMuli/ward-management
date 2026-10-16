@@ -7,6 +7,7 @@ const Area = require('./area.model');
 const Apartment = require('./apartment.model');
 const House = require('./house.model');
 const Shop = require('./shop.model');
+const Hospital = require('./hospital.model');
 const Family = require('./family.model');
 const Person = require('./person.model');
 const VoterProfile = require('./voterProfile.model');
@@ -78,6 +79,13 @@ House.belongsTo(Apartment, { foreignKey: 'apartmentId', as: 'apartment' });
 
 Area.hasMany(Shop, { foreignKey: 'areaId', as: 'shops' });
 Shop.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
+
+Ward.hasMany(Hospital, { foreignKey: 'wardId', as: 'hospitals' });
+Hospital.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+Area.hasMany(Hospital, { foreignKey: 'areaId', as: 'hospitals' });
+Hospital.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
+User.hasMany(Hospital, { foreignKey: 'createdByUserId', as: 'hospitalsCreated' });
+Hospital.belongsTo(User, { foreignKey: 'createdByUserId', as: 'createdBy' });
 
 // ---- House <-> Family ----
 House.hasMany(Family, { foreignKey: 'houseId', as: 'families' });
@@ -193,8 +201,8 @@ User.hasMany(AllChatMember, { foreignKey:'userId', as:'allChatMemberships' });
 AllChatMember.belongsTo(User, { foreignKey:'userId', as:'user' });
 AllChat.hasMany(AllChatMessage, { foreignKey:'groupId', as:'messages' });
 AllChatMessage.belongsTo(AllChat, { foreignKey:'groupId', as:'group' });
-User.hasMany(AllChatMessage, { foreignKey:'senderUserId', as:'allChatMessages' });
-AllChatMessage.belongsTo(User, { foreignKey:'senderUserId', as:'sender' });
+User.hasMany(AllChatMessage, { foreignKey:'senderUserId', as:'allChatMessages', onDelete:'CASCADE' });
+AllChatMessage.belongsTo(User, { foreignKey:'senderUserId', as:'sender', onDelete:'CASCADE' });
 
 // ---- Group chat (Nagarsevak + custom) ----
 Ward.hasMany(GroupChat, { foreignKey:'wardId', as:'groupChats' });
@@ -209,8 +217,8 @@ User.hasMany(GroupChatMember, { foreignKey:'userId', as:'groupChatMemberships' }
 GroupChatMember.belongsTo(User, { foreignKey:'userId', as:'user' });
 GroupChat.hasMany(GroupChatMessage, { foreignKey:'groupId', as:'messages' });
 GroupChatMessage.belongsTo(GroupChat, { foreignKey:'groupId', as:'group' });
-User.hasMany(GroupChatMessage, { foreignKey:'senderUserId', as:'groupChatMessages' });
-GroupChatMessage.belongsTo(User, { foreignKey:'senderUserId', as:'sender' });
+User.hasMany(GroupChatMessage, { foreignKey:'senderUserId', as:'groupChatMessages', onDelete:'CASCADE' });
+GroupChatMessage.belongsTo(User, { foreignKey:'senderUserId', as:'sender', onDelete:'CASCADE' });
 
 Ward.hasMany(WardNagarsevakSubscription, { foreignKey: 'wardId', as: 'nagarsevakSubscriptions' });
 WardNagarsevakSubscription.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
@@ -288,6 +296,7 @@ module.exports = {
   Apartment,
   House,
   Shop,
+  Hospital,
   Family,
   Person,
   VoterProfile,

@@ -1,5 +1,6 @@
-const { Op } = require('sequelize');
-const { House, Family, Person, PersonBirthday, VoterProfile, Complaint, Area, Ward, User, Role, Employee, Apartment } = require('../../models');
+const { Op, QueryTypes } = require('sequelize');
+const sequelize = require('../../config/database');
+const { House, Family, Person, PersonBirthday, VoterProfile, Complaint, Area, Ward, User, Role, Employee, Apartment, Hospital, Shop } = require('../../models');
 const { success } = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 const { loadTodayWardEvents } = require('../../services/wardDay.service');
@@ -82,7 +83,10 @@ const summary = asyncHandler(async (req, res) => {
     ? { wardId:requestedWardId }
     : (accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}});
 
-  const [houses,apartments,families,persons,voters,nonVoters,complaints,openComplaints,managedEmployees,corporatorCount,birthdayCount,upcomingCount] = await Promise.all([
+  const hospitalWhere = requestedWardId
+    ? { wardId: requestedWardId }
+    : (accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}});
+  const [houses,apartments,families,persons,voters,nonVoters,complaints,openComplaints,managedEmployees,corporatorCount,birthdayCount,upcomingCount,hospitals,shops] = await Promise.all([
     House.count({ where:areaFilter }),
     Apartment.count({ where:apartmentWhere }),
     Family.count({ where:{}, include:familyInclude, distinct:true }),
@@ -113,12 +117,36 @@ const summary = asyncHandler(async (req, res) => {
       include:personInclude,
       distinct:true,
     }),
+    Hospital.count({ where: hospitalWhere }).catch(()=>0),
+    Shop.count({
+      include: [{ model: Area, as: 'area', where: needsAreaScope ? areaWhere : undefined, required: needsAreaScope, attributes: [] }],
+      distinct: true,
+    }).catch(()=>0),
   ]);
 
-  const statusResults=await Promise.all(STATUS_LIST.map(status=>
-    Complaint.count({where:whereWith({status}), ...countOpts}).then(count=>[status,count])
-  ));
-  statusResults.forEach(([status,count])=>{statusCounts[status]=count;});
+  STATUS_LIST.forEach((status) => { statusCounts[status] = 0; });
+  try {
+    const wardList = scopeWardIds(requestedWardId, accessibleWardIds);
+    let sql = `SELECT c.status AS status, COUNT(DISTINCT c.id) AS c
+      FROM complaints c
+      LEFT JOIN houses h ON h.id = c.house_id AND h.deleted_at IS NULL
+      LEFT JOIN areas ar ON ar.id = h.area_id
+      WHERE c.deleted_at IS NULL`;
+    const replacements = {};
+    if (req.user.roleName === 'EMPLOYEE' && req.user.employeeProfile?.id) {
+      sql += ' AND c.assigned_employee_id = :empId';
+      replacements.empId = req.user.employeeProfile.id;
+    }
+    if (wardList !== null) {
+      sql += ' AND (c.ward_id IN (:wardIds) OR ar.ward_id IN (:wardIds))';
+      replacements.wardIds = wardList.length ? wardList : [EMPTY_ID];
+    }
+    sql += ' GROUP BY c.status';
+    const grouped = await sequelize.query(sql, { replacements, type: QueryTypes.SELECT });
+    grouped.forEach((row) => { if (row.status) statusCounts[row.status] = Number(row.c) || 0; });
+  } catch (err) {
+    console.error('[DASHBOARD STATUS GROUP]', err.message);
+  }
 
   const recentWhere=whereWith({
     status: { [Op.in]: ['SUBMITTED','OPEN','PENDING','ASSIGNED','IN_PROGRESS','REOPENED'] }
@@ -155,8 +183,8 @@ const summary = asyncHandler(async (req, res) => {
   }
   const todayBirthdays=todayEvents.filter(ev=>ev.kind==='BIRTHDAY').length;
   const todayDahava=todayEvents.filter(ev=>ev.kind==='DAHAVA').length;
-  const todayVarshashraddha=todayEvents.filter(ev=>ev.kind==='ANNIVERSARY').length;
-  const todayDeaths=todayDahava+todayVarshashraddha;
+  const todayVarshashraddha=0;
+  const todayDeaths=todayDahava;
   let extraUser = null;
   if (req.user.roleName === 'NAGARSEVAK') {
     const pMap = await nagarsevakPublicByIds([req.user.id]);
@@ -233,10 +261,12 @@ const summary = asyncHandler(async (req, res) => {
 
   const nagarRole=await Role.findOne({where:{name:'NAGARSEVAK'}});
   const empRole=await Role.findOne({where:{name:'EMPLOYEE'}});
+  const citizenRole=await Role.findOne({where:{name:'CITIZEN'}});
   const staffWardWhere=requestedWardId
     ? {wardId:requestedWardId}
     : (accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}});
   const employeeCount=empRole?await User.count({where:{roleId:empRole.id,status:'ACTIVE',...staffWardWhere}}):0;
+  const citizenUsers=citizenRole?await User.count({where:{roleId:citizenRole.id,status:{[Op.ne]:'DELETED'},...staffWardWhere}}):0;
   let teamNagarsevaks=[];
   let teamEmployees=[];
   if(requestedWardId){
@@ -253,7 +283,7 @@ const summary = asyncHandler(async (req, res) => {
 
   return success(res,{data:{
     wardId:requestedWardId, ward, user:userInfo, employee:employeeInfo, myEmployees,
-    houses,apartments,families,persons,voters,nonVoters,complaints,openComplaints,
+    houses,apartments,families,persons,voters,nonVoters,hospitals,shops,citizenUsers,complaints,openComplaints,
     birthdaysNext30:birthdayCount,upcoming18Next90:upcomingCount,
     todayEvents,todayBirthdays,todayDahava,todayVarshashraddha,todayDeaths,
     managedEmployees,corporatorCount,employeeCount,statusCounts,

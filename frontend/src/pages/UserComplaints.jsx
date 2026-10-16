@@ -31,7 +31,7 @@ function statusText(s){return String(s||'').replaceAll('_',' ')}
 
 export default function UserComplaints({language='en'}){
  const user=getUser(),location=useLocation(),mr=language==='mr';
- const [rows,setRows]=useState(null),[team,setTeam]=useState(null),[open,setOpen]=useState(false),[detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[statusFilter,setStatusFilter]=useState(''),[categoryFilter,setCategoryFilter]=useState(''),[priorityFilter,setPriorityFilter]=useState(''),[nagarsevakFilter,setNagarsevakFilter]=useState(''),[search,setSearch]=useState('');
+ const [rows,setRows]=useState(null),[team,setTeam]=useState(null),[open,setOpen]=useState(false),[detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[statusFilter,setStatusFilter]=useState(''),[categoryFilter,setCategoryFilter]=useState(''),[priorityFilter,setPriorityFilter]=useState(''),[search,setSearch]=useState('');
  const [locating,setLocating]=useState(false);
  const [previewPhoto,setPreviewPhoto]=useState(null);
  const [form,setForm]=useState({category:'WATER',customCategory:'',description:'',priority:'MEDIUM',assignedNagarsevakUserId:'__ALL__',location:'',reportedImages:[]});
@@ -76,9 +76,9 @@ export default function UserComplaints({language='en'}){
    return (rows||[]).filter(c=>{
      const text=[c.complaintNumber,c.description,c.location,c.assignedNagarsevak?.name,c.assignedEmployee?.User?.name].map(v=>String(v||'').toLowerCase()).join(' ');
      const statusMatches = !statusFilter || (statusFilter === 'SUBMITTED' ? (c.status === 'SUBMITTED' || c.status === 'OPEN') : c.status === statusFilter);
-     return statusMatches && (!categoryFilter||c.category===categoryFilter)&&(!priorityFilter||c.priority===priorityFilter)&&(!nagarsevakFilter||String(c.assignedNagarsevak?.id||'')===String(nagarsevakFilter))&&(!q||text.includes(q));
+     return statusMatches && (!categoryFilter||c.category===categoryFilter)&&(!priorityFilter||c.priority===priorityFilter)&&(!q||text.includes(q));
    });
- },[rows,statusFilter,categoryFilter,priorityFilter,nagarsevakFilter,search]);
+ },[rows,statusFilter,categoryFilter,priorityFilter,search]);
 
  const statusFlow=['SUBMITTED','ASSIGNED','IN_PROGRESS','RESOLVED','CLOSED'];
  const flowIndex=(status)=>status==='PENDING'?1:status==='REOPENED'?1:Math.max(0,statusFlow.indexOf(status));
@@ -172,13 +172,7 @@ export default function UserComplaints({language='en'}){
        {PRIORITIES.map(([v,l])=><option key={v} value={v}>{mr?({LOW:'कमी',MEDIUM:'मध्यम',HIGH:'जास्त',CRITICAL:'तातडीचे'}[v]||l):l}</option>)}
      </select>
    </label>
-   <label><span>{mr?'नगरसेवक':'Nagarsevak'}</span>
-     <select value={nagarsevakFilter} onChange={e=>setNagarsevakFilter(e.target.value)}>
-       <option value="">{mr?'सर्व नगरसेवक':'All Nagarsevaks'}</option>
-       {nagarsevaks.map(n=><option key={n.id} value={n.id}>{n.name}{n.mobile?` · ${n.mobile}`:''}</option>)}
-     </select>
-   </label>
-   <button type="button" className="small-btn" onClick={()=>{setSearch('');setStatusFilter('');setCategoryFilter('');setPriorityFilter('');setNagarsevakFilter('')}}>{mr?'फिल्टर साफ करा':'Clear filters'}</button>
+   <button type="button" className="small-btn" onClick={()=>{setSearch('');setStatusFilter('');setCategoryFilter('');setPriorityFilter('')}}>{mr?'फिल्टर साफ करा':'Clear filters'}</button>
  </div>
   {error&&<div className="user-error"><span>{error}</span><button onClick={load}>Retry</button></div>}
   <section className={`ward-info-card ${heroBanner?'has-portal-banner':''}`}>
@@ -205,7 +199,7 @@ export default function UserComplaints({language='en'}){
      );
    }):<div className="user-nagar-empty"><strong>{mr?'नगरसेवक प्रोफाइल सध्या उपलब्ध नाही.':'Nagarsevak details are not available yet.'}</strong></div>}</div>
   </section>
-  {rows===null?<Loading/>:!filteredRows.length?<Empty>{search||statusFilter||categoryFilter||priorityFilter||nagarsevakFilter?(mr?'फिल्टरनुसार तक्रार सापडली नाही.':'No complaints match the selected filters.') : labels.empty}</Empty>:<><div className="complaint-results-summary">{mr?`${filteredRows.length} तक्रारी दिसत आहेत`:`Showing ${filteredRows.length} complaint${filteredRows.length===1?'':'s'}`}</div><div className="user-complaint-list">{filteredRows.map(c=><article className="user-complaint-card" key={c.id}><div className="user-complaint-card-head"><div><span className="complaint-number">{c.complaintNumber}</span><h3>{c.description}</h3></div><StatusPill>{c.status}</StatusPill></div><div className="user-complaint-meta"><span>{getCategoryName(c.category)}</span><span>{c.priority}</span><span>{fmt(c.createdAt)}</span></div><div className="complaint-status-stepper" aria-label={`Complaint status: ${c.status}`}>
+  {rows===null?<Loading/>:!filteredRows.length?<Empty>{search||statusFilter||categoryFilter||priorityFilter?(mr?'फिल्टरनुसार तक्रार सापडली नाही.':'No complaints match the selected filters.') : labels.empty}</Empty>:<><div className="complaint-results-summary">{mr?`${filteredRows.length} तक्रारी दिसत आहेत`:`Showing ${filteredRows.length} complaint${filteredRows.length===1?'':'s'}`}</div><div className="user-complaint-list">{filteredRows.map(c=><article className="user-complaint-card" key={c.id}><div className="user-complaint-card-head"><div><span className="complaint-number">{c.complaintNumber}</span><h3>{c.description}</h3></div><StatusPill>{c.status}</StatusPill></div><div className="user-complaint-meta"><span>{getCategoryName(c.category)}</span><span>{c.priority}</span><span>{fmt(c.createdAt)}</span></div><div className="complaint-status-stepper" aria-label={`Complaint status: ${c.status}`}>
  {statusFlow.map((stage,i)=>{const active=flowIndex(c.status)>=i;return <div className={`complaint-status-step ${active?'done':''} ${c.status===stage?'current':''}`} key={stage}><span className="complaint-status-dot">{active?'✓':i+1}</span><small>{statusLabel(stage)}</small></div>})}
  </div>
  {c.status==='PENDING'&&<div className="complaint-status-note">⏳ {nextAction(c.status)}</div>}
@@ -289,8 +283,8 @@ export default function UserComplaints({language='en'}){
         <p><b>{mr?'समस्या:':'Problem:'}</b> {detail.description}</p>
         {detail.location&&<div>
           <p><b>{mr?'ठिकाण:':'Location:'}</b> {detail.location}</p>
-          <button type="button" className="small-btn directions-btn" style={{marginTop:'4px',marginBottom:'8px',display:'inline-flex',alignItems:'center',gap:'5px'}} onClick={()=>openDirections(detail.location,detail.house,team?.ward?.name||user?.ward?.name)}>
-            🗺️ {mr?'गुगल मॅप्सवर दिशा पहा':'Get Directions in Google Maps'}
+          <button type="button" className="table-directions-btn table-directions-btn-lg" onClick={()=>openDirections(detail.location,detail.house,team?.ward?.name||user?.ward?.name)}>
+            {mr?'गुगल मॅप्सवर दिशा पहा':'Get Directions in Google Maps'}
           </button>
         </div>}
       </div>

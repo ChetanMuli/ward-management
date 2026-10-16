@@ -12,7 +12,6 @@ import {
   CirclePhotoField,
   Loading,
   Modal,
-  PageHeader,
   StatusPill,
   Toolbar,
   SearchableSelect,
@@ -34,6 +33,8 @@ import {
 import PasswordResetModal from '../components/PasswordResetModal';
 import PermissionEditor, { ALL_PERMISSIONS } from '../components/PermissionEditor';
 import { formatWardLabel } from '../wardFormat';
+import TeamNav from '../components/TeamNav';
+import { PhoneIcon, UsersIcon, UserCheckIcon, BuildingIcon, ZapIcon, EyeIcon, MapPinIcon, ShieldIcon, LockIcon } from '../components/Icons';
 
 
 const empty = {
@@ -304,24 +305,93 @@ export default function Staff() {
 
 
   /*
-   * PAGINATION VALUES
+   * SEARCH & FILTER VALUES
    */
+  const [staffSearch, setStaffSearch] = useState('');
+  const [selectedManagerId, setSelectedManagerId] = useState('');
 
-  const visibleN =
-    nagarsevaks || [];
+  const visibleN = nagarsevaks || [];
 
-  const visibleE =
-    (employees || []).filter(e => {
+  const visibleE = useMemo(() => {
+    return (employees || []).filter(e => {
+      if (councillor) {
+        return String(e.managerUserId || e.manager?.id || '') === String(user?.id || '');
+      }
+      if (selectedManagerId) {
+        return String(e.managerUserId || e.manager?.id || '') === String(selectedManagerId);
+      }
+      return true;
+    });
+  }, [employees, councillor, user?.id, selectedManagerId]);
+
+  const filteredN = useMemo(() => {
+    const list = visibleN;
+    const q = staffSearch.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(n => {
+      const hay = [
+        n.name,
+        n.email,
+        n.mobile,
+        n.partyName,
+        n.wardSeat,
+        n.ward?.wardNumber,
+        n.ward?.name,
+        n.status
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }, [visibleN, staffSearch]);
+
+  const filteredE = useMemo(() => {
+    const list = visibleE;
+    const q = staffSearch.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(e => {
+      const hay = [
+        e.User?.name,
+        e.name,
+        e.User?.email,
+        e.email,
+        e.User?.mobile,
+        e.mobile,
+        e.designation,
+        e.ward?.wardNumber,
+        e.ward?.name,
+        e.manager?.name,
+        e.User?.status,
+        e.status
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }, [visibleE, staffSearch]);
+
+  const nTotal = Number(nMeta?.total || 0);
+  const eTotal = Number(eMeta?.total || 0);
+
+  const nStats = useMemo(() => {
+    const list = allN?.length ? allN : visibleN;
+    return {
+      total: nTotal || list.length,
+      active: list.filter(n => String(n.status || '').toUpperCase() === 'ACTIVE').length,
+      wardActive: list.filter(n => String(n.wardStatus || n.ward?.status || '').toUpperCase() === 'ACTIVE').length,
+      visible: list.filter(n => !!n.residentVisible).length
+    };
+  }, [allN, visibleN, nTotal]);
+
+  const eStats = useMemo(() => {
+    const list = allE?.length ? allE : visibleE;
+    const filteredList = list.filter(e => {
       if (!councillor) return true;
       return String(e.managerUserId || e.manager?.id || '') === String(user?.id || '');
     });
-
-
-  const nTotal =
-    Number(nMeta?.total || 0);
-
-  const eTotal =
-    Number(eMeta?.total || 0);
+    return {
+      total: eTotal || filteredList.length,
+      active: filteredList.filter(e => String(e.User?.status || e.status || '').toUpperCase() === 'ACTIVE').length,
+      assignedColonies: filteredList.filter(e => parseAreaIds(e.assignedAreaIds).length > 0).length,
+      wardsCovered: new Set(filteredList.map(e => e.wardId || e.ward?.id).filter(Boolean)).size
+    };
+  }, [allE, visibleE, eTotal, councillor, user?.id]);
 
 
   const nPages =
@@ -588,6 +658,7 @@ export default function Staff() {
           'VIEW_HOUSES','CREATE_HOUSES','EDIT_HOUSES','VIEW_FAMILIES','CREATE_FAMILIES','EDIT_FAMILIES',
           'VIEW_CITIZENS','CREATE_CITIZENS','EDIT_CITIZENS','VIEW_VOTERS','VIEW_COMPLAINTS','EDIT_COMPLAINTS',
           'VIEW_18PLUS','VIEW_BIRTHDAYS','EXPORT_DATA','VIEW_SCHEMES','VIEW_DEATH_RECORDS','CREATE_DEATH_RECORDS',
+          'VIEW_HOSPITALS','CREATE_HOSPITALS','EDIT_HOSPITALS','DELETE_HOSPITALS',
           'VIEW_CHAT','SEND_CHAT','VIEW_RECYCLE_BIN','RESTORE_RECYCLE_BIN','VIEW_WARDS','VIEW_ELECTION_DATA'
         ],
       });
@@ -1070,17 +1141,73 @@ export default function Staff() {
   return (
     <div className="staff-page admin-data-page">
 
-      <PageHeader
-        title={
-          master
-            ? 'Ward Team & Staff Administration'
-            : sub
-              ? 'Sub-Admin & Ward Team Administration'
-              : 'Ward Workers Administration'
-        }
-      />
+      <TeamNav current="staff" />
 
       <ErrorBox error={error} />
+
+      {tab === 'NAGARSEVAK' ? (
+        <div className="team-kpi-grid">
+          <div className="team-kpi-card">
+            <div className="team-kpi-icon blue"><UsersIcon size={20} /></div>
+            <div className="team-kpi-info">
+              <div className="team-kpi-val">{nStats.total}</div>
+              <div className="team-kpi-label">Total Nagarsevaks</div>
+            </div>
+          </div>
+          <div className="team-kpi-card">
+            <div className="team-kpi-icon green"><UserCheckIcon size={20} /></div>
+            <div className="team-kpi-info">
+              <div className="team-kpi-val">{nStats.active}</div>
+              <div className="team-kpi-label">Active Accounts</div>
+            </div>
+          </div>
+          <div className="team-kpi-card">
+            <div className="team-kpi-icon purple"><BuildingIcon size={20} /></div>
+            <div className="team-kpi-info">
+              <div className="team-kpi-val">{nStats.wardActive}</div>
+              <div className="team-kpi-label">Active Wards</div>
+            </div>
+          </div>
+          <div className="team-kpi-card">
+            <div className="team-kpi-icon amber"><EyeIcon size={20} /></div>
+            <div className="team-kpi-info">
+              <div className="team-kpi-val">{nStats.visible}</div>
+              <div className="team-kpi-label">Visible to Residents</div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="team-kpi-grid">
+          <div className="team-kpi-card">
+            <div className="team-kpi-icon blue"><UsersIcon size={20} /></div>
+            <div className="team-kpi-info">
+              <div className="team-kpi-val">{eStats.total}</div>
+              <div className="team-kpi-label">Total Employees</div>
+            </div>
+          </div>
+          <div className="team-kpi-card">
+            <div className="team-kpi-icon green"><ZapIcon size={20} /></div>
+            <div className="team-kpi-info">
+              <div className="team-kpi-val">{eStats.active}</div>
+              <div className="team-kpi-label">Active Employees</div>
+            </div>
+          </div>
+          <div className="team-kpi-card">
+            <div className="team-kpi-icon purple"><MapPinIcon size={20} /></div>
+            <div className="team-kpi-info">
+              <div className="team-kpi-val">{eStats.assignedColonies}</div>
+              <div className="team-kpi-label">Colony Assigned</div>
+            </div>
+          </div>
+          <div className="team-kpi-card">
+            <div className="team-kpi-icon amber"><BuildingIcon size={20} /></div>
+            <div className="team-kpi-info">
+              <div className="team-kpi-val">{eStats.wardsCovered}</div>
+              <div className="team-kpi-label">Wards Staffed</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="tabs">
 
@@ -1111,14 +1238,42 @@ export default function Staff() {
             setTab('EMPLOYEE')
           }
         >
-          Ward Workers / Staff ({eTotal})
+          Employees ({eTotal})
         </button>
 
       </div>
 
       <Toolbar>
 
+        <div style={{ flex: '1 1 200px', minWidth: '160px' }}>
+          <input
+            type="search"
+            style={{ width: '100%', minHeight: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 12px', fontSize: '13px' }}
+            placeholder={tab === 'NAGARSEVAK' ? "Search by name, mobile, ward..." : "Search staff by name, mobile, designation..."}
+            value={staffSearch}
+            onChange={e => setStaffSearch(e.target.value)}
+          />
+        </div>
+
         <WardFilter />
+
+        {tab === 'EMPLOYEE' && (master || sub) && (
+          <div style={{ flex: '1 1 220px', minWidth: '180px' }}>
+            <SearchableSelect
+              label="Managing Nagarsevak"
+              value={selectedManagerId}
+              onChange={v => { setSelectedManagerId(v); setEPage(1); }}
+              options={[
+                { value: '', label: 'All Nagarsevaks (all employees)' },
+                ...(allN || []).filter(n => !selectedWardId || String(n.wardId) === String(selectedWardId)).map(n => ({
+                  value: n.id,
+                  label: `${n.name} (Ward ${n.ward?.wardNumber || ''})`
+                }))
+              ]}
+              placeholder="All Nagarsevaks"
+            />
+          </div>
+        )}
 
         {master && (
           <button
@@ -1140,11 +1295,39 @@ export default function Staff() {
           + Add {
             tab === 'NAGARSEVAK'
               ? 'Nagarsevak'
-              : 'Ward Worker'
+              : 'Employee'
           }
         </button>
 
       </Toolbar>
+
+      {councillor && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', marginBottom: '16px' }}>
+          <UserCheckIcon size={18} style={{ color: '#16a34a', flexShrink: 0 }} />
+          <div style={{ fontSize: '13px', color: '#166534' }}>
+            <strong>Your office team:</strong> Employees reporting to <strong>{user?.name}</strong> for this ward.
+          </div>
+        </div>
+      )}
+
+      {tab === 'EMPLOYEE' && !councillor && selectedManagerId && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UsersIcon size={16} style={{ color: '#2563eb' }} />
+            <span style={{ fontSize: '13px', color: '#1e3a8a' }}>
+              Employees under <strong>{(allN || []).find(n => String(n.id) === String(selectedManagerId))?.name || 'Selected Nagarsevak'}</strong> ({filteredE.length})
+            </span>
+          </div>
+          <button
+            type="button"
+            className="small-btn"
+            onClick={() => setSelectedManagerId('')}
+            style={{ fontSize: '12px' }}
+          >
+            Show all employees
+          </button>
+        </div>
+      )}
 
 
       {/*
@@ -1160,10 +1343,10 @@ export default function Staff() {
 
           <Loading />
 
-        ) : !visibleN.length ? (
+        ) : !filteredN.length ? (
 
           <Empty>
-            No Nagarsevak accounts for this ward.
+            {staffSearch ? 'No Nagarsevak accounts match your search.' : 'No Nagarsevak accounts for this ward.'}
           </Empty>
 
         ) : (
@@ -1171,123 +1354,104 @@ export default function Staff() {
           <>
 
             <div className="panel table-wrap staff-table">
-
               <table>
-
                 <thead>
-
                   <tr>
-                    <th>Nagarsevak</th>
-                    <th>Ward / Seat</th>
-                    <th>Party</th>
-                    <th>Mobile</th>
-                    <th>Login</th>
-                    <th>Account</th>
-                    <th>Ward status</th>
-                    <th>Resident view</th>
-                    <th />
+                    <th style={{ width: '24%' }}>Nagarsevak</th>
+                    <th style={{ width: '20%' }}>Ward & Seat</th>
+                    <th style={{ width: '20%' }}>Contact & Login</th>
+                    <th className="th-center" style={{ width: '10%', textAlign: 'center' }}>Account</th>
+                    <th className="th-center" style={{ width: '10%', textAlign: 'center' }}>Ward Status</th>
+                    <th className="th-center" style={{ width: '10%', textAlign: 'center' }}>Resident View</th>
+                    <th className="th-center" style={{ width: '12%', textAlign: 'center' }}>Actions</th>
                   </tr>
-
                 </thead>
-
-
                 <tbody>
-
-                  {visibleN.map(
-                    n => (
-
-                      <tr key={n.id}>
-
-                        <td data-label="Nagarsevak">
-                          <div className="staff-face-cell">
-                            <FaceAvatar name={n.name} photo={n.photo} className="staff-face"/>
-                            <div>
-                              <strong>{n.name}</strong>
-                              <div className="muted">NAGARSEVAK</div>
+                  {filteredN.map(n => (
+                    <tr key={n.id}>
+                      <td data-label="Nagarsevak">
+                        <div className="staff-face-cell">
+                          <FaceAvatar name={n.name} photo={n.photo} className="staff-face"/>
+                          <div style={{ minWidth: 0 }}>
+                            <strong style={{ display: 'block', color: 'var(--text, #0f172a)', fontSize: '13.5px' }}>{n.name}</strong>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '3px' }}>
+                              <span className="team-badge blue">Nagarsevak</span>
+                              {n.partyName ? <span className="team-badge gray">{n.partyName}</span> : null}
                             </div>
                           </div>
-                        </td>
-
-
-                        <td data-label="Ward / Seat">
-
+                        </div>
+                      </td>
+                      <td data-label="Ward & Seat">
+                        <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>
                           {formatWardLabel(n.ward)}
-                          {n.wardSeat ? <div className="muted">Seat {n.wardSeat}</div> : null}
-
-                        </td>
-
-
-                        <td data-label="Party">
-                          {n.partyName || '—'}
-                        </td>
-
-
-                        <td data-label="Mobile">
+                        </strong>
+                        <div style={{ marginTop: '3px' }}>
+                          {n.wardSeat ? <span className="team-badge amber">Seat {n.wardSeat}</span> : <span className="muted" style={{ fontSize: '12px' }}>General Seat</span>}
+                        </div>
+                      </td>
+                      <td data-label="Contact & Login">
+                        <div className="cell-value">
+                          <span className="user-email-val" style={{ textTransform: 'lowercase', display: 'block' }}>
+                            {n.email ? String(n.email).toLowerCase() : '—'}
+                          </span>
                           {n.mobile ? (
-                            <a href={`tel:${n.mobile}`} className="staff-tel-link notranslate" translate="no" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }}>
-                              📞 {n.mobile}
+                            <a href={`tel:${n.mobile}`} className="team-contact-link notranslate" translate="no" style={{ marginTop: '2px' }}>
+                              <PhoneIcon size={12} />
+                              <span>{n.mobile}</span>
                             </a>
-                          ) : '—'}
-                        </td>
-
-
-                        <td data-label="Login">
-                          <span className="user-email-val" style={{ textTransform: 'lowercase' }}>{n.email ? String(n.email).toLowerCase() : '—'}</span>
-                        </td>
-
-
-                        <td data-label="Account">
-
-                          <StatusPill>
-                            {n.status ||
-                              'INACTIVE'}
-                          </StatusPill>
-
-                        </td>
-
-
-                        <td data-label="Ward status">
-
-                          <StatusPill>
-                            {n.wardStatus ||
-                              n.ward?.status ||
-                              'INACTIVE'}
-                          </StatusPill>
-
-                        </td>
-
-
-                        <td data-label="Resident view">
-
-                          <StatusPill>
-                            {n.residentVisible
-                              ? 'VISIBLE'
-                              : 'HIDDEN'}
-                          </StatusPill>
-
-                        </td>
-
-
-                        <td data-label="Actions" className="staff-actions">
-                          <RowMenu items={[
-                            {label:'View details',onClick:()=>setDetail({kind:'NAGARSEVAK',data:n})},
-                            master&&{label:'Reset password',onClick:()=>setResetUser(n)},
-                            canStaff&&{label:'Edit',onClick:()=>openNagarsevak(n)},
-                            master&&{label:'Move to Community',danger:true,onClick:()=>openConvert(n)},
-                            master&&{label:'Permissions',onClick:()=>{setPerm({kind:'NAGARSEVAK',data:n});setPermValues(Array.isArray(n.permissions)?n.permissions:[])}},
-                            master&&{label:'Delete',danger:true,onClick:()=>deleteAccount('NAGARSEVAK',n)}
-                          ]}/>
-                        </td>
-
-                      </tr>
-
-                    )
-                  )}
-
+                          ) : <span className="muted">—</span>}
+                        </div>
+                      </td>
+                      <td data-label="Account" className="td-center" style={{ textAlign: 'center' }}>
+                        <div className="cell-value" style={{ justifyContent: 'center' }}>
+                          <StatusPill>{n.status || 'INACTIVE'}</StatusPill>
+                        </div>
+                      </td>
+                      <td data-label="Ward status" className="td-center" style={{ textAlign: 'center' }}>
+                        <div className="cell-value" style={{ justifyContent: 'center' }}>
+                          <StatusPill>{n.wardStatus || n.ward?.status || 'INACTIVE'}</StatusPill>
+                        </div>
+                      </td>
+                      <td data-label="Resident view" className="td-center" style={{ textAlign: 'center' }}>
+                        <div className="cell-value" style={{ justifyContent: 'center' }}>
+                          <StatusPill>{n.residentVisible ? 'VISIBLE' : 'HIDDEN'}</StatusPill>
+                        </div>
+                      </td>
+                      <td data-label="Actions" className="staff-actions td-center" style={{ textAlign: 'center' }}>
+                        <div className="team-action-btns" style={{ justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn-action outline-blue"
+                            onClick={()=>setDetail({kind:'NAGARSEVAK',data:n})}
+                            title="View details"
+                          >
+                            View
+                          </button>
+                          {canStaff && (
+                            <button
+                              type="button"
+                              className="btn-action"
+                              onClick={()=>openNagarsevak(n)}
+                              title="Edit Nagarsevak account"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          <RowMenu
+                            menuOnly
+                            items={[
+                              master && { label: 'Reset password', onClick: () => setResetUser(n) },
+                              master && { label: 'Permissions', onClick: () => { setPerm({ kind: 'NAGARSEVAK', data: n }); setPermValues(Array.isArray(n.permissions) ? n.permissions : []); } },
+                              master && { label: 'Move to Community', danger: true, onClick: () => openConvert(n) },
+                              master && { label: 'Delete account', danger: true, onClick: () => deleteAccount('NAGARSEVAK', n) }
+                            ]}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
-
               </table>
-
             </div>
 
 
@@ -1316,10 +1480,10 @@ export default function Staff() {
 
           <Loading />
 
-        ) : !visibleE.length ? (
+        ) : !filteredE.length ? (
 
           <Empty>
-            {councillor ? 'No employees under your account.' : 'No employees for this ward.'}
+            {staffSearch ? 'No employees match your search.' : (councillor ? 'No employees under your account.' : 'No employees for this ward.')}
           </Empty>
 
         ) : (
@@ -1333,13 +1497,13 @@ export default function Staff() {
                 <thead>
 
                   <tr>
-                    <th>Worker / Staff</th>
-                    {(master || sub) && <th>Ward</th>}
-                    {(master || sub) && <th>Managing Nagarsevak</th>}
-                    <th>Assigned Areas</th>
-                    <th>Login</th>
-                    <th>Status</th>
-                    <th />
+                    <th style={{ width: '22%' }}>Employee</th>
+                    {(master || sub) && <th style={{ width: '16%' }}>Ward</th>}
+                    {(master || sub) && <th style={{ width: '18%' }}>Managing Nagarsevak</th>}
+                    <th style={{ width: '16%' }}>Assigned Areas</th>
+                    <th style={{ width: '14%' }}>Login</th>
+                    <th className="th-center" style={{ width: '8%', textAlign: 'center' }}>Status</th>
+                    <th className="th-center" style={{ width: '12%', textAlign: 'center' }}>Actions</th>
                   </tr>
 
                 </thead>
@@ -1347,22 +1511,31 @@ export default function Staff() {
 
                 <tbody>
 
-                  {visibleE.map(
+                  {filteredE.map(
                     e => {
                       const ids = parseAreaIds(e.assignedAreaIds);
                       return (
                         <tr key={e.id}>
 
                           <td data-label="Employee">
-                            <strong className="plain-cell">
-                              {e.User?.name ||
-                                e.name ||
-                                '—'}
-                            </strong>
-                            <div className="muted">
-                              {e.designation ||
-                                'Field Employee'}
-                              {(e.mobile || e.User?.mobile) ? ` · 📞 ${e.mobile || e.User?.mobile}` : ''}
+                            <div className="team-user-cell">
+                              <div className="team-avatar-initials" style={{ background: '#0284c7' }}>
+                                {(e.User?.name || e.name || 'W').slice(0, 2).toUpperCase()}
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <strong style={{ display: 'block', color: 'var(--text, #0f172a)', fontSize: '14px' }}>
+                                  {e.User?.name || e.name || '—'}
+                                </strong>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                  <span className="team-badge gray">{e.designation || 'Field Staff'}</span>
+                                  {(e.mobile || e.User?.mobile) ? (
+                                    <a href={`tel:${e.mobile || e.User?.mobile}`} className="team-contact-link notranslate" translate="no">
+                                      <PhoneIcon size={12} />
+                                      <span>{e.mobile || e.User?.mobile}</span>
+                                    </a>
+                                  ) : null}
+                                </div>
+                              </div>
                             </div>
                           </td>
 
@@ -1377,9 +1550,17 @@ export default function Staff() {
 
                           {(master || sub) && (
                             <td data-label="Managing Nagarsevak">
-                              {e.manager?.name ||
-                                '—'}
-                              {e.manager?.mobile ? <div className="muted">📞 {e.manager.mobile}</div> : null}
+                              {e.manager?.name ? (
+                                <div>
+                                  <strong style={{ display: 'block' }}>{e.manager.name}</strong>
+                                  {e.manager.mobile ? (
+                                    <a href={`tel:${e.manager.mobile}`} className="team-contact-link notranslate" translate="no">
+                                      <PhoneIcon size={12} />
+                                      <span>{e.manager.mobile}</span>
+                                    </a>
+                                  ) : null}
+                                </div>
+                              ) : '—'}
                             </td>
                           )}
 
@@ -1416,23 +1597,46 @@ export default function Staff() {
                           </td>
 
 
-                          <td data-label="Status">
-                            <StatusPill>
-                              {e.User?.status ||
-                                e.status ||
-                                'ACTIVE'}
-                            </StatusPill>
+                          <td data-label="Status" className="td-center" style={{ textAlign: 'center' }}>
+                            <div className="cell-value" style={{ justifyContent: 'center' }}>
+                              <StatusPill>
+                                {e.User?.status ||
+                                  e.status ||
+                                  'ACTIVE'}
+                              </StatusPill>
+                            </div>
                           </td>
 
 
-                          <td data-label="Actions">
-                            <RowMenu items={[
-                              {label:'View details',onClick:()=>setDetail({kind:'EMPLOYEE',data:e})},
-                              master&&{label:'Reset password',onClick:()=>setResetUser(e.User||e)},
-                              canStaff&&{label:'Edit',onClick:()=>openEmployee(e)},
-                              (master||sub||councillor)&&{label:'Permissions',onClick:()=>{setPerm({kind:'EMPLOYEE',data:e});setPermValues(e.permissions||[])}},
-                              canStaff&&{label:'Delete',danger:true,onClick:()=>deleteAccount('EMPLOYEE',e)}
-                            ]}/>
+                          <td data-label="Actions" className="staff-actions td-center" style={{ textAlign: 'center' }}>
+                            <div className="team-action-btns" style={{ justifyContent: 'center' }}>
+                              <button
+                                type="button"
+                                className="btn-action outline-blue"
+                                onClick={()=>setDetail({kind:'EMPLOYEE',data:e})}
+                                title="View employee details"
+                              >
+                                View
+                              </button>
+                              {canStaff && (
+                                <button
+                                  type="button"
+                                  className="btn-action"
+                                  onClick={()=>openEmployee(e)}
+                                  title="Edit employee details"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              <RowMenu
+                                menuOnly
+                                items={[
+                                  (master || sub || councillor) && { label: 'Permissions', onClick: () => { setPerm({ kind: 'EMPLOYEE', data: e }); setPermValues(e.permissions || []); } },
+                                  master && { label: 'Reset password', onClick: () => setResetUser(e.User || e) },
+                                  canStaff && { label: 'Delete account', danger: true, onClick: () => deleteAccount('EMPLOYEE', e) }
+                                ]}
+                              />
+                            </div>
                           </td>
 
                         </tr>
@@ -1466,188 +1670,348 @@ export default function Staff() {
 
 
       {/*
-       * DETAILS MODAL
+       * EXECUTIVE DETAILS MODAL
        */}
 
       {detail && (
-
         <Modal
           wide
-          title={
-            detail.kind === 'NAGARSEVAK'
-              ? 'Nagarsevak details'
-              : 'Employee details'
-          }
-          onClose={() =>
-            setDetail(null)
+          title={detail.kind === 'NAGARSEVAK' ? 'Nagarsevak profile' : 'Employee details'}
+          onClose={() => setDetail(null)}
+          footer={
+            <div className="modal-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {canStaff && (
+                  <button
+                    type="button"
+                    className="small-btn primary"
+                    onClick={() => {
+                      const item = detail.data;
+                      const isNagar = detail.kind === 'NAGARSEVAK';
+                      setDetail(null);
+                      if (isNagar) openNagarsevak(item);
+                      else openEmployee(item);
+                    }}
+                  >
+                    Edit {detail.kind === 'NAGARSEVAK' ? 'Nagarsevak' : 'Employee'}
+                  </button>
+                )}
+                {canStaff && (
+                  <button
+                    type="button"
+                    className="small-btn"
+                    onClick={() => {
+                      const item = detail.data;
+                      setDetail(null);
+                      setResetUser(detail.kind === 'EMPLOYEE' && item.User ? item.User : item);
+                    }}
+                  >
+                    Reset Password
+                  </button>
+                )}
+              </div>
+              <button type="button" className="primary-btn" onClick={() => setDetail(null)}>
+                Close
+              </button>
+            </div>
           }
         >
-
-          <div className="detail-grid">
-
-            <div className="detail-card">
-
-              <h3>
-                Account
-              </h3>
-
-
-              <p>
-                <b>Name:</b>{' '}
-                {detail.kind === 'EMPLOYEE'
-                  ? (
-                      detail.data.User?.name ||
-                      detail.data.name ||
-                      '—'
-                    )
-                  : (
-                      detail.data.name ||
-                      '—'
-                    )}
-              </p>
-
-
-              <p>
-                <b>Role:</b>{' '}
-
-                {detail.kind === 'NAGARSEVAK'
-                  ? 'Nagarsevak'
-                  : 'Ward Employee'}
-              </p>
-
-
-              <p>
-                <b>Email:</b>{' '}
-
-                <span className="user-email-val" style={{ textTransform: 'lowercase' }}>
-                  {detail.kind === 'EMPLOYEE'
-                    ? (
-                        detail.data.User?.email ||
-                        detail.data.email
-                          ? String(detail.data.User?.email || detail.data.email).toLowerCase()
-                          : '—'
-                      )
-                    : (
-                        detail.data.email
-                          ? String(detail.data.email).toLowerCase()
-                          : '—'
-                      )}
-                </span>
-              </p>
-
-
-              <p>
-                <b>Mobile:</b>{' '}
-
-                {detail.kind === 'EMPLOYEE'
-                  ? (
-                      detail.data.User?.mobile ||
-                      detail.data.mobile ||
-                      '—'
-                    )
-                  : (
-                      detail.data.mobile ||
-                      '—'
-                    )}
-              </p>
-
-              {detail.kind === 'NAGARSEVAK' && (
-                <>
-                  <div className="staff-detail-photo">
-                    <FaceAvatar name={detail.data.name} photo={detail.data.photo} className="staff-face-lg"/>
-                    <div>
-                      <strong>{detail.data.name}</strong>
-                      <span>{detail.data.partyName || 'Nagarsevak'}</span>
-                    </div>
+          {detail.kind === 'NAGARSEVAK' ? (
+            <>
+              {/* Executive Header Banner */}
+              <div className="prof-detail-header">
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <FaceAvatar name={detail.data.name} photo={detail.data.photo} className="staff-face-lg" style={{ width: '64px', height: '64px', borderRadius: '50%', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>{detail.data.name}</h3>
+                    {detail.data.partyName ? <span className="team-badge gray">{detail.data.partyName}</span> : null}
+                    <span className="team-badge blue">{formatWardLabel(detail.data.ward)}</span>
+                    {detail.data.wardSeat ? <span className="team-badge amber">Seat {detail.data.wardSeat}</span> : null}
+                    <StatusPill>{detail.data.status || 'ACTIVE'}</StatusPill>
                   </div>
-                  <p><b>Ward seat:</b> {detail.data.wardSeat || '—'}</p>
-                  <p><b>Party:</b> {detail.data.partyName || '—'}</p>
-                  <p><b>Published address:</b> {detail.data.officialAddress || '—'}</p>
-                  <p><b>Ward status:</b> <StatusPill>{detail.data.wardStatus || detail.data.ward?.status || 'INACTIVE'}</StatusPill></p>
-                  <p><b>Resident view:</b> <StatusPill>{detail.data.residentVisible ? 'VISIBLE' : 'HIDDEN'}</StatusPill></p>
-                </>
-              )}
-
-            </div>
-
-
-            <div className="detail-card">
-
-              <h3>
-                Scope
-              </h3>
-
-
-              <p>
-
-                <b>Ward:</b>{' '}
-
-                {formatWardLabel(detail.data.ward, detail.data.wardId || '—')}
-
-              </p>
-
-
-              {detail.kind === 'EMPLOYEE' && (
-
-                <>
-                  <p>
-                    <b>Designation:</b>{' '}
-                    {detail.data.designation ||
-                      'Employee'}
-                  </p>
-
-
-                  <p>
-                    <b>Managing Nagarsevak:</b>{' '}
-                    {detail.data.manager?.name ||
-                      '—'}
-                  </p>
-
-
-                  <p>
-                    <b>Assigned areas:</b>
-                  </p>
-                  <div className="assigned-areas-chip-grid" style={{ marginTop: '6px' }}>
-                    {(() => {
-                      const ids = parseAreaIds(detail.data.assignedAreaIds);
-                      if (!ids.length) return <span className="assigned-colony-chip all">All ward areas assigned</span>;
-                      const names = ids.map(id => allAreasMap.get(String(id))).filter(Boolean);
-                      if (!names.length) return <span className="assigned-colony-chip">{ids.length} area(s) assigned</span>;
-                      return names.map((name, i) => (
-                        <span key={i} className="assigned-colony-chip">{name}</span>
-                      ));
-                    })()}
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '13px', color: '#64748b', flexWrap: 'wrap' }}>
+                    {detail.data.mobile && (
+                      <a href={`tel:${detail.data.mobile}`} className="team-contact-link notranslate" translate="no" style={{ color: '#1e40af', fontWeight: 600 }}>
+                        <PhoneIcon size={12} />
+                        <span>{detail.data.mobile}</span>
+                      </a>
+                    )}
+                    {detail.data.email && (
+                      <a href={`mailto:${detail.data.email}`} style={{ color: '#1e40af', textDecoration: 'none', fontWeight: 600 }}>
+                        {detail.data.email}
+                      </a>
+                    )}
+                    <span>
+                      Resident App: <strong style={{ color: detail.data.residentVisible ? '#16a34a' : '#64748b' }}>{detail.data.residentVisible ? 'Visible to Residents' : 'Hidden from Residents'}</strong>
+                    </span>
                   </div>
-                </>
-
-              )}
-
-            </div>
-
-
-            {detail.kind === 'EMPLOYEE' && (
-
-              <div className="detail-card">
-
-                <h3>
-                  Permissions
-                </h3>
-
-
-                <p>
-                  {(detail.data.permissions ||
-                    []).length}{' '}
-                  permissions granted.
-                </p>
-
+                </div>
               </div>
 
-            )}
+              {/* Cards Grid */}
+              <div className="prof-detail-grid">
+                {/* Official Municipal Representation Card */}
+                <div className="prof-detail-card">
+                  <div className="prof-card-title">
+                    <ShieldIcon size={16} />
+                    <span>Official Representation & Ward Scope</span>
+                  </div>
+                  <div className="prof-spec-list">
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Representative Name</span>
+                      <span className="prof-spec-v">{detail.data.name}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Official Role</span>
+                      <span className="prof-spec-v">Nagarsevak (Ward Elected Representative)</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Political Party</span>
+                      <span className="prof-spec-v">{detail.data.partyName || 'Independent'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Assigned Ward</span>
+                      <span className="prof-spec-v">{formatWardLabel(detail.data.ward)}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Electoral Ward Seat</span>
+                      <span className="prof-spec-v">{detail.data.wardSeat ? `Seat ${detail.data.wardSeat}` : 'General Ward Seat'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Official Office Address</span>
+                      <span className="prof-spec-v" style={{ textAlign: 'right', maxWidth: '65%' }}>
+                        {detail.data.officialAddress || 'No published office address entered.'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-          </div>
+                {/* Account, Governance & Public Access Card */}
+                <div className="prof-detail-card">
+                  <div className="prof-card-title">
+                    <BuildingIcon size={16} />
+                    <span>Account, Access & System Governance</span>
+                  </div>
+                  <div className="prof-spec-list">
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Official Email / Login ID</span>
+                      <span className="prof-spec-v">
+                        <a href={`mailto:${detail.data.email}`} style={{ color: '#1e40af', textDecoration: 'none' }}>
+                          {detail.data.email ? String(detail.data.email).toLowerCase() : '—'}
+                        </a>
+                      </span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Direct Contact Mobile</span>
+                      <span className="prof-spec-v">
+                        {detail.data.mobile ? (
+                          <a href={`tel:${detail.data.mobile}`} style={{ color: '#1e40af', textDecoration: 'none' }}>
+                            {detail.data.mobile}
+                          </a>
+                        ) : '—'}
+                      </span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Portal Account Status</span>
+                      <span className="prof-spec-v">
+                        <StatusPill>{detail.data.status || 'ACTIVE'}</StatusPill>
+                      </span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Ward System Status</span>
+                      <span className="prof-spec-v">
+                        <StatusPill>{detail.data.wardStatus || detail.data.ward?.status || 'INACTIVE'}</StatusPill>
+                      </span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Resident Mobile App View</span>
+                      <span className="prof-spec-v">
+                        <StatusPill>{detail.data.residentVisible ? 'VISIBLE' : 'HIDDEN'}</StatusPill>
+                      </span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Active Employees</span>
+                      <span className="prof-spec-v">
+                        {(() => {
+                          const nid = String(detail.data?.id);
+                          const workers = (employees || []).filter(e => String(e.managerUserId || e.manager?.id) === nid || String(e.wardId) === String(detail.data?.wardId));
+                          return workers.length ? `${workers.length} employees assigned` : 'No employees assigned yet';
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
+              {/* Employees assigned to this Nagarsevak */}
+              <div className="prof-detail-card" style={{ marginTop: '4px' }}>
+                <div className="prof-card-title" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <UsersIcon size={16} />
+                    <span>Ward Office Employees & Field Staff</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {(() => {
+                      const nid = String(detail.data?.id);
+                      const workers = (employees || []).filter(e => String(e.managerUserId || e.manager?.id) === nid || String(e.wardId) === String(detail.data?.wardId));
+                      return workers.length ? <span className="team-badge green">{workers.length} Assigned Staff</span> : null;
+                    })()}
+                    {canStaff && (
+                      <button
+                        type="button"
+                        className="small-btn primary"
+                        style={{ fontSize: '12px', padding: '3px 10px' }}
+                        onClick={() => {
+                          const targetNagar = detail.data;
+                          setDetail(null);
+                          openEmployee(null, targetNagar.id);
+                        }}
+                      >
+                        + Add employee
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {(() => {
+                  const nid = String(detail.data?.id);
+                  const workers = (employees || []).filter(e => String(e.managerUserId || e.manager?.id) === nid || String(e.wardId) === String(detail.data?.wardId));
+                  if (!workers.length) {
+                    return (
+                      <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                        No employees are assigned under this Nagarsevak. Add them from the Employees tab.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px', marginTop: '6px' }}>
+                      {workers.map(w => (
+                        <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                          <div className="team-avatar-initials" style={{ width: '32px', height: '32px', fontSize: '12px', background: '#0284c7' }}>
+                            {(w.User?.name || w.name || 'W').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <strong style={{ display: 'block', fontSize: '13px', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {w.User?.name || w.name}
+                            </strong>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              {w.designation || 'Field Staff'}
+                              {(w.mobile || w.User?.mobile) ? ` · ${w.mobile || w.User?.mobile}` : ''}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </>
+          ) : (
+            /* Employee Details Modal */
+            <>
+              <div className="prof-detail-header">
+                <div className="team-avatar-initials" style={{ width: '56px', height: '56px', fontSize: '20px', background: '#0284c7', flexShrink: 0 }}>
+                  {(detail.data.User?.name || detail.data.name || 'W').slice(0, 2).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>{detail.data.User?.name || detail.data.name}</h3>
+                    <span className="team-badge gray">{detail.data.designation || 'Ward Employee'}</span>
+                    <span className="team-badge blue">{formatWardLabel(detail.data.ward, detail.data.wardId || '—')}</span>
+                    <StatusPill>{detail.data.status || detail.data.User?.status || 'ACTIVE'}</StatusPill>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '13px', color: '#64748b', flexWrap: 'wrap' }}>
+                    {(detail.data.mobile || detail.data.User?.mobile) && (
+                      <a href={`tel:${detail.data.mobile || detail.data.User?.mobile}`} className="team-contact-link notranslate" translate="no" style={{ color: '#1e40af', fontWeight: 600 }}>
+                        <PhoneIcon size={12} />
+                        <span>{detail.data.mobile || detail.data.User?.mobile}</span>
+                      </a>
+                    )}
+                    {(detail.data.email || detail.data.User?.email) && (
+                      <a href={`mailto:${detail.data.email || detail.data.User?.email}`} style={{ color: '#1e40af', textDecoration: 'none', fontWeight: 600 }}>
+                        {detail.data.email || detail.data.User?.email}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="prof-detail-grid">
+                <div className="prof-detail-card">
+                  <div className="prof-card-title">
+                    <ShieldIcon size={16} />
+                    <span>Employee profile</span>
+                  </div>
+                  <div className="prof-spec-list">
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Full Name</span>
+                      <span className="prof-spec-v">{detail.data.User?.name || detail.data.name}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Official Designation</span>
+                      <span className="prof-spec-v">{detail.data.designation || 'Ward Employee'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Assigned Ward</span>
+                      <span className="prof-spec-v">{formatWardLabel(detail.data.ward, detail.data.wardId || '—')}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Managing Nagarsevak</span>
+                      <span className="prof-spec-v">{detail.data.manager?.name || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="prof-detail-card">
+                  <div className="prof-card-title">
+                    <BuildingIcon size={16} />
+                    <span>Credentials & Access</span>
+                  </div>
+                  <div className="prof-spec-list">
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Official Login Email</span>
+                      <span className="prof-spec-v">{detail.data.User?.email || detail.data.email || '—'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Contact Mobile</span>
+                      <span className="prof-spec-v">{detail.data.User?.mobile || detail.data.mobile || '—'}</span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Account Status</span>
+                      <span className="prof-spec-v"><StatusPill>{detail.data.status || detail.data.User?.status || 'ACTIVE'}</StatusPill></span>
+                    </div>
+                    <div className="prof-spec-row">
+                      <span className="prof-spec-k">Granted Permissions</span>
+                      <span className="prof-spec-v">{(detail.data.permissions || []).length} permissions</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assigned Areas Card */}
+              <div className="prof-detail-card" style={{ marginTop: '4px' }}>
+                <div className="prof-card-title">
+                  <MapPinIcon size={16} />
+                  <span>Assigned Colonies & Ward Areas</span>
+                </div>
+                <div className="prof-ward-pills-wrap">
+                  {(() => {
+                    const ids = parseAreaIds(detail.data.assignedAreaIds);
+                    if (!ids.length) return <span className="prof-ward-pill">All Ward Areas Assigned</span>;
+                    const names = ids.map(id => allAreasMap.get(String(id))).filter(Boolean);
+                    if (!names.length) return <span className="prof-ward-pill">{ids.length} Area(s) Assigned</span>;
+                    return names.map((name, i) => (
+                      <span key={i} className="prof-ward-pill">
+                        <strong>{name}</strong>
+                      </span>
+                    ));
+                  })()}
+                </div>
+              </div>
+            </>
+          )}
         </Modal>
-
       )}
 
 
@@ -1664,12 +2028,12 @@ export default function Staff() {
               ? `Create ${
                   tab === 'NAGARSEVAK'
                     ? 'Nagarsevak'
-                    : 'Ward Worker / Assistant'
+                    : 'Employee'
                 }`
               : `Edit ${
                   tab === 'NAGARSEVAK'
                     ? 'Nagarsevak'
-                    : 'Ward Worker / Assistant'
+                    : 'Employee'
                 }`
           }
           onClose={() =>
@@ -1685,7 +2049,7 @@ export default function Staff() {
 
             {tab !== 'NAGARSEVAK' && (
               <div className="span-2" style={{ padding: '8px 12px', background: 'var(--bg-subtle, #f8fafc)', borderRadius: '6px', fontSize: '12px', color: 'var(--text-muted, #64748b)', marginBottom: '4px' }}>
-                👤 <strong>Ward Worker Context:</strong> This account represents a field worker, assistant, or karyakarta working under the Nagarsevak's office (not Municipal Corporation government employees).
+                <UsersIcon size={14} style={{ display: 'inline-block', verticalAlign: '-2px', marginRight: '6px' }} /><strong>Employee:</strong> Field staff working under the Nagarsevak office.
               </div>
             )}
 
@@ -1918,22 +2282,33 @@ export default function Staff() {
 
 
                 {councillor ? (
-                  <Field className="span-2" label="Managing Nagarsevak">
-                    <input value={`${user?.name || 'Your account'} · Your account`} disabled readOnly />
+                  <Field className="span-2" label="Managing Nagarsevak (Your Office)">
+                    <input value={`${user?.name || 'Your account'} · Ward Elected Representative (Locked to your office)`} disabled readOnly />
                   </Field>
                 ) : (
-                  <SearchableSelect
-                    className="span-2"
-                    label="Managing Nagarsevak"
-                    required
-                    value={form.managerUserId}
-                    onChange={value => setForm({...form,managerUserId:value})}
-                    options={managerOptions.map(manager=>({
-                      value: manager.userId || manager.id,
-                      label: `${manager.name || 'Nagarsevak'}${manager.ward ? ` · ${formatWardLabel(manager.ward, '')}` : ''}`
-                    }))}
-                    placeholder="Search or select…"
-                  />
+                  <div className="span-2">
+                    <SearchableSelect
+                      label="Managing Nagarsevak *"
+                      required
+                      value={form.managerUserId}
+                      onChange={value => {
+                        const chosen = (allN || []).find(n => String(n.id) === String(value) || String(n.userId) === String(value));
+                        setForm({
+                          ...form,
+                          managerUserId: value,
+                          ...(chosen && chosen.wardId ? { wardId: chosen.wardId } : {})
+                        });
+                      }}
+                      options={managerOptions.map(manager => ({
+                        value: manager.userId || manager.id,
+                        label: `${manager.name || 'Nagarsevak'}${manager.ward ? ` · ${formatWardLabel(manager.ward, '')}` : ''}`
+                      }))}
+                      placeholder="Search or select managing Nagarsevak…"
+                    />
+                    <small className="muted" style={{ display: 'block', marginTop: '4px', fontSize: '11.5px', color: '#64748b' }}>
+                      Every field worker reports directly to a specific Nagarsevak and works exclusively with their assigned tasks.
+                    </small>
+                  </div>
                 )}
 
 

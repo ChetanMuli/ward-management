@@ -15,6 +15,59 @@ async function ensureDatabaseSchema(sequelize) {
       String(typeof t === 'string' ? t : t.tableName || t.name || '').toLowerCase()
     );
 
+    // 0. hospitals table
+    if (!tables.includes('hospitals')) {
+      console.log('[SCHEMA-SYNC] Creating table hospitals...');
+      await queryInterface.createTable('hospitals', {
+        id: { type: DataTypes.UUID, primaryKey: true, allowNull: false, defaultValue: DataTypes.UUIDV4 },
+        ward_id: { type: DataTypes.UUID, allowNull: false },
+        area_id: { type: DataTypes.UUID, allowNull: true },
+        name: { type: DataTypes.STRING, allowNull: false },
+        type: {
+          type: DataTypes.ENUM('GOVERNMENT', 'PRIVATE', 'TRUST', 'CLINIC', 'PHC', 'AYUSH', 'OTHER'),
+          allowNull: false,
+          defaultValue: 'PRIVATE',
+        },
+        address: { type: DataTypes.TEXT, allowNull: false },
+        landmark: { type: DataTypes.STRING, allowNull: true },
+        phone: { type: DataTypes.STRING, allowNull: true },
+        emergency_phone: { type: DataTypes.STRING, allowNull: true },
+        opening_hours: { type: DataTypes.STRING, allowNull: true },
+        facilities: { type: DataTypes.TEXT, allowNull: true },
+        latitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
+        longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
+        notes: { type: DataTypes.TEXT, allowNull: true },
+        status: {
+          type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
+          allowNull: false,
+          defaultValue: 'ACTIVE',
+        },
+        created_by_user_id: { type: DataTypes.UUID, allowNull: true },
+        created_at: { type: DataTypes.DATE, allowNull: false },
+        updated_at: { type: DataTypes.DATE, allowNull: false },
+        deleted_at: { type: DataTypes.DATE, allowNull: true },
+      }, { charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
+      await queryInterface.addIndex('hospitals', ['ward_id']).catch(() => {});
+      await queryInterface.addIndex('hospitals', ['area_id']).catch(() => {});
+      await queryInterface.addIndex('hospitals', ['status']).catch(() => {});
+    } else {
+      const hospitalCols = await queryInterface.describeTable('hospitals').catch(() => ({}));
+      if (hospitalCols.address && hospitalCols.address.allowNull === false) {
+        await sequelize.query('ALTER TABLE hospitals MODIFY COLUMN address TEXT NULL').catch(() => {});
+      }
+    }
+    if (tables.includes('hospitals')) {
+      const addHospitalIndex = async (fields, name) => {
+        await queryInterface.addIndex('hospitals', fields, { name }).catch(() => {});
+      };
+      await addHospitalIndex(['ward_id', 'status', 'deleted_at'], 'idx_hospitals_ward_status_del');
+      await addHospitalIndex(['ward_id', 'type', 'status', 'deleted_at'], 'idx_hospitals_ward_type_status');
+      await addHospitalIndex(['area_id', 'status', 'deleted_at'], 'idx_hospitals_area_status_del');
+      await addHospitalIndex(['name'], 'idx_hospitals_name');
+      await addHospitalIndex(['phone'], 'idx_hospitals_phone');
+      await addHospitalIndex(['deleted_at'], 'idx_hospitals_deleted');
+    }
+
     // 1. nagarsevak_schedules table
     if (!tables.includes('nagarsevak_schedules')) {
       console.log('[SCHEMA-SYNC] Creating table nagarsevak_schedules...');
@@ -118,7 +171,7 @@ async function ensureDatabaseSchema(sequelize) {
     await sequelize.query("ALTER TABLE complaints MODIFY COLUMN description TEXT NULL").catch(() => {});
 
     // 4. Ensure soft-delete deleted_at columns exist across all critical tables
-    for (const table of ['death_records', 'ward_updates', 'schemes', 'apartments', 'shops_and_offices', 'nagarsevak_schedules', 'government_voter_lists', 'all_chat_messages', 'group_chat_messages', 'ward_chat_messages']) {
+    for (const table of ['death_records', 'ward_updates', 'schemes', 'apartments', 'shops_and_offices', 'hospitals', 'nagarsevak_schedules', 'government_voter_lists', 'all_chat_messages', 'group_chat_messages', 'ward_chat_messages']) {
       if (tables.includes(table)) {
         const desc = await queryInterface.describeTable(table).catch(() => ({}));
         if (!desc.deleted_at && !desc.deletedAt) {
@@ -423,7 +476,8 @@ async function ensureDatabaseSchema(sequelize) {
     };
     // Large ALTER INDEX on XAMPP MariaDB 10.4 can crash mysqld (families/persons).
     // Apply only when explicitly enabled; production can use sequelize migrations instead.
-    if (String(process.env.SCHEMA_SYNC_PRODUCTION_INDEXES || '').trim() === '1') {
+    const applyScaleIndexes = String(process.env.SCHEMA_SYNC_PRODUCTION_INDEXES || '').trim() === '1';
+    if (applyScaleIndexes) {
     await addNamedIndex('notifications', ['user_id', 'created_at'], 'idx_notif_user_created');
     await addNamedIndex('notifications', ['sender_user_id', 'created_at'], 'idx_notif_sender_created');
     await addNamedIndex('notifications', ['user_id', 'is_read'], 'idx_notif_user_read');
@@ -453,6 +507,10 @@ async function ensureDatabaseSchema(sequelize) {
     await addNamedIndex('users', ['ward_id', 'role_id', 'status', 'deleted_at'], 'idx_users_ward_role_status_del');
     await addNamedIndex('person_birthdays', ['ward_id', 'status', 'birth_month', 'birth_day'], 'idx_bday_ward_md');
     await addNamedIndex('ward_nagarsevak_subscriptions', ['ward_id', 'status'], 'idx_wns_ward_status');
+    await addNamedIndex('shops_and_offices', ['area_id', 'status', 'deleted_at'], 'idx_shops_area_status_del');
+    await addNamedIndex('shops_and_offices', ['kind', 'status', 'deleted_at'], 'idx_shops_kind_status_del');
+    await addNamedIndex('shops_and_offices', ['name'], 'idx_shops_name');
+    await addNamedIndex('users', ['name'], 'idx_users_name');
     } else {
       console.log('[SCHEMA-SYNC] Skipping production-scale indexes.');
     }
@@ -484,6 +542,9 @@ async function ensureDatabaseSchema(sequelize) {
     }
     }
 
+    await repairAllForeignKeyOrphans(sequelize);
+    await repairChatUserForeignKeys(sequelize, tables);
+
     // Demo gallery is served from the API default template, not copied into every ward.
 
     // 11. Register migrations in SequelizeMeta table if present
@@ -499,6 +560,7 @@ async function ensureDatabaseSchema(sequelize) {
         '20261002000071-ward-portal-banners-and-home-works.js',
         '20261004000073-ward-public-registration-open.js',
         '20261004000074-ward-registration-invite-code.js',
+        '20261016000078-chat-user-fk-cascade.js',
       ];
       for (const mName of migrationsToRegister) {
         await sequelize.query('INSERT IGNORE INTO SequelizeMeta (name) VALUES (:name)', {
@@ -515,4 +577,119 @@ async function ensureDatabaseSchema(sequelize) {
   }
 }
 
-module.exports = { ensureDatabaseSchema };
+async function repairAllForeignKeyOrphans(sequelize) {
+  const fks = await sequelize.query(
+    `SELECT k.TABLE_NAME AS child_table, k.COLUMN_NAME AS child_column,
+            k.REFERENCED_TABLE_NAME AS parent_table, k.REFERENCED_COLUMN_NAME AS parent_column,
+            c.IS_NULLABLE AS is_nullable
+     FROM information_schema.KEY_COLUMN_USAGE k
+     JOIN information_schema.COLUMNS c
+       ON c.TABLE_SCHEMA = k.TABLE_SCHEMA AND c.TABLE_NAME = k.TABLE_NAME AND c.COLUMN_NAME = k.COLUMN_NAME
+     WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME IS NOT NULL`,
+    { type: sequelize.QueryTypes.SELECT }
+  );
+  await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+  for (const fk of fks) {
+    const nullable = String(fk.is_nullable || '').toUpperCase() === 'YES';
+    const sql = nullable
+      ? `UPDATE \`${fk.child_table}\` c
+         LEFT JOIN \`${fk.parent_table}\` p ON p.\`${fk.parent_column}\` = c.\`${fk.child_column}\`
+         SET c.\`${fk.child_column}\` = NULL
+         WHERE c.\`${fk.child_column}\` IS NOT NULL AND p.\`${fk.parent_column}\` IS NULL`
+      : `DELETE c FROM \`${fk.child_table}\` c
+         LEFT JOIN \`${fk.parent_table}\` p ON p.\`${fk.parent_column}\` = c.\`${fk.child_column}\`
+         WHERE c.\`${fk.child_column}\` IS NOT NULL AND p.\`${fk.parent_column}\` IS NULL`;
+    await sequelize.query(sql).catch(() => {});
+  }
+  await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+}
+
+async function repairChatUserForeignKeys(sequelize, tables) {
+  if (!tables.includes('users')) return;
+
+  const cleanups = [
+    tables.includes('all_chat_messages') &&
+      `DELETE m FROM all_chat_messages m LEFT JOIN users u ON u.id = m.sender_user_id WHERE u.id IS NULL`,
+    tables.includes('all_chat_messages') &&
+      `DELETE m FROM all_chat_messages m LEFT JOIN users u ON u.id = m.recipient_user_id WHERE m.recipient_user_id IS NOT NULL AND u.id IS NULL`,
+    tables.includes('all_chat_members') &&
+      `DELETE m FROM all_chat_members m LEFT JOIN users u ON u.id = m.user_id WHERE u.id IS NULL`,
+    tables.includes('group_chat_messages') &&
+      `DELETE m FROM group_chat_messages m LEFT JOIN users u ON u.id = m.sender_user_id WHERE u.id IS NULL`,
+    tables.includes('group_chat_messages') &&
+      `DELETE m FROM group_chat_messages m LEFT JOIN users u ON u.id = m.recipient_user_id WHERE m.recipient_user_id IS NOT NULL AND u.id IS NULL`,
+    tables.includes('group_chat_members') &&
+      `DELETE m FROM group_chat_members m LEFT JOIN users u ON u.id = m.user_id WHERE u.id IS NULL`,
+    tables.includes('chat_user_state') &&
+      `DELETE s FROM chat_user_state s LEFT JOIN users u ON u.id = s.user_id WHERE u.id IS NULL`,
+    tables.includes('notifications') &&
+      `DELETE n FROM notifications n LEFT JOIN users u ON u.id = n.user_id WHERE u.id IS NULL`,
+    tables.includes('employee_users') &&
+      `DELETE e FROM employee_users e LEFT JOIN users u ON u.id = e.id WHERE u.id IS NULL`,
+    tables.includes('citizen_users') &&
+      `DELETE c FROM citizen_users c LEFT JOIN users u ON u.id = c.id WHERE u.id IS NULL`,
+    tables.includes('employees') &&
+      `DELETE e FROM employees e LEFT JOIN users u ON u.id = e.user_id WHERE u.id IS NULL`,
+  ].filter(Boolean);
+
+  await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+  for (const sql of cleanups) {
+    await sequelize.query(sql).catch(() => {});
+  }
+  await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+
+  const fkFixes = [
+    tables.includes('all_chat_messages') && {
+      table: 'all_chat_messages',
+      column: 'sender_user_id',
+      name: 'all_chat_messages_sender_user_fk',
+      onDelete: 'CASCADE',
+    },
+    tables.includes('all_chat_messages') && {
+      table: 'all_chat_messages',
+      column: 'recipient_user_id',
+      name: 'all_chat_messages_recipient_user_fk',
+      onDelete: 'SET NULL',
+    },
+    tables.includes('group_chat_messages') && {
+      table: 'group_chat_messages',
+      column: 'sender_user_id',
+      name: 'group_chat_messages_sender_user_fk',
+      onDelete: 'CASCADE',
+    },
+    tables.includes('group_chat_messages') && {
+      table: 'group_chat_messages',
+      column: 'recipient_user_id',
+      name: 'group_chat_messages_recipient_user_fk',
+      onDelete: 'SET NULL',
+    },
+  ].filter(Boolean);
+
+  for (const fk of fkFixes) {
+    const rows = await sequelize.query(
+      `SELECT CONSTRAINT_NAME AS name
+       FROM information_schema.KEY_COLUMN_USAGE
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = :table
+         AND COLUMN_NAME = :column
+         AND REFERENCED_TABLE_NAME = 'users'`,
+      { replacements: { table: fk.table, column: fk.column }, type: sequelize.QueryTypes.SELECT }
+    );
+    for (const row of rows) {
+      if (!row?.name) continue;
+      await sequelize.query(`ALTER TABLE \`${fk.table}\` DROP FOREIGN KEY \`${row.name}\``).catch(() => {});
+    }
+    await sequelize.query(
+      `ALTER TABLE \`${fk.table}\`
+       ADD CONSTRAINT \`${fk.name}\`
+       FOREIGN KEY (\`${fk.column}\`) REFERENCES users (\`id\`)
+       ON DELETE ${fk.onDelete} ON UPDATE CASCADE`
+    ).catch((err) => {
+      if (!/Duplicate|already exists/i.test(err.message)) {
+        console.warn(`[SCHEMA-SYNC] ${fk.table}.${fk.column} FK:`, err.message);
+      }
+    });
+  }
+}
+
+module.exports = { ensureDatabaseSchema, repairChatUserForeignKeys, repairAllForeignKeyOrphans };

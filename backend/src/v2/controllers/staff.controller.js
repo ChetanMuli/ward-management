@@ -126,14 +126,19 @@ const listUsers = asyncHandler(async (req, res) => {
     where.status = { [Op.ne]: 'DELETED' };
   }
 
-  const search = String(req.query.search || '').trim();
-  if (search) {
+  const search = String(req.query.search || '').trim().slice(0, 60).replace(/[%_]/g, '');
+  if (search.length >= 2) {
     const like = `%${search}%`;
-    where[Op.or] = [
-      { name: { [Op.like]: like } },
-      { email: { [Op.like]: like } },
-      { mobile: { [Op.like]: like } }
-    ];
+    where[Op.or] = requestedWardId
+      ? [
+        { name: { [Op.like]: like } },
+        { email: { [Op.like]: like } },
+        { mobile: { [Op.like]: `${search}%` } }
+      ]
+      : [
+        { name: { [Op.like]: like } },
+        { mobile: { [Op.like]: `${search}%` } }
+      ];
   }
 
   const rawPage = Number.parseInt(req.query.page, 10);

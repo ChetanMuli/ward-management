@@ -4,7 +4,7 @@ import { api, getUser } from '../services/api';
 import { Loading, FaceAvatar } from '../components/Ui';
 import BrandIcon from '../components/BrandIcon';
 import NagarsevakShowcase from '../components/NagarsevakShowcase';
-import { CIVIC_DEFAULT_HERO, isGenericDefaultHero, resolveCitizenHeroUrl } from '../utils/portalDefaults';
+import { isGenericDefaultHero, publicMediaUrl, resolveCitizenHeroUrl, sameHeroUrl } from '../utils/portalDefaults';
 import { formatWardLabel, formatWardNumber } from '../wardFormat';
 
 function typeLabel(v, mr) {
@@ -15,21 +15,53 @@ function fmt(v) {
 }
 
 let _userPanelCache = null;
+const _stickyHeroByWard = Object.create(null);
 
-function readCachedHero(wardId) {
-  if (!wardId) return '';
-  try {
-    const raw = String(localStorage.getItem(`ward_hero_banner_${wardId}`) || '').trim();
-    if (!raw || raw.startsWith('data:') || isGenericDefaultHero(raw)) return '';
-    return raw;
-  } catch {
-    return '';
-  }
+function stickyKey(wardId) {
+  return `ward_hero_sticky_${String(wardId || '')}`;
 }
 
-function writeCachedHero(wardId, url) {
-  if (!wardId || !url || String(url).startsWith('data:') || isGenericDefaultHero(url)) return;
-  try { localStorage.setItem(`ward_hero_banner_${wardId}`, url); } catch { /* ignore */ }
+function readStickyHero(wardId) {
+  const id = String(wardId || '');
+  if (!id) return '';
+  if (_stickyHeroByWard[id]) return _stickyHeroByWard[id];
+  try {
+    const stored = String(sessionStorage.getItem(stickyKey(id)) || '').trim();
+    if (stored && !stored.startsWith('data:')) {
+      _stickyHeroByWard[id] = publicMediaUrl(stored);
+      return _stickyHeroByWard[id];
+    }
+  } catch { /* ignore */ }
+  return '';
+}
+
+function commitHero(wardId, url) {
+  const next = publicMediaUrl(String(url || '').trim().split('?')[0]);
+  if (!next || next.startsWith('data:')) return '';
+  const id = String(wardId || '');
+  if (id) {
+    _stickyHeroByWard[id] = next;
+    try { sessionStorage.setItem(stickyKey(id), next); } catch { /* ignore */ }
+  }
+  return next;
+}
+
+function preloadHero(url) {
+  const src = publicMediaUrl(String(url || '').trim());
+  if (!src) return Promise.resolve('');
+  return new Promise((resolve) => {
+    const img = new Image();
+    let done = false;
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      resolve(value);
+    };
+    img.onload = () => finish(src);
+    img.onerror = () => finish('');
+    img.src = src;
+    if (img.complete && img.naturalWidth) finish(src);
+  });
 }
 
 function uniqueIds(list) {
@@ -81,16 +113,13 @@ export default function UserPanel({ plainMode = false } = {}) {
   const [snapshot, setSnapshot] = useState(() => _userPanelCache?.snapshot ?? null);
   const [portalConfig, setPortalConfig] = useState(() => _userPanelCache?.portalConfig ?? null);
   const [shownHero, setShownHero] = useState(() => {
-    const cachedCfg = _userPanelCache?.portalConfig;
-    if (cachedCfg) {
-      return resolveCitizenHeroUrl(cachedCfg.heroBannerUrl, { demoMode: Boolean(cachedCfg.demoMode) });
-    }
     const qWard = typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('wardId')
       : null;
-    return readCachedHero(qWard || getUser()?.wardId);
+    return readStickyHero(qWard || getUser()?.wardId);
   });
   const [portalGallery, setPortalGallery] = useState(() => _userPanelCache?.portalGallery ?? null);
+  const [hospitals, setHospitals] = useState(() => _userPanelCache?.hospitals ?? null);
   const [targetWard, setTargetWard] = useState(null);
   const [targetNagarsevak, setTargetNagarsevak] = useState(null);
   const [portalNagarsevaks, setPortalNagarsevaks] = useState([]);
@@ -128,7 +157,33 @@ export default function UserPanel({ plainMode = false } = {}) {
     publishedSchemes: 'Published schemes', unreadMessages: 'Unread messages', profile: 'My profile', logout: 'Sign out'
   };
 
-  const load = async () => {
+  const applyLiveHero = async (bannerUrl, { demoMode = false, force = false } = {}) => {
+    const current = shownHero || readStickyHero(citizenWardId);
+    const next = resolveCitizenHeroUrl(bannerUrl, { demoMode, fallback: current || '' });
+    if (!next) {
+      if (current && !shownHero) setShownHero(current);
+      return;
+    }
+    if (current && isGenericDefaultHero(next) && !isGenericDefaultHero(current) && !force) {
+      if (!shownHero) setShownHero(current);
+      return;
+    }
+    if (current && sameHeroUrl(next, current)) {
+      commitHero(citizenWardId, current);
+      if (!shownHero) setShownHero(current);
+      return;
+    }
+    if (current && !force) {
+      if (!shownHero) setShownHero(current);
+      return;
+    }
+    const ready = await preloadHero(next);
+    if (!ready) return;
+    if (sameHeroUrl(ready, current) && shownHero) return;
+    setShownHero(commitHero(citizenWardId, ready));
+  };
+
+  const load = async ({ forceHero = false } = {}) => {
     setError('');
     const results = await Promise.allSettled([
       api.wardUpdates({ page: 1, limit: 5, status: 'PUBLISHED', ...(citizenWardId ? { wardId: citizenWardId } : {}) }),
@@ -137,11 +192,12 @@ export default function UserPanel({ plainMode = false } = {}) {
       api.wardTeam(citizenWardId),
       queryWardId ? Promise.resolve({ data: null }) : api.myWard(),
       api.portalConfig(citizenWardId ? { wardId: citizenWardId } : {}),
-      api.galleryItems({ status: 'PUBLISHED', ...(citizenWardId ? { wardId: citizenWardId } : {}) })
+      api.galleryItems({ status: 'PUBLISHED', ...(citizenWardId ? { wardId: citizenWardId } : {}) }),
+      api.hospitals({ page: 1, limit: 4, ...(citizenWardId ? { wardId: citizenWardId } : {}) })
     ]);
-    const [u, s, c, t, w, pc, pg] = results;
+    const [u, s, c, t, w, pc, pg, hs] = results;
     let nextUpdates = null, nextUpdateTotal = 0, nextSchemes = null, nextMessages = Array.isArray(messages) ? messages : [], nextComplaints = null, nextComplaintTotal = 0, nextTeam = null, nextSnapshot = null;
-    let nextPortalConfig = null, nextPortalGallery = null;
+    let nextPortalConfig = null, nextPortalGallery = null, nextHospitals = null;
 
     if (u.status === 'fulfilled') {
       nextUpdates = u.value?.data || [];
@@ -195,11 +251,21 @@ export default function UserPanel({ plainMode = false } = {}) {
       const liveNagar = (pcData.nagarsevak && !pcData.nagarsevak.isDemo) ? pcData.nagarsevak : (purchased[0] || null);
       setPortalNagarsevaks(purchased.length ? purchased : (liveNagar ? [liveNagar] : []));
       setTargetNagarsevak(liveNagar);
-      writeCachedHero(citizenWardId, resolveCitizenHeroUrl(nextPortalConfig?.heroBannerUrl, { demoMode: Boolean(nextPortalConfig?.demoMode) }));
+      await applyLiveHero(nextPortalConfig?.heroBannerUrl, {
+        demoMode: Boolean(nextPortalConfig?.demoMode),
+        force: forceHero
+      });
     }
     if (pg.status === 'fulfilled' && Array.isArray(pg.value?.data)) {
       nextPortalGallery = pg.value.data;
       setPortalGallery(nextPortalGallery);
+    }
+    if (hs.status === 'fulfilled') {
+      nextHospitals = (hs.value?.data || []).slice(0, 4);
+      setHospitals(nextHospitals);
+    } else {
+      nextHospitals = [];
+      setHospitals([]);
     }
 
     _userPanelCache = {
@@ -213,7 +279,8 @@ export default function UserPanel({ plainMode = false } = {}) {
       team: nextTeam,
       snapshot: nextSnapshot,
       portalConfig: nextPortalConfig || _userPanelCache?.portalConfig,
-      portalGallery: Array.isArray(nextPortalGallery) ? nextPortalGallery : (_userPanelCache?.portalGallery || null)
+      portalGallery: Array.isArray(nextPortalGallery) ? nextPortalGallery : (_userPanelCache?.portalGallery || null),
+      hospitals: nextHospitals
     };
 
     const failed = results.find(x => x.status === 'rejected');
@@ -233,10 +300,15 @@ export default function UserPanel({ plainMode = false } = {}) {
   };
 
   useEffect(() => {
-    load();
+    const cached = readStickyHero(citizenWardId);
+    if (cached) {
+      const img = new Image();
+      img.src = cached;
+    }
+    load({ forceHero: !cached });
     const t = setInterval(loadLive, 90000);
     const onVis = () => { if (document.visibilityState === 'visible') loadLive(); };
-    const onPortalUpdate = () => { _userPanelCache = null; load(); };
+    const onPortalUpdate = () => { _userPanelCache = null; load({ forceHero: true }); };
     const onStorage = (e) => {
       if (e.key === 'ward_portal_updated') onPortalUpdate();
     };
@@ -259,16 +331,7 @@ export default function UserPanel({ plainMode = false } = {}) {
 
   const go = p => navigate(p);
 
-  const cachedHero = readCachedHero(citizenWardId);
-  const liveHero = portalConfig
-    ? resolveCitizenHeroUrl(portalConfig.heroBannerUrl, { demoMode: Boolean(portalConfig.demoMode) })
-    : '';
-  const heroBanner = liveHero || cachedHero || shownHero || '';
-  const heroSrc = heroBanner || '';
-
-  useEffect(() => {
-    if (heroSrc && heroSrc !== shownHero) setShownHero(heroSrc);
-  }, [heroSrc, shownHero]);
+  const heroSrc = shownHero || readStickyHero(citizenWardId);
 
   const nagarsevaksList = useMemo(() => {
     if (portalNagarsevaks.length) return portalNagarsevaks.filter((n) => n && n.id && !n.employeeProfile);
@@ -395,25 +458,16 @@ export default function UserPanel({ plainMode = false } = {}) {
       ) : (
         <>
           {/* Custom Ward Hero Section */}
-          <section
-            className={`user-hero ${shownHero || heroSrc ? 'has-portal-banner' : 'is-hero-loading'} ${portalConfig?.demoMode ? 'is-civic-hero' : 'has-custom-hero'}`}
-          >
+          <section className="user-hero has-portal-banner has-custom-hero">
             <div className="user-hero-media" aria-hidden="true">
-              {(shownHero || heroSrc) ? (
-                <img
-                  className="user-hero-bg-photo"
-                  src={shownHero || heroSrc}
-                  alt=""
-                  decoding="async"
-                  onError={(e) => {
-                    if (cachedHero && e.currentTarget.src !== cachedHero) {
-                      e.currentTarget.src = cachedHero;
-                      return;
-                    }
-                    if (portalConfig?.demoMode) e.currentTarget.src = CIVIC_DEFAULT_HERO;
-                  }}
-                />
-              ) : null}
+              <img
+                className="user-hero-bg-photo"
+                src={heroSrc || undefined}
+                alt=""
+                decoding="async"
+                fetchPriority="high"
+                draggable="false"
+              />
             </div>
             <div className="user-hero-copy">
               <h1>
@@ -535,6 +589,39 @@ export default function UserPanel({ plainMode = false } = {}) {
                     <div>
                       <strong>{s.title}</strong>
                       <small>{s.audience || 'Eligible residents'} · {formatWardNumber(s.ward?.wardNumber || ward?.wardNumber) || 'Your ward'}</small>
+                    </div>
+                    <span>›</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="user-panel-card user-hospitals-panel">
+            <div className="user-section-head">
+              <div>
+                <span className="user-kicker">{language === 'mr' ? 'आरोग्य' : 'HEALTH'}</span>
+                <h2>{language === 'mr' ? 'वॉर्डमधील हॉस्पिटल्स' : 'Hospitals in your ward'}</h2>
+                <p>{language === 'mr' ? 'रुग्णालये, क्लिनिक आणि आणीबाणी संपर्क' : 'Clinics, hospitals and emergency contacts'}</p>
+              </div>
+              <button onClick={() => go('/hospitals')} className="user-text-btn">
+                {language === 'mr' ? 'सर्व पहा →' : 'View all →'}
+              </button>
+            </div>
+            {hospitals === null ? (
+              <Loading />
+            ) : !hospitals.length ? (
+              <div className="user-mini-empty">
+                {language === 'mr' ? 'सध्या हॉस्पिटल यादी उपलब्ध नाही.' : 'No hospitals listed for this ward yet.'}
+              </div>
+            ) : (
+              <div className="user-scheme-list">
+                {hospitals.map(h => (
+                  <button key={h.id} onClick={() => go('/hospitals')} className="user-scheme-item">
+                    <span className="scheme-mini-icon">✚</span>
+                    <div>
+                      <strong>{h.name}</strong>
+                      <small>{h.phone || h.address || 'Ward hospital'} · {formatWardNumber(h.ward?.wardNumber || ward?.wardNumber) || 'Your ward'}</small>
                     </div>
                     <span>›</span>
                   </button>

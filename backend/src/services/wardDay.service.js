@@ -151,7 +151,7 @@ async function loadTodayWardEvents(wardIds) {
       where: {
         status: 'ACTIVE',
         ...wardFilter,
-        [Op.or]: [{ tenthDayOn: today }, { firstYearOn: today }],
+        tenthDayOn: today,
       },
       include: [
         ...houseInclude(),
@@ -195,16 +195,6 @@ async function loadTodayWardEvents(wardIds) {
         date: row.tenthDayOn,
       });
     }
-    if (dateOnly(row.firstYearOn) === today) {
-      items.push({
-        id: `year-${row.deathRecordId}`,
-        kind: 'ANNIVERSARY',
-        label: 'Varshashraddha (1st year)',
-        name,
-        ...loc,
-        date: row.firstYearOn,
-      });
-    }
   }
   return items;
 }
@@ -214,7 +204,7 @@ async function notifyTodayDeathReminders() {
   const rows = await DeathObservance.findAll({
     where: {
       status: 'ACTIVE',
-      [Op.or]: [{ tenthDayOn: today }, { firstYearOn: today }],
+      tenthDayOn: today,
     },
     include: [{ model: Person, as: 'person', required: false, attributes: ['id', 'fullName'] }],
   });
@@ -231,15 +221,6 @@ async function notifyTodayDeathReminders() {
         actionUrl,
       });
       await row.update({ tenthDayNotifiedAt: new Date() });
-    }
-    if (row.firstYearOn === today && !row.firstYearNotifiedAt) {
-      sent += await notifyWardFieldStaff(row.wardId, {
-        type: 'DEATH_ANNIVERSARY',
-        title: 'Today · 1st year',
-        message: `Today is the 1st year remembrance of ${name}.`,
-        actionUrl,
-      });
-      await row.update({ firstYearNotifiedAt: new Date() });
     }
   }
   return sent;

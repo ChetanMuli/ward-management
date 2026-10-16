@@ -96,7 +96,7 @@ function applyPresence(target, body){
 }
 
 function pagination(q) {
-  const limit = Math.min(Number(q.limit) || 50, 100);
+  const limit = Math.min(Number(q.limit) || 25, 50);
   const page = Math.max(Number(q.page) || 1, 1);
   return { limit, offset: (page - 1) * limit, page };
 }
@@ -161,20 +161,27 @@ const houses = asyncHandler(async (req, res) => {
   await assertRequestedWard(req, req.query.wardId);
   const where = await houseWhere(req);
   for (const k of ['ownership', 'houseType', 'status', 'areaId', 'apartmentId']) if (req.query[k]) where[k] = req.query[k];
-  if (req.query.search) {
+  const search = String(req.query.search || '').trim().slice(0, 60).replace(/[%_]/g, '');
+  if (search) {
+    const like = `%${search}%`;
     where[Op.or] = [
-      { houseNumber: { [Op.like]: `%${req.query.search}%` } },
-      { address: { [Op.like]: `%${req.query.search}%` } },
-      { ownerName: { [Op.like]: `%${req.query.search}%` } },
-      { ownerMobile: { [Op.like]: `%${req.query.search}%` } },
-      { city: { [Op.like]: `%${req.query.search}%` } },
-      { pincode: { [Op.like]: `%${req.query.search}%` } },
-      { landmark: { [Op.like]: `%${req.query.search}%` } },
+      { houseNumber: { [Op.like]: like } },
+      { address: { [Op.like]: like } },
+      { ownerName: { [Op.like]: like } },
+      { ownerMobile: { [Op.like]: `${search}%` } },
+      { landmark: { [Op.like]: like } },
     ];
   }
+  const homeKind = String(req.query.homeKind || '').toLowerCase();
+  if (homeKind === 'flat') where.apartmentId = { [Op.ne]: null };
+  if (homeKind === 'house') where.apartmentId = null;
   const r = await House.findAndCountAll({
     where,
-    include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id','name','areaId'] }],
+    include: [
+      { model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] },
+      { model: Apartment, as: 'apartment', attributes: ['id', 'name', 'areaId'] },
+      { model: Family, as: 'families', required: false, attributes: ['id', 'familyName'] },
+    ],
     limit, offset, order: [['createdAt', 'DESC']], distinct: true, col: 'id',
   });
   return success(res, { data: r.rows, meta: { total: r.count, page, limit } });
@@ -270,6 +277,48 @@ const persons = asyncHandler(async (req, res) => {
       where.employmentType = emp;
     }
   }
+  if (req.query.occupationCategory === 'WORKING' || req.query.working === 'true') {
+    where[Op.and] = [
+      ...(where[Op.and] || []),
+      {
+        [Op.or]: [
+          { occupationType: { [Op.in]: ['SERVICE', 'BUSINESS'] } },
+          {
+            occupation: {
+              [Op.in]: [
+                'Teacher', 'Farmer', 'Nurse', 'Driver', 'Tailor', 'Engineer',
+                'Government Employee', 'Accountant', 'College Professor',
+                'Electrician', 'Business', 'Software Professional',
+                'Bank Officer (SBI)', 'Transport Business', 'Software Engineer',
+                'Consulting Architect'
+              ]
+            }
+          }
+        ]
+      },
+      { [Op.or]: [{ isRetired: false }, { isRetired: null }] },
+      { [Op.or]: [{ occupationType: { [Op.ne]: 'RETIRED' } }, { occupationType: null }] },
+      { [Op.or]: [{ occupation: { [Op.ne]: 'Retired' } }, { occupation: null }] }
+    ];
+  }
+  if (req.query.isRetired === 'true' || req.query.isRetired === true) {
+    const now = new Date();
+    const d60 = new Date(now.getFullYear() - 60, now.getMonth(), now.getDate()).toISOString().slice(0, 10);
+    where[Op.or] = [
+      ...(where[Op.or] || []),
+      { isRetired: true },
+      { occupationType: 'RETIRED' },
+      { occupation: 'Retired' },
+      { dob: { [Op.ne]: null, [Op.lte]: d60 } }
+    ];
+  } else if (req.query.isRetired === 'false' || req.query.isRetired === false) {
+    where[Op.and] = [
+      ...(where[Op.and] || []),
+      { [Op.or]: [{ isRetired: false }, { isRetired: null }] },
+      { [Op.or]: [{ occupationType: { [Op.ne]: 'RETIRED' } }, { occupationType: null }] },
+      { [Op.or]: [{ occupation: { [Op.ne]: 'Retired' } }, { occupation: null }] }
+    ];
+  }
   if (req.query.gender) {
     const g = String(req.query.gender).toUpperCase();
     if (['MALE', 'FEMALE', 'OTHER'].includes(g)) {
@@ -316,6 +365,111 @@ const person = asyncHandler(async (req, res) => {
   const p = await assertPerson(req.params.id, req);
   const full = await Person.findByPk(p.id, { include: personDetailInclude });
   return success(res, { data: full });
+});
+
+const personKpis = asyncHandler(async (req, res) => {
+  await assertRequestedWard(req, req.query.wardId);
+  const { areaIds } = await scopeAreaIds(req, req.query.wardId);
+  const targetAreaIds = req.query.areaId ? [req.query.areaId] : areaIds;
+  let familyScope = [];
+  if (targetAreaIds) {
+    const list = targetAreaIds.length ? targetAreaIds : ['00000000-0000-0000-0000-000000000000'];
+    familyScope = [{
+      model: Family,
+      as: 'family',
+      required: true,
+      include: [{
+        model: House,
+        as: 'house',
+        where: { areaId: { [Op.in]: list } },
+        required: true
+      }]
+    }];
+  }
+
+  const now = new Date();
+  const d60 = new Date(now.getFullYear() - 60, now.getMonth(), now.getDate()).toISOString().slice(0, 10);
+
+  const [total, voters, nonVoters, seniors, working] = await Promise.all([
+    Person.count({
+      where: { status: 'ACTIVE' },
+      include: familyScope,
+      distinct: true,
+      col: 'id'
+    }),
+    Person.count({
+      where: { status: 'ACTIVE' },
+      include: [
+        { model: VoterProfile, as: 'voterProfile', required: true, where: { status: 'VOTER' } },
+        ...familyScope
+      ],
+      distinct: true,
+      col: 'id'
+    }),
+    Person.count({
+      where: { status: 'ACTIVE' },
+      include: [
+        { model: VoterProfile, as: 'voterProfile', required: true, where: { status: 'NON_VOTER' } },
+        ...familyScope
+      ],
+      distinct: true,
+      col: 'id'
+    }),
+    Person.count({
+      where: {
+        status: 'ACTIVE',
+        [Op.or]: [
+          { isRetired: true },
+          { occupationType: 'RETIRED' },
+          { occupation: 'Retired' },
+          { dob: { [Op.ne]: null, [Op.lte]: d60 } }
+        ]
+      },
+      include: familyScope,
+      distinct: true,
+      col: 'id'
+    }),
+    Person.count({
+      where: {
+        status: 'ACTIVE',
+        [Op.and]: [
+          {
+            [Op.or]: [
+              { occupationType: { [Op.in]: ['SERVICE', 'BUSINESS'] } },
+              {
+                occupation: {
+                  [Op.in]: [
+                    'Teacher', 'Farmer', 'Nurse', 'Driver', 'Tailor', 'Engineer',
+                    'Government Employee', 'Accountant', 'College Professor',
+                    'Electrician', 'Business', 'Software Professional',
+                    'Bank Officer (SBI)', 'Transport Business', 'Software Engineer',
+                    'Consulting Architect'
+                  ]
+                }
+              }
+            ]
+          },
+          { [Op.or]: [{ isRetired: false }, { isRetired: null }] },
+          { [Op.or]: [{ occupationType: { [Op.ne]: 'RETIRED' } }, { occupationType: null }] },
+          { [Op.or]: [{ occupation: { [Op.ne]: 'Retired' } }, { occupation: null }] }
+        ]
+      },
+      include: familyScope,
+      distinct: true,
+      col: 'id'
+    })
+  ]);
+
+  return success(res, {
+    data: {
+      total,
+      voters,
+      nonVoters,
+      seniors,
+      working,
+      unspecified: Math.max(0, total - (voters + nonVoters))
+    }
+  });
 });
 
 const voters = asyncHandler(async (req, res) => {
@@ -436,14 +590,23 @@ const upcoming18 = asyncHandler(async (req, res) => {
     status: 'ACTIVE',
     dob: { [Op.between]: [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)] },
   };
-  if (req.query.areaId && areaIds) {
+  if (areaIds) {
     const familyIds = await familyIdsForAreas(areaIds);
     where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
   }
   const rows = await Person.findAll({ where, include: personListInclude, limit: 400, order: [['dob', 'DESC']] });
-  const data = rows.map(p => ({ person: p, daysTo18: daysTo18thBirthday(p.dob) }))
-    .filter(x => x.daysTo18 !== null && x.daysTo18 >= fromDays && x.daysTo18 <= days)
-    .sort((a, b) => a.daysTo18 - b.daysTo18);
+  let data = rows.map(p => ({
+    person: p,
+    wardId: p.family?.house?.area?.wardId || p.family?.house?.area?.ward?.id || null,
+    daysTo18: daysTo18thBirthday(p.dob)
+  })).filter(x => x.daysTo18 !== null && x.daysTo18 >= fromDays && x.daysTo18 <= days);
+  if (req.query.wardId) {
+    data = data.filter(x => {
+      const wId = x.wardId || x.person?.family?.house?.area?.wardId || x.person?.family?.house?.area?.ward?.id;
+      return String(wId) === String(req.query.wardId);
+    });
+  }
+  data.sort((a, b) => a.daysTo18 - b.daysTo18);
   return success(res, { data });
 });
 const birthdays = asyncHandler(async (req, res) => {
@@ -728,4 +891,4 @@ const deleteComplaint = asyncHandler(async(req,res)=>{
   return success(res,{message:'Complaint moved to recycle bin. Restore it from Recycle bin if this was a mistake.'});
 });
 
-module.exports={houses,house,createHouse,updateHouse,deleteHouse,families,family,createFamily,updateFamily,deleteFamily,persons,person,createPerson,updatePerson,deletePerson,voters,updateVoter,complaints,complaint,deleteComplaint,upcoming18,birthdays};
+module.exports={houses,house,createHouse,updateHouse,deleteHouse,families,family,createFamily,updateFamily,deleteFamily,persons,person,personKpis,createPerson,updatePerson,deletePerson,voters,updateVoter,complaints,complaint,deleteComplaint,upcoming18,birthdays};

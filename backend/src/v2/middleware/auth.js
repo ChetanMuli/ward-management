@@ -41,7 +41,7 @@ const authenticateV2 = asyncHandler(async (req, res, next) => {
   if (roleName === 'CITIZEN') {
     const citizenPortalPermissions = [
       'VIEW_DASHBOARD', 'VIEW_WARDS', 'VIEW_WARD_INFORMATION', 'VIEW_WARD_UPDATES',
-      'VIEW_SCHEMES', 'VIEW_COMPLAINTS', 'CREATE_COMPLAINTS', 'VIEW_CHAT',
+      'VIEW_SCHEMES', 'VIEW_HOSPITALS', 'VIEW_COMPLAINTS', 'CREATE_COMPLAINTS', 'VIEW_CHAT',
       'SEND_CHAT', 'VIEW_NOTIFICATIONS'
     ];
     for (const permission of citizenPortalPermissions) {

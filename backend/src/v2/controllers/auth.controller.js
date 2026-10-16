@@ -95,7 +95,7 @@ const login = asyncHandler(async (req, res) => {
   if (!['SUPER_ADMIN','SUB_MASTER_ADMIN'].includes(roleName) && !wardId) throw new ApiError(403, 'Your account is not assigned to a ward');
 
   user.lastLoginAt = new Date();
-  await user.save();
+  await User.update({ lastLoginAt: user.lastLoginAt }, { where: { id: user.id }, hooks: false }).catch(() => {});
 
   let nagarsevakProfile = null;
   if (roleName === 'NAGARSEVAK') {

@@ -13,12 +13,12 @@ import { formatWardLabel, formatWardNumber } from '../wardFormat';
 const complaintLabels = ['SUBMITTED', 'PENDING', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
 const PIPELINE_STAGES = [
-  { key: 'SUBMITTED', label: '1. Submitted', sub: 'New issue filed', color: '#6366f1', step: '01' },
-  { key: 'PENDING', label: '2. Pending', sub: 'Awaiting triage', color: '#f59e0b', step: '02' },
-  { key: 'ASSIGNED', label: '3. Assigned', sub: 'With field team', color: '#0ea5e9', step: '03' },
-  { key: 'IN_PROGRESS', label: '4. In Progress', sub: 'Work on-site', color: '#8b5cf6', step: '04' },
-  { key: 'RESOLVED', label: '5. Resolved', sub: 'Fixed & verified', color: '#10b981', step: '05' },
-  { key: 'CLOSED', label: '6. Closed', sub: 'Archived record', color: '#64748b', step: '06' },
+  { key: 'SUBMITTED', label: 'Submitted', sub: '', color: '#6366f1', step: '01' },
+  { key: 'PENDING', label: 'Pending', sub: '', color: '#f59e0b', step: '02' },
+  { key: 'ASSIGNED', label: 'Assigned', sub: '', color: '#0ea5e9', step: '03' },
+  { key: 'IN_PROGRESS', label: 'In progress', sub: '', color: '#8b5cf6', step: '04' },
+  { key: 'RESOLVED', label: 'Resolved', sub: '', color: '#10b981', step: '05' },
+  { key: 'CLOSED', label: 'Closed', sub: '', color: '#64748b', step: '06' },
 ];
 
 const SCHEDULE_CATEGORIES = [
@@ -989,12 +989,12 @@ export default function Dashboard() {
       {canSelect && (
         <section className="panel dashboard-scope-panel">
           <div className="dashboard-scope-copy">
-            <span className="eyebrow">WARD</span>
-            <h3>Choose a ward</h3>
-            <p>Numbers below follow this ward. Leave as all wards for the full city view.</p>
+            <span className="eyebrow">SCOPE</span>
+            <h3>Ward snapshot</h3>
+            <p>All counts below follow this selection. Choose one ward for field work, or all wards for city totals.</p>
           </div>
           <div className="dashboard-scope-control">
-            <WardFilter label="Select ward" />
+            <WardFilter compact label="" />
           </div>
         </section>
       )}
@@ -1014,7 +1014,7 @@ export default function Dashboard() {
             <div className="dash-hero-details">
               <div className="dash-hero-badges-row">
                 <span className={`dash-role-badge ${nagar ? 'badge-nagar' : 'badge-emp'}`}>
-                  {nagar ? '🏛️ Nagarsevak' : '🛠️ Field Officer'}
+                  {nagar ? 'Nagarsevak' : 'Field Officer'}
                 </span>
                 {nagar && data.user?.wardSeat && (
                   <span className="dash-seat-badge">Seat {data.user.wardSeat}</span>
@@ -1024,7 +1024,6 @@ export default function Dashboard() {
               <h2 className="dash-hero-name">{data.user?.name || user?.name}</h2>
 
               <div className="dash-hero-scope-line">
-                <span className="dash-scope-pin">📍</span>
                 <span className="dash-scope-text">
                   <strong>Ward:</strong> {scopeText}
                 </span>
@@ -1034,13 +1033,11 @@ export default function Dashboard() {
                 <div className="dash-hero-meta-row">
                   {data.user?.partyName && (
                     <span className="dash-hero-meta-item">
-                      <span className="dash-meta-icon">🏛️</span>
                       <strong>Party:</strong> {data.user.partyName}
                     </span>
                   )}
                   {data.user?.officialAddress && (
                     <span className="dash-hero-meta-item">
-                      <span className="dash-meta-icon">🏢</span>
                       <strong>Office:</strong> {data.user.officialAddress}
                     </span>
                   )}
@@ -1056,7 +1053,7 @@ export default function Dashboard() {
                     <span className="dash-hero-meta-item">
                       <strong>Nagarsevak:</strong>{' '}
                       <a href={`tel:${empManager.mobile}`} className="dash-tel-link" title="Tap to call Nagarsevak">
-                        📞 {empManager.name} ({empManager.mobile || 'Call'})
+                        {empManager.name} ({empManager.mobile || 'Call'})
                       </a>
                     </span>
                   )}
@@ -1144,7 +1141,7 @@ export default function Dashboard() {
               <div className="schedule-title-wrap">
                 <h3 className="schedule-title">Daily Schedule</h3>
                 <button type="button" className="schedule-export-btn schedule-export-btn-top" onClick={handleExportDashboardSchedulePdf} title="Export daily schedule as PDF">
-                  📄 Export PDF
+                  Export PDF
                 </button>
                 <div className="agenda-total-chip schedule-total-chip">
                   <span>Total Scheduled Today:</span>
@@ -1402,7 +1399,7 @@ export default function Dashboard() {
               className="small-btn primary-btn"
               onClick={() => openTo('/complaints')}
             >
-              Open Complaints Board →
+              Open complaints
             </button>
           </div>
 
@@ -1431,17 +1428,21 @@ export default function Dashboard() {
 
       {/* KEY METRICS & LIVE STATS (Guard-checked) */}
       <section className="panel dashboard-info-panel">
-        <div className="panel-title">
+        <div className="dash-metrics-head">
           <div>
-            <h3>{field ? 'This ward' : 'City & ward counts'}</h3>
+            <span className="eyebrow">LIVE REGISTER</span>
+            <h3>{field ? 'This ward at a glance' : 'City & ward counts'}</h3>
+            <p>Totals for the selected scope. Cards open the paged list.</p>
           </div>
         </div>
 
-        <div className="stat-grid">
+        <div className="dash-metric-block">
+          <div className="dash-metric-label">People & property</div>
+          <div className="stat-grid">
           {can('VIEW_HOUSES') && (
             <StatCard
               label="Houses"
-              value={data.houses}
+              value={Number(data.houses || 0).toLocaleString('en-IN')}
               hint="Registered residential buildings"
               onClick={() => openTo('/houses')}
             />
@@ -1450,7 +1451,7 @@ export default function Dashboard() {
           {can('VIEW_HOUSES') && (
             <StatCard
               label="Apartments"
-              value={data.apartments || 0}
+              value={Number(data.apartments || 0).toLocaleString('en-IN')}
               hint="Multi-unit societies"
               onClick={() => openTo('/houses')}
             />
@@ -1459,7 +1460,7 @@ export default function Dashboard() {
           {can('VIEW_FAMILIES') && (
             <StatCard
               label="Families"
-              value={data.families}
+              value={Number(data.families || 0).toLocaleString('en-IN')}
               hint="Registered households"
               onClick={() => openTo('/families')}
             />
@@ -1468,29 +1469,64 @@ export default function Dashboard() {
           {can('VIEW_CITIZENS') && (
             <StatCard
               label="Citizens"
-              value={data.persons}
+              value={Number(data.persons || 0).toLocaleString('en-IN')}
               hint="Active resident directory"
               onClick={() => openTo('/people')}
-            />
-          )}
-
-          {can('VIEW_COMPLAINTS') && (
-            <StatCard
-              label="Open Complaints"
-              value={data.openComplaints || 0}
-              hint={`${data.complaints || 0} total registered`}
-              onClick={() => openTo('/complaints')}
             />
           )}
 
           {can('VIEW_VOTERS') && (
             <StatCard
               label="Voters"
-              value={data.voters}
-              hint={`${data.nonVoters || 0} non-voters registered`}
+              value={Number(data.voters || 0).toLocaleString('en-IN')}
+              hint={`${Number(data.nonVoters || 0).toLocaleString('en-IN')} non-voters`}
               onClick={() => openTo('/voters')}
             />
           )}
+          </div>
+        </div>
+
+        <div className="dash-metric-block">
+          <div className="dash-metric-label">Public services</div>
+          <div className="stat-grid">
+          {(can('VIEW_HOSPITALS') || can('VIEW_HOUSES')) && (
+            <StatCard
+              label="Hospitals"
+              value={Number(data.hospitals || 0).toLocaleString('en-IN')}
+              hint="Ward health directory"
+              onClick={() => openTo('/hospitals')}
+            />
+          )}
+          {can('VIEW_HOUSES') && (
+            <StatCard
+              label="Shops & offices"
+              value={Number(data.shops || 0).toLocaleString('en-IN')}
+              hint="Trade establishments"
+              onClick={() => openTo('/shops')}
+            />
+          )}
+          {can('VIEW_COMPLAINTS') && (
+            <StatCard
+              label="Open complaints"
+              value={Number(data.openComplaints || 0).toLocaleString('en-IN')}
+              hint={`${Number(data.complaints || 0).toLocaleString('en-IN')} total registered`}
+              onClick={() => openTo('/complaints')}
+            />
+          )}
+          {can('VIEW_USERS') && (
+            <StatCard
+              label="Registered users"
+              value={Number(data.citizenUsers || data.users || 0).toLocaleString('en-IN')}
+              hint="Citizen login accounts"
+              onClick={() => openTo('/users')}
+            />
+          )}
+          </div>
+        </div>
+
+        <div className="dash-metric-block">
+          <div className="dash-metric-label">Follow-up & team</div>
+          <div className="stat-grid">
 
           {can('VIEW_BIRTHDAYS') && (
             <StatCard
@@ -1540,6 +1576,7 @@ export default function Dashboard() {
               onClick={() => openTo('/groups')}
             />
           )}
+          </div>
         </div>
       </section>
 
@@ -1795,7 +1832,7 @@ export default function Dashboard() {
                       <div className="emp-card-right">
                         {emp.mobile && (
                           <a href={`tel:${emp.mobile}`} className="small-btn emp-call-btn" title="Call Employee">
-                            📞 Call
+                            Call
                           </a>
                         )}
                       </div>
@@ -1866,7 +1903,7 @@ export default function Dashboard() {
                 {detail.assignedNagarsevak?.name || detail.assignedEmployee?.manager?.name || 'Not assigned'}
               </p>
               <p>
-                <b>Employee:</b> {detail.assignedEmployee?.User?.name || 'Not assigned'}{(isMaster(user) || isNagarsevak(user) || isSubMaster(user)) && !['RESOLVED', 'CLOSED'].includes(detail.status) && <button type="button" className="badge-action-btn" onClick={() => { setDetail(null); navigate(`/complaints?open=${detail.id}`); }}>{detail.assignedEmployeeId ? '🔄 Reassign' : '👤 Assign'}</button>}
+                <b>Employee:</b> {detail.assignedEmployee?.User?.name || 'Not assigned'}{(isMaster(user) || isNagarsevak(user) || isSubMaster(user)) && !['RESOLVED', 'CLOSED'].includes(detail.status) && <button type="button" className="badge-action-btn" onClick={() => { setDetail(null); navigate(`/complaints?open=${detail.id}`); }}>{detail.assignedEmployeeId ? 'Reassign' : 'Assign'}</button>}
               </p>
               <p>
                 <b>Resolution:</b> {detail.resolutionNote || '—'}
@@ -2178,8 +2215,8 @@ export default function Dashboard() {
                       : "Today's 1st Year Remembrance · वर्षश्राद्ध (प्रथम पुण्यस्मरण)"}
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>
+                <div className="citizen-event-banner-actions">
+                  <span className="citizen-event-house">
                     {activeEv.house ? `House ${activeEv.house}` : 'House record'}
                   </span>
                   {directionsUrl && (
@@ -2187,17 +2224,7 @@ export default function Dashboard() {
                       href={directionsUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="small-btn view-btn"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        textDecoration: 'none',
-                        fontSize: '11px',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: '#ffffff',
-                      }}
+                      className="table-directions-btn"
                       title="Open GPS Directions in Google Maps"
                     >
                       Directions
@@ -2421,8 +2448,7 @@ export default function Dashboard() {
                     href={getCitizenDirectionsUrl(whatsappModal.ev)}
                     target="_blank"
                     rel="noreferrer"
-                    className="ghost-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                    className="table-directions-btn"
                     title="Get directions to citizen house"
                   >
                     Directions

@@ -129,12 +129,12 @@ export function AuthShell({admin,title,lead,pageLabel,register,children}){
    </div>
    <p className="auth-page-tag">{label}</p>
    <h1>{title}</h1>
-   {lead?<p className="auth-simple-lead">{lead}</p>:null}
+   {lead && !admin ? <p className="auth-simple-lead">{lead}</p> : null}
    <div className="auth-card-stack">
     {children}
-    <AuthApps admin={admin} isMr={isMr}/>
+    {!admin ? <AuthApps admin={admin} isMr={isMr}/> : null}
    </div>
-   <AuthAbout admin={admin} isMr={isMr}/>
+   {!admin ? <AuthAbout admin={admin} isMr={isMr}/> : null}
    <p className="auth-simple-foot">{footText}</p>
   </div>
  </div>;
@@ -364,7 +364,7 @@ export default function Login({mode='user'}){
   </AuthShell>;
  }
 
- return <AuthShell admin={admin} title={isMr?'पुन्हा स्वागत आहे':'Good to see you again'} lead={admin?(isMr?'मास्टर अ‍ॅडमिन, नगरसेवक आणि कर्मचाऱ्यांसाठी प्रशासकीय कार्यक्षेत्र':'Staff workspace for Master Admin, Nagarsevak and Employees'):(isMr?'तुमच्या नोंदणीकृत वॉर्ड खात्यात प्रवेश करा':'Access your registered ward account')}>
+ return <AuthShell admin={admin} title={isMr?'साइन इन':'Sign in'} lead={admin?'':(isMr?'तुमच्या नोंदणीकृत वॉर्ड खात्यात प्रवेश करा':'Access your registered ward account')}>
   <form onSubmit={submit} className="login-v2-card auth-simple-card">
    {notice&&<div className="info-note login-session-notice">{notice}</div>}
    {error&&<AuthError error={error}/>}

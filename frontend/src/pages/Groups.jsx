@@ -113,7 +113,7 @@ function SenderRoleBadge({ sender, isMr }) {
     return <span className="wa-role-badge nagar">{isMr ? 'नगरसेवक' : 'Nagarsevak'}</span>;
   }
   if (role === 'EMPLOYEE') {
-    return <span className="wa-role-badge emp" title={isMr ? 'प्रभाग कार्यकर्ता (नगरसेवक कार्यालय)' : 'Ward Worker (under Nagarsevak)'}>🏷️ {isMr ? 'कार्यकर्ता' : 'Ward Worker'}</span>;
+    return <span className="wa-role-badge emp" title={isMr ? 'कर्मचारी' : 'Employee'}>{isMr ? 'कर्मचारी' : 'Employee'}</span>;
   }
   if (role === 'SUPER_ADMIN' || role === 'SUB_MASTER_ADMIN') {
     return <span className="wa-role-badge admin">🛡️ {isMr ? 'अ‍ॅडमिन' : 'Admin'}</span>;
@@ -801,7 +801,7 @@ function GroupPage() {
                 <strong className="notranslate" translate="no">{user?.name || (isMr ? 'वापरकर्ता' : 'User')}</strong>
                 <span>
                   {isEmp 
-                    ? (isMr ? '🏷️ प्रभाग कार्यकर्ता (नगरसेवक कार्यालय)' : '🏷️ Ward Worker') 
+                    ? (isMr ? 'कर्मचारी' : 'Employee') 
                     : councillor 
                       ? (isMr ? 'नगरसेवक' : 'Nagarsevak') 
                       : (isMr ? 'प्रभाग चॅट' : 'Ward Chat')}

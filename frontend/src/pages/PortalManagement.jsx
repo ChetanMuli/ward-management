@@ -2,10 +2,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { api, getUser } from '../services/api';
 import { isMaster, isSubMaster, isNagarsevak } from '../rbac';
 import { useWardFilter } from '../wardFilter';
-import { PageHeader, Loading, Empty, Modal, ImageCropField, CirclePhotoField, Field, Toolbar } from '../components/Ui';
+import { PageHeader, Loading, Empty, Modal, ImageCropField, CirclePhotoField, Field, ErrorBox } from '../components/Ui';
 import WardFilter from '../components/WardFilter';
 import { CITIZEN_HERO_ASPECT, EMPTY_HIGHLIGHT_CARDS, HIGHLIGHT_ICONS, normalizeHighlightCards, highlightHasText, displayHighlightCard, publicMediaUrl } from '../utils/portalDefaults';
 import NagarsevakShowcase from '../components/NagarsevakShowcase';
+import { formatWardLabel } from '../wardFormat';
+import { getLanguage } from '../language';
+import {
+  BuildingIcon,
+  UsersIcon,
+  HomeIcon,
+  FileTextIcon,
+  SearchIcon,
+  EyeIcon,
+  ExternalLinkIcon
+} from '../components/Icons';
 
 function onCitizenHome(item, dashOrder = []) {
   const v = item?.showOnDashboard ?? item?.show_on_dashboard;
@@ -179,9 +190,7 @@ function HighlightCardsEditor({ cards, onChange, isMr }) {
 
 export default function PortalManagement() {
   const user = getUser();
-  const mr = (localStorage.getItem('ward_language') || 'en') === 'mr';
-  const language = mr ? 'mr' : 'en';
-  const isMr = language === 'mr';
+  const isMr = getLanguage() === 'mr';
 
   const { wards, selectedWardId, canSelect, fixedWardId, master } = useWardFilter();
   const effectiveWardId = canSelect ? (selectedWardId || null) : (fixedWardId || user?.wardId || null);
@@ -836,16 +845,25 @@ export default function PortalManagement() {
     });
   }, [galleryItems, galleryFilter, searchQuery, dashboardWorkOrder]);
 
+  const portalKpis = useMemo(() => {
+    const hasUrl = (u) => !!(u && String(u).trim() && String(u) !== '/hero-ward-default.jpg');
+    return {
+      banners: [portalConfig?.heroBannerUrl, portalConfig?.complaintsBannerUrl, portalConfig?.galleryBannerUrl].filter(hasUrl).length,
+      nagarsevak: representative ? 1 : 0,
+      works: galleryItems.length,
+      home: galleryItems.filter((it) => onCitizenHome(it, dashboardWorkOrder)).length
+    };
+  }, [portalConfig, representative, galleryItems, dashboardWorkOrder]);
+
   return (
-    <div className="portal-management-page">
-      {/* Page Header */}
+    <div className="admin-data-page portal-management-page" style={{ paddingTop: '8px' }}>
       <PageHeader
-        kicker={isMr ? 'नागरिक पोर्टल' : 'CITIZEN PORTAL'}
-        title={isMr ? 'नागरिक पोर्टल — सोपी संपादन' : 'Citizen portal — easy editor'}
+        kicker={isMr ? 'नागरिक पोर्टल' : 'Citizen portal'}
+        title={isMr ? 'पोर्टल व्यवस्थापन' : 'Portal Management'}
         subtitle={
           isMr
-            ? 'फक्त ४ पायऱ्या: वॉर्ड निवडा → बॅनर → नगरसेवक माहिती → कामे (स्टार = नागरिक मुख्य पान). सेव्ह केल्यावर नागरिकांना लगेच दिसेल.'
-            : 'Four steps: pick a ward → banner → nagarsevak profile → works (star = citizen home). Save, and residents see it immediately.'
+            ? 'निवडलेल्या वॉर्डचे बॅनर, नगरसेवक प्रोफाइल आणि विकास कामे नागरिक पोर्टलवर प्रकाशित करा.'
+            : 'Publish banners, the Nagarsevak profile and public works for the selected ward’s citizen portal.'
         }
         action={
           <div className="portal-header-actions">
@@ -856,45 +874,109 @@ export default function PortalManagement() {
               className="primary-btn portal-preview-btn"
               title={isMr ? 'निवडलेल्या वॉर्डचे नागरिक पोर्टल पहा' : 'View citizen portal for selected ward'}
             >
-              {isMr ? 'प्रभाग पोर्टल पहा' : 'View Ward Portal'}
+              <EyeIcon size={14} />
+              <span>{isMr ? 'पोर्टल पहा' : 'View portal'}</span>
+              <ExternalLinkIcon size={12} />
             </a>
           </div>
         }
       />
+      <ErrorBox error={error} />
 
-      <Toolbar className="portal-ward-toolbar">
-        <WardFilter compact label="Ward" />
-      </Toolbar>
-      {needsWardPick && (
-        <p className="ward-portal-hint">
-          {isMr
-            ? 'पोर्टल संपादनासाठी वॉर्ड निवडा. प्रत्येक वॉर्ड स्वतंत्र आहे.'
-            : 'Select a ward to edit its citizen portal. Each ward is separate.'}
-        </p>
-      )}
-
-      <div className="portal-howto">
-        <div className="portal-howto-step">
-          <strong>{isMr ? '१. बॅनर' : '1. Banner'}</strong>
-          {isMr
-            ? 'Home, तक्रार आणि गॅलरी — तीन स्वतंत्र बॅनर येथे बदला. प्रत्येक पान वेगळी प्रतिमा दाखवू शकते.'
-            : 'Upload three separate banners: Home, Complaints and Gallery. Each page can show a different image.'}
+      <div className="team-kpi-grid">
+        <div
+          className={`team-kpi-card ${activeTab === 'HERO' ? 'active' : ''}`}
+          style={{ cursor: 'pointer' }}
+          onClick={() => setActiveTab('HERO')}
+        >
+          <div className="team-kpi-icon blue">
+            <FileTextIcon size={20} />
+          </div>
+          <div className="team-kpi-info">
+            <div className="team-kpi-val">{needsWardPick || loading ? '…' : `${portalKpis.banners}/3`}</div>
+            <div className="team-kpi-label">{isMr ? 'कस्टम बॅनर' : 'Custom Banners'}</div>
+          </div>
         </div>
-        <div className="portal-howto-step">
-          <strong>{isMr ? '२. नगरसेवक' : '2. Nagarsevak'}</strong>
-          {isMr
-            ? 'फोटो, नाव, पक्ष, फोन, संदेश आणि ठळक कार्ड्स (emoji + आकडा) भरा. कार्ड्स नागरिक होमवर दिसतात.'
-            : 'Fill photo, name, party, phone, message and highlight cards (emoji + number). Cards show on citizen home.'}
+        <div
+          className={`team-kpi-card ${activeTab === 'REPRESENTATIVE' ? 'active' : ''}`}
+          style={{ cursor: 'pointer' }}
+          onClick={() => setActiveTab('REPRESENTATIVE')}
+        >
+          <div className="team-kpi-icon green">
+            <UsersIcon size={20} />
+          </div>
+          <div className="team-kpi-info">
+            <div className="team-kpi-val">{needsWardPick || loading ? '…' : portalKpis.nagarsevak}</div>
+            <div className="team-kpi-label">{isMr ? 'नगरसेवक प्रोफाइल' : 'Nagarsevak Profile'}</div>
+          </div>
         </div>
-        <div className="portal-howto-step">
-          <strong>{isMr ? '३. कामे' : '3. Works'}</strong>
-          {isMr
-            ? 'गॅलरी टॅबमध्ये काम जोडा. ☆ डॅशबोर्डवर जोडा = नागरिक Home. गॅलरीत सर्व कामे राहतात.'
-            : 'Add works in the Gallery tab. Star = citizen Home. Gallery still lists every published work.'}
+        <div
+          className={`team-kpi-card ${activeTab === 'WORKS' && galleryFilter !== 'DASHBOARD' ? 'active' : ''}`}
+          style={{ cursor: 'pointer' }}
+          onClick={() => {
+            setActiveTab('WORKS');
+            setGalleryFilter('ALL');
+          }}
+        >
+          <div className="team-kpi-icon purple">
+            <BuildingIcon size={20} />
+          </div>
+          <div className="team-kpi-info">
+            <div className="team-kpi-val">{needsWardPick || loading ? '…' : portalKpis.works}</div>
+            <div className="team-kpi-label">{isMr ? 'विकास कामे' : 'Public Works'}</div>
+          </div>
+        </div>
+        <div
+          className={`team-kpi-card ${activeTab === 'WORKS' && galleryFilter === 'DASHBOARD' ? 'active' : ''}`}
+          style={{ cursor: 'pointer' }}
+          onClick={() => {
+            setActiveTab('WORKS');
+            setGalleryFilter('DASHBOARD');
+          }}
+        >
+          <div className="team-kpi-icon amber">
+            <HomeIcon size={20} />
+          </div>
+          <div className="team-kpi-info">
+            <div className="team-kpi-val">{needsWardPick || loading ? '…' : portalKpis.home}</div>
+            <div className="team-kpi-label">{isMr ? 'नागरिक होम' : 'On Citizen Home'}</div>
+          </div>
         </div>
       </div>
 
-      {/* Tab Navigation */}
+      <div className="exec-toolbar-panel">
+        <div className="exec-toolbar-row">
+          <div className="exec-toolbar-left">
+            {activeTab === 'WORKS' && (
+              <div className="exec-search-box">
+                <SearchIcon size={15} />
+                <input
+                  placeholder={isMr ? 'कामे, ठिकाण किंवा बॅज शोधा…' : 'Search works, location or badge…'}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button type="button" className="search-clear-btn" onClick={() => setSearchQuery('')} title="Clear search">
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="exec-quick-ward">
+              <WardFilter compact label="" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {needsWardPick && (
+        <p className="ward-portal-hint">
+          {isMr
+            ? 'पोर्टल संपादनासाठी वॉर्ड निवडा. प्रत्येक वॉर्डची बॅनर, प्रोफाइल आणि कामे स्वतंत्र आहेत.'
+            : 'Select a ward to edit its citizen portal. Banners, profile and works are stored per ward.'}
+        </p>
+      )}
+
       <div className="portal-tabs-nav" role="tablist">
         <button
           type="button"
@@ -903,8 +985,8 @@ export default function PortalManagement() {
           className={`portal-tab-btn ${activeTab === 'HERO' ? 'active' : ''}`}
           onClick={() => setActiveTab('HERO')}
         >
-          <span className="tab-icon">🖼️</span>
-          <span>{isMr ? '१. बॅनर' : '1. Banner'}</span>
+          <FileTextIcon size={15} />
+          <span>{isMr ? 'बॅनर' : 'Banners'}</span>
         </button>
         <button
           type="button"
@@ -913,8 +995,8 @@ export default function PortalManagement() {
           className={`portal-tab-btn ${activeTab === 'REPRESENTATIVE' ? 'active' : ''}`}
           onClick={() => setActiveTab('REPRESENTATIVE')}
         >
-          <span className="tab-icon">👤</span>
-          <span>{isMr ? '२. नगरसेवक' : '2. Nagarsevak'}</span>
+          <UsersIcon size={15} />
+          <span>{isMr ? 'नगरसेवक' : 'Nagarsevak'}</span>
         </button>
         <button
           type="button"
@@ -923,8 +1005,8 @@ export default function PortalManagement() {
           className={`portal-tab-btn ${activeTab === 'WORKS' ? 'active' : ''}`}
           onClick={() => setActiveTab('WORKS')}
         >
-          <span className="tab-icon">🏗️</span>
-          <span>{isMr ? '३. कामे' : '3. Works'}</span>
+          <BuildingIcon size={15} />
+          <span>{isMr ? 'कामे' : 'Works'}</span>
           <span className="tab-count-pill">{galleryItems.length}</span>
         </button>
       </div>
@@ -946,7 +1028,6 @@ export default function PortalManagement() {
         </div>
       ) : error ? (
         <div className="portal-error-box">
-          <p>{error}</p>
           <button className="primary-btn" onClick={loadData}>{isMr ? 'पुन्हा प्रयत्न करा' : 'Retry'}</button>
         </div>
       ) : (
@@ -960,8 +1041,8 @@ export default function PortalManagement() {
                 {/* Editor Form */}
                 <form className="portal-card portal-form-card" onSubmit={handleSavePortalConfig}>
                   <div className="portal-card-header">
-                    <h3>{isMr ? 'हिरो बॅनर व मजकूर सेटिंग्ज' : 'Hero Banner & Headline Settings'}</h3>
-                    <p>{isMr ? 'नागरिक मुख्य पानासाठी बॅनर फोटो आणि स्वागत मजकूर इथे बदला.' : 'Customize the hero banner photo and welcome text for citizen home.'}</p>
+                    <h3>{isMr ? 'बॅनर व स्वागत मजकूर' : 'Banners & welcome copy'}</h3>
+                    <p>{isMr ? 'नागरिक होम, तक्रार आणि गॅलरी पानांसाठी बॅनर व शीर्षक येथे सेट करा.' : 'Set banners and headlines for citizen Home, Complaints and Gallery.'}</p>
                   </div>
 
                   {/* Section 1: Hero Banner Image Selection */}
@@ -1167,7 +1248,7 @@ export default function PortalManagement() {
 
                   <div className="form-actions-footer">
                     <button type="submit" className="primary-btn portal-save-btn" disabled={saving}>
-                      {saving ? (isMr ? 'सेव्ह होत आहे...' : 'Saving...') : (isMr ? '✓ या वॉर्डचा बॅनर सेव्ह करा' : '✓ Save this ward’s banner')}
+                      {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'बॅनर सेव्ह करा' : 'Save banners')}
                     </button>
                   </div>
                 </form>
@@ -1229,17 +1310,6 @@ export default function PortalManagement() {
               </div>
               {/* Toolbar */}
               <div className="portal-works-toolbar">
-                <div className="toolbar-search-box">
-                  <span className="search-icon">🔍</span>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder={isMr ? 'कामे किंवा व्हिडीओ शोधा...' : 'Search works, location, badge...'}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
                 {galleryFilter !== 'DASHBOARD' && (
                 <div className="toolbar-category-filter">
                   <button
@@ -1624,7 +1694,7 @@ export default function PortalManagement() {
 
                     <div className="form-actions-footer">
                       <button type="submit" className="primary-btn portal-save-btn" disabled={saving}>
-                        {saving ? (isMr ? 'सेव्ह होत आहे...' : 'Saving...') : (isMr ? '✓ नगरसेवक स्पॉटलाइट सेव्ह करा' : '✓ Save nagarsevak spotlight')}
+                        {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'नगरसेवक प्रोफाइल सेव्ह करा' : 'Save Nagarsevak profile')}
                       </button>
                     </div>
                   </>
