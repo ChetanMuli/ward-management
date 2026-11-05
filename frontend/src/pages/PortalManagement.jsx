@@ -288,18 +288,45 @@ export default function PortalManagement() {
   // Delete confirm modal
   const [deletingItem, setDeletingItem] = useState(null);
 
+  const handleSaveHeroBanner = async () => {
+    if (!effectiveWardId) return;
+    setSaving(true);
+    try {
+      const heroBannerUrl = await persistLaptopImage(portalConfig?.heroBannerUrl || '');
+      const res = await api.updatePortalConfig({
+        wardId: effectiveWardId,
+        nagarsevakUserId: editorPanelId || representative?.id || null,
+        heroBannerUrl,
+        useCivicHero: isGenericDefaultHero(heroBannerUrl),
+      });
+      const returnedConfig = res?.data?.config;
+      const finalHero = returnedConfig?.heroBannerUrl || heroBannerUrl;
+      setPortalConfig((prev) => ({ ...prev, heroBannerUrl: finalHero }));
+      rememberBannerUrl(`ward_hero_banner_${effectiveWardId}_${editorPanelId || ''}`, finalHero);
+      localStorage.setItem(`ward_hero_banner_v_${effectiveWardId}`, String(Date.now()));
+      notifyPortalUpdated(effectiveWardId);
+      showToast(isMr ? 'होम बॅनर सेव्ह झाला.' : 'Home banner saved.');
+    } catch (err) {
+      showToast(err.message || 'Failed to save home banner.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveComplaintsBanner = async () => {
     if (!effectiveWardId) return;
     setSaving(true);
     try {
       const complaintsBannerUrl = await persistLaptopImage(portalConfig?.complaintsBannerUrl || '');
-      await api.updatePortalConfig({
+      const res = await api.updatePortalConfig({
         wardId: effectiveWardId,
         nagarsevakUserId: editorPanelId || representative?.id || null,
         complaintsBannerUrl,
       });
-      setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl }));
-      rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}_${editorPanelId || ''}`, complaintsBannerUrl);
+      const returnedConfig = res?.data?.config;
+      const finalComplaints = returnedConfig?.complaintsBannerUrl || complaintsBannerUrl;
+      setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: finalComplaints }));
+      rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}_${editorPanelId || ''}`, finalComplaints);
       notifyPortalUpdated(effectiveWardId);
       showToast(isMr ? 'तक्रार पानाचा बॅनर सेव्ह झाला.' : 'Complaints banner saved.');
     } catch (err) {
@@ -314,13 +341,15 @@ export default function PortalManagement() {
     setSaving(true);
     try {
       const galleryBannerUrl = await persistLaptopImage(portalConfig?.galleryBannerUrl || '');
-      await api.updatePortalConfig({
+      const res = await api.updatePortalConfig({
         wardId: effectiveWardId,
         nagarsevakUserId: editorPanelId || representative?.id || null,
         galleryBannerUrl,
       });
-      setPortalConfig((prev) => ({ ...prev, galleryBannerUrl }));
-      rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}_${editorPanelId || ''}`, galleryBannerUrl);
+      const returnedConfig = res?.data?.config;
+      const finalGallery = returnedConfig?.galleryBannerUrl || galleryBannerUrl;
+      setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: finalGallery }));
+      rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}_${editorPanelId || ''}`, finalGallery);
       notifyPortalUpdated(effectiveWardId);
       showToast(isMr ? 'गॅलरी बॅनर सेव्ह झाला.' : 'Gallery banner saved.');
     } catch (err) {
@@ -495,7 +524,7 @@ export default function PortalManagement() {
           delete slimConfig.meta[k];
         }
       });
-      await api.updatePortalConfig({
+      const res = await api.updatePortalConfig({
         wardId: effectiveWardId,
         nagarsevakUserId: editorPanelId || representative?.id || null,
         ...slimConfig,
@@ -505,18 +534,22 @@ export default function PortalManagement() {
         dashboardWorkOrder,
         useCivicHero: isGenericDefaultHero(heroBannerUrl),
       });
+      const returnedConfig = res?.data?.config;
+      const finalHero = returnedConfig?.heroBannerUrl || heroBannerUrl;
+      const finalComplaints = returnedConfig?.complaintsBannerUrl || complaintsBannerUrl;
+      const finalGallery = returnedConfig?.galleryBannerUrl || galleryBannerUrl;
       setPortalConfig((prev) => ({
         ...prev,
-        heroBannerUrl: heroBannerUrl || prev?.heroBannerUrl,
-        complaintsBannerUrl: complaintsBannerUrl || prev?.complaintsBannerUrl,
-        galleryBannerUrl: galleryBannerUrl || prev?.galleryBannerUrl,
+        heroBannerUrl: finalHero || prev?.heroBannerUrl,
+        complaintsBannerUrl: finalComplaints || prev?.complaintsBannerUrl,
+        galleryBannerUrl: finalGallery || prev?.galleryBannerUrl,
       }));
       try {
         const panelKey = editorPanelId || representative?.id || '';
-        rememberBannerUrl(`ward_hero_banner_${effectiveWardId}_${panelKey}`, heroBannerUrl);
+        rememberBannerUrl(`ward_hero_banner_${effectiveWardId}_${panelKey}`, finalHero);
         localStorage.setItem(`ward_hero_banner_v_${effectiveWardId}`, String(Date.now()));
-        rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}_${panelKey}`, complaintsBannerUrl);
-        rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}_${panelKey}`, galleryBannerUrl);
+        rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}_${panelKey}`, finalComplaints);
+        rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}_${panelKey}`, finalGallery);
       } catch { /* ignore */ }
       showToast(isMr ? 'बॅनर या नगरसेवक पॅनेलसाठी सेव्ह झाले.' : 'Banners saved for this Nagarsevak panel.');
       notifyPortalUpdated(effectiveWardId);
@@ -1176,7 +1209,10 @@ export default function PortalManagement() {
                       hint={isMr ? 'हाच आकार नागरिक Home वर दिसेल.' : 'This is the same size residents see on Home.'}
                     />
 
-                    <div style={{ marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div className="portal-section-save" style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveHeroBanner}>
+                        {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'होम बॅनर सेव्ह करा' : 'Save home banner')}
+                      </button>
                       <button
                         type="button"
                         className="ghost-btn-xs"

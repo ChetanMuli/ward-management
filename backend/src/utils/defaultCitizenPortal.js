@@ -23,10 +23,10 @@ function isGenericDefaultHero(url) {
 }
 
 function resolveCitizenHeroUrl(url, { demoMode = false } = {}) {
-  if (demoMode) return CIVIC_DEFAULT_HERO;
   const live = String(Array.isArray(url) ? url[0] : url || '').trim();
   const usable = live && !live.startsWith('data:');
-  return usable ? live : CIVIC_DEFAULT_HERO;
+  if (usable && !isGenericDefaultHero(usable)) return usable;
+  return CIVIC_DEFAULT_HERO;
 }
 
 /** Shared demo citizen page until a ward is customized and one Nagarsevak is activated. */

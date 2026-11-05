@@ -3,12 +3,18 @@
 const crypto = require('crypto');
 const { WardPortalBanner, WardHomeWork, WardGalleryItem } = require('../models');
 const { persistDataUrl, persistImageFields, publicImageUrl, retireIfReplaced } = require('../utils/portalMedia');
+const { isGenericDefaultHero } = require('../utils/defaultCitizenPortal');
 
 function pickHeroUrl(primary, secondary) {
   const a = publicImageUrl(primary, '');
-  if (a && !String(a).startsWith('data:')) return a;
   const b = publicImageUrl(secondary, '');
-  return b && !String(b).startsWith('data:') ? b : '';
+  const aCustom = a && !isGenericDefaultHero(a) && !String(a).startsWith('data:');
+  const bCustom = b && !isGenericDefaultHero(b) && !String(b).startsWith('data:');
+  if (aCustom) return a;
+  if (bCustom) return b;
+  if (a && !String(a).startsWith('data:')) return a;
+  if (b && !String(b).startsWith('data:') && !isGenericDefaultHero(b)) return b;
+  return a || b || '';
 }
 
 function newId() {

@@ -226,11 +226,11 @@ export default function UserPanel({ plainMode = false } = {}) {
 
   const applyLiveHero = async (bannerUrl, { demoMode = false } = {}) => {
     const livePanel = getSavedPanelId(citizenWardId);
-    if (demoMode || isGenericDefaultHero(bannerUrl)) {
+    if (!bannerUrl || isGenericDefaultHero(bannerUrl)) {
       setShownHero(commitHero(citizenWardId, livePanel, CIVIC_DEFAULT_HERO));
       return;
     }
-    const next = resolveCitizenHeroUrl(bannerUrl, { demoMode, fallback: CIVIC_DEFAULT_HERO });
+    const next = resolveCitizenHeroUrl(bannerUrl, { demoMode: false, fallback: CIVIC_DEFAULT_HERO });
     if (isGenericDefaultHero(next)) {
       setShownHero(commitHero(citizenWardId, livePanel, CIVIC_DEFAULT_HERO));
       return;

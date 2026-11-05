@@ -248,16 +248,16 @@ function readPanelOverlay(meta, nagarsevakId) {
 
 function blankPanelConfig(configData) {
   const meta = { ...(configData.meta && typeof configData.meta === 'object' ? configData.meta : {}) };
-  meta.complaintsBannerUrl = '';
-  meta.galleryBannerUrl = '';
-  meta.dashboardWorkOrder = [];
-  meta.repPhoto = '';
   return {
     ...configData,
-    heroBannerUrl: CIVIC_DEFAULT_HERO,
-    complaintsBannerUrl: '',
-    galleryBannerUrl: '',
-    dashboardWorkOrder: [],
+    heroBannerUrl: (configData.heroBannerUrl && !isGenericDefaultHero(configData.heroBannerUrl))
+      ? configData.heroBannerUrl
+      : (configData.heroBannerUrl || CIVIC_DEFAULT_HERO),
+    complaintsBannerUrl: configData.complaintsBannerUrl || meta.complaintsBannerUrl || '',
+    galleryBannerUrl: configData.galleryBannerUrl || meta.galleryBannerUrl || '',
+    dashboardWorkOrder: (Array.isArray(configData.dashboardWorkOrder) && configData.dashboardWorkOrder.length)
+      ? configData.dashboardWorkOrder
+      : (Array.isArray(meta.dashboardWorkOrder) ? meta.dashboardWorkOrder : []),
     meta,
   };
 }
@@ -273,39 +273,35 @@ function applyPanelOverlay(configData, nagarsevakId, { ownerId, wardSnapshot } =
   const next = blankPanelConfig(configData);
   if (!overlay) return next;
   for (const key of PANEL_OVERLAY_FIELDS) {
-    if (Object.prototype.hasOwnProperty.call(overlay, key)) next[key] = overlay[key];
+    if (Object.prototype.hasOwnProperty.call(overlay, key) && overlay[key] !== undefined && overlay[key] !== '') {
+      next[key] = overlay[key];
+    }
   }
-  if (Object.prototype.hasOwnProperty.call(overlay, 'complaintsBannerUrl')) {
+  if (Object.prototype.hasOwnProperty.call(overlay, 'complaintsBannerUrl') && overlay.complaintsBannerUrl) {
     next.meta.complaintsBannerUrl = overlay.complaintsBannerUrl;
     next.complaintsBannerUrl = overlay.complaintsBannerUrl;
   }
-  if (Object.prototype.hasOwnProperty.call(overlay, 'galleryBannerUrl')) {
+  if (Object.prototype.hasOwnProperty.call(overlay, 'galleryBannerUrl') && overlay.galleryBannerUrl) {
     next.meta.galleryBannerUrl = overlay.galleryBannerUrl;
     next.galleryBannerUrl = overlay.galleryBannerUrl;
   }
-  if (Object.prototype.hasOwnProperty.call(overlay, 'dashboardWorkOrder')) {
+  if (Object.prototype.hasOwnProperty.call(overlay, 'dashboardWorkOrder') && Array.isArray(overlay.dashboardWorkOrder) && overlay.dashboardWorkOrder.length) {
     next.meta.dashboardWorkOrder = overlay.dashboardWorkOrder;
     next.dashboardWorkOrder = overlay.dashboardWorkOrder;
   }
-  const isOwner = ownerId && String(nagarsevakId) === String(ownerId);
-  const customHero = overlay.heroBannerUrl && !isGenericDefaultHero(overlay.heroBannerUrl);
-  if (customHero) {
+  const customOverlayHero = overlay.heroBannerUrl && !isGenericDefaultHero(overlay.heroBannerUrl);
+  const customWardHero = configData.heroBannerUrl && !isGenericDefaultHero(configData.heroBannerUrl);
+
+  if (customOverlayHero) {
     next.heroBannerUrl = overlay.heroBannerUrl;
-  } else if (overlay.useCivicHero || isGenericDefaultHero(overlay.heroBannerUrl) || isGenericDefaultHero(next.heroBannerUrl)) {
+  } else if (overlay.useCivicHero) {
     next.heroBannerUrl = CIVIC_DEFAULT_HERO;
-  } else if (!isOwner && wardSnapshot && sameAsset(next.heroBannerUrl, wardSnapshot.heroBannerUrl)) {
-    next.heroBannerUrl = CIVIC_DEFAULT_HERO;
+  } else if (customWardHero) {
+    next.heroBannerUrl = configData.heroBannerUrl;
+  } else {
+    next.heroBannerUrl = overlay.heroBannerUrl || configData.heroBannerUrl || CIVIC_DEFAULT_HERO;
   }
-  if (!isOwner && wardSnapshot) {
-    if (sameAsset(next.complaintsBannerUrl, wardSnapshot.complaintsBannerUrl)) {
-      next.complaintsBannerUrl = '';
-      next.meta.complaintsBannerUrl = '';
-    }
-    if (sameAsset(next.galleryBannerUrl, wardSnapshot.galleryBannerUrl)) {
-      next.galleryBannerUrl = '';
-      next.meta.galleryBannerUrl = '';
-    }
-  }
+
   if (isGenericDefaultHero(next.heroBannerUrl)) {
     next.heroBannerUrl = CIVIC_DEFAULT_HERO;
   } else {
@@ -403,15 +399,16 @@ const getPortalConfig = asyncHandler(async (req, res) => {
   const activeIds = wardId ? (await getActiveNagarsevakIds(wardId)).map(String) : [];
   const requestedId = String(req.query.nagarsevakId || '').trim();
   const nagarsevaks = await loadWardNagarsevaks(wardId, { includeInactive: manager });
-  const editorIds = manager ? activeIds : visibleIds;
-  const featuredId = (requestedId && editorIds.includes(requestedId))
+  const nagarAllIds = nagarsevaks.map((n) => String(n.id));
+  const editorIds = manager ? (activeIds.length ? activeIds : nagarAllIds) : (visibleIds.length ? visibleIds : nagarAllIds);
+  const featuredId = (requestedId && (editorIds.includes(requestedId) || nagarAllIds.includes(requestedId)))
     ? requestedId
     : (visibleIds.includes(String(configData.featuredNagarsevakUserId || ''))
       ? String(configData.featuredNagarsevakUserId)
-      : (visibleIds[0] || (manager ? (activeIds[0] || '') : '')));
+      : (visibleIds[0] || (manager ? (activeIds[0] || nagarAllIds[0] || '') : (nagarAllIds[0] || ''))));
   const legacyOwnerId = visibleIds.includes(String(configData.featuredNagarsevakUserId || ''))
     ? String(configData.featuredNagarsevakUserId)
-    : (visibleIds[0] || activeIds[0] || '');
+    : (visibleIds[0] || activeIds[0] || nagarAllIds[0] || '');
   nagarsevaks.sort((a, b) => {
     if (String(a.id) === String(featuredId)) return -1;
     if (String(b.id) === String(featuredId)) return 1;
@@ -442,7 +439,9 @@ const getPortalConfig = asyncHandler(async (req, res) => {
   const wardInactive = String(ward?.status || '').toUpperCase() !== 'ACTIVE';
   const demoMode = !purchased.length || wardInactive;
   if (demoMode && !manager) {
-    configData.heroBannerUrl = CIVIC_DEFAULT_HERO;
+    if (isGenericDefaultHero(configData.heroBannerUrl)) {
+      configData.heroBannerUrl = CIVIC_DEFAULT_HERO;
+    }
     if (isCampaignStockUrl(configData.complaintsBannerUrl)) configData.complaintsBannerUrl = '';
     if (isCampaignStockUrl(configData.galleryBannerUrl)) configData.galleryBannerUrl = '';
     if (configData.meta && typeof configData.meta === 'object') {
@@ -471,8 +470,8 @@ const getPortalConfig = asyncHandler(async (req, res) => {
       },
       ward: ward ? { id: ward.id, wardNumber: ward.wardNumber, name: ward.name, status: ward.status } : null,
       nagarsevak,
-      nagarsevaks: manager ? activeNagarsevaks : purchased,
-      purchasedNagarsevaks: purchased,
+      nagarsevaks: manager ? (activeNagarsevaks.length ? activeNagarsevaks : nagarsevaks) : (purchased.length ? purchased : nagarsevaks),
+      purchasedNagarsevaks: purchased.length ? purchased : nagarsevaks,
       activation: {
         wardActive: !wardInactive,
         purchasedCount: purchased.length,
@@ -577,36 +576,39 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     for (const field of PANEL_OVERLAY_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(patch, field)) {
         overlay[field] = patch[field];
-        delete patch[field];
       }
     }
     if (Object.prototype.hasOwnProperty.call(req.body, 'complaintsBannerUrl')) {
       overlay.complaintsBannerUrl = Object.prototype.hasOwnProperty.call(nextMeta, 'complaintsBannerUrl')
         ? nextMeta.complaintsBannerUrl
         : req.body.complaintsBannerUrl;
-      delete nextMeta.complaintsBannerUrl;
     }
     if (Object.prototype.hasOwnProperty.call(req.body, 'galleryBannerUrl')) {
       overlay.galleryBannerUrl = Object.prototype.hasOwnProperty.call(nextMeta, 'galleryBannerUrl')
         ? nextMeta.galleryBannerUrl
         : req.body.galleryBannerUrl;
-      delete nextMeta.galleryBannerUrl;
     }
     if (Object.prototype.hasOwnProperty.call(req.body, 'dashboardWorkOrder')) {
       overlay.dashboardWorkOrder = nextMeta.dashboardWorkOrder;
-      delete nextMeta.dashboardWorkOrder;
     }
     persistImageFields(overlay, ['heroBannerUrl'], `hero-p-${String(panelId).slice(0, 8)}`);
     if (typeof overlay.heroBannerUrl === 'string' && overlay.heroBannerUrl.startsWith('data:')) {
       throw new ApiError(400, 'Could not store the hero banner on the server. Check that the uploads/portal folder is writable.');
     }
-    const hasCustomHero = overlay.heroBannerUrl && !isGenericDefaultHero(overlay.heroBannerUrl);
-    overlay.useCivicHero = hasCustomHero
-      ? false
-      : (Object.prototype.hasOwnProperty.call(req.body, 'useCivicHero')
-        ? Boolean(req.body.useCivicHero)
-        : true);
+    const chosenHero = overlay.heroBannerUrl || patch.heroBannerUrl || req.body.heroBannerUrl;
+    const hasCustomHero = chosenHero && !isGenericDefaultHero(chosenHero);
+    overlay.heroBannerUrl = hasCustomHero
+      ? chosenHero
+      : (req.body.useCivicHero ? CIVIC_DEFAULT_HERO : (chosenHero || CIVIC_DEFAULT_HERO));
+    overlay.useCivicHero = !hasCustomHero && Boolean(req.body.useCivicHero);
     if (overlay.useCivicHero) overlay.heroBannerUrl = CIVIC_DEFAULT_HERO;
+
+    if (hasCustomHero) {
+      patch.heroBannerUrl = overlay.heroBannerUrl;
+    } else if (req.body.useCivicHero) {
+      patch.heroBannerUrl = CIVIC_DEFAULT_HERO;
+    }
+
     persistImageFields(overlay, ['complaintsBannerUrl'], `complaints-p-${String(panelId).slice(0, 8)}`);
     persistImageFields(overlay, ['galleryBannerUrl'], `gallery-p-${String(panelId).slice(0, 8)}`);
     nextMeta.panels = { ...(nextMeta.panels && typeof nextMeta.panels === 'object' ? nextMeta.panels : {}), [panelId]: overlay };
@@ -635,25 +637,23 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     await config.update(patch);
   }
 
-  if (Object.prototype.hasOwnProperty.call(req.body, 'dashboardWorkOrder') && !panelId) {
+  if (Object.prototype.hasOwnProperty.call(req.body, 'dashboardWorkOrder')) {
     const ids = Array.isArray(req.body.dashboardWorkOrder) ? req.body.dashboardWorkOrder.map(String).filter(Boolean) : [];
     await portalLayout.setHomeWorkIds(wardId, ids);
   }
 
-  if (!panelId) {
-    const bannerUrls = {};
-    if (Object.prototype.hasOwnProperty.call(patch, 'heroBannerUrl') || Object.prototype.hasOwnProperty.call(req.body, 'heroBannerUrl')) {
-      bannerUrls.homeBannerUrl = patch.heroBannerUrl || req.body.heroBannerUrl;
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, 'complaintsBannerUrl') || patch.meta?.complaintsBannerUrl !== undefined) {
-      bannerUrls.complaintsBannerUrl = req.body.complaintsBannerUrl !== undefined ? req.body.complaintsBannerUrl : patch.meta.complaintsBannerUrl;
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, 'galleryBannerUrl') || patch.meta?.galleryBannerUrl !== undefined) {
-      bannerUrls.galleryBannerUrl = req.body.galleryBannerUrl !== undefined ? req.body.galleryBannerUrl : patch.meta.galleryBannerUrl;
-    }
-    if (Object.keys(bannerUrls).length) {
-      await portalLayout.upsertBanners(wardId, bannerUrls, req.user.id);
-    }
+  const bannerUrls = {};
+  if (Object.prototype.hasOwnProperty.call(patch, 'heroBannerUrl') || Object.prototype.hasOwnProperty.call(req.body, 'heroBannerUrl')) {
+    bannerUrls.homeBannerUrl = patch.heroBannerUrl || req.body.heroBannerUrl;
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'complaintsBannerUrl') || patch.meta?.complaintsBannerUrl !== undefined) {
+    bannerUrls.complaintsBannerUrl = req.body.complaintsBannerUrl !== undefined ? req.body.complaintsBannerUrl : patch.meta?.complaintsBannerUrl;
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'galleryBannerUrl') || patch.meta?.galleryBannerUrl !== undefined) {
+    bannerUrls.galleryBannerUrl = req.body.galleryBannerUrl !== undefined ? req.body.galleryBannerUrl : patch.meta?.galleryBannerUrl;
+  }
+  if (Object.keys(bannerUrls).length) {
+    await portalLayout.upsertBanners(wardId, bannerUrls, req.user.id);
   }
 
   // Update Nagarsevak details if provided in request
