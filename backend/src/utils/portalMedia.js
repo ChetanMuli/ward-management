@@ -75,12 +75,25 @@ function persistImageFields(obj, keys, prefix) {
   return obj;
 }
 
+function portalFileName(value) {
+  const str = String(value || '').trim().split('?')[0];
+  const m = str.match(/(?:\/api)?\/uploads\/portal\/([^/?#]+)$/i);
+  if (!m) return '';
+  const name = path.basename(decodeURIComponent(m[1]));
+  if (!name || name.startsWith('.') || name.includes('..')) return '';
+  return name;
+}
+
 function publicImageUrl(value, fallback = '') {
   if (value == null) return fallback;
-  const str = String(value).trim();
+  let str = String(value).trim();
   if (!str || str.startsWith('data:')) return fallback;
-  if (str.startsWith('/uploads/')) return `/api${str}`;
-  if (str.startsWith('uploads/')) return `/api/${str}`;
+  if (str.startsWith('/uploads/')) str = `/api${str}`;
+  else if (str.startsWith('uploads/')) str = `/api/${str}`;
+  const name = portalFileName(str);
+  if (name && !fs.existsSync(path.join(ROOT, name))) {
+    return fallback;
+  }
   return str;
 }
 
@@ -98,15 +111,6 @@ function persistInBackground(jobs) {
 
 const RETIRE_MS = 8 * 24 * 60 * 60 * 1000;
 const RETIRE_FILE = path.join(ROOT, '.retired.json');
-
-function portalFileName(value) {
-  const str = String(value || '').trim().split('?')[0];
-  const m = str.match(/(?:\/api)?\/uploads\/portal\/([^/?#]+)$/i);
-  if (!m) return '';
-  const name = path.basename(decodeURIComponent(m[1]));
-  if (!name || name.startsWith('.') || name.includes('..')) return '';
-  return name;
-}
 
 function readRetiredMap() {
   try {

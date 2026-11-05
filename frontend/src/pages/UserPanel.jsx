@@ -568,6 +568,12 @@ export default function UserPanel({ plainMode = false } = {}) {
                   decoding="async"
                   fetchPriority="high"
                   draggable="false"
+                  onError={(e) => {
+                    if (e.currentTarget.src && !e.currentTarget.src.includes('hero-ward-default.jpg')) {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/hero-ward-default.jpg';
+                    }
+                  }}
                 />
               ) : (
                 <div className="user-hero-fallback-pattern" />

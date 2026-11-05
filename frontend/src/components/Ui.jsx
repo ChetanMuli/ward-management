@@ -747,7 +747,19 @@ export function ImageCropField({
       {shown && variant==='hero'?(
         <div className="user-hero user-hero-pro has-portal-banner has-custom-hero has-photo admin-hero-live citizen-banner-frame">
           <div className="user-hero-media" aria-hidden="true">
-            <img className="user-hero-bg-photo" src={shown} alt="" decoding="async" draggable="false"/>
+            <img
+              className="user-hero-bg-photo"
+              src={shown}
+              alt=""
+              decoding="async"
+              draggable="false"
+              onError={(e) => {
+                if (e.currentTarget.src && !e.currentTarget.src.includes('hero-ward-default.jpg')) {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/hero-ward-default.jpg';
+                }
+              }}
+            />
           </div>
           <div className="user-hero-shade" aria-hidden="true"/>
         </div>
