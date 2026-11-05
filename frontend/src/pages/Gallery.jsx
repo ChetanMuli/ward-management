@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { api, getUser } from '../services/api';
 import { Loading } from '../components/Ui';
 import { isCampaignStockUrl, publicMediaUrl, resolveCitizenHeroUrl } from '../utils/portalDefaults';
+import { citizenPortalQuery, getSavedPanelId, selectPanelWorks } from '../utils/panelChoice';
 import { formatWardNumber } from '../wardFormat';
 
 let _galleryCache = null;
@@ -24,7 +25,7 @@ export default function Gallery() {
     let live = true;
     const loadAll = () => {
       const wardId = user?.wardId || null;
-      const q = wardId ? { wardId } : {};
+      const q = citizenPortalQuery(wardId);
       Promise.allSettled([
         api.myWard(),
         api.wardTeam(),
@@ -44,7 +45,7 @@ export default function Gallery() {
             setPortalConfig(nextConfig);
             const gb = nextConfig.galleryBannerUrl || nextConfig.meta?.galleryBannerUrl;
             if (gb && !String(gb).startsWith('data:')) {
-              try { localStorage.setItem(`ward_gallery_banner_${wardId || ''}`, gb); } catch { /* ignore */ }
+              try { localStorage.setItem(`ward_gallery_banner_${wardId || ''}_${q.nagarsevakId || ''}`, gb); } catch { /* ignore */ }
             }
           }
           setPortalGallery(nextGallery);
@@ -80,7 +81,8 @@ export default function Gallery() {
   const ward = snapshot?.ward || team?.ward || user?.ward || null;
 
   const galleryItems = useMemo(() => {
-    const raw = Array.isArray(portalGallery) ? portalGallery : [];
+    const panelId = getSavedPanelId(user?.wardId);
+    const raw = selectPanelWorks(Array.isArray(portalGallery) ? portalGallery : [], panelId);
 
     let base = raw.map(item => ({
       ...item,
@@ -142,7 +144,7 @@ export default function Gallery() {
     if (liveGalleryBanner && !String(liveGalleryBanner).startsWith('data:')) raw = liveGalleryBanner;
     else {
       try {
-        const v = localStorage.getItem(`ward_gallery_banner_${user?.wardId || ''}`);
+        const v = localStorage.getItem(`ward_gallery_banner_${user?.wardId || ''}_${getSavedPanelId(user?.wardId) || ''}`);
         if (v && !String(v).startsWith('data:') && !isCampaignStockUrl(v)) raw = v;
       } catch { /* ignore */ }
     }
@@ -151,7 +153,7 @@ export default function Gallery() {
 
   return (
     <div className="gallery-page-container">
-      <section className={`gallery-banner-hero ${galleryBanner ? 'has-banner' : ''}`}>
+      <section className={`gallery-banner-hero gallery-hero-pro ${galleryBanner ? 'has-banner' : ''}`}>
         {galleryBanner ? (
           <img
             className="gallery-banner-photo"
@@ -160,9 +162,9 @@ export default function Gallery() {
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         ) : null}
+        <div className="user-hero-shade gallery-hero-shade" aria-hidden="true" />
         <div className="gallery-banner-copy">
-          <span className="user-kicker">{isMr ? 'विकास अहवाल व कार्य गॅलरी' : 'WORK & DEVELOPMENT GALLERY'}</span>
-          <h1>{isMr ? 'प्रभाग विकास व उपक्रम गॅलरी' : 'Ward Development & Public Work Gallery'}</h1>
+          <h1>{isMr ? 'प्रभाग विकास गॅलरी' : 'Ward Development Gallery'}</h1>
           <p>
             {isMr
               ? 'रस्ते, ड्रेनेज, पाणी पुरवठा, स्वच्छता, आरोग्य व सामाजिक विकास कामांचा सचित्र अहवाल'
@@ -196,7 +198,7 @@ export default function Gallery() {
       </div>
 
       {/* Gallery Cards Grid */}
-      <section className="user-panel-card nagar-gallery-card" style={{ marginTop: '20px' }}>
+      <section className="user-panel-card nagar-gallery-card">
         {filteredGallery.length === 0 ? (
           <div className="nagar-gallery-empty">
             <span className="nagar-empty-icon">🖼️</span>

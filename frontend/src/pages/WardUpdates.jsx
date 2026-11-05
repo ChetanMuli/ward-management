@@ -14,6 +14,7 @@ import WardFilter from '../components/WardFilter';
 import { isMaster, isSubMaster, isNagarsevak, isEmployee } from '../rbac';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWardFilter } from '../wardFilter';
+import { citizenPortalQuery } from '../utils/panelChoice';
 import { formatWardLabel, formatWardNumber } from '../wardFormat';
 import {
   BellIcon,
@@ -124,7 +125,8 @@ export default function WardUpdates({ autoOpen = false }) {
           search: search.trim(),
           type: type || undefined,
           status,
-          wardId: selectedWardId || undefined
+          wardId: selectedWardId || undefined,
+          ...citizenPortalQuery(selectedWardId)
         });
         if (!live) return;
         setRows(r.data || []);

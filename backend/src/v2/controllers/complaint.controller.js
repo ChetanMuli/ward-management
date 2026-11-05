@@ -33,14 +33,43 @@ async function attachNagarPhotos(rows) {
   const list = (Array.isArray(rows) ? rows : [rows]).filter(Boolean);
   if (!list.length) return rows;
   const jsons = list.map((r) => (typeof r.toJSON === 'function' ? r.toJSON() : r));
+  const ids = jsons.map((j) => j.id).filter(Boolean);
   const photos = await nagarsevakPublicByIds(jsons.map((j) => j.assignedNagarsevak?.id || j.assignedNagarsevakUserId));
+  
+  let attachmentsByComplaint = {};
+  if (ids.length) {
+    try {
+      const { ComplaintAttachment } = require('../../models');
+      const atts = await ComplaintAttachment.findAll({ where: { complaintId: ids } });
+      for (const a of atts) {
+        if (!attachmentsByComplaint[a.complaintId]) attachmentsByComplaint[a.complaintId] = [];
+        attachmentsByComplaint[a.complaintId].push(a);
+      }
+    } catch (_) {}
+  }
+
   const mapped = jsons.map((j) => {
     const extra = photos.get(String(j.assignedNagarsevak?.id || j.assignedNagarsevakUserId || ''));
     if (j.assignedNagarsevak && extra?.photo) j.assignedNagarsevak.photo = extra.photo;
-    j.reportedImages = parseImageList(j.reportedImage);
-    j.resolutionImages = parseImageList(j.resolutionImage);
-    delete j.reportedImage;
-    delete j.resolutionImage;
+    const repList = parseImageList(j.reportedImage);
+    const resList = parseImageList(j.resolutionImage);
+
+    const extraAtts = attachmentsByComplaint[j.id] || [];
+    for (const att of extraAtts) {
+      const content = att.content || (att.storageKey ? `/uploads/${att.storageKey}` : null);
+      if (content) {
+        if (att.kind === 'REPORTED' && !repList.includes(content)) {
+          repList.push(content);
+        } else if (att.kind === 'RESOLUTION' && !resList.includes(content)) {
+          resList.push(content);
+        }
+      }
+    }
+
+    j.reportedImages = repList;
+    j.resolutionImages = resList;
+    j.reportedImage = repList[0] || null;
+    j.resolutionImage = resList[0] || null;
     return j;
   });
   return Array.isArray(rows) ? mapped : mapped[0];
@@ -55,10 +84,15 @@ function prettyStatus(status){
 function cleanImage(value){
   if(value==null||value==='')return null;
   if(typeof value!=='string') return null;
-  const s=value.trim();
+  let s=value.trim();
   if(!s) return null;
   if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('/')||s.startsWith('./')) return s;
-  if(s.length>1500000) throw new ApiError(400,'Image is too large. Please upload a smaller image (max about 1.5 MB).');
+  if(!s.startsWith('data:image/')) {
+    if (/^[A-Za-z0-9+/=]+$/.test(s.slice(0, 100))) {
+      s = `data:image/jpeg;base64,${s}`;
+    }
+  }
+  if(s.length>10000000) throw new ApiError(400,'Image is too large. Please upload an image under 10 MB.');
   if(!/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(s)) throw new ApiError(400,'Only JPG, PNG or WEBP images are supported.');
   return s;
 }
@@ -91,9 +125,13 @@ const list = asyncHandler(async(req,res)=>{
     const citizenMatch=[{submittedByUserId:req.user.id}];
     if(req.user.personId) citizenMatch.push({citizenPersonId:req.user.personId});
     where[Op.or]=citizenMatch;
+    const panelId=String(req.query.nagarsevakId||req.query.assignedNagarsevakUserId||'').trim();
+    if(panelId) where.assignedNagarsevakUserId=panelId;
   } else if(req.user.roleName==='EMPLOYEE'){
     if(!req.user.employeeProfile?.id) throw new ApiError(403,'Employee profile is missing');
     where.assignedEmployeeId=req.user.employeeProfile.id;
+  } else if(req.user.roleName==='NAGARSEVAK'){
+    where.assignedNagarsevakUserId=req.user.id;
   }
 
   const allowed=await (async()=>{ const {allowedWardIds}=require('../services/wardScope'); return allowedWardIds(req); })();
@@ -114,6 +152,12 @@ const list = asyncHandler(async(req,res)=>{
   if(fromDate||toDate){
     const range=istDayRange(fromDate,toDate);
     where.createdAt={[Op.gte]:range.start,[Op.lte]:range.end};
+  } else if (req.query.days) {
+    const d = parseInt(req.query.days, 10);
+    if (!isNaN(d) && d > 0) {
+      const since = new Date(Date.now() - d * 24 * 60 * 60 * 1000);
+      where.createdAt = { [Op.gte]: since };
+    }
   }
 
   const search=String(req.query.search||'').trim();
@@ -150,7 +194,6 @@ const list = asyncHandler(async(req,res)=>{
   const r = await Complaint.findAndCountAll({
     where,
     include,
-    attributes: { exclude: ['reportedImage', 'resolutionImage'] },
     order: [['createdAt', 'DESC']],
     limit,
     offset,
@@ -392,7 +435,11 @@ const closeResolvedOvernight=async()=>{
     const d=parts.find(p=>p.type==='day')?.value;
     return new Date(`${y}-${m}-${d}T00:00:00+05:30`);
   })();
-  const rows=await Complaint.findAll({where:{status:'RESOLVED',resolvedAt:{[Op.ne]:null,[Op.lt]:start}}});
+  const rows=await Complaint.findAll({
+    where:{status:'RESOLVED',resolvedAt:{[Op.ne]:null,[Op.lt]:start}},
+    attributes:['id','status','complaintNumber','assignedNagarsevakUserId','submittedByUserId'],
+    limit:200,
+  });
   if(!rows.length) return 0;
   const masterRole=await Role.findOne({where:{name:'SUPER_ADMIN'}});
   const master=masterRole?await User.findOne({where:{roleId:masterRole.id,status:'ACTIVE'},attributes:['id'],order:[['createdAt','ASC']]}):null;
@@ -419,17 +466,21 @@ const archiveOldComplaints = async () => 0;
 
 const destroyComplaint = asyncHandler(async (req, res) => {
   const role = String(req.user.roleName || '');
-  if (!['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'].includes(role)) {
-    throw new ApiError(403, 'Only Master Admin, Sub Master Admin or Nagarsevak can delete a complaint.');
-  }
   const row = await assertComplaint(req.params.id, req);
-  await notifyComplaintCitizen(
-    row,
-    'COMPLAINT_DELETED',
-    'Your complaint was removed',
-    `${row.complaintNumber} was removed by the ward office and is no longer on My Complaints.`,
-    req.user.id
-  );
+  const isStaff = ['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'].includes(role);
+  const isOwner = req.user.roleName === 'CITIZEN' && String(row.submittedByUserId) === String(req.user.id);
+  if (!isStaff && !isOwner) {
+    throw new ApiError(403, 'You do not have permission to delete this complaint.');
+  }
+  if (isStaff) {
+    await notifyComplaintCitizen(
+      row,
+      'COMPLAINT_DELETED',
+      'Your complaint was removed',
+      `${row.complaintNumber} was removed by the ward office and is no longer on My Complaints.`,
+      req.user.id
+    );
+  }
   await row.destroy();
   await logAudit({
     user: req.user,
@@ -439,7 +490,49 @@ const destroyComplaint = asyncHandler(async (req, res) => {
     newValue: { deleted: true, wardId: row.wardId },
     ipAddress: req.ip,
   });
-  return success(res, { message: 'Complaint deleted from the ward desk and from the citizen’s My Complaints.' });
+  return success(res, { message: 'Complaint deleted successfully.' });
+});
+
+const bulkDestroy = asyncHandler(async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  if (!ids.length) {
+    throw new ApiError(400, 'No complaint IDs provided for deletion.');
+  }
+  const role = String(req.user.roleName || '');
+  const isStaff = ['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK'].includes(role);
+
+  let deletedCount = 0;
+  for (const id of ids) {
+    try {
+      const row = await assertComplaint(id, req);
+      const isOwner = req.user.roleName === 'CITIZEN' && String(row.submittedByUserId) === String(req.user.id);
+      if (isStaff || isOwner) {
+        if (isStaff) {
+          await notifyComplaintCitizen(
+            row,
+            'COMPLAINT_DELETED',
+            'Your complaint was removed',
+            `${row.complaintNumber} was removed by the ward office.`,
+            req.user.id
+          );
+        }
+        await row.destroy();
+        await logAudit({
+          user: req.user,
+          action: 'SOFT_DELETE_COMPLAINT',
+          entity: 'Complaint',
+          recordId: row.id,
+          newValue: { deleted: true, wardId: row.wardId },
+          ipAddress: req.ip,
+        });
+        deletedCount++;
+      }
+    } catch (_) {
+      // Continue with remaining
+    }
+  }
+
+  return success(res, { message: `${deletedCount} complaint(s) deleted successfully.`, count: deletedCount });
 });
 
 function isoDay(value) {
@@ -463,4 +556,4 @@ function istDayRange(fromDate, toDate, { bothRequired = false } = {}) {
   };
 }
 
-module.exports={list,create,assign,updateStatus,detail,closeResolvedOvernight,archiveOldComplaints,destroyComplaint};
+module.exports={list,create,assign,updateStatus,detail,closeResolvedOvernight,archiveOldComplaints,destroyComplaint,bulkDestroy};

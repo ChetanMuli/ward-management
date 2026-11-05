@@ -15,6 +15,7 @@ export default function TeamNav({ current = 'staff' }) {
   const links = [
     { to: '/staff', label: 'Team', Icon: UsersIcon, key: 'staff' },
     master && { to: '/ward-activation', label: 'Activation', Icon: ZapIcon, key: 'activation' },
+    { to: '/active-panels', label: 'Active panels', Icon: UserCheckIcon, key: 'active-panels' },
     { to: '/nagarsevak-subscriptions', label: 'Subscriptions', Icon: ClockIcon, key: 'subscriptions' },
     master && { to: '/stakeholders', label: 'Community', Icon: UserCheckIcon, key: 'stakeholders' },
     master && { to: '/sub-admins', label: 'Sub-admins', Icon: ShieldIcon, key: 'subadmins' },

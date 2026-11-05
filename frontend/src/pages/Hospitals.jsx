@@ -27,10 +27,12 @@ import {
   EditIcon,
   SearchIcon,
   CheckIcon,
-  BuildingIcon
+  BuildingIcon,
+  MedicalIcon,
+  TrashIcon
 } from '../components/Icons';
 
-const TYPES = [
+const HOSPITAL_TYPES = [
   { value: 'GOVERNMENT', en: 'Government', mr: 'शासकीय' },
   { value: 'PRIVATE', en: 'Private', mr: 'खासगी' },
   { value: 'TRUST', en: 'Trust / Charitable', mr: 'ट्रस्ट / सेवाभावी' },
@@ -40,7 +42,16 @@ const TYPES = [
   { value: 'OTHER', en: 'Other', mr: 'इतर' }
 ];
 
-const blank = {
+const MEDICAL_TYPES = [
+  { value: 'ALLOPATHIC', en: 'Allopathic / Chemist', mr: 'अ‍ॅलोपॅथिक / केमिस्ट' },
+  { value: 'GENERIC', en: 'Generic / Jan Aushadhi', mr: 'जेनेरिक / जनऔषधी' },
+  { value: 'AYURVEDIC', en: 'Ayurvedic', mr: 'आयुर्वेदिक' },
+  { value: 'HOMOEOPATHIC', en: 'Homoeopathic', mr: 'होमियोपॅथिक' },
+  { value: 'WHOLESALE_RETAIL', en: 'Wholesale & Retail', mr: 'होलसेल व रिटेल' },
+  { value: 'OTHER', en: 'Other', mr: 'इतर' }
+];
+
+const hospitalBlank = {
   name: '',
   type: 'PRIVATE',
   wardId: '',
@@ -57,15 +68,61 @@ const blank = {
   longitude: ''
 };
 
-function typeLabel(value, isMr) {
-  const hit = TYPES.find(t => t.value === value);
+const medicalBlank = {
+  name: '',
+  type: 'ALLOPATHIC',
+  wardId: '',
+  areaId: '',
+  address: '',
+  landmark: '',
+  phone: '',
+  openingHours: '',
+  is24x7: false,
+  homeDelivery: false,
+  facilities: '',
+  notes: '',
+  status: 'ACTIVE',
+  latitude: '',
+  longitude: ''
+};
+
+function hospitalTypeLabel(value, isMr) {
+  const hit = HOSPITAL_TYPES.find(t => t.value === value);
   return hit ? (isMr ? hit.mr : hit.en) : value || '—';
 }
 
-function getInitials(name) {
-  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return 'H';
-  return parts.slice(0, 2).map(p => p[0]).join('').toUpperCase();
+function medicalTypeLabel(value, isMr) {
+  const hit = MEDICAL_TYPES.find(t => t.value === value);
+  return hit ? (isMr ? hit.mr : hit.en) : value || '—';
+}
+
+function translateMedicalName(name, isMr) {
+  if (!isMr || !name) return name;
+  const map = {
+    'Mauli 24x7 Chemist & Druggist': 'माऊली २४x७ केमिस्ट आणि औषधांचे दुकान',
+    'PM Jan Aushadhi Medical Store': 'प्रधानमंत्री जनऔषधी केंद्र व मेडिकल स्टोअर',
+    'Apollo Pharmacy & Wellness': 'अपोलो फार्मसी आणि वेलनेस',
+    'Sanjeevani Ayurvedic & Herbal Store': 'संजीवनी आयुर्वेदिक व हर्बल स्टोअर'
+  };
+  return map[name] || name;
+}
+
+function translateHours(hours, isMr) {
+  if (!isMr || !hours) return hours;
+  if (/24\s*hours/i.test(hours)) return '२४ तास सुरू (24x7)';
+  return hours
+    .replace(/AM/gi, 'सकाळी')
+    .replace(/PM/gi, 'रात्री')
+    .replace(/Mon-Sun/gi, 'सोम-रवि')
+    .replace(/Mon-Sat/gi, 'सोम-शनि')
+    .replace(/Daily/gi, 'दररोज');
+}
+
+function getInitials(name, fallback = 'H') {
+  if (!name) return fallback;
+  const parts = String(name).trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  return name.slice(0, 2).toUpperCase();
 }
 
 function HospitalCard({ h, isMr, onOpen }) {
@@ -74,7 +131,7 @@ function HospitalCard({ h, isMr, onOpen }) {
     <article className="hospital-card">
       <div className="hospital-card-top">
         <span className={`hospital-type-chip type-${String(h.type || '').toLowerCase()}`}>
-          {typeLabel(h.type, isMr)}
+          {hospitalTypeLabel(h.type, isMr)}
         </span>
         {h.status === 'INACTIVE' && (
           <span className="team-badge gray">{isMr ? 'निष्क्रिय' : 'Inactive'}</span>
@@ -103,589 +160,1519 @@ function HospitalCard({ h, isMr, onOpen }) {
       )}
       {h.emergencyPhone && (
         <a className="hospital-card-line is-emergency" href={`tel:${h.emergencyPhone}`}>
-          <PhoneIcon size={13} />
+          <HeartIcon size={13} />
           <span>{isMr ? 'आणीबाणी' : 'Emergency'}: {h.emergencyPhone}</span>
         </a>
       )}
-      {h.facilities && <p className="hospital-card-facilities">{h.facilities}</p>}
       <div className="hospital-card-actions">
-        {onOpen && (
-          <button type="button" className="exec-btn-view" onClick={() => onOpen(h)}>
-            <EyeIcon size={13} />
-            <span>{isMr ? 'तपशील' : 'Details'}</span>
-          </button>
-        )}
         {pinned && (
           <a
-            className="table-directions-btn"
+            className="hospital-btn is-primary"
             href={directionsUrl(h.latitude, h.longitude)}
             target="_blank"
             rel="noopener noreferrer"
           >
-            <MapPinIcon size={13} />
+            <MapPinIcon size={14} />
             <span>{isMr ? 'दिशा' : 'Directions'}</span>
           </a>
         )}
+        <button type="button" className="hospital-btn is-ghost" onClick={() => onOpen(h)}>
+          <EyeIcon size={14} />
+          <span>{isMr ? 'तपशील' : 'Details'}</span>
+        </button>
       </div>
     </article>
   );
 }
 
-export default function Hospitals() {
+function MedicalCard({ m, isMr, onOpen }) {
+  const pinned = hasCoords(m.latitude, m.longitude);
+  const displayName = translateMedicalName(m.name, isMr);
+  const displayHours = translateHours(m.openingHours, isMr);
+
+  return (
+    <article className="hospital-card medical-card">
+      <div className="hospital-card-top">
+        <span className={`hospital-type-chip type-${String(m.type || '').toLowerCase()}`}>
+          {medicalTypeLabel(m.type, isMr)}
+        </span>
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {m.is24x7 && (
+            <span className="team-badge" style={{ background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', fontWeight: 700, fontSize: '11px', padding: '2px 7px', borderRadius: '4px' }}>
+              {isMr ? '२४x७ सुरू' : '24x7 Open'}
+            </span>
+          )}
+          {m.homeDelivery && (
+            <span className="team-badge" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', fontWeight: 700, fontSize: '11px', padding: '2px 7px', borderRadius: '4px' }}>
+              {isMr ? 'होम डिलिव्हरी' : 'Delivery'}
+            </span>
+          )}
+          {m.status === 'INACTIVE' && (
+            <span className="team-badge gray">{isMr ? 'निष्क्रिय' : 'Inactive'}</span>
+          )}
+        </div>
+      </div>
+      <h3>{displayName}</h3>
+      <p className="hospital-card-addr">
+        {m.address}
+        {m.landmark ? ` · ${m.landmark}` : ''}
+      </p>
+      <div className="hospital-card-meta">
+        {m.area?.name && <span>{m.area.name}</span>}
+        <span>{formatWardNumber(m.ward?.wardNumber) || formatWardLabel(m.ward) || '—'}</span>
+      </div>
+      {m.openingHours && (
+        <div className="hospital-card-line">
+          <ClockIcon size={13} />
+          <span>{displayHours}</span>
+        </div>
+      )}
+      {m.phone && (
+        <a className="hospital-card-line" href={`tel:${m.phone}`}>
+          <PhoneIcon size={13} />
+          <span>{m.phone}</span>
+        </a>
+      )}
+      {m.facilities && (
+        <div className="hospital-card-line muted" style={{ fontSize: '12px', marginTop: '4px', color: '#64748B' }}>
+          <span>{m.facilities}</span>
+        </div>
+      )}
+      <div className="hospital-card-actions">
+        {m.phone && (
+          <a className="hospital-btn is-primary" style={{ background: '#0F766E', borderColor: '#0F766E' }} href={`tel:${m.phone}`}>
+            <PhoneIcon size={14} />
+            <span>{isMr ? 'कॉल करा' : 'Call'}</span>
+          </a>
+        )}
+        {pinned && (
+          <a
+            className="hospital-btn is-ghost"
+            href={directionsUrl(m.latitude, m.longitude)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <MapPinIcon size={14} />
+            <span>{isMr ? 'दिशा' : 'Directions'}</span>
+          </a>
+        )}
+        <button type="button" className="hospital-btn is-ghost" onClick={() => onOpen(m)}>
+          <EyeIcon size={14} />
+          <span>{isMr ? 'तपशील' : 'Details'}</span>
+        </button>
+      </div>
+    </article>
+  );
+}
+
+export default function Hospitals({ defaultTab = '' }) {
   const user = getUser();
   const isMr = getLanguage() === 'mr';
-  const isCitizen = String(user?.role || '').toUpperCase() === 'CITIZEN';
-  const { selectedWardId } = useWardFilter();
-  const canAdd = can('CREATE_HOSPITALS') || isNagarsevak() || isEmployee() || isMaster();
-  const canEdit = can('EDIT_HOSPITALS') || canAdd;
-  const canDelete = can('DELETE_HOSPITALS') || isNagarsevak() || isMaster() || isEmployee();
-  const wardLocked = isNagarsevak() || isEmployee();
+  const isCitizen = user?.role === 'CITIZEN' || user?.Role?.name === 'CITIZEN';
+  const canEditAny = isMaster() || isNagarsevak() || isEmployee() || can('EDIT_HOSPITALS') || can('CREATE_HOSPITALS') || can('EDIT_MEDICALS') || can('CREATE_MEDICALS');
+  const canDeleteAny = isMaster() || isNagarsevak() || isEmployee() || can('DELETE_HOSPITALS') || can('DELETE_MEDICALS');
 
-  const [rows, setRows] = useState(null);
-  const [total, setTotal] = useState(0);
-  const [kpis, setKpis] = useState({ total: 0, government: 0, private: 0, mapped: 0 });
-  const [wards, setWards] = useState([]);
-  const [filters, setFilters] = useState({ search: '', type: '', status: '', areaId: '', typeGroup: '', mappedOnly: false });
-  const [searchText, setSearchText] = useState('');
-  const [form, setForm] = useState(blank);
-  const [edit, setEdit] = useState(null);
-  const [detail, setDetail] = useState(null);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  // Active tab: 'hospitals' | 'medicals'
+  const initialTab = useMemo(() => {
+    if (defaultTab === 'medicals') return 'medicals';
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p === 'medicals') return 'medicals';
+    }
+    return 'hospitals';
+  }, [defaultTab]);
 
-  async function load(nextPage = page, nextLimit = pageSize, nextFilters = filters) {
-    try {
-      setError('');
-      const res = await api.hospitals({
-        wardId: selectedWardId || undefined,
-        type: nextFilters.type || undefined,
-        typeGroup: nextFilters.typeGroup || undefined,
-        mapped: nextFilters.mappedOnly ? '1' : undefined,
-        status: isCitizen ? undefined : nextFilters.status || undefined,
-        areaId: nextFilters.areaId || undefined,
-        search: nextFilters.search || undefined,
-        page: nextPage,
-        limit: nextLimit
-      });
-      setRows(res.data || []);
-      setTotal(Number(res.meta?.total) || 0);
-      if (res.meta?.kpis) setKpis(res.meta.kpis);
-    } catch (e) {
-      setError(e.message);
-      setRows([]);
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  function switchTab(tab) {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url.toString());
     }
   }
 
+  // Common Ward Filter
+  const { wards, selectedWardId, wardLocked } = useWardFilter();
+
+  // ----------------------------------------------------
+  // HOSPITALS STATE
+  // ----------------------------------------------------
+  const [hospRows, setHospRows] = useState(null);
+  const [hospTotal, setHospTotal] = useState(0);
+  const [hospLoading, setHospLoading] = useState(false);
+  const [hospError, setHospError] = useState('');
+  const [hospPage, setHospPage] = useState(1);
+  const hospPageSize = 12;
+  const [hospSearch, setHospSearch] = useState('');
+  const [hospFilters, setHospFilters] = useState({
+    search: '',
+    type: '',
+    status: '',
+    areaId: ''
+  });
+  const [hospKpis, setHospKpis] = useState({ total: 0, government: 0, private: 0, clinic: 0, mapped: 0 });
+  const [hospEdit, setHospEdit] = useState(null);
+  const [hospDetail, setHospDetail] = useState(null);
+  const [hospForm, setHospForm] = useState(hospitalBlank);
+  const [hospBusy, setHospBusy] = useState(false);
+
+  // ----------------------------------------------------
+  // MEDICALS STATE
+  // ----------------------------------------------------
+  const [medRows, setMedRows] = useState(null);
+  const [medTotal, setMedTotal] = useState(0);
+  const [medLoading, setMedLoading] = useState(false);
+  const [medError, setMedError] = useState('');
+  const [medPage, setMedPage] = useState(1);
+  const medPageSize = 12;
+  const [medSearch, setMedSearch] = useState('');
+  const [medFilters, setMedFilters] = useState({
+    search: '',
+    type: '',
+    status: '',
+    areaId: '',
+    is24x7: false,
+    homeDelivery: false
+  });
+  const [medKpis, setMedKpis] = useState({ total: 0, is24x7: 0, homeDelivery: 0, mapped: 0 });
+  const [medEdit, setMedEdit] = useState(null);
+  const [medDetail, setMedDetail] = useState(null);
+  const [medForm, setMedForm] = useState(medicalBlank);
+  const [medBusy, setMedBusy] = useState(false);
+
+  // Load Hospitals
+  async function loadHospitals() {
+    setHospLoading(true);
+    setHospError('');
+    try {
+      const params = {
+        page: hospPage,
+        limit: hospPageSize,
+        ...(selectedWardId ? { wardId: selectedWardId } : {}),
+        ...(hospFilters.areaId ? { areaId: hospFilters.areaId } : {}),
+        ...(hospFilters.type ? { type: hospFilters.type } : {}),
+        ...(hospFilters.status ? { status: hospFilters.status } : {}),
+        ...(hospFilters.search ? { search: hospFilters.search } : {})
+      };
+      const res = await api.hospitals(params);
+      const data = res?.data || res?.items || [];
+      setHospRows(data);
+      const meta = res?.meta || {};
+      setHospTotal(meta.total ?? data.length);
+      if (meta.kpis) setHospKpis(meta.kpis);
+    } catch (err) {
+      setHospError(err.message || (isMr ? 'हॉस्पिटल लोड करण्यात अडचण आली' : 'Failed to load hospitals'));
+      setHospRows([]);
+    } finally {
+      setHospLoading(false);
+    }
+  }
+
+  // Load Medicals
+  async function loadMedicals() {
+    setMedLoading(true);
+    setMedError('');
+    try {
+      const params = {
+        page: medPage,
+        limit: medPageSize,
+        ...(selectedWardId ? { wardId: selectedWardId } : {}),
+        ...(medFilters.areaId ? { areaId: medFilters.areaId } : {}),
+        ...(medFilters.type ? { type: medFilters.type } : {}),
+        ...(medFilters.status ? { status: medFilters.status } : {}),
+        ...(medFilters.is24x7 ? { is24x7: '1' } : {}),
+        ...(medFilters.homeDelivery ? { homeDelivery: '1' } : {}),
+        ...(medFilters.search ? { search: medFilters.search } : {})
+      };
+      const res = await api.medicals(params);
+      const data = res?.data || res?.items || [];
+      setMedRows(data);
+      const meta = res?.meta || {};
+      setMedTotal(meta.total ?? data.length);
+      if (meta.kpis) setMedKpis(meta.kpis);
+    } catch (err) {
+      setMedError(err.message || (isMr ? 'औषधांची दुकाने लोड करण्यात अडचण आली' : 'Failed to load medical stores'));
+      setMedRows([]);
+    } finally {
+      setMedLoading(false);
+    }
+  }
+
+  // Debounce hospital search
   useEffect(() => {
     const t = setTimeout(() => {
-      setFilters(f => (f.search === searchText ? f : { ...f, search: searchText }));
-      setPage(1);
-    }, 350);
+      setHospFilters(f => ({ ...f, search: hospSearch.trim() }));
+      setHospPage(1);
+    }, 300);
     return () => clearTimeout(t);
-  }, [searchText]);
+  }, [hospSearch]);
+
+  // Debounce medical search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setMedFilters(f => ({ ...f, search: medSearch.trim() }));
+      setMedPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [medSearch]);
+
+  // Load when filters change
+  useEffect(() => {
+    loadHospitals();
+  }, [selectedWardId, hospPage, hospFilters.areaId, hospFilters.type, hospFilters.status, hospFilters.search]);
 
   useEffect(() => {
-    setPage(1);
-  }, [selectedWardId, filters.type, filters.status, filters.areaId, filters.typeGroup, filters.mappedOnly]);
+    loadMedicals();
+  }, [selectedWardId, medPage, medFilters.areaId, medFilters.type, medFilters.status, medFilters.is24x7, medFilters.homeDelivery, medFilters.search]);
 
-  useEffect(() => {
-    load(page, pageSize, filters);
-  }, [selectedWardId, filters.type, filters.status, filters.areaId, filters.typeGroup, filters.mappedOnly, filters.search, page, pageSize]);
-
-  useEffect(() => {
-    if (isCitizen) return;
-    api.wards().then(w => setWards(w.data || [])).catch(e => setError(e.message));
-  }, [isCitizen]);
-
-  const colonyOptions = useMemo(() => {
-    const source = selectedWardId
-      ? (wards || []).filter(w => String(w.id) === String(selectedWardId))
-      : (wards || []);
-    return source.flatMap(w => (w.areas || []).map(a => ({ value: a.id, label: a.name })));
-  }, [wards, selectedWardId]);
-
-  const hasActiveFilters = Boolean(filters.search || filters.type || filters.status || filters.areaId || filters.typeGroup || filters.mappedOnly);
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  const formWardId = form.wardId || user?.wardId || selectedWardId || '';
-  const formAreas = useMemo(() => {
-    const ward = (wards || []).find(w => String(w.id) === String(formWardId));
-    return (ward?.areas || []).map(a => ({ value: a.id, label: a.name }));
-  }, [wards, formWardId]);
-  const selectedWard = (wards || []).find(w => String(w.id) === String(formWardId));
-  const selectedArea = (selectedWard?.areas || []).find(a => String(a.id) === String(form.areaId));
-
-  function setKpi(next) {
-    setPage(1);
-    setFilters(f => ({ ...f, type: '', ...next }));
-  }
-
-  function openAdd() {
-    setForm({
-      ...blank,
-      wardId: selectedWardId || user?.wardId || wards[0]?.id || '',
-      type: 'PRIVATE',
-      status: 'ACTIVE'
+  // Hospital CRUD
+  function openAddHospital() {
+    setHospForm({
+      ...hospitalBlank,
+      wardId: selectedWardId || user?.wardId || (wards[0]?.id || '')
     });
-    setEdit('create');
+    setHospEdit('create');
   }
 
-  function openEdit(h) {
-    setForm({
-      ...blank,
+  function openEditHospital(h) {
+    setHospForm({
+      ...hospitalBlank,
       ...h,
       wardId: h.wardId || h.ward?.id || '',
       areaId: h.areaId || h.area?.id || '',
       latitude: h.latitude || '',
       longitude: h.longitude || ''
     });
-    setEdit(h);
+    setHospEdit(h);
   }
 
-  async function save(e) {
+  async function saveHospital(e) {
     e.preventDefault();
-    setBusy(true);
-    setError('');
+    setHospBusy(true);
+    setHospError('');
     try {
-      const payload = { ...form, wardId: formWardId };
-      if (edit === 'create') await api.createHospital(payload);
-      else await api.updateHospital(edit.id, payload);
-      setEdit(null);
-      await load();
+      const payload = { ...hospForm, wardId: hospForm.wardId || selectedWardId };
+      if (hospEdit === 'create') await api.createHospital(payload);
+      else await api.updateHospital(hospEdit.id, payload);
+      setHospEdit(null);
+      await loadHospitals();
     } catch (err) {
-      setError(err.message);
+      setHospError(err.message);
     } finally {
-      setBusy(false);
+      setHospBusy(false);
     }
   }
 
-  async function remove(h) {
-    if (!window.confirm(isMr ? 'हे हॉस्पिटल रिसायकल बिनमध्ये हलवायचे आहे का?' : 'Move this hospital to recycle bin?')) return;
+  async function removeHospital(h) {
+    if (!window.confirm(isMr ? 'हे हॉस्पिटल काढायचे आहे का?' : 'Move this hospital to recycle bin?')) return;
     try {
       await api.deleteHospital(h.id);
-      await load();
+      await loadHospitals();
     } catch (err) {
-      setError(err.message);
+      setHospError(err.message);
     }
   }
 
+  // Medical CRUD (Note: emergencyPhone completely omitted!)
+  function openAddMedical() {
+    setMedForm({
+      ...medicalBlank,
+      wardId: selectedWardId || user?.wardId || (wards[0]?.id || '')
+    });
+    setMedEdit('create');
+  }
+
+  function openEditMedical(m) {
+    setMedForm({
+      ...medicalBlank,
+      ...m,
+      wardId: m.wardId || m.ward?.id || '',
+      areaId: m.areaId || m.area?.id || '',
+      is24x7: Boolean(m.is24x7),
+      homeDelivery: Boolean(m.homeDelivery),
+      latitude: m.latitude || '',
+      longitude: m.longitude || ''
+    });
+    setMedEdit(m);
+  }
+
+  async function saveMedical(e) {
+    e.preventDefault();
+    setMedBusy(true);
+    setMedError('');
+    try {
+      const payload = {
+        name: medForm.name,
+        type: medForm.type,
+        wardId: medForm.wardId || selectedWardId,
+        areaId: medForm.areaId || null,
+        address: medForm.address,
+        landmark: medForm.landmark,
+        phone: medForm.phone,
+        openingHours: medForm.openingHours,
+        is24x7: medForm.is24x7,
+        homeDelivery: medForm.homeDelivery,
+        facilities: medForm.facilities,
+        notes: medForm.notes,
+        status: medForm.status,
+        latitude: medForm.latitude || null,
+        longitude: medForm.longitude || null
+      };
+      if (medEdit === 'create') await api.createMedical(payload);
+      else await api.updateMedical(medEdit.id, payload);
+      setMedEdit(null);
+      await loadMedicals();
+    } catch (err) {
+      setMedError(err.message);
+    } finally {
+      setMedBusy(false);
+    }
+  }
+
+  async function removeMedical(m) {
+    if (!window.confirm(isMr ? 'हे मेडिकल स्टोअर काढायचे आहे का?' : 'Move this medical store to recycle bin?')) return;
+    try {
+      await api.deleteMedical(m.id);
+      await loadMedicals();
+    } catch (err) {
+      setMedError(err.message);
+    }
+  }
+
+  // Areas for selected ward in forms
+  const hospFormWard = (wards || []).find(w => String(w.id) === String(hospForm.wardId || selectedWardId));
+  const hospFormAreas = (hospFormWard?.areas || []).map(a => ({ value: a.id, label: a.name }));
+  const hospSelectedArea = (hospFormWard?.areas || []).find(a => String(a.id) === String(hospForm.areaId));
+
+  const medFormWard = (wards || []).find(w => String(w.id) === String(medForm.wardId || selectedWardId));
+  const medFormAreas = (medFormWard?.areas || []).map(a => ({ value: a.id, label: a.name }));
+  const medSelectedArea = (medFormWard?.areas || []).find(a => String(a.id) === String(medForm.areaId));
+
+  // Area options for filter bar
+  const filterAreas = useMemo(() => {
+    const currentWard = selectedWardId ? (wards || []).find(w => String(w.id) === String(selectedWardId)) : null;
+    if (currentWard) {
+      return (currentWard.areas || []).map(a => ({ value: a.id, label: a.name }));
+    }
+    return (wards || []).flatMap(w => (w.areas || []).map(a => ({ value: a.id, label: `${a.name} (${formatWardNumber(w.wardNumber)})` })));
+  }, [wards, selectedWardId]);
+
+  // ====================================================================
+  // CITIZEN VIEW
+  // ====================================================================
   if (isCitizen) {
     return (
-      <div className="user-hospitals-page">
+      <div className="civic-dir-shell user-hospitals-page">
         <PageHeader
-          kicker={isMr ? 'प्रभाग आरोग्य सेवा' : 'Ward health directory'}
-          title={isMr ? 'हॉस्पिटल्स' : 'Hospitals in your ward'}
+          kicker={isMr ? 'प्रभाग आरोग्य डिरेक्टरी' : 'Ward Health Directory'}
+          title={isMr ? 'रुग्णालये व औषधांची दुकाने' : 'Hospitals & Medical Stores'}
           subtitle={
             isMr
-              ? 'तुमच्या वॉर्डमधील रुग्णालये, क्लिनिक आणि आणीबाणी संपर्क. फक्त माहिती पहा — नोंद नागरी सेवक किंवा कर्मचारी करतात.'
-              : 'Hospitals and clinics in your registered ward. This directory is for viewing only.'
+              ? 'तुमच्या वॉर्डमधील शासकीय व खाजगी रुग्णालये, क्लिनिक आणि २४ तास औषधांची दुकाने.'
+              : 'Direct access to municipal hospitals, emergency care, clinics, and 24x7 pharmacies in your ward.'
           }
         />
-        <ErrorBox error={error} />
-        <div className="exec-toolbar-panel user-hospital-filterbar">
-          <div className="exec-toolbar-row">
-            <div className="exec-toolbar-left">
-              <div className="exec-search-box">
-                <SearchIcon size={15} />
+
+        {/* Tab Switcher */}
+        <div style={{ display: 'flex', gap: '10px', margin: '0 0 20px 0', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
+          <button
+            type="button"
+            onClick={() => switchTab('hospitals')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              borderRadius: '999px',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              border: activeTab === 'hospitals' ? '1.5px solid #0F766E' : '1px solid #CBD5E1',
+              backgroundColor: activeTab === 'hospitals' ? '#F0FDFA' : '#FFFFFF',
+              color: activeTab === 'hospitals' ? '#0F766E' : '#475569',
+              boxShadow: activeTab === 'hospitals' ? '0 1px 3px rgba(15,118,110,0.1)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <HeartIcon size={16} />
+            <span>{isMr ? 'रुग्णालये व क्लिनिक (Hospitals)' : 'Hospitals & Clinics'}</span>
+            <span style={{ fontSize: '11px', background: activeTab === 'hospitals' ? '#CCFBF1' : '#F1F5F9', color: activeTab === 'hospitals' ? '#0F766E' : '#64748B', padding: '1px 7px', borderRadius: '999px' }}>
+              {hospTotal}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => switchTab('medicals')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              borderRadius: '999px',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              border: activeTab === 'medicals' ? '1.5px solid #0F766E' : '1px solid #CBD5E1',
+              backgroundColor: activeTab === 'medicals' ? '#F0FDFA' : '#FFFFFF',
+              color: activeTab === 'medicals' ? '#0F766E' : '#475569',
+              boxShadow: activeTab === 'medicals' ? '0 1px 3px rgba(15,118,110,0.1)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <MedicalIcon size={16} />
+            <span>{isMr ? 'औषधांची दुकाने (Medical Stores)' : 'Medical Stores & Pharmacies'}</span>
+            <span style={{ fontSize: '11px', background: activeTab === 'medicals' ? '#CCFBF1' : '#F1F5F9', color: activeTab === 'medicals' ? '#0F766E' : '#64748B', padding: '1px 7px', borderRadius: '999px' }}>
+              {medTotal}
+            </span>
+          </button>
+        </div>
+
+        {/* ---------------- HOSPITALS TAB ---------------- */}
+        {activeTab === 'hospitals' && (
+          <>
+            <ErrorBox error={hospError} />
+            <div className="civic-metric-grid civic-metric-3">
+              <article className="civic-metric">
+                <div className="civic-metric-copy">
+                  <strong>{hospRows === null ? '…' : hospKpis.total}</strong>
+                  <span>{isMr ? 'एकूण आरोग्य केंद्रे' : 'Total Facilities'}</span>
+                </div>
+                <div className="civic-metric-ico is-blue"><HeartIcon size={18} /></div>
+              </article>
+              <article className="civic-metric">
+                <div className="civic-metric-copy">
+                  <strong>{hospRows === null ? '…' : hospKpis.government}</strong>
+                  <span>{isMr ? 'शासकीय / PHC' : 'Government / PHC'}</span>
+                </div>
+                <div className="civic-metric-ico is-green"><BuildingIcon size={18} /></div>
+              </article>
+              <article className="civic-metric">
+                <div className="civic-metric-copy">
+                  <strong>{hospRows === null ? '…' : hospKpis.private}</strong>
+                  <span>{isMr ? 'खासगी रुग्णालये' : 'Private Hospitals'}</span>
+                </div>
+                <div className="civic-metric-ico is-amber"><HeartIcon size={18} /></div>
+              </article>
+            </div>
+
+            <div className="civic-dir-toolbar">
+              <div className="civic-dir-search">
+                <SearchIcon size={16} />
                 <input
-                  value={searchText}
-                  onChange={e => setSearchText(e.target.value)}
-                  placeholder={isMr ? 'नाव, पत्ता, फोन…' : 'Name, address, phone…'}
+                  value={hospSearch}
+                  onChange={e => setHospSearch(e.target.value)}
+                  placeholder={isMr ? 'हॉस्पिटल, पत्ता, फोन शोधा…' : 'Search hospitals, address, phone…'}
                 />
-                {searchText && (
-                  <button
-                    type="button"
-                    className="search-clear-btn"
-                    onClick={() => { setSearchText(''); setFilters(f => ({ ...f, search: '' })); setPage(1); }}
-                    title={isMr ? 'शोध साफ करा' : 'Clear search'}
-                  >
-                    ✕
-                  </button>
-                )}
               </div>
-              <div className="exec-quick-status">
-                <select
-                  className="exec-filter-select"
-                  value={filters.type}
-                  onChange={e => { setFilters(f => ({ ...f, type: e.target.value, typeGroup: '' })); setPage(1); }}
-                  aria-label={isMr ? 'प्रकार' : 'Type'}
-                >
-                  <option value="">{isMr ? 'सर्व प्रकार' : 'All types'}</option>
-                  {TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{isMr ? t.mr : t.en}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="exec-quick-status">
-                <select
-                  className="exec-filter-select"
-                  value={filters.typeGroup}
-                  onChange={e => { setFilters(f => ({ ...f, typeGroup: e.target.value, type: '' })); setPage(1); }}
-                  aria-label={isMr ? 'गट' : 'Group'}
-                >
-                  <option value="">{isMr ? 'सर्व गट' : 'All groups'}</option>
-                  <option value="gov">{isMr ? 'शासकीय / PHC' : 'Government / PHC'}</option>
-                  <option value="private">{isMr ? 'खासगी / क्लिनिक' : 'Private / Clinic'}</option>
-                </select>
-              </div>
-              {hasActiveFilters && (
+              <select
+                className="civic-dir-select"
+                value={hospFilters.type}
+                onChange={e => { setHospFilters(f => ({ ...f, type: e.target.value })); setHospPage(1); }}
+              >
+                <option value="">{isMr ? 'सर्व प्रकार' : 'All types'}</option>
+                {HOSPITAL_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{isMr ? t.mr : t.en}</option>
+                ))}
+              </select>
+              {(hospSearch || hospFilters.type) && (
                 <button
                   type="button"
-                  className="small-btn"
-                  onClick={() => {
-                    setSearchText('');
-                    setFilters({ search: '', type: '', status: '', areaId: '', typeGroup: '', mappedOnly: false });
-                    setPage(1);
-                  }}
+                  className="civic-dir-reset"
+                  onClick={() => { setHospSearch(''); setHospFilters(f => ({ ...f, search: '', type: '' })); setHospPage(1); }}
                 >
-                  {isMr ? 'फिल्टर साफ करा' : 'Clear filters'}
+                  {isMr ? 'रीसेट' : 'Reset'}
                 </button>
               )}
             </div>
-          </div>
-        </div>
-        {rows === null ? (
-          <Loading />
-        ) : !rows.length ? (
-          <Empty title={hasActiveFilters ? (isMr ? 'फिल्टरनुसार हॉस्पिटल सापडले नाही.' : 'No hospitals match the selected filters.') : (isMr ? 'हॉस्पिटल नोंद नाही' : 'No hospitals listed yet')} />
-        ) : (
-          <>
-            <div className="hospital-card-grid">
-              {rows.map(h => (
-                <HospitalCard key={h.id} h={h} isMr={isMr} onOpen={setDetail} />
-              ))}
-            </div>
-            <PaginationBar page={page} pages={pages} total={total} limit={pageSize} onPage={setPage} onLimit={setPageSize} />
+
+            {hospRows === null || hospLoading ? (
+              <Loading />
+            ) : !hospRows.length ? (
+              <Empty>{isMr ? 'कोणतेही हॉस्पिटल सापडले नाही.' : 'No hospitals found.'}</Empty>
+            ) : (
+              <div className="hospital-grid">
+                {hospRows.map(h => (
+                  <HospitalCard key={h.id} h={h} isMr={isMr} onOpen={setHospDetail} />
+                ))}
+              </div>
+            )}
           </>
         )}
-        {detail && (
-          <Modal title={detail.name} onClose={() => setDetail(null)}>
-            <HospitalCard h={detail} isMr={isMr} />
+
+        {/* ---------------- MEDICALS TAB ---------------- */}
+        {activeTab === 'medicals' && (
+          <>
+            <ErrorBox error={medError} />
+            <div className="civic-metric-grid civic-metric-3">
+              <article className="civic-metric">
+                <div className="civic-metric-copy">
+                  <strong>{medRows === null ? '…' : medKpis.total}</strong>
+                  <span>{isMr ? 'एकूण औषधांची दुकाने' : 'Total Medical Stores'}</span>
+                </div>
+                <div className="civic-metric-ico is-green"><MedicalIcon size={18} /></div>
+              </article>
+              <article className="civic-metric">
+                <div className="civic-metric-copy">
+                  <strong>{medRows === null ? '…' : medKpis.is24x7}</strong>
+                  <span>{isMr ? '२४x७ सुरू' : '24x7 Open Pharmacies'}</span>
+                </div>
+                <div className="civic-metric-ico is-blue"><ClockIcon size={18} /></div>
+              </article>
+              <article className="civic-metric">
+                <div className="civic-metric-copy">
+                  <strong>{medRows === null ? '…' : medKpis.homeDelivery}</strong>
+                  <span>{isMr ? 'होम डिलिव्हरी उपलब्ध' : 'Home Delivery Available'}</span>
+                </div>
+                <div className="civic-metric-ico is-amber"><CheckIcon size={18} /></div>
+              </article>
+            </div>
+
+            <div className="civic-dir-toolbar" style={{ flexWrap: 'wrap', gap: '8px' }}>
+              <div className="civic-dir-search" style={{ minWidth: '220px', flex: '1 1 220px' }}>
+                <SearchIcon size={16} />
+                <input
+                  value={medSearch}
+                  onChange={e => setMedSearch(e.target.value)}
+                  placeholder={isMr ? 'मेडिकलचे नाव, पत्ता किंवा फोन शोधा…' : 'Search medical store, address, phone…'}
+                />
+              </div>
+              <select
+                className="civic-dir-select"
+                value={medFilters.type}
+                onChange={e => { setMedFilters(f => ({ ...f, type: e.target.value })); setMedPage(1); }}
+              >
+                <option value="">{isMr ? 'सर्व औषध प्रकार' : 'All store types'}</option>
+                {MEDICAL_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{isMr ? t.mr : t.en}</option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                className={`civic-dir-select ${medFilters.is24x7 ? 'active' : ''}`}
+                style={{
+                  background: medFilters.is24x7 ? '#ECFDF5' : '#FFFFFF',
+                  color: medFilters.is24x7 ? '#047857' : '#475569',
+                  borderColor: medFilters.is24x7 ? '#A7F3D0' : '#CBD5E1',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                onClick={() => setMedFilters(f => ({ ...f, is24x7: !f.is24x7 }))}
+              >
+                {medFilters.is24x7 ? '✓ ' : ''}{isMr ? '२४ तास सुरू' : '24x7 Open'}
+              </button>
+
+              <button
+                type="button"
+                className={`civic-dir-select ${medFilters.homeDelivery ? 'active' : ''}`}
+                style={{
+                  background: medFilters.homeDelivery ? '#EFF6FF' : '#FFFFFF',
+                  color: medFilters.homeDelivery ? '#1D4ED8' : '#475569',
+                  borderColor: medFilters.homeDelivery ? '#BFDBFE' : '#CBD5E1',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                onClick={() => setMedFilters(f => ({ ...f, homeDelivery: !f.homeDelivery }))}
+              >
+                {medFilters.homeDelivery ? '✓ ' : ''}{isMr ? 'होम डिलिव्हरी' : 'Home Delivery'}
+              </button>
+
+              {(medSearch || medFilters.type || medFilters.is24x7 || medFilters.homeDelivery) && (
+                <button
+                  type="button"
+                  className="civic-dir-reset"
+                  onClick={() => { setMedSearch(''); setMedFilters({ search: '', type: '', status: '', areaId: '', is24x7: false, homeDelivery: false }); setMedPage(1); }}
+                >
+                  {isMr ? 'रीसेट' : 'Reset'}
+                </button>
+              )}
+            </div>
+
+            {medRows === null || medLoading ? (
+              <Loading />
+            ) : !medRows.length ? (
+              <Empty>{isMr ? 'कोणतेही मेडिकल स्टोअर सापडले नाही.' : 'No medical stores found.'}</Empty>
+            ) : (
+              <div className="hospital-grid">
+                {medRows.map(m => (
+                  <MedicalCard key={m.id} m={m} isMr={isMr} onOpen={setMedDetail} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Modal: Hospital Details View */}
+        {hospDetail && (
+          <Modal title={hospDetail.name} onClose={() => setHospDetail(null)}>
+            <div className="exec-detail-body">
+              <p><strong>{isMr ? 'प्रकार:' : 'Type:'}</strong> {hospitalTypeLabel(hospDetail.type, isMr)}</p>
+              {hospDetail.address && <p><strong>{isMr ? 'पत्ता:' : 'Address:'}</strong> {hospDetail.address}</p>}
+              {hospDetail.phone && <p><strong>{isMr ? 'फोन:' : 'Phone:'}</strong> <a href={`tel:${hospDetail.phone}`}>{hospDetail.phone}</a></p>}
+              {hospDetail.emergencyPhone && (
+                <p style={{ color: '#DC2626', fontWeight: 700 }}>
+                  <strong>{isMr ? 'आणीबाणी संपर्क:' : 'Emergency Contact:'}</strong> <a href={`tel:${hospDetail.emergencyPhone}`}>{hospDetail.emergencyPhone}</a>
+                </p>
+              )}
+              {hospDetail.openingHours && <p><strong>{isMr ? 'वेळ:' : 'Timings:'}</strong> {hospDetail.openingHours}</p>}
+              {hospDetail.facilities && <p><strong>{isMr ? 'सुविधा:' : 'Facilities:'}</strong> {hospDetail.facilities}</p>}
+            </div>
+          </Modal>
+        )}
+
+        {/* Modal: Medical Details View (NO emergency phone!) */}
+        {medDetail && (
+          <Modal title={translateMedicalName(medDetail.name, isMr)} onClose={() => setMedDetail(null)}>
+            <div className="exec-detail-body">
+              <p><strong>{isMr ? 'प्रकार:' : 'Type:'}</strong> {medicalTypeLabel(medDetail.type, isMr)}</p>
+              {medDetail.address && <p><strong>{isMr ? 'पत्ता:' : 'Address:'}</strong> {medDetail.address} {medDetail.landmark ? `(${medDetail.landmark})` : ''}</p>}
+              {medDetail.phone && (
+                <p>
+                  <strong>{isMr ? 'संपर्क फोन:' : 'Phone:'}</strong>{' '}
+                  <a href={`tel:${medDetail.phone}`} style={{ color: '#0F766E', fontWeight: 700 }}>{medDetail.phone}</a>
+                </p>
+              )}
+              <p><strong>{isMr ? 'कामाची वेळ:' : 'Timings:'}</strong> {translateHours(medDetail.openingHours, isMr) || (medDetail.is24x7 ? (isMr ? '२४ तास सुरू' : '24x7 Open') : (isMr ? 'नियमित वेळ' : 'Standard hours'))}</p>
+              <div style={{ display: 'flex', gap: '8px', margin: '10px 0' }}>
+                {medDetail.is24x7 && (
+                  <span style={{ background: '#ECFDF5', color: '#047857', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700 }}>
+                    {isMr ? '✓ २४ तास सुरू' : '✓ 24x7 Open'}
+                  </span>
+                )}
+                {medDetail.homeDelivery && (
+                  <span style={{ background: '#EFF6FF', color: '#1D4ED8', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700 }}>
+                    {isMr ? '✓ मोफत होम डिलिव्हरी' : '✓ Home Delivery'}
+                  </span>
+                )}
+              </div>
+              {medDetail.facilities && <p><strong>{isMr ? 'सुविधा व औषधे:' : 'Facilities & Services:'}</strong> {medDetail.facilities}</p>}
+              {medDetail.notes && <p style={{ color: '#64748B', fontSize: '13px' }}><strong>{isMr ? 'विशेष नोंद:' : 'Notes:'}</strong> {medDetail.notes}</p>}
+              {hasCoords(medDetail.latitude, medDetail.longitude) && (
+                <div style={{ marginTop: '16px' }}>
+                  <a
+                    className="hospital-btn is-primary"
+                    style={{ background: '#0F766E', borderColor: '#0F766E', display: 'inline-flex' }}
+                    href={directionsUrl(medDetail.latitude, medDetail.longitude)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MapPinIcon size={14} />
+                    <span>{isMr ? 'गुगल मॅपवर दिशा पहा' : 'View Directions on Google Maps'}</span>
+                  </a>
+                </div>
+              )}
+            </div>
           </Modal>
         )}
       </div>
     );
   }
 
+  // ====================================================================
+  // ADMIN VIEW
+  // ====================================================================
   return (
-    <div className="admin-data-page hospitals-page" style={{ paddingTop: 8 }}>
+    <div className="admin-data-page hospitals-page" style={{ paddingTop: '8px' }}>
       <PageHeader
-        kicker={isMr ? 'वॉर्ड आरोग्य नोंदणी' : 'Ward health register'}
-        title={isMr ? 'हॉस्पिटल्स' : 'Hospitals in our ward'}
+        kicker={isMr ? 'प्रभाग आरोग्य व्यवस्थापन' : 'Ward Health Management'}
+        title={isMr ? 'हॉस्पिटल्स आणि मेडिकल स्टोअर्स' : 'Hospitals & Medical Stores'}
         subtitle={
           isMr
-            ? 'नगरसेवक आणि कर्मचारी रुग्णालये, पत्ता आणि नकाशावरील स्थान जोडू शकतात. नागरिकांना फक्त तपशील दिसतो.'
-            : 'Nagarsevak and field staff can add hospitals with address and map location. Residents see details only.'
+            ? 'वॉर्ड परिसरातील सर्व शासकीय व खाजगी रुग्णालये, क्लिनिक आणि औषधांची दुकाने एकाच ठिकाणी व्यवस्थापित करा.'
+            : 'Manage hospitals, clinics, and chemist shops for citizen health services in municipal wards.'
         }
         action={
-          canAdd ? (
-            <button type="button" className="primary-btn" onClick={openAdd} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          canEditAny ? (
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={activeTab === 'hospitals' ? openAddHospital : openAddMedical}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
               <span>+</span>
-              <span>{isMr ? 'हॉस्पिटल जोडा' : 'Add hospital'}</span>
+              <span>
+                {activeTab === 'hospitals'
+                  ? (isMr ? 'नवीन रुग्णालय जोडा' : 'Add Hospital')
+                  : (isMr ? 'नवीन मेडिकल जोडा' : 'Add Medical Store')}
+              </span>
             </button>
           ) : null
         }
       />
-      <ErrorBox error={error} />
 
-      <div className="team-kpi-grid">
-        <div
-          className={`team-kpi-card ${!filters.typeGroup && !filters.mappedOnly && !filters.type ? 'active' : ''}`}
-          onClick={() => setKpi({ typeGroup: '', mappedOnly: false })}
-          title={isMr ? 'सर्व हॉस्पिटल्स' : 'View all hospitals'}
+      {/* Admin Tab Switcher */}
+      <div className="hospitals-tabs-nav" style={{ display: 'flex', gap: '10px', margin: '0 0 16px 0', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
+        <button
+          type="button"
+          onClick={() => switchTab('hospitals')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '999px',
+            fontWeight: 650,
+            fontSize: '13.5px',
+            cursor: 'pointer',
+            border: activeTab === 'hospitals' ? '1.5px solid #0F766E' : '1px solid #CBD5E1',
+            backgroundColor: activeTab === 'hospitals' ? '#F0FDFA' : '#FFFFFF',
+            color: activeTab === 'hospitals' ? '#0F766E' : '#475569',
+            boxShadow: activeTab === 'hospitals' ? '0 1px 2px rgba(15,118,110,0.12)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
         >
-          <div className="team-kpi-icon blue"><HeartIcon size={20} /></div>
-          <div className="team-kpi-info">
-            <div className="team-kpi-val">{rows === null ? '…' : kpis.total}</div>
-            <div className="team-kpi-label">{isMr ? 'एकूण हॉस्पिटल्स' : 'All hospitals'}</div>
-          </div>
-        </div>
-        <div
-          className={`team-kpi-card ${filters.typeGroup === 'gov' ? 'active' : ''}`}
-          onClick={() => setKpi({ typeGroup: filters.typeGroup === 'gov' ? '' : 'gov', mappedOnly: false })}
-          title={isMr ? 'शासकीय / PHC' : 'Government and PHC'}
+          <HeartIcon size={16} />
+          <span>{isMr ? 'रुग्णालये व दवाखाने' : 'Hospitals & Clinics'}</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, background: activeTab === 'hospitals' ? '#CCFBF1' : '#F1F5F9', color: activeTab === 'hospitals' ? '#0F766E' : '#64748B', padding: '2px 8px', borderRadius: '999px' }}>
+            {hospTotal}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => switchTab('medicals')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '999px',
+            fontWeight: 650,
+            fontSize: '13.5px',
+            cursor: 'pointer',
+            border: activeTab === 'medicals' ? '1.5px solid #0F766E' : '1px solid #CBD5E1',
+            backgroundColor: activeTab === 'medicals' ? '#F0FDFA' : '#FFFFFF',
+            color: activeTab === 'medicals' ? '#0F766E' : '#475569',
+            boxShadow: activeTab === 'medicals' ? '0 1px 2px rgba(15,118,110,0.12)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
         >
-          <div className="team-kpi-icon green"><BuildingIcon size={20} /></div>
-          <div className="team-kpi-info">
-            <div className="team-kpi-val">{rows === null ? '…' : kpis.government}</div>
-            <div className="team-kpi-label">{isMr ? 'शासकीय / PHC' : 'Government / PHC'}</div>
-          </div>
-        </div>
-        <div
-          className={`team-kpi-card ${filters.typeGroup === 'private' ? 'active' : ''}`}
-          onClick={() => setKpi({ typeGroup: filters.typeGroup === 'private' ? '' : 'private', mappedOnly: false })}
-          title={isMr ? 'खासगी / क्लिनिक' : 'Private and clinics'}
-        >
-          <div className="team-kpi-icon purple"><HeartIcon size={20} /></div>
-          <div className="team-kpi-info">
-            <div className="team-kpi-val">{rows === null ? '…' : kpis.private}</div>
-            <div className="team-kpi-label">{isMr ? 'खासगी / क्लिनिक' : 'Private / Clinic'}</div>
-          </div>
-        </div>
-        <div
-          className={`team-kpi-card ${filters.mappedOnly ? 'active' : ''}`}
-          onClick={() => setKpi({ mappedOnly: !filters.mappedOnly, typeGroup: '' })}
-          title={isMr ? 'नकाशावर पिन असलेली' : 'Mapped locations'}
-        >
-          <div className="team-kpi-icon teal"><MapPinIcon size={20} /></div>
-          <div className="team-kpi-info">
-            <div className="team-kpi-val">{rows === null ? '…' : kpis.mapped}</div>
-            <div className="team-kpi-label">{isMr ? 'नकाशावर पिन' : 'Mapped'}</div>
-          </div>
-        </div>
+          <MedicalIcon size={16} />
+          <span>{isMr ? 'औषधांची दुकाने' : 'Medical Stores & Pharmacies'}</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, background: activeTab === 'medicals' ? '#CCFBF1' : '#F1F5F9', color: activeTab === 'medicals' ? '#0F766E' : '#64748B', padding: '2px 8px', borderRadius: '999px' }}>
+            {medTotal}
+          </span>
+        </button>
       </div>
 
-      <div className="exec-toolbar-panel">
-        <div className="exec-toolbar-row">
-          <div className="exec-toolbar-left">
-            <div className="exec-search-box">
-              <SearchIcon size={15} />
-              <input
-                value={searchText}
-                onChange={e => setSearchText(e.target.value)}
-                placeholder={isMr ? 'शोधा…' : 'Search…'}
+      {/* ---------------- ADMIN HOSPITALS TAB ---------------- */}
+      {activeTab === 'hospitals' && (
+        <>
+          <ErrorBox error={hospError} />
+          
+          {/* Executive Metric Grid */}
+          <div className="team-kpi-grid">
+            <div
+              className={`team-kpi-card ${!hospFilters.type ? 'active' : ''}`}
+              style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+              onClick={() => setHospFilters(f => ({ ...f, type: '' }))}
+              title={isMr ? 'सर्व रुग्णालये' : 'All hospitals'}
+            >
+              <div className="team-kpi-icon blue">
+                <HeartIcon size={20} />
+              </div>
+              <div className="team-kpi-info">
+                <div className="team-kpi-val">{hospRows === null ? '…' : hospKpis.total}</div>
+                <div className="team-kpi-label">{isMr ? 'एकूण हॉस्पिटल्स' : 'Total Hospitals'}</div>
+              </div>
+            </div>
+
+            <div
+              className={`team-kpi-card ${hospFilters.type === 'GOVERNMENT' ? 'active' : ''}`}
+              style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+              onClick={() => setHospFilters(f => ({ ...f, type: f.type === 'GOVERNMENT' ? '' : 'GOVERNMENT' }))}
+              title={isMr ? 'शासकीय रुग्णालये' : 'Government hospitals'}
+            >
+              <div className="team-kpi-icon green">
+                <BuildingIcon size={20} />
+              </div>
+              <div className="team-kpi-info">
+                <div className="team-kpi-val">{hospRows === null ? '…' : hospKpis.government}</div>
+                <div className="team-kpi-label">{isMr ? 'शासकीय / PHC' : 'Government / PHC'}</div>
+              </div>
+            </div>
+
+            <div
+              className={`team-kpi-card ${hospFilters.type === 'PRIVATE' ? 'active' : ''}`}
+              style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+              onClick={() => setHospFilters(f => ({ ...f, type: f.type === 'PRIVATE' ? '' : 'PRIVATE' }))}
+              title={isMr ? 'खासगी रुग्णालये' : 'Private hospitals'}
+            >
+              <div className="team-kpi-icon amber">
+                <HeartIcon size={20} />
+              </div>
+              <div className="team-kpi-info">
+                <div className="team-kpi-val">{hospRows === null ? '…' : hospKpis.private}</div>
+                <div className="team-kpi-label">{isMr ? 'खासगी रुग्णालये' : 'Private Hospitals'}</div>
+              </div>
+            </div>
+
+            <div
+              className="team-kpi-card"
+              title={isMr ? 'जीपीएस स्थान असलेले' : 'GPS mapped locations'}
+            >
+              <div className="team-kpi-icon green">
+                <MapPinIcon size={20} />
+              </div>
+              <div className="team-kpi-info">
+                <div className="team-kpi-val">{hospRows === null ? '…' : hospKpis.mapped}</div>
+                <div className="team-kpi-label">{isMr ? 'मॅपवर पिन केलेले' : 'Mapped on GPS'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Executive Toolbar */}
+          <div className="exec-toolbar-panel">
+            <div className="exec-toolbar-row">
+              <div className="exec-toolbar-left">
+                <div className="exec-search-box">
+                  <SearchIcon size={15} />
+                  <input
+                    type="text"
+                    value={hospSearch}
+                    onChange={e => setHospSearch(e.target.value)}
+                    placeholder={isMr ? 'हॉस्पिटल, फोन किंवा पत्ता शोधा…' : 'Search hospitals, phone, address…'}
+                  />
+                  {hospSearch && (
+                    <button
+                      type="button"
+                      className="search-clear-btn"
+                      onClick={() => setHospSearch('')}
+                      title="Clear search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="exec-quick-ward">
+                  <WardFilter compact label="" />
+                </div>
+
+                <div className="exec-quick-status">
+                  <select
+                    value={hospFilters.type}
+                    onChange={e => setHospFilters(f => ({ ...f, type: e.target.value }))}
+                    className="exec-filter-select"
+                  >
+                    <option value="">{isMr ? 'सर्व प्रकार' : 'All types'}</option>
+                    {HOSPITAL_TYPES.map(t => (
+                      <option key={t.value} value={t.value}>{isMr ? t.mr : t.en}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="exec-quick-status">
+                  <select
+                    value={hospFilters.areaId}
+                    onChange={e => setHospFilters(f => ({ ...f, areaId: e.target.value }))}
+                    className="exec-filter-select"
+                  >
+                    <option value="">{isMr ? 'सर्व परिसर' : 'All areas'}</option>
+                    {filterAreas.map(a => (
+                      <option key={a.value} value={a.value}>{a.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="exec-quick-presence">
+                  <select
+                    value={hospFilters.status}
+                    onChange={e => setHospFilters(f => ({ ...f, status: e.target.value }))}
+                    className="exec-filter-select"
+                  >
+                    <option value="">{isMr ? 'सर्व स्थिती' : 'All status'}</option>
+                    <option value="ACTIVE">{isMr ? 'सक्रिय' : 'Active'}</option>
+                    <option value="INACTIVE">{isMr ? 'निष्क्रिय' : 'Inactive'}</option>
+                  </select>
+                </div>
+
+                {(hospSearch || hospFilters.type || hospFilters.areaId || hospFilters.status) && (
+                  <button
+                    type="button"
+                    className="exec-filter-chip"
+                    onClick={() => {
+                      setHospSearch('');
+                      setHospFilters({ search: '', type: '', status: '', areaId: '' });
+                      setHospPage(1);
+                    }}
+                    title={isMr ? 'सर्व फिल्टर्स रीसेट करा' : 'Reset all filters'}
+                  >
+                    ✕ {isMr ? 'रीसेट' : 'Reset'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {hospRows === null || hospLoading ? (
+            <Loading />
+          ) : !hospRows.length ? (
+            <Empty>{isMr ? 'कोणतेही रुग्णालय सापडले नाही.' : 'No hospitals found.'}</Empty>
+          ) : (
+            <>
+              <div className="panel table-wrap hospitals-table-wrap">
+                <table className="table hospitals-table">
+                  <thead>
+                    <tr>
+                      <th>{isMr ? 'रुग्णालय / दवाखाना' : 'Hospital / Clinic'}</th>
+                      <th>{isMr ? 'वॉर्ड आणि परिसर' : 'Ward & Area'}</th>
+                      <th>{isMr ? 'संपर्क व आणीबाणी' : 'Contact & Emergency'}</th>
+                      <th>{isMr ? 'पत्ता आणि स्थान' : 'Address & Location'}</th>
+                      <th style={{ textAlign: 'center' }}>{isMr ? 'स्थिती' : 'Status'}</th>
+                      <th style={{ textAlign: 'center' }}>{isMr ? 'कृती' : 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hospRows.map(h => {
+                      const initials = getInitials(h.name, 'HP');
+                      const wardNo = formatWardNumber(h.ward?.wardNumber);
+                      return (
+                        <tr key={h.id}>
+                          <td data-label="Hospital / Clinic">
+                            <div className="exec-cell-user">
+                              <div
+                                className="exec-avatar teal"
+                                onClick={() => setHospDetail(h)}
+                                style={{ cursor: 'pointer' }}
+                                title={isMr ? 'तपशील पाहण्यासाठी क्लिक करा' : 'Click to view details'}
+                              >
+                                {initials}
+                              </div>
+                              <div className="exec-cell-meta">
+                                <button
+                                  type="button"
+                                  onClick={() => setHospDetail(h)}
+                                  className="exec-cell-name"
+                                >
+                                  {h.name}
+                                </button>
+                                <div className="hospital-cell-tags">
+                                  <span className={`hospital-type-chip type-${String(h.type || '').toLowerCase()}`}>
+                                    {hospitalTypeLabel(h.type, isMr)}
+                                  </span>
+                                  {h.landmark && (
+                                    <span className="muted" style={{ fontSize: '11px' }}>• {h.landmark}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td data-label="Ward & Area">
+                            {wardNo ? (
+                              <span className="ward-pill-badge">{wardNo}</span>
+                            ) : null}
+                            {h.area?.name && (
+                              <div style={{ fontWeight: 600, fontSize: '12px', color: '#1e293b', marginTop: wardNo ? 3 : 0 }}>
+                                {h.area.name}
+                              </div>
+                            )}
+                          </td>
+
+                          <td data-label="Contact">
+                            {h.phone ? (
+                              <div>
+                                <a href={`tel:${h.phone}`} className="hospital-phone-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                  <PhoneIcon size={12} /> {h.phone}
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="muted">—</span>
+                            )}
+                            {h.emergencyPhone && (
+                              <div className="hospital-emergency-mini">
+                                <a href={`tel:${h.emergencyPhone}`} style={{ color: '#dc2626', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                  <HeartIcon size={11} /> {isMr ? 'आणीबाणी:' : 'Emergency:'} {h.emergencyPhone}
+                                </a>
+                              </div>
+                            )}
+                          </td>
+
+                          <td data-label="Location">
+                            <div style={{ fontSize: '12.5px', color: '#334155', lineHeight: 1.35, marginBottom: 4 }}>
+                              {h.address || '—'}
+                            </div>
+                            {hasCoords(h.latitude, h.longitude) ? (
+                              <a
+                                href={directionsUrl(h.latitude, h.longitude)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="exec-btn-dir"
+                                onClick={e => e.stopPropagation()}
+                                title={isMr ? 'गुगल मॅप्सवर दिशा पहा' : 'View directions in Google Maps'}
+                              >
+                                <MapPinIcon size={12} />
+                                <span>{isMr ? 'दिशा' : 'Directions'}</span>
+                              </a>
+                            ) : (
+                              <span
+                                className="exec-btn-dir disabled"
+                                title={isMr ? 'स्थान पिन केलेले नाही' : 'Location not saved'}
+                              >
+                                <MapPinIcon size={12} style={{ opacity: 0.4 }} />
+                                <span>{isMr ? 'पिन नाही' : 'No Pin'}</span>
+                              </span>
+                            )}
+                          </td>
+
+                          <td data-label="Status" style={{ textAlign: 'center' }}>
+                            <span className={`team-badge ${h.status === 'INACTIVE' ? 'gray' : 'green'}`}>
+                              {h.status === 'INACTIVE' ? (isMr ? 'निष्क्रिय' : 'Inactive') : (isMr ? 'सक्रिय' : 'Active')}
+                            </span>
+                          </td>
+
+                          <td data-label="Actions" style={{ textAlign: 'center' }}>
+                            <div className="exec-action-group">
+                              <button
+                                type="button"
+                                className="exec-btn-view"
+                                onClick={() => setHospDetail(h)}
+                                title={isMr ? 'तपशील पहा' : 'View details'}
+                              >
+                                <EyeIcon size={13} />
+                                <span>{isMr ? 'पहा' : 'View'}</span>
+                              </button>
+
+                              {canEditAny && (
+                                <button
+                                  type="button"
+                                  className="exec-btn-edit"
+                                  onClick={() => openEditHospital(h)}
+                                  title={isMr ? 'संपादित करा' : 'Edit details'}
+                                >
+                                  <EditIcon size={13} />
+                                  <span>{isMr ? 'संपादित' : 'Edit'}</span>
+                                </button>
+                              )}
+
+                              {canDeleteAny && (
+                                <button
+                                  type="button"
+                                  className="exec-btn-delete"
+                                  onClick={() => removeHospital(h)}
+                                  title={isMr ? 'हटवा' : 'Delete'}
+                                >
+                                  <TrashIcon size={13} />
+                                  <span>{isMr ? 'हटवा' : 'Delete'}</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationBar
+                page={hospPage}
+                pages={Math.max(1, Math.ceil(hospTotal / hospPageSize))}
+                total={hospTotal}
+                onChange={p => setHospPage(p)}
               />
-              {searchText && (
+            </>
+          )}
+        </>
+      )}
+
+      {/* ---------------- ADMIN MEDICALS TAB ---------------- */}
+      {activeTab === 'medicals' && (
+        <>
+          <ErrorBox error={medError} />
+
+          {/* Executive Metric Grid */}
+          <div className="team-kpi-grid">
+            <div
+              className={`team-kpi-card ${!medFilters.type && !medFilters.is24x7 && !medFilters.homeDelivery ? 'active' : ''}`}
+              style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+              onClick={() => setMedFilters(f => ({ ...f, type: '', is24x7: false, homeDelivery: false }))}
+              title={isMr ? 'सर्व औषधांची दुकाने' : 'All medical stores'}
+            >
+              <div className="team-kpi-icon blue">
+                <MedicalIcon size={20} />
+              </div>
+              <div className="team-kpi-info">
+                <div className="team-kpi-val">{medRows === null ? '…' : medKpis.total}</div>
+                <div className="team-kpi-label">{isMr ? 'एकूण औषधांची दुकाने' : 'Total Medical Stores'}</div>
+              </div>
+            </div>
+
+            <div
+              className={`team-kpi-card ${medFilters.is24x7 ? 'active' : ''}`}
+              style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+              onClick={() => setMedFilters(f => ({ ...f, is24x7: !f.is24x7 }))}
+              title={isMr ? '२४x७ सुरू असलेली दुकाने' : '24x7 pharmacies'}
+            >
+              <div className="team-kpi-icon green">
+                <ClockIcon size={20} />
+              </div>
+              <div className="team-kpi-info">
+                <div className="team-kpi-val">{medRows === null ? '…' : medKpis.is24x7}</div>
+                <div className="team-kpi-label">{isMr ? '२४x७ सुरू' : '24x7 Open Pharmacies'}</div>
+              </div>
+            </div>
+
+            <div
+              className={`team-kpi-card ${medFilters.homeDelivery ? 'active' : ''}`}
+              style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+              onClick={() => setMedFilters(f => ({ ...f, homeDelivery: !f.homeDelivery }))}
+              title={isMr ? 'होम डिलिव्हरी देणारी दुकाने' : 'Home delivery stores'}
+            >
+              <div className="team-kpi-icon amber">
+                <CheckIcon size={20} />
+              </div>
+              <div className="team-kpi-info">
+                <div className="team-kpi-val">{medRows === null ? '…' : medKpis.homeDelivery}</div>
+                <div className="team-kpi-label">{isMr ? 'होम डिलिव्हरी' : 'Home Delivery'}</div>
+              </div>
+            </div>
+
+            <div
+              className="team-kpi-card"
+              title={isMr ? 'जीपीएस स्थान असलेले' : 'GPS mapped locations'}
+            >
+              <div className="team-kpi-icon green">
+                <MapPinIcon size={20} />
+              </div>
+              <div className="team-kpi-info">
+                <div className="team-kpi-val">{medRows === null ? '…' : medKpis.mapped}</div>
+                <div className="team-kpi-label">{isMr ? 'मॅपवर पिन केलेले' : 'Mapped on GPS'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Executive Filter Bar */}
+          <div className="exec-toolbar-panel">
+            <div className="exec-toolbar-row">
+              <div className="exec-toolbar-left">
+                <div className="exec-search-box">
+                  <SearchIcon size={15} />
+                  <input
+                    type="text"
+                    value={medSearch}
+                    onChange={e => setMedSearch(e.target.value)}
+                    placeholder={isMr ? 'मेडिकलचे नाव, फोन किंवा पत्ता शोधा…' : 'Search medical store, phone, address…'}
+                  />
+                  {medSearch && (
+                    <button
+                      type="button"
+                      className="search-clear-btn"
+                      onClick={() => setMedSearch('')}
+                      title="Clear search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="exec-quick-ward">
+                  <WardFilter compact label="" />
+                </div>
+
+                <div className="exec-quick-status">
+                  <select
+                    value={medFilters.type}
+                    onChange={e => setMedFilters(f => ({ ...f, type: e.target.value }))}
+                    className="exec-filter-select"
+                  >
+                    <option value="">{isMr ? 'सर्व प्रकार' : 'All store types'}</option>
+                    {MEDICAL_TYPES.map(t => (
+                      <option key={t.value} value={t.value}>{isMr ? t.mr : t.en}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="exec-quick-status">
+                  <select
+                    value={medFilters.areaId}
+                    onChange={e => setMedFilters(f => ({ ...f, areaId: e.target.value }))}
+                    className="exec-filter-select"
+                  >
+                    <option value="">{isMr ? 'सर्व परिसर' : 'All areas'}</option>
+                    {filterAreas.map(a => (
+                      <option key={a.value} value={a.value}>{a.label}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <button
                   type="button"
-                  className="search-clear-btn"
-                  onClick={() => { setSearchText(''); setFilters(f => ({ ...f, search: '' })); setPage(1); }}
-                  title="Clear search"
+                  className={`exec-filter-chip ${medFilters.is24x7 ? 'active' : ''}`}
+                  onClick={() => setMedFilters(f => ({ ...f, is24x7: !f.is24x7 }))}
                 >
-                  ✕
+                  <ClockIcon size={14} />
+                  <span>{medFilters.is24x7 ? '✓ ' : ''}{isMr ? '२४ तास सुरू' : '24x7 Open'}</span>
                 </button>
-              )}
-            </div>
-            <div className="exec-quick-ward">
-              <WardFilter compact label="" />
-            </div>
-            <div className="exec-quick-status">
-              <select
-                className="exec-filter-select"
-                value={filters.areaId}
-                onChange={e => { setFilters(f => ({ ...f, areaId: e.target.value })); setPage(1); }}
-              >
-                <option value="">{isMr ? 'सर्व कॉलनी' : 'All colonies'}</option>
-                {colonyOptions.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="exec-quick-status">
-              <select
-                className="exec-filter-select"
-                value={filters.type}
-                onChange={e => { setFilters(f => ({ ...f, type: e.target.value, typeGroup: '' })); setPage(1); }}
-              >
-                <option value="">{isMr ? 'सर्व प्रकार' : 'All types'}</option>
-                {TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{isMr ? t.mr : t.en}</option>
-                ))}
-              </select>
-            </div>
-            <div className="exec-quick-presence">
-              <select
-                className="exec-filter-select"
-                value={filters.status}
-                onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setPage(1); }}
-              >
-                <option value="">{isMr ? 'सर्व स्थिती' : 'All status'}</option>
-                <option value="ACTIVE">{isMr ? 'सक्रिय' : 'Active'}</option>
-                <option value="INACTIVE">{isMr ? 'निष्क्रिय' : 'Inactive'}</option>
-              </select>
+
+                <button
+                  type="button"
+                  className={`exec-filter-chip ${medFilters.homeDelivery ? 'active' : ''}`}
+                  onClick={() => setMedFilters(f => ({ ...f, homeDelivery: !f.homeDelivery }))}
+                >
+                  <CheckIcon size={14} />
+                  <span>{medFilters.homeDelivery ? '✓ ' : ''}{isMr ? 'होम डिलिव्हरी' : 'Home Delivery'}</span>
+                </button>
+
+                {(medSearch || medFilters.type || medFilters.areaId || medFilters.is24x7 || medFilters.homeDelivery) && (
+                  <button
+                    type="button"
+                    className="exec-filter-chip"
+                    onClick={() => {
+                      setMedSearch('');
+                      setMedFilters({ search: '', type: '', status: '', areaId: '', is24x7: false, homeDelivery: false });
+                      setMedPage(1);
+                    }}
+                    title={isMr ? 'सर्व फिल्टर्स रीसेट करा' : 'Reset all filters'}
+                  >
+                    ✕ {isMr ? 'रीसेट' : 'Reset'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {rows === null ? (
-        <Loading />
-      ) : !rows.length ? (
-        <Empty>
-          {hasActiveFilters
-            ? (isMr ? 'या फिल्टरनुसार हॉस्पिटल सापडले नाही.' : 'No hospitals match the selected filters.')
-            : (isMr ? 'या वॉर्डमध्ये अद्याप हॉस्पिटल नोंद नाही.' : 'No hospitals found for the selected ward.')}
-        </Empty>
-      ) : (
-        <div className="panel table-wrap hospitals-table-wrap">
-          <table className="hospitals-table">
-            <thead>
-              <tr>
-                <th>{isMr ? 'हॉस्पिटल' : 'Hospital'}</th>
-                <th>{isMr ? 'पत्ता व कॉलनी' : 'Address & colony'}</th>
-                <th>{isMr ? 'संपर्क' : 'Contact'}</th>
-                <th>{isMr ? 'स्थान' : 'Location'}</th>
-                <th>{isMr ? 'स्थिती' : 'Status'}</th>
-                <th style={{ textAlign: 'center' }}>{isMr ? 'कृती' : 'Actions'}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(h => (
-                <tr key={h.id}>
-                  <td data-label="Hospital">
-                    <div className="exec-cell-user">
-                      <button type="button" className="exec-avatar teal" onClick={() => setDetail(h)} title={h.name}>
-                        {getInitials(h.name)}
-                      </button>
-                      <div className="exec-cell-meta">
-                        <button type="button" className="exec-cell-name" onClick={() => setDetail(h)}>{h.name}</button>
-                        <div className="hospital-cell-tags">
-                          <span className={`hospital-type-chip type-${String(h.type || '').toLowerCase()}`}>
-                            {typeLabel(h.type, isMr)}
-                          </span>
-                          {h.openingHours && <span className="muted">{h.openingHours}</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td data-label="Address">
-                    <div className="hospital-addr-cell">{h.address || '—'}</div>
-                    <div className="muted">{[h.landmark, h.area?.name, formatWardNumber(h.ward?.wardNumber)].filter(Boolean).join(' · ') || '—'}</div>
-                  </td>
-                  <td data-label="Contact">
-                    {h.phone ? <a className="hospital-phone-link" href={`tel:${h.phone}`}>{h.phone}</a> : <span className="muted">—</span>}
-                    {h.emergencyPhone && (
-                      <div className="hospital-emergency-mini">{isMr ? 'आणीबाणी' : 'Emergency'}: {h.emergencyPhone}</div>
-                    )}
-                  </td>
-                  <td data-label="Location">
-                    {hasCoords(h.latitude, h.longitude) ? (
-                      <a className="table-directions-btn" href={directionsUrl(h.latitude, h.longitude)} target="_blank" rel="noopener noreferrer">
-                        <MapPinIcon size={12} />
-                        <span>{isMr ? 'दिशा' : 'Directions'}</span>
-                      </a>
-                    ) : (
-                      <span className="muted">{isMr ? 'पिन नाही' : 'No pin'}</span>
-                    )}
-                  </td>
-                  <td data-label="Status">
-                    <span className={`team-badge ${h.status === 'ACTIVE' ? 'green' : 'gray'}`}>
-                      {h.status === 'ACTIVE' ? (isMr ? 'सक्रिय' : 'Active') : (isMr ? 'निष्क्रिय' : 'Inactive')}
-                    </span>
-                  </td>
-                  <td data-label="Actions">
-                    <div className="exec-action-group">
-                      <button type="button" className="exec-btn-view" onClick={() => setDetail(h)}>
-                        <EyeIcon size={13} />
-                        <span>{isMr ? 'पहा' : 'View'}</span>
-                      </button>
-                      {canEdit && (
-                        <button type="button" className="exec-btn-edit" onClick={() => openEdit(h)}>
-                          <EditIcon size={13} />
-                          <span>{isMr ? 'संपादित' : 'Edit'}</span>
-                        </button>
-                      )}
-                      <RowMenu
-                        menuOnly
-                        items={[
-                          { label: isMr ? 'तपशील' : 'View details', onClick: () => setDetail(h) },
-                          canEdit && { label: isMr ? 'संपादित करा' : 'Edit', onClick: () => openEdit(h) },
-                          canDelete && { label: isMr ? 'हटवा' : 'Delete', danger: true, onClick: () => remove(h) }
-                        ]}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <PaginationBar
-            page={page}
-            pages={pages}
-            total={total}
-            limit={pageSize}
-            onPage={setPage}
-            onLimit={(n) => { setPageSize(n); setPage(1); }}
-          />
-        </div>
-      )}
+          {medRows === null || medLoading ? (
+            <Loading />
+          ) : !medRows.length ? (
+            <Empty>{isMr ? 'कोणतेही औषधांचे दुकान सापडले नाही.' : 'No medical stores found.'}</Empty>
+          ) : (
+            <>
+              <div className="panel table-wrap hospitals-table-wrap">
+                <table className="table hospitals-table">
+                  <thead>
+                    <tr>
+                      <th>{isMr ? 'औषधांचे दुकान' : 'Medical Store'}</th>
+                      <th>{isMr ? 'वॉर्ड आणि परिसर' : 'Ward & Area'}</th>
+                      <th>{isMr ? 'संपर्क व वेळ' : 'Contact & Hours'}</th>
+                      <th>{isMr ? 'पत्ता आणि स्थान' : 'Address & Location'}</th>
+                      <th style={{ textAlign: 'center' }}>{isMr ? 'स्थिती' : 'Status'}</th>
+                      <th style={{ textAlign: 'center' }}>{isMr ? 'कृती' : 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {medRows.map(m => {
+                      const initials = getInitials(m.name, 'MD');
+                      const wardNo = formatWardNumber(m.ward?.wardNumber);
+                      return (
+                        <tr key={m.id}>
+                          <td data-label="Medical Store">
+                            <div className="exec-cell-user">
+                              <div
+                                className="exec-avatar teal"
+                                onClick={() => setMedDetail(m)}
+                                style={{ cursor: 'pointer' }}
+                                title={isMr ? 'तपशील पाहण्यासाठी क्लिक करा' : 'Click to view details'}
+                              >
+                                {initials}
+                              </div>
+                              <div className="exec-cell-meta">
+                                <button
+                                  type="button"
+                                  onClick={() => setMedDetail(m)}
+                                  className="exec-cell-name"
+                                >
+                                  {m.name}
+                                </button>
+                                <div className="hospital-cell-tags">
+                                  <span className={`hospital-type-chip type-${String(m.type || '').toLowerCase()}`}>
+                                    {medicalTypeLabel(m.type, isMr)}
+                                  </span>
+                                  {m.is24x7 && (
+                                    <span style={{ fontSize: '10.5px', background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                      24x7
+                                    </span>
+                                  )}
+                                  {m.homeDelivery && (
+                                    <span style={{ fontSize: '10.5px', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                      {isMr ? 'डिलिव्हरी' : 'Delivery'}
+                                    </span>
+                                  )}
+                                  {m.landmark && (
+                                    <span className="muted" style={{ fontSize: '11px' }}>• {m.landmark}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
 
-      {detail && (
-        <Modal title={detail.name} onClose={() => setDetail(null)}>
-          <HospitalCard h={detail} isMr={isMr} />
-          {canEdit && (
-            <div className="exec-modal-footer">
-              <button type="button" className="exec-modal-btn ghost" onClick={() => setDetail(null)}>{isMr ? 'बंद' : 'Close'}</button>
-              <button type="button" className="exec-modal-btn primary" onClick={() => { setDetail(null); openEdit(detail); }}>
-                {isMr ? 'संपादित करा' : 'Edit hospital'}
-              </button>
-            </div>
+                          <td data-label="Ward & Area">
+                            {wardNo ? (
+                              <span className="ward-pill-badge">{wardNo}</span>
+                            ) : null}
+                            {m.area?.name && (
+                              <div style={{ fontWeight: 600, fontSize: '12px', color: '#1e293b', marginTop: wardNo ? 3 : 0 }}>
+                                {m.area.name}
+                              </div>
+                            )}
+                          </td>
+
+                          <td data-label="Contact & Hours">
+                            {m.phone ? (
+                              <div>
+                                <a href={`tel:${m.phone}`} className="hospital-phone-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                  <PhoneIcon size={12} /> {m.phone}
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="muted">—</span>
+                            )}
+                            {m.openingHours && (
+                              <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <ClockIcon size={11} /> {m.openingHours}
+                              </div>
+                            )}
+                          </td>
+
+                          <td data-label="Location">
+                            <div style={{ fontSize: '12.5px', color: '#334155', lineHeight: 1.35, marginBottom: 4 }}>
+                              {m.address || '—'}
+                            </div>
+                            {hasCoords(m.latitude, m.longitude) ? (
+                              <a
+                                href={directionsUrl(m.latitude, m.longitude)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="exec-btn-dir"
+                                onClick={e => e.stopPropagation()}
+                                title={isMr ? 'गुगल मॅप्सवर दिशा पहा' : 'View directions in Google Maps'}
+                              >
+                                <MapPinIcon size={12} />
+                                <span>{isMr ? 'दिशा' : 'Directions'}</span>
+                              </a>
+                            ) : (
+                              <span
+                                className="exec-btn-dir disabled"
+                                title={isMr ? 'स्थान पिन केलेले नाही' : 'Location not saved'}
+                              >
+                                <MapPinIcon size={12} style={{ opacity: 0.4 }} />
+                                <span>{isMr ? 'पिन नाही' : 'No Pin'}</span>
+                              </span>
+                            )}
+                          </td>
+
+                          <td data-label="Status" style={{ textAlign: 'center' }}>
+                            <span className={`team-badge ${m.status === 'INACTIVE' ? 'gray' : 'green'}`}>
+                              {m.status === 'INACTIVE' ? (isMr ? 'निष्क्रिय' : 'Inactive') : (isMr ? 'सक्रिय' : 'Active')}
+                            </span>
+                          </td>
+
+                          <td data-label="Actions" style={{ textAlign: 'center' }}>
+                            <div className="exec-action-group">
+                              <button
+                                type="button"
+                                className="exec-btn-view"
+                                onClick={() => setMedDetail(m)}
+                                title={isMr ? 'तपशील पहा' : 'View details'}
+                              >
+                                <EyeIcon size={13} />
+                                <span>{isMr ? 'पहा' : 'View'}</span>
+                              </button>
+
+                              {canEditAny && (
+                                <button
+                                  type="button"
+                                  className="exec-btn-edit"
+                                  onClick={() => openEditMedical(m)}
+                                  title={isMr ? 'संपादित करा' : 'Edit details'}
+                                >
+                                  <EditIcon size={13} />
+                                  <span>{isMr ? 'संपादित' : 'Edit'}</span>
+                                </button>
+                              )}
+
+                              {canDeleteAny && (
+                                <button
+                                  type="button"
+                                  className="exec-btn-delete"
+                                  onClick={() => removeMedical(m)}
+                                  title={isMr ? 'हटवा' : 'Delete'}
+                                >
+                                  <TrashIcon size={13} />
+                                  <span>{isMr ? 'हटवा' : 'Delete'}</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationBar
+                page={medPage}
+                pages={Math.max(1, Math.ceil(medTotal / medPageSize))}
+                total={medTotal}
+                onChange={p => setMedPage(p)}
+              />
+            </>
           )}
-        </Modal>
+        </>
       )}
 
-      {edit && (
+      {/* ==================================================================== */}
+      {/* HOSPITAL CREATE/EDIT MODAL (3 Structured Executive Sections)           */}
+      {/* ==================================================================== */}
+      {hospEdit && (
         <Modal
-          wide
-          title={edit === 'create' ? (isMr ? 'नवीन हॉस्पिटल जोडा' : 'Add hospital') : (isMr ? `${edit.name} — संपादित करा` : `Edit ${edit.name}`)}
-          onClose={() => setEdit(null)}
+          title={hospEdit === 'create' ? (isMr ? 'नवीन हॉस्पिटल जोडा' : 'Add Hospital') : (isMr ? 'हॉस्पिटल संपादित करा' : 'Edit Hospital')}
+          onClose={() => setHospEdit(null)}
         >
-          <form className="admin-form hospital-form" onSubmit={save}>
-            <ErrorBox error={error} />
-
+          <form onSubmit={saveHospital} className="hospital-form">
+            {/* Section 1: Basic Information */}
             <div className="exec-form-section">
               <div className="exec-form-section-header">
                 <div className="exec-form-section-title">
-                  <HeartIcon size={16} style={{ color: '#0f766e' }} />
-                  <span>{isMr ? '१. हॉस्पिटल माहिती' : '1. Hospital details'}</span>
+                  <BuildingIcon size={16} style={{ color: '#0F766E' }} />
+                  <span>{isMr ? '१. मूलभूत माहिती' : '1. Basic Information'}</span>
                 </div>
                 <span className="exec-form-section-desc">
-                  {isMr ? 'नाव, प्रकार आणि नागरिकांना दिसणारी स्थिती' : 'Name, facility type and public visibility'}
+                  {isMr ? 'हॉस्पिटलचे नाव, प्रकार आणि स्थिती' : 'Hospital name, category and status'}
                 </span>
               </div>
-              <Field label={isMr ? 'हॉस्पिटल / क्लिनिकचे नाव *' : 'Hospital / clinic name *'}>
-                <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={isMr ? 'उदा. सिव्हिल हॉस्पिटल, साई क्लिनिक' : 'e.g. Civil Hospital, Sai Clinic'} />
-              </Field>
-              <Field label={isMr ? 'प्रकार' : 'Facility type'}>
-                <div className="hospital-type-picks">
-                  {TYPES.map(t => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      className={`hospital-type-pick ${form.type === t.value ? 'is-on' : ''}`}
-                      onClick={() => setForm({ ...form, type: t.value })}
-                    >
-                      {isMr ? t.mr : t.en}
-                    </button>
-                  ))}
-                </div>
+              <Field label={isMr ? 'हॉस्पिटलचे नाव *' : 'Hospital name *'}>
+                <input required value={hospForm.name} onChange={e => setHospForm({ ...hospForm, name: e.target.value })} placeholder="e.g. City Civil Hospital" />
               </Field>
               <div className="hospital-form-grid">
-                <Field label={isMr ? 'स्थिती' : 'Status'}>
-                  <SearchableSelect
-                    value={form.status}
-                    onChange={v => setForm({ ...form, status: v })}
-                    options={[
-                      { value: 'ACTIVE', label: isMr ? 'सक्रिय (नागरिकांना दिसेल)' : 'Active (visible to residents)' },
-                      { value: 'INACTIVE', label: isMr ? 'निष्क्रिय' : 'Inactive' }
-                    ]}
-                  />
+                <Field label={isMr ? 'प्रकार *' : 'Facility type *'}>
+                  <select value={hospForm.type} onChange={e => setHospForm({ ...hospForm, type: e.target.value })}>
+                    {HOSPITAL_TYPES.map(t => (
+                      <option key={t.value} value={t.value}>{isMr ? t.mr : t.en}</option>
+                    ))}
+                  </select>
                 </Field>
-                <Field label={isMr ? 'कामकाजाची वेळ' : 'Opening hours'}>
-                  <input value={form.openingHours} onChange={e => setForm({ ...form, openingHours: e.target.value })} placeholder={isMr ? 'उदा. २४ तास / स. ९ ते रा. ९' : 'e.g. 24 hours / 9 AM – 9 PM'} />
+                <Field label={isMr ? 'स्थिती' : 'Status'}>
+                  <select value={hospForm.status} onChange={e => setHospForm({ ...hospForm, status: e.target.value })}>
+                    <option value="ACTIVE">{isMr ? 'सक्रिय' : 'Active'}</option>
+                    <option value="INACTIVE">{isMr ? 'निष्क्रिय' : 'Inactive'}</option>
+                  </select>
                 </Field>
               </div>
             </div>
 
+            {/* Section 2: Location & Address */}
             <div className="exec-form-section">
               <div className="exec-form-section-header">
                 <div className="exec-form-section-title">
-                  <MapPinIcon size={16} style={{ color: '#0f766e' }} />
-                  <span>{isMr ? '२. पत्ता आणि कॉलनी' : '2. Address & colony'}</span>
+                  <MapPinIcon size={16} style={{ color: '#0F766E' }} />
+                  <span>{isMr ? '२. वॉर्ड आणि स्थान' : '2. Location & Address'}</span>
                 </div>
                 <span className="exec-form-section-desc">
-                  {isMr ? 'पर्यायी — वॉर्ड, परिसर आणि पत्ता' : 'Optional — ward, colony and street address'}
+                  {isMr ? 'वॉर्ड, कॉलनी आणि रस्ता' : 'Ward, colony and street address'}
                 </span>
               </div>
               <div className="hospital-form-grid">
-                <Field label={isMr ? 'वॉर्ड' : 'Ward'}>
+                <Field label={isMr ? 'वॉर्ड *' : 'Ward *'}>
                   {wardLocked ? (
                     <input readOnly value={formatWardLabel(user?.ward) || formatWardNumber(user?.ward?.wardNumber) || (isMr ? 'नियुक्त वॉर्ड' : 'Assigned ward')} />
                   ) : (
                     <SearchableSelect
-                      value={formWardId}
-                      onChange={v => setForm({ ...form, wardId: v, areaId: '' })}
+                      value={hospForm.wardId || selectedWardId}
+                      onChange={v => setHospForm({ ...hospForm, wardId: v, areaId: '' })}
                       options={(wards || []).map(w => ({ value: w.id, label: formatWardLabel(w) }))}
                       placeholder={isMr ? 'वॉर्ड निवडा…' : 'Select ward…'}
                     />
@@ -693,69 +1680,349 @@ export default function Hospitals() {
                 </Field>
                 <Field label={isMr ? 'कॉलनी / परिसर' : 'Colony / Area'}>
                   <SearchableSelect
-                    value={form.areaId || ''}
-                    onChange={v => setForm({ ...form, areaId: v })}
-                    options={formAreas}
-                    placeholder={isMr ? 'पर्यायी' : 'Optional'}
+                    value={hospForm.areaId || ''}
+                    onChange={v => setHospForm({ ...hospForm, areaId: v })}
+                    options={hospFormAreas}
+                    placeholder={isMr ? 'परिसर निवडा (पर्यायी)' : 'Select area (optional)'}
                   />
                 </Field>
               </div>
               <Field label={isMr ? 'पूर्ण पत्ता' : 'Full address'}>
-                <textarea rows={2} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder={isMr ? 'रस्ता, परिसर, पिनकोड (पर्यायी)' : 'Street, area, pincode (optional)'} />
+                <textarea rows={2} value={hospForm.address} onChange={e => setHospForm({ ...hospForm, address: e.target.value })} placeholder="Plot / building, street name, pincode" />
               </Field>
               <Field label={isMr ? 'खूण' : 'Landmark'}>
-                <input value={form.landmark} onChange={e => setForm({ ...form, landmark: e.target.value })} placeholder={isMr ? 'उदा. बस स्टँड जवळ' : 'e.g. Near bus stand'} />
+                <input value={hospForm.landmark} onChange={e => setHospForm({ ...hospForm, landmark: e.target.value })} placeholder="e.g. Near Bus Stand" />
               </Field>
             </div>
 
+            {/* Section 3: Contact, Services & Map Pin */}
             <div className="exec-form-section">
               <div className="exec-form-section-header">
                 <div className="exec-form-section-title">
-                  <PhoneIcon size={16} style={{ color: '#0f766e' }} />
-                  <span>{isMr ? '३. संपर्क, सुविधा आणि नकाशा' : '3. Contact, facilities and map'}</span>
+                  <PhoneIcon size={16} style={{ color: '#0F766E' }} />
+                  <span>{isMr ? '३. संपर्क, सेवा आणि नकाशा' : '3. Contact, Services & Map'}</span>
                 </div>
                 <span className="exec-form-section-desc">
-                  {isMr ? 'फोन, आणीबाणी आणि प्रवेशद्वाराचा पिन' : 'Phone, emergency contact and entrance pin'}
+                  {isMr ? 'फोन, आणीबाणी संपर्क आणि GPS पिन' : 'Contact numbers and GPS entrance pin'}
                 </span>
               </div>
               <div className="hospital-form-grid">
                 <Field label={isMr ? 'फोन' : 'Phone'}>
-                  <input inputMode="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="0241-XXXXXXX" />
+                  <input inputMode="tel" value={hospForm.phone} onChange={e => setHospForm({ ...hospForm, phone: e.target.value })} placeholder="0241-XXXXXXX" />
                 </Field>
                 <Field label={isMr ? 'आणीबाणी फोन' : 'Emergency phone'}>
-                  <input inputMode="tel" value={form.emergencyPhone} onChange={e => setForm({ ...form, emergencyPhone: e.target.value })} placeholder="108 / local casualty" />
+                  <input inputMode="tel" value={hospForm.emergencyPhone} onChange={e => setHospForm({ ...hospForm, emergencyPhone: e.target.value })} placeholder="108 / local casualty" />
                 </Field>
               </div>
-              <Field label={isMr ? 'सुविधा (ICU, रक्तपेढी, इ.)' : 'Facilities (ICU, blood bank, etc.)'}>
-                <textarea rows={2} value={form.facilities} onChange={e => setForm({ ...form, facilities: e.target.value })} />
+              <Field label={isMr ? 'वेळ' : 'Opening Hours'}>
+                <input value={hospForm.openingHours} onChange={e => setHospForm({ ...hospForm, openingHours: e.target.value })} placeholder="e.g. 24 Hours Open / 9 AM - 8 PM" />
               </Field>
-              <Field label={isMr ? 'नोंद' : 'Internal notes'}>
-                <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+              <Field label={isMr ? 'उपलब्ध सुविधा' : 'Facilities (ICU, blood bank, etc.)'}>
+                <textarea rows={2} value={hospForm.facilities} onChange={e => setHospForm({ ...hospForm, facilities: e.target.value })} placeholder="e.g. ICU, OPD, Emergency 24x7, Blood Bank" />
               </Field>
-              {hasCoords(form.latitude, form.longitude) ? (
-                <div className="hospital-pin-ok">
+              <Field label={isMr ? 'अंतर्गत नोंद' : 'Internal notes'}>
+                <textarea rows={2} value={hospForm.notes} onChange={e => setHospForm({ ...hospForm, notes: e.target.value })} placeholder="Additional administration notes" />
+              </Field>
+              {hasCoords(hospForm.latitude, hospForm.longitude) ? (
+                <div className="hospital-pin-ok" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#16A34A', fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>
                   <CheckIcon size={15} />
-                  <span>Lat {Number(form.latitude).toFixed(6)}, Lng {Number(form.longitude).toFixed(6)}</span>
+                  <span>Lat {Number(hospForm.latitude).toFixed(6)}, Lng {Number(hospForm.longitude).toFixed(6)}</span>
                 </div>
               ) : (
-                <p className="muted">{isMr ? 'गेटवर उभे राहून Use GPS दाबा किंवा नकाशावर टॅप करा.' : 'Stand at the gate and tap Use GPS, or pin the entrance on the map.'}</p>
+                <p className="muted" style={{ fontSize: '12px', margin: '4px 0', color: '#64748B' }}>
+                  {isMr ? 'गेटवर उभे राहून Use GPS दाबा किंवा नकाशावर टॅप करा.' : 'Stand at the gate and tap Use GPS, or pin the entrance on the map.'}
+                </p>
               )}
               <LocationPicker
-                key={edit === 'create' ? 'new-hospital' : edit.id}
-                value={form}
-                onChange={next => setForm({ ...form, latitude: next.latitude, longitude: next.longitude })}
-                centerFrom={[selectedArea, selectedWard]}
+                key={hospEdit === 'create' ? 'new-hosp' : hospEdit.id}
+                value={hospForm}
+                onChange={next => setHospForm({ ...hospForm, latitude: next.latitude, longitude: next.longitude })}
+                centerFrom={[hospSelectedArea, hospFormWard]}
                 hint={isMr ? 'हॉस्पिटल गेटवर उभे राहून Use GPS दाबा.' : 'Stand at the hospital gate and tap Use GPS.'}
               />
             </div>
 
             <div className="exec-modal-footer">
-              <button type="button" className="exec-modal-btn ghost" onClick={() => setEdit(null)}>{isMr ? 'रद्द करा' : 'Cancel'}</button>
-              <button type="submit" className="exec-modal-btn primary" disabled={busy}>
-                {busy ? (isMr ? 'जतन करत आहे…' : 'Saving…') : (isMr ? 'हॉस्पिटल जतन करा' : 'Save hospital')}
+              <button type="button" className="exec-modal-btn ghost" onClick={() => setHospEdit(null)}>{isMr ? 'रद्द करा' : 'Cancel'}</button>
+              <button type="submit" className="exec-modal-btn primary" disabled={hospBusy}>
+                {hospBusy ? (isMr ? 'जतन करत आहे…' : 'Saving…') : (isMr ? 'हॉस्पिटल जतन करा' : 'Save Hospital')}
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MEDICAL CREATE/EDIT MODAL (3 Structured Executive Sections)          */}
+      {/* ==================================================================== */}
+      {medEdit && (
+        <Modal
+          title={medEdit === 'create' ? (isMr ? 'नवीन मेडिकल जोडा' : 'Add Medical Store') : (isMr ? 'मेडिकल स्टोअर संपादित करा' : 'Edit Medical Store')}
+          onClose={() => setMedEdit(null)}
+        >
+          <form onSubmit={saveMedical} className="hospital-form">
+            {/* Section 1: Basic Information */}
+            <div className="exec-form-section">
+              <div className="exec-form-section-header">
+                <div className="exec-form-section-title">
+                  <BuildingIcon size={16} style={{ color: '#0F766E' }} />
+                  <span>{isMr ? '१. मूलभूत माहिती' : '1. Basic Information'}</span>
+                </div>
+                <span className="exec-form-section-desc">
+                  {isMr ? 'मेडिकलचे नाव, औषध प्रकार आणि स्थिती' : 'Store name, medicine category and status'}
+                </span>
+              </div>
+              <Field label={isMr ? 'मेडिकलचे नाव *' : 'Medical store name *'}>
+                <input required value={medForm.name} onChange={e => setMedForm({ ...medForm, name: e.target.value })} placeholder="e.g. Apollo Pharmacy & Wellness" />
+              </Field>
+              <div className="hospital-form-grid">
+                <Field label={isMr ? 'औषध प्रकार *' : 'Medicine store type *'}>
+                  <select value={medForm.type} onChange={e => setMedForm({ ...medForm, type: e.target.value })}>
+                    {MEDICAL_TYPES.map(t => (
+                      <option key={t.value} value={t.value}>{isMr ? t.mr : t.en}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label={isMr ? 'स्थिती' : 'Status'}>
+                  <select value={medForm.status} onChange={e => setMedForm({ ...medForm, status: e.target.value })}>
+                    <option value="ACTIVE">{isMr ? 'सक्रिय' : 'Active'}</option>
+                    <option value="INACTIVE">{isMr ? 'निष्क्रिय' : 'Inactive'}</option>
+                  </select>
+                </Field>
+              </div>
+            </div>
+
+            {/* Section 2: Location & Address */}
+            <div className="exec-form-section">
+              <div className="exec-form-section-header">
+                <div className="exec-form-section-title">
+                  <MapPinIcon size={16} style={{ color: '#0F766E' }} />
+                  <span>{isMr ? '२. वॉर्ड आणि स्थान' : '2. Location & Address'}</span>
+                </div>
+                <span className="exec-form-section-desc">
+                  {isMr ? 'वॉर्ड, कॉलनी आणि रस्ता' : 'Ward, colony and street address'}
+                </span>
+              </div>
+              <div className="hospital-form-grid">
+                <Field label={isMr ? 'वॉर्ड *' : 'Ward *'}>
+                  {wardLocked ? (
+                    <input readOnly value={formatWardLabel(user?.ward) || formatWardNumber(user?.ward?.wardNumber) || (isMr ? 'नियुक्त वॉर्ड' : 'Assigned ward')} />
+                  ) : (
+                    <SearchableSelect
+                      value={medForm.wardId || selectedWardId}
+                      onChange={v => setMedForm({ ...medForm, wardId: v, areaId: '' })}
+                      options={(wards || []).map(w => ({ value: w.id, label: formatWardLabel(w) }))}
+                      placeholder={isMr ? 'वॉर्ड निवडा…' : 'Select ward…'}
+                    />
+                  )}
+                </Field>
+                <Field label={isMr ? 'कॉलनी / परिसर' : 'Colony / Area'}>
+                  <SearchableSelect
+                    value={medForm.areaId || ''}
+                    onChange={v => setMedForm({ ...medForm, areaId: v })}
+                    options={medFormAreas}
+                    placeholder={isMr ? 'परिसर निवडा (पर्यायी)' : 'Select area (optional)'}
+                  />
+                </Field>
+              </div>
+              <Field label={isMr ? 'पूर्ण पत्ता' : 'Full address'}>
+                <textarea rows={2} value={medForm.address} onChange={e => setMedForm({ ...medForm, address: e.target.value })} placeholder="Shop number, building, street, area" />
+              </Field>
+              <Field label={isMr ? 'खूण' : 'Landmark'}>
+                <input value={medForm.landmark} onChange={e => setMedForm({ ...medForm, landmark: e.target.value })} placeholder="e.g. Near Savedi Naka" />
+              </Field>
+            </div>
+
+            {/* Section 3: Contact, Services, Timings & Map Pin */}
+            <div className="exec-form-section">
+              <div className="exec-form-section-header">
+                <div className="exec-form-section-title">
+                  <MedicalIcon size={16} style={{ color: '#0F766E' }} />
+                  <span>{isMr ? '३. संपर्क, सेवा आणि नकाशा' : '3. Services, Hours & Map Pin'}</span>
+                </div>
+                <span className="exec-form-section-desc">
+                  {isMr ? 'संपर्क फोन, कामाची वेळ आणि GPS पिन' : 'Store phone, service hours and entrance pin'}
+                </span>
+              </div>
+              <div className="hospital-form-grid">
+                <Field label={isMr ? 'संपर्क फोन' : 'Store contact phone'}>
+                  <input inputMode="tel" value={medForm.phone} onChange={e => setMedForm({ ...medForm, phone: e.target.value })} placeholder="0241-XXXXXXX" />
+                </Field>
+                <Field label={isMr ? 'वेळ' : 'Opening Hours'}>
+                  <input value={medForm.openingHours} onChange={e => setMedForm({ ...medForm, openingHours: e.target.value })} placeholder="e.g. 24 Hours Open / 8 AM - 10 PM" />
+                </Field>
+              </div>
+
+              {/* Styled Executive Toggle Pills for 24x7 & Home Delivery */}
+              <div style={{ display: 'flex', gap: '14px', margin: '4px 0 10px 0', flexWrap: 'wrap' }}>
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  background: medForm.is24x7 ? '#ECFDF5' : '#F8FAFC',
+                  border: medForm.is24x7 ? '1.5px solid #A7F3D0' : '1px solid #CBD5E1',
+                  color: medForm.is24x7 ? '#047857' : '#334155',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={medForm.is24x7}
+                    onChange={e => setMedForm({ ...medForm, is24x7: e.target.checked })}
+                    style={{ accentColor: '#0F766E' }}
+                  />
+                  <span>{isMr ? '२४x७ सुरू (24 Hours Open)' : '24x7 Open (Day & Night)'}</span>
+                </label>
+
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  background: medForm.homeDelivery ? '#EFF6FF' : '#F8FAFC',
+                  border: medForm.homeDelivery ? '1.5px solid #BFDBFE' : '1px solid #CBD5E1',
+                  color: medForm.homeDelivery ? '#1D4ED8' : '#334155',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={medForm.homeDelivery}
+                    onChange={e => setMedForm({ ...medForm, homeDelivery: e.target.checked })}
+                    style={{ accentColor: '#0F766E' }}
+                  />
+                  <span>{isMr ? 'होम डिलिव्हरी उपलब्ध' : 'Home Delivery Available'}</span>
+                </label>
+              </div>
+
+              <Field label={isMr ? 'सुविधा व उपलब्ध औषधे' : 'Facilities & Services'}>
+                <textarea rows={2} value={medForm.facilities} onChange={e => setMedForm({ ...medForm, facilities: e.target.value })} placeholder="e.g. Oxygen Cylinder, BP & Blood Sugar Check, Generic Medicines" />
+              </Field>
+              <Field label={isMr ? 'अंतर्गत नोंद' : 'Internal notes'}>
+                <textarea rows={2} value={medForm.notes} onChange={e => setMedForm({ ...medForm, notes: e.target.value })} placeholder="Additional administrative notes" />
+              </Field>
+
+              {hasCoords(medForm.latitude, medForm.longitude) ? (
+                <div className="hospital-pin-ok" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#16A34A', fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>
+                  <CheckIcon size={15} />
+                  <span>Lat {Number(medForm.latitude).toFixed(6)}, Lng {Number(medForm.longitude).toFixed(6)}</span>
+                </div>
+              ) : (
+                <p className="muted" style={{ fontSize: '12px', margin: '4px 0', color: '#64748B' }}>
+                  {isMr ? 'दुकानाच्या गेटवर उभे राहून Use GPS दाबा किंवा नकाशावर टॅप करा.' : 'Stand at the shop entrance and tap Use GPS, or pin on the map.'}
+                </p>
+              )}
+              <LocationPicker
+                key={medEdit === 'create' ? 'new-med' : medEdit.id}
+                value={medForm}
+                onChange={next => setMedForm({ ...medForm, latitude: next.latitude, longitude: next.longitude })}
+                centerFrom={[medSelectedArea, medFormWard]}
+                hint={isMr ? 'मेडिकल स्टोअरच्या गेटवर उभे राहून Use GPS दाबा.' : 'Stand at the medical store entrance and tap Use GPS.'}
+              />
+            </div>
+
+            <div className="exec-modal-footer">
+              <button type="button" className="exec-modal-btn ghost" onClick={() => setMedEdit(null)}>{isMr ? 'रद्द करा' : 'Cancel'}</button>
+              <button type="submit" className="exec-modal-btn primary" disabled={medBusy} style={{ background: '#0F766E' }}>
+                {medBusy ? (isMr ? 'जतन करत आहे…' : 'Saving…') : (isMr ? 'मेडिकल जतन करा' : 'Save Medical Store')}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Modal: Hospital Details View (Admin) */}
+      {hospDetail && (
+        <Modal title={hospDetail.name} onClose={() => setHospDetail(null)}>
+          <div className="exec-detail-body">
+            <p><strong>{isMr ? 'प्रकार:' : 'Type:'}</strong> {hospitalTypeLabel(hospDetail.type, isMr)}</p>
+            {hospDetail.ward && (
+              <p>
+                <strong>{isMr ? 'वॉर्ड:' : 'Ward:'}</strong> {formatWardNumber(hospDetail.ward.wardNumber) || formatWardLabel(hospDetail.ward)}
+              </p>
+            )}
+            {hospDetail.area?.name && <p><strong>{isMr ? 'परिसर / कॉलनी:' : 'Colony / Area:'}</strong> {hospDetail.area.name}</p>}
+            {hospDetail.address && <p><strong>{isMr ? 'पत्ता:' : 'Address:'}</strong> {hospDetail.address} {hospDetail.landmark ? `(${hospDetail.landmark})` : ''}</p>}
+            {hospDetail.phone && <p><strong>{isMr ? 'फोन:' : 'Phone:'}</strong> <a href={`tel:${hospDetail.phone}`} style={{ color: '#0F766E', fontWeight: 600 }}>{hospDetail.phone}</a></p>}
+            {hospDetail.emergencyPhone && (
+              <p style={{ color: '#DC2626', fontWeight: 700 }}>
+                <strong>{isMr ? 'आणीबाणी संपर्क:' : 'Emergency Contact:'}</strong> <a href={`tel:${hospDetail.emergencyPhone}`} style={{ color: '#DC2626' }}>{hospDetail.emergencyPhone}</a>
+              </p>
+            )}
+            {hospDetail.openingHours && <p><strong>{isMr ? 'वेळ:' : 'Timings:'}</strong> {hospDetail.openingHours}</p>}
+            {hospDetail.facilities && <p><strong>{isMr ? 'सुविधा:' : 'Facilities:'}</strong> {hospDetail.facilities}</p>}
+            {hospDetail.notes && <p style={{ color: '#64748B', fontSize: '13px' }}><strong>{isMr ? 'अंतर्गत नोंद:' : 'Internal Notes:'}</strong> {hospDetail.notes}</p>}
+            {hasCoords(hospDetail.latitude, hospDetail.longitude) && (
+              <div style={{ marginTop: '16px' }}>
+                <a
+                  className="exec-btn-dir"
+                  style={{ display: 'inline-flex', padding: '8px 16px', height: 'auto', fontSize: '13px' }}
+                  href={directionsUrl(hospDetail.latitude, hospDetail.longitude)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MapPinIcon size={14} />
+                  <span>{isMr ? 'गुगल मॅपवर दिशा पहा' : 'View Directions on Google Maps'}</span>
+                </a>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal: Medical Details View (Admin) */}
+      {medDetail && (
+        <Modal title={translateMedicalName(medDetail.name, isMr)} onClose={() => setMedDetail(null)}>
+          <div className="exec-detail-body">
+            <p><strong>{isMr ? 'प्रकार:' : 'Type:'}</strong> {medicalTypeLabel(medDetail.type, isMr)}</p>
+            {medDetail.ward && (
+              <p>
+                <strong>{isMr ? 'वॉर्ड:' : 'Ward:'}</strong> {formatWardNumber(medDetail.ward.wardNumber) || formatWardLabel(medDetail.ward)}
+              </p>
+            )}
+            {medDetail.area?.name && <p><strong>{isMr ? 'परिसर / कॉलनी:' : 'Colony / Area:'}</strong> {medDetail.area.name}</p>}
+            {medDetail.address && <p><strong>{isMr ? 'पत्ता:' : 'Address:'}</strong> {medDetail.address} {medDetail.landmark ? `(${medDetail.landmark})` : ''}</p>}
+            {medDetail.phone && (
+              <p>
+                <strong>{isMr ? 'संपर्क फोन:' : 'Phone:'}</strong>{' '}
+                <a href={`tel:${medDetail.phone}`} style={{ color: '#0F766E', fontWeight: 700 }}>{medDetail.phone}</a>
+              </p>
+            )}
+            <p><strong>{isMr ? 'कामाची वेळ:' : 'Timings:'}</strong> {translateHours(medDetail.openingHours, isMr) || (medDetail.is24x7 ? (isMr ? '२४ तास सुरू' : '24x7 Open') : (isMr ? 'नियमित वेळ' : 'Standard hours'))}</p>
+            <div style={{ display: 'flex', gap: '8px', margin: '10px 0' }}>
+              {medDetail.is24x7 && (
+                <span style={{ background: '#ECFDF5', color: '#047857', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, border: '1px solid #A7F3D0' }}>
+                  {isMr ? '✓ २४ तास सुरू' : '✓ 24x7 Open'}
+                </span>
+              )}
+              {medDetail.homeDelivery && (
+                <span style={{ background: '#EFF6FF', color: '#1D4ED8', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, border: '1px solid #BFDBFE' }}>
+                  {isMr ? '✓ मोफत होम डिलिव्हरी' : '✓ Home Delivery'}
+                </span>
+              )}
+            </div>
+            {medDetail.facilities && <p><strong>{isMr ? 'सुविधा व औषधे:' : 'Facilities & Services:'}</strong> {medDetail.facilities}</p>}
+            {medDetail.notes && <p style={{ color: '#64748B', fontSize: '13px' }}><strong>{isMr ? 'विशेष नोंद:' : 'Notes:'}</strong> {medDetail.notes}</p>}
+            {hasCoords(medDetail.latitude, medDetail.longitude) && (
+              <div style={{ marginTop: '16px' }}>
+                <a
+                  className="exec-btn-dir"
+                  style={{ display: 'inline-flex', padding: '8px 16px', height: 'auto', fontSize: '13px' }}
+                  href={directionsUrl(medDetail.latitude, medDetail.longitude)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MapPinIcon size={14} />
+                  <span>{isMr ? 'गुगल मॅपवर दिशा पहा' : 'View Directions on Google Maps'}</span>
+                </a>
+              </div>
+            )}
+          </div>
         </Modal>
       )}
     </div>

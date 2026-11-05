@@ -44,8 +44,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '8mb' }));
-app.use(express.urlencoded({ extended: true, limit: '8mb' }));
+app.use(express.json({ limit: '16mb' }));
+app.use(express.urlencoded({ extended: true, limit: '16mb' }));
 app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
 const path = require('path');
@@ -58,7 +58,7 @@ app.use('/api/uploads', uploadsStatic);
 // General API rate limit; auth routes carry their own tighter limiter.
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 2000, standardHeaders: true, legacyHeaders: false }));
 
-app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get(['/health', '/api/health'], (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Public client presentation and documentation download routes
 const docFolder = require('path').resolve(__dirname, '../../documentation');
@@ -77,6 +77,12 @@ app.get(['/download/pdf-mr', '/download/documentation-marathi', '/download/docum
 
 app.use('/api', routes);
 app.use('/api/v2', require('./v2/routes'));
+
+// Serve frontend public assets (gallery media, SVGs, etc.)
+const frontendPublic = path.resolve(__dirname, '../../frontend/public');
+if (fs.existsSync(frontendPublic)) {
+  app.use(express.static(frontendPublic));
+}
 
 // Serve production frontend build if dist folder exists
 const frontendDist = path.resolve(__dirname, '../../frontend/dist');

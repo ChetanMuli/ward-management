@@ -13,6 +13,7 @@ import {
 import WardFilter from '../components/WardFilter';
 import { isMaster, isSubMaster, isNagarsevak } from '../rbac';
 import { useWardFilter } from '../wardFilter';
+import { citizenPortalQuery } from '../utils/panelChoice';
 import { formatWardLabel, formatWardNumber } from '../wardFormat';
 import {
   CheckIcon,
@@ -78,7 +79,8 @@ export default function Schemes() {
       const r = await api.schemes({
         search: search || undefined,
         status: isCitizen ? 'PUBLISHED' : status || undefined,
-        wardId: selectedWardId || undefined
+        wardId: selectedWardId || undefined,
+        ...citizenPortalQuery(selectedWardId)
       });
       const list = r.data || [];
       setRows(list);

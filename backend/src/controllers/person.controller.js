@@ -27,10 +27,11 @@ const list = asyncHandler(async (req,res)=>{
   if(search) where[Op.or]=[{fullName:{[Op.like]:`%${search}%`}},{mobile:{[Op.like]:`%${search}%`}},{id:search}];
   const houseArea = { model: Area, as: 'area', include: [{ model: Ward, as: 'ward', ...(wardId ? { where: { id: wardId }, required: true } : {}) }] };
   const include=[{...familyInclude, include:[{model:House,as:'house',include:[houseArea], ...(areaId?{where:{areaId},required:true}:{})}]},  ...(voterStatus?[{model:VoterProfile,as:'voterProfile',where:{status:voterStatus},required:true}]:[{model:VoterProfile,as:'voterProfile'}])];
-  let people=await Person.findAll({where,include,order:[['fullName','ASC']]});
+  const lim=Math.min(Number(limit)||25,50), off=((Number(page)||1)-1)*lim;
+  const result=await Person.findAndCountAll({where,include,order:[['fullName','ASC']],limit:lim,offset:off,distinct:true,col:'id'});
+  let people=result.rows;
   if(ageMin||ageMax) people=people.filter(p=>{const age=Number(p.age);return(!ageMin||age>=Number(ageMin))&&(!ageMax||age<=Number(ageMax));});
-  const lim=Math.min(Number(limit)||200,500), off=((Number(page)||1)-1)*lim;
-  return success(res,{data:people.slice(off,off+lim),meta:{total:people.length,page:Number(page)||1,limit:lim}});
+  return success(res,{data:people,meta:{total:result.count,page:Number(page)||1,limit:lim}});
 });
 const getById=asyncHandler(async(req,res)=>{const person=await Person.findByPk(req.params.id,{include:fullInclude});if(!person)throw new ApiError(404,'Person not found');if(req.user.roleName==='CITIZEN'&&person.id!==req.user.personId)throw new ApiError(403,'You may only view your own record');return success(res,{data:person});});
 const create=asyncHandler(async(req,res)=>{const {fullName,dob,mobile,familyId,force}=req.body;const duplicates=await findPossibleDuplicates({fullName,dob,mobile,familyId});if(duplicates.length&&!force)return success(res,{message:'Possible duplicate citizen record found. Resubmit with force=true to proceed anyway.',data:{duplicates},statusCode:409});const payload={...req.body};

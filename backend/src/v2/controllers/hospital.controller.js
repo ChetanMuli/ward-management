@@ -10,7 +10,7 @@ const TYPES = ['GOVERNMENT', 'PRIVATE', 'TRUST', 'CLINIC', 'PHC', 'AYUSH', 'OTHE
 const EMPTY_ID = '00000000-0000-0000-0000-000000000000';
 const LIST_ATTR = [
   'id', 'wardId', 'areaId', 'name', 'type', 'address', 'landmark',
-  'phone', 'emergencyPhone', 'openingHours', 'latitude', 'longitude', 'status', 'updatedAt',
+  'phone', 'emergencyPhone', 'openingHours', 'facilities', 'notes', 'latitude', 'longitude', 'status', 'updatedAt',
 ];
 
 function emptyToNull(v) { return v === '' || v == null ? null : String(v).trim() || null; }

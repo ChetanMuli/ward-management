@@ -7,6 +7,7 @@ import BrandIcon from '../components/BrandIcon';
 import { can, isMaster, isSubMaster, isNagarsevak, roleOf } from '../rbac';
 import { useWardFilter } from '../wardFilter';
 import { formatWardLabel, formatWardNumber } from '../wardFormat';
+import { getSavedPanelId } from '../utils/panelChoice';
 
 function isAllChat(g) { return g?.type === 'WARD' || g?.channel === 'ALL'; }
 
@@ -367,11 +368,41 @@ function GroupPage() {
     return () => clearInterval(t);
   }, [wardId]);
 
+  const activePanelId = useMemo(() => {
+    if (!citizen) return '';
+    try {
+      const q = searchParams.get('nagarsevakId') || searchParams.get('panelId');
+      if (q) return q;
+    } catch {}
+    return getSavedPanelId(wardId || user?.wardId);
+  }, [citizen, wardId, user?.wardId, searchParams]);
+
   const accessibleGroups = useMemo(() => {
     if (!wardId) return [];
     const base = (groups || []).filter(g => String(g.wardId) === String(wardId));
     return base.filter(g => {
-      if (citizen || isEmp) return isAllChat(g) || g.type === 'NAGARSEVAK';
+      if (citizen) {
+        if (isAllChat(g)) {
+          if (activePanelId && g.nagarsevakUserId && String(g.nagarsevakUserId) !== String(activePanelId)) return false;
+          return true;
+        }
+        if (g.type === 'NAGARSEVAK') {
+          if (!activePanelId) return true;
+          return String(g.nagarsevakUserId || g.nagarsevak?.id || '') === String(activePanelId);
+        }
+        return false;
+      }
+      if (isEmp) {
+        if (user?.employeeProfile?.managerUserId) {
+          const mgr = String(user.employeeProfile.managerUserId);
+          if (g.nagarsevakUserId && String(g.nagarsevakUserId) !== mgr) return false;
+        }
+        return isAllChat(g) || g.type === 'NAGARSEVAK';
+      }
+      if (councillor) {
+        if (g.nagarsevakUserId && String(g.nagarsevakUserId) !== String(user?.id)) return false;
+        return isAllChat(g) || g.type === 'NAGARSEVAK';
+      }
       if (!search.trim()) return true;
       const q = search.trim().toLowerCase();
       return [g.name, g.ward?.wardNumber, g.ward?.name, g.nagarsevak?.name].filter(Boolean).some(v => String(v).toLowerCase().includes(q));
@@ -379,7 +410,7 @@ function GroupPage() {
       const rank = g => isAllChat(g) ? 0 : g.type === 'NAGARSEVAK' ? 1 : 2;
       return rank(a) - rank(b) || groupTitle(a).localeCompare(groupTitle(b));
     });
-  }, [groups, wardId, search, citizen, isEmp]);
+  }, [groups, wardId, search, citizen, isEmp, councillor, user?.id, user?.employeeProfile?.managerUserId, activePanelId]);
 
   const nagarsevaks = useMemo(() => {
     const map = new Map();
@@ -392,14 +423,22 @@ function GroupPage() {
 
   const filteredGroups = useMemo(() => {
     return accessibleGroups.filter(g => {
-      if (citizen || isEmp) return true;
+      if (citizen) {
+        if (isAllChat(g)) return true;
+        if (g.type === 'NAGARSEVAK') {
+          if (!activePanelId) return true;
+          return String(g.nagarsevakUserId || g.nagarsevak?.id || '') === String(activePanelId);
+        }
+        return false;
+      }
+      if (isEmp) return true;
       if (councillor && g.type === 'NAGARSEVAK' && String(g.nagarsevakUserId) !== String(user?.id)) return false;
       if (councillor && g.type === 'CUSTOM') return false;
       if (nagarsevakId && !(g.type === 'NAGARSEVAK' && String(g.nagarsevakUserId) === String(nagarsevakId))) return false;
       if (groupId && String(g.id) !== String(groupId)) return false;
       return true;
     });
-  }, [accessibleGroups, nagarsevakId, groupId, citizen, isEmp, councillor, user?.id]);
+  }, [accessibleGroups, nagarsevakId, groupId, citizen, isEmp, councillor, user?.id, activePanelId]);
 
   const displayedGroups = filteredGroups;
 

@@ -375,6 +375,28 @@ export default function Complaints() {
     limit
   ]);
 
+  // Real-time synchronization every 8 seconds for multi-device sync
+  useEffect(() => {
+    const syncTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        load(filters, page, limit);
+        loadKpiStats();
+      }
+    }, 8000);
+    return () => clearInterval(syncTimer);
+  }, [
+    selectedWardId,
+    filters.search,
+    filters.status,
+    filters.priority,
+    filters.category,
+    filters.assignedEmployeeId,
+    filters.fromDate,
+    filters.toDate,
+    page,
+    limit
+  ]);
+
   const pages = Math.max(1, Math.ceil((meta.total || 0) / (meta.limit || limit)));
   const wardPeople = people;
   const wardHouses = houses;

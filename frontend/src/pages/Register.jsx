@@ -245,7 +245,7 @@ export default function Register(){
  if(done){
   return shell(isMr?'खाते तयार झाले':'Account ready',isMr?'तुमचे वॉर्ड खाते तयार झाले आहे. पुढे जाण्यासाठी साइन इन करा.':'Your ward account is created. Sign in to continue.',
    <div className="login-v2-card auth-simple-card">
-    <p className="auth-done-copy">{isMr?'WardDesk उघडण्यासाठी तुमचा ईमेल आणि पासवर्ड वापरा.':'Use your email and password to open WardDesk.'}</p>
+    <p className="auth-done-copy">{isMr?'WardSetu उघडण्यासाठी तुमचा ईमेल आणि पासवर्ड वापरा.':'Use your email and password to open WardSetu.'}</p>
     <button className="primary-btn full login-v2-submit" onClick={()=>navigate('/login',{replace:true})}>{isMr?'साइन इन करा':'Sign in'}</button>
    </div>
   );

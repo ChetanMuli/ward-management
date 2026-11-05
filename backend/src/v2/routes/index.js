@@ -10,6 +10,7 @@ const dashboard=require('../controllers/dashboard.controller');
 const data=require('../controllers/data.controller');
 const shops=require('../controllers/shop.controller');
 const hospitals=require('../controllers/hospital.controller');
+const medicals=require('../controllers/medical.controller');
 const exporter=require('../controllers/export.controller');
 const recycle=require('../controllers/recycle.controller');
 const complaints=require('../controllers/complaint.controller');
@@ -117,6 +118,7 @@ router.post('/sub-admins',requireV2Role('SUPER_ADMIN'),[
 ],validate,staff.createSubAdmin);
 router.patch('/sub-admins/:id',requireV2Role('SUPER_ADMIN'),staff.updateSubAdmin);
 router.get('/chat/groups',requirePermission('VIEW_CHAT'),chat.listGroups);
+router.get('/chat/direct-conversations',requirePermission('VIEW_CHAT'),chat.listDirectConversations);
 router.post('/chat/groups',requirePermission('CREATE_CHAT_GROUP'),chat.createGroup);
 router.delete('/chat/groups/:id',requirePermission('MANAGE_CHAT_GROUP'),chat.deleteGroup);
 router.post('/chat/groups/:id/join',requirePermission('VIEW_CHAT'),chat.joinGroup);
@@ -150,6 +152,7 @@ router.patch('/ward-activations/:wardId/ward',requireV2Role('SUPER_ADMIN'),wardA
 router.patch('/ward-activations/:wardId/registration',requireV2Role('SUPER_ADMIN'),wardActivation.setRegistrationOpen);
 router.post('/registration-invite',wardActivation.createRegistrationInvite);
 router.patch('/ward-activations/:wardId/nagarsevak',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN'),wardActivation.setPurchase);
+router.patch('/ward-activations/:wardId/nagarsevak-visible',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN'),wardActivation.setResidentVisible);
 router.post('/ward-activations/:wardId/sync',requireV2Role('SUPER_ADMIN'),wardActivation.sync);
 router.patch('/profile',auth.updateProfile);
 router.post('/profile/password',auth.changePassword);
@@ -210,6 +213,11 @@ router.post('/hospitals',requirePermission('CREATE_HOSPITALS'),hospitals.create)
 router.get('/hospitals/:id',requirePermission('VIEW_HOSPITALS'),hospitals.detail);
 router.patch('/hospitals/:id',requirePermission('EDIT_HOSPITALS'),hospitals.update);
 router.delete('/hospitals/:id',requirePermission('DELETE_HOSPITALS'),hospitals.remove);
+router.get('/medicals',requirePermission('VIEW_MEDICALS'),medicals.list);
+router.post('/medicals',requirePermission('CREATE_MEDICALS'),medicals.create);
+router.get('/medicals/:id',requirePermission('VIEW_MEDICALS'),medicals.detail);
+router.patch('/medicals/:id',requirePermission('EDIT_MEDICALS'),medicals.update);
+router.delete('/medicals/:id',requirePermission('DELETE_MEDICALS'),medicals.remove);
 router.get('/families',requirePermission('VIEW_FAMILIES'),data.families);
 router.post('/families',requirePermission('CREATE_FAMILIES'),data.createFamily);
 router.patch('/families/:id',requirePermission('EDIT_FAMILIES'),data.updateFamily);
@@ -227,7 +235,9 @@ router.get('/complaints',(req,res,next)=>req.user.roleName==='CITIZEN'?next():re
 router.post('/complaints',(req,res,next)=>req.user.roleName==='CITIZEN'?next():requirePermission('CREATE_COMPLAINTS')(req,res,next),complaints.create);
 router.post('/complaints/:id/assign',requireV2Role('SUPER_ADMIN','SUB_MASTER_ADMIN','NAGARSEVAK'),complaints.assign);
 router.patch('/complaints/:id/status',requirePermission('EDIT_COMPLAINTS'),complaints.updateStatus);
-router.delete('/complaints/:id',requirePermission('DELETE_COMPLAINTS'),complaints.destroyComplaint);
+router.post('/complaints/bulk-delete',(req,res,next)=>req.user.roleName==='CITIZEN'?next():requirePermission('DELETE_COMPLAINTS')(req,res,next),complaints.bulkDestroy);
+router.delete('/complaints/bulk-delete',(req,res,next)=>req.user.roleName==='CITIZEN'?next():requirePermission('DELETE_COMPLAINTS')(req,res,next),complaints.bulkDestroy);
+router.delete('/complaints/:id',(req,res,next)=>req.user.roleName==='CITIZEN'?next():requirePermission('DELETE_COMPLAINTS')(req,res,next),complaints.destroyComplaint);
 router.get('/complaints/:id',(req,res,next)=>req.user.roleName==='CITIZEN'?next():requirePermission('VIEW_COMPLAINTS')(req,res,next),complaints.detail);
 router.get('/18plus',requirePermission('VIEW_18PLUS'),data.upcoming18);
 router.get('/death-records',requirePermission('VIEW_DEATH_RECORDS'),deaths.list);

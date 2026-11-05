@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { api, getUser } from '../services/api';
 import { isMaster, isSubMaster, isNagarsevak } from '../rbac';
 import { useWardFilter } from '../wardFilter';
-import { PageHeader, Loading, Empty, Modal, ImageCropField, CirclePhotoField, Field, ErrorBox } from '../components/Ui';
+import { PageHeader, Loading, Empty, Modal, ImageCropField, CirclePhotoField, Field, ErrorBox, SearchableSelect } from '../components/Ui';
 import WardFilter from '../components/WardFilter';
-import { CITIZEN_HERO_ASPECT, EMPTY_HIGHLIGHT_CARDS, HIGHLIGHT_ICONS, normalizeHighlightCards, highlightHasText, displayHighlightCard, publicMediaUrl } from '../utils/portalDefaults';
+import { CITIZEN_HERO_ASPECT, COMPLAINTS_BANNER_ASPECT, GALLERY_BANNER_ASPECT, EMPTY_HIGHLIGHT_CARDS, HIGHLIGHT_ICONS, normalizeHighlightCards, highlightHasText, displayHighlightCard, publicMediaUrl, isGenericDefaultHero } from '../utils/portalDefaults';
 import NagarsevakShowcase from '../components/NagarsevakShowcase';
 import { formatWardLabel } from '../wardFormat';
 import { getLanguage } from '../language';
@@ -26,15 +26,43 @@ function onCitizenHome(item, dashOrder = []) {
   return false;
 }
 
-function notifyPortalUpdated() {
-  try { localStorage.setItem('ward_portal_updated', String(Date.now())); } catch { /* ignore */ }
-  window.dispatchEvent(new CustomEvent('ward:portal-updated', { bubbles: true }));
+function notifyPortalUpdated(wardId) {
+  const stamp = String(Date.now());
+  try { localStorage.setItem('ward_portal_updated', stamp); } catch { /* ignore */ }
+  try {
+    const id = String(wardId || '');
+    if (id) {
+      sessionStorage.removeItem(`ward_hero_sticky_${id}`);
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith(`ward_hero_sticky_${id}`)) sessionStorage.removeItem(key);
+      });
+      localStorage.setItem(`ward_hero_banner_v_${id}`, stamp);
+    }
+  } catch { /* ignore */ }
+  window.dispatchEvent(new CustomEvent('ward:portal-updated', { bubbles: true, detail: { wardId } }));
 }
 
 function rememberBannerUrl(key, url) {
   try {
     if (url && !String(url).startsWith('data:')) localStorage.setItem(key, url);
   } catch { /* ignore */ }
+}
+
+async function persistLaptopImage(url) {
+  const raw = String(url || '').trim();
+  if (!raw.startsWith('data:image/')) return raw;
+  const blob = await (await fetch(raw)).blob();
+  if (!blob || !blob.size) throw new Error('Could not read that image.');
+  const ext = /png/i.test(blob.type) ? 'png' : /webp/i.test(blob.type) ? 'webp' : 'jpg';
+  const file = new File([blob], `banner.${ext}`, { type: blob.type || 'image/jpeg' });
+  const res = await api.uploadPortalMedia(file);
+  const stored = res?.data?.url || res?.url || '';
+  if (!stored) throw new Error('Could not upload that image.');
+  return stored;
+}
+
+function panelEditKey(wardId) {
+  return `portal_edit_panel_${wardId || ''}`;
 }
 
 function LiveBannerPreview({ url, emptyLabel, aspect = 2.4 }) {
@@ -98,30 +126,33 @@ function HighlightCardsEditor({ cards, onChange, isMr }) {
           <article className="highlight-edit-card" key={card.id || idx}>
             <div className="highlight-edit-top">
               <span className="highlight-edit-index">{idx + 1}</span>
-              <div className="highlight-icon-grid" role="group" aria-label="Card icon">
-                {HIGHLIGHT_ICONS.map((icon) => (
-                  <button
-                    type="button"
-                    key={icon}
-                    className={`highlight-icon-btn ${card.icon === icon ? 'is-on' : ''}`}
-                    onClick={() => update(idx, { icon })}
-                    title={icon}
-                  >
-                    {icon}
-                  </button>
-                ))}
+              <span className="highlight-edit-kicker">{isMr ? 'आयकन' : 'Icon'}</span>
+              <button type="button" className="small-btn highlight-remove" onClick={() => removeCard(idx)}>
+                {isMr ? 'काढा' : 'Remove'}
+              </button>
+            </div>
+            <div className="highlight-icon-grid" role="group" aria-label="Card icon">
+              {HIGHLIGHT_ICONS.map((icon) => (
+                <button
+                  type="button"
+                  key={icon}
+                  className={`highlight-icon-btn ${card.icon === icon ? 'is-on' : ''}`}
+                  onClick={() => update(idx, { icon })}
+                  title={icon}
+                >
+                  {icon}
+                </button>
+              ))}
+              <span className="highlight-icon-custom-wrap">
                 <input
                   className="highlight-icon-custom"
                   value={HIGHLIGHT_ICONS.includes(card.icon) ? '' : (card.icon || '')}
-                  maxLength={4}
+                  maxLength={2}
                   onChange={(e) => update(idx, { icon: e.target.value.trim() || '🏆' })}
                   aria-label={isMr ? 'कस्टम emoji' : 'Custom emoji'}
                   placeholder="😊"
                 />
-              </div>
-              <button type="button" className="ghost-btn highlight-remove" onClick={() => removeCard(idx)}>
-                {isMr ? 'काढा' : 'Remove'}
-              </button>
+              </span>
             </div>
             <div className="form-row-2">
               <div className="form-group">
@@ -208,7 +239,7 @@ export default function PortalManagement() {
   const [purchasedNagarsevaks, setPurchasedNagarsevaks] = useState([]);
   const [wardInfo, setWardInfo] = useState(null);
   const [activation, setActivation] = useState(null);
-  const [confirmSwitch, setConfirmSwitch] = useState(null);
+  const [editorPanelId, setEditorPanelId] = useState('');
 
   const activeWard = useMemo(() => {
     if (selectedWardId) {
@@ -256,20 +287,21 @@ export default function PortalManagement() {
 
   // Delete confirm modal
   const [deletingItem, setDeletingItem] = useState(null);
-  const [showGalleryBannerModal, setShowGalleryBannerModal] = useState(false);
 
   const handleSaveComplaintsBanner = async () => {
     if (!effectiveWardId) return;
     setSaving(true);
     try {
+      const complaintsBannerUrl = await persistLaptopImage(portalConfig?.complaintsBannerUrl || '');
       await api.updatePortalConfig({
         wardId: effectiveWardId,
-        complaintsBannerUrl: portalConfig?.complaintsBannerUrl || '',
+        nagarsevakUserId: editorPanelId || representative?.id || null,
+        complaintsBannerUrl,
       });
-      rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}`, portalConfig?.complaintsBannerUrl);
-      notifyPortalUpdated();
+      setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl }));
+      rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}_${editorPanelId || ''}`, complaintsBannerUrl);
+      notifyPortalUpdated(effectiveWardId);
       showToast(isMr ? 'तक्रार पानाचा बॅनर सेव्ह झाला.' : 'Complaints banner saved.');
-      loadData();
     } catch (err) {
       showToast(err.message || 'Failed to save complaints banner.', 'error');
     } finally {
@@ -281,15 +313,16 @@ export default function PortalManagement() {
     if (!effectiveWardId) return;
     setSaving(true);
     try {
+      const galleryBannerUrl = await persistLaptopImage(portalConfig?.galleryBannerUrl || '');
       await api.updatePortalConfig({
         wardId: effectiveWardId,
-        galleryBannerUrl: portalConfig?.galleryBannerUrl || '',
+        nagarsevakUserId: editorPanelId || representative?.id || null,
+        galleryBannerUrl,
       });
-      rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}`, portalConfig?.galleryBannerUrl);
-      setShowGalleryBannerModal(false);
-      notifyPortalUpdated();
+      setPortalConfig((prev) => ({ ...prev, galleryBannerUrl }));
+      rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}_${editorPanelId || ''}`, galleryBannerUrl);
+      notifyPortalUpdated(effectiveWardId);
       showToast(isMr ? 'गॅलरी बॅनर सेव्ह झाला.' : 'Gallery banner saved.');
-      loadData();
     } catch (err) {
       showToast(err.message || 'Failed to save gallery banner.', 'error');
     } finally {
@@ -312,7 +345,7 @@ export default function PortalManagement() {
   };
 
   // Load portal config and gallery items
-  const loadData = async () => {
+  const loadData = async ({ silent = false } = {}) => {
     if (!effectiveWardId) {
       setPortalConfig(null);
       setRepresentative(null);
@@ -323,12 +356,17 @@ export default function PortalManagement() {
       setError('');
       return;
     }
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError('');
     try {
+      const storedPanel = (() => {
+        if (isNagarsevak(user)) return String(user.id);
+        if (editorPanelId) return editorPanelId;
+        try { return localStorage.getItem(panelEditKey(effectiveWardId)) || ''; } catch { return ''; }
+      })();
       const [cfgRes, galRes] = await Promise.all([
-        api.portalConfig({ wardId: effectiveWardId }),
-        api.galleryItems({ wardId: effectiveWardId }),
+        api.portalConfig({ wardId: effectiveWardId, nagarsevakId: storedPanel || undefined }),
+        api.galleryItems({ wardId: effectiveWardId, nagarsevakId: storedPanel || undefined }),
       ]);
 
       if (cfgRes?.data) {
@@ -342,21 +380,26 @@ export default function PortalManagement() {
         });
         const cfgMeta = loadedMeta;
         setDashboardWorkOrder(Array.isArray(cfgMeta.dashboardWorkOrder) ? cfgMeta.dashboardWorkOrder.map(String) : []);
+        const allList = Array.isArray(cfgRes.data.nagarsevaks) ? cfgRes.data.nagarsevaks : [];
         const purchasedList = Array.isArray(cfgRes.data.purchasedNagarsevaks) && cfgRes.data.purchasedNagarsevaks.length
           ? cfgRes.data.purchasedNagarsevaks
-          : (Array.isArray(cfgRes.data.nagarsevaks) ? cfgRes.data.nagarsevaks : []);
-        const purchasedId = cfgRes.data.config?.purchasedNagarsevakUserId
-          || cfgRes.data.activation?.purchasedNagarsevakUserId
-          || purchasedList[0]?.id
-          || null;
-        let featured = purchasedList.find((n) => String(n.id) === String(purchasedId))
-          || (purchasedId ? purchasedList.find((n) => String(n.id) === String(cfgRes.data.nagarsevak?.id)) : null)
-          || purchasedList[0]
+          : allList;
+        const panelList = allList.length ? allList : purchasedList;
+        const wantedId = isNagarsevak(user)
+          ? String(user.id)
+          : (storedPanel || cfgRes.data.config?.selectedNagarsevakUserId || panelList[0]?.id || '');
+        let featured = panelList.find((n) => String(n.id) === String(wantedId))
+          || panelList.find((n) => String(n.id) === String(cfgRes.data.nagarsevak?.id))
+          || panelList[0]
           || null;
         if (isNagarsevak(user)) {
-          featured = purchasedList.find((n) => String(n.id) === String(user.id)) || null;
+          featured = panelList.find((n) => String(n.id) === String(user.id)) || featured;
         }
-        setNagarsevaks(purchasedList);
+        if (featured?.id && String(featured.id) !== String(editorPanelId)) {
+          setEditorPanelId(String(featured.id));
+          try { localStorage.setItem(panelEditKey(effectiveWardId), String(featured.id)); } catch { /* ignore */ }
+        }
+        setNagarsevaks(panelList);
         setPurchasedNagarsevaks(purchasedList);
         setRepresentative(featured ? {
           ...featured,
@@ -390,8 +433,41 @@ export default function PortalManagement() {
   };
 
   useEffect(() => {
-    loadData();
+    if (!effectiveWardId) {
+      setEditorPanelId('');
+      return;
+    }
+    if (isNagarsevak(user)) {
+      setEditorPanelId(String(user.id));
+      return;
+    }
+    try {
+      setEditorPanelId(localStorage.getItem(panelEditKey(effectiveWardId)) || '');
+    } catch {
+      setEditorPanelId('');
+    }
   }, [effectiveWardId]);
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(() => {
+      if (!saving && !itemModalOpen && !orderDirty) {
+        loadData({ silent: true });
+      }
+    }, 8000);
+
+    const handlePortalUpdated = (e) => {
+      if (!e.detail?.wardId || String(e.detail.wardId) === String(effectiveWardId)) {
+        loadData({ silent: true });
+      }
+    };
+    window.addEventListener('ward:portal-updated', handlePortalUpdated);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('ward:portal-updated', handlePortalUpdated);
+    };
+  }, [effectiveWardId, editorPanelId, saving, itemModalOpen, orderDirty]);
 
   // Save Hero & Portal Config
   const handleSavePortalConfig = async (e) => {
@@ -402,14 +478,16 @@ export default function PortalManagement() {
     }
     setSaving(true);
     try {
-      const slimConfig = { ...portalConfig };
+      const heroBannerUrl = await persistLaptopImage(portalConfig?.heroBannerUrl || '');
+      const complaintsBannerUrl = await persistLaptopImage(portalConfig?.complaintsBannerUrl || '');
+      const galleryBannerUrl = await persistLaptopImage(portalConfig?.galleryBannerUrl || '');
+      const slimConfig = { ...portalConfig, heroBannerUrl };
       const keepMetaImages = new Set(['repPhoto', 'complaintsBannerUrl', 'galleryBannerUrl']);
       slimConfig.meta = { ...(slimConfig.meta && typeof slimConfig.meta === 'object' ? slimConfig.meta : {}) };
-      slimConfig.meta.complaintsBannerUrl = slimConfig.complaintsBannerUrl || slimConfig.meta.complaintsBannerUrl || '';
-      slimConfig.meta.galleryBannerUrl = slimConfig.galleryBannerUrl || slimConfig.meta.galleryBannerUrl || '';
+      slimConfig.meta.complaintsBannerUrl = complaintsBannerUrl || slimConfig.meta.complaintsBannerUrl || '';
+      slimConfig.meta.galleryBannerUrl = galleryBannerUrl || slimConfig.meta.galleryBannerUrl || '';
       delete slimConfig.meta.dashboardWorkOrder;
-      const complaintsBannerUrl = slimConfig.complaintsBannerUrl || slimConfig.meta.complaintsBannerUrl || '';
-      const galleryBannerUrl = slimConfig.galleryBannerUrl || slimConfig.meta.galleryBannerUrl || '';
+      delete slimConfig.meta.panels;
       delete slimConfig.complaintsBannerUrl;
       delete slimConfig.galleryBannerUrl;
       Object.keys(slimConfig.meta).forEach((k) => {
@@ -419,20 +497,29 @@ export default function PortalManagement() {
       });
       await api.updatePortalConfig({
         wardId: effectiveWardId,
+        nagarsevakUserId: editorPanelId || representative?.id || null,
         ...slimConfig,
+        heroBannerUrl,
         complaintsBannerUrl,
         galleryBannerUrl,
         dashboardWorkOrder,
+        useCivicHero: isGenericDefaultHero(heroBannerUrl),
       });
+      setPortalConfig((prev) => ({
+        ...prev,
+        heroBannerUrl: heroBannerUrl || prev?.heroBannerUrl,
+        complaintsBannerUrl: complaintsBannerUrl || prev?.complaintsBannerUrl,
+        galleryBannerUrl: galleryBannerUrl || prev?.galleryBannerUrl,
+      }));
       try {
-        rememberBannerUrl(`ward_hero_banner_${effectiveWardId}`, portalConfig?.heroBannerUrl);
+        const panelKey = editorPanelId || representative?.id || '';
+        rememberBannerUrl(`ward_hero_banner_${effectiveWardId}_${panelKey}`, heroBannerUrl);
         localStorage.setItem(`ward_hero_banner_v_${effectiveWardId}`, String(Date.now()));
-        rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}`, portalConfig?.complaintsBannerUrl);
-        rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}`, portalConfig?.galleryBannerUrl);
+        rememberBannerUrl(`ward_complaints_banner_${effectiveWardId}_${panelKey}`, complaintsBannerUrl);
+        rememberBannerUrl(`ward_gallery_banner_${effectiveWardId}_${panelKey}`, galleryBannerUrl);
       } catch { /* ignore */ }
-      showToast(isMr ? 'तीन बॅनर या वॉर्डसाठी सेव्ह झाले.' : 'Home, complaints and gallery banners saved for this ward.');
-      notifyPortalUpdated();
-      loadData();
+      showToast(isMr ? 'बॅनर या नगरसेवक पॅनेलसाठी सेव्ह झाले.' : 'Banners saved for this Nagarsevak panel.');
+      notifyPortalUpdated(effectiveWardId);
     } catch (err) {
       showToast(err.message || 'Failed to save portal settings.', 'error');
     } finally {
@@ -459,7 +546,8 @@ export default function PortalManagement() {
       };
       await api.updatePortalConfig({
         wardId: effectiveWardId,
-        featuredNagarsevakUserId: filled.id || null,
+        nagarsevakUserId: filled.id || editorPanelId || null,
+        featuredNagarsevakUserId: filled.id || editorPanelId || null,
         nagarsevak: filled,
         meta: {
           ...(portalConfig?.meta || {}),
@@ -475,7 +563,7 @@ export default function PortalManagement() {
           achievements: filled.achievements || [],
         },
       });
-      showToast(isMr ? 'नगरसेवक माहिती या वॉर्डसाठी सेव्ह झाली.' : 'Nagarsevak profile saved for this ward.');
+      showToast(isMr ? 'नगरसेवक प्रोफाइल या पॅनेलसाठी सेव्ह झाली.' : 'Nagarsevak profile saved for this panel.');
       notifyPortalUpdated();
       loadData();
     } catch (err) {
@@ -485,24 +573,12 @@ export default function PortalManagement() {
     }
   };
 
-  const canSwitchBuyer = (isMaster(user) || isSubMaster(user)) && !isNagarsevak(user);
-
-  const applyBuyerSeat = async (nagarsevakUserId) => {
-    if (!effectiveWardId || !nagarsevakUserId) return;
-    setSaving(true);
+  const handleEditorPanel = (id) => {
+    const next = String(id || '');
+    setEditorPanelId(next);
     try {
-      await api.setNagarsevakPurchase(effectiveWardId, { nagarsevakUserId, status: 'ACTIVE' });
-      showToast(isMr
-        ? 'जुना नगरसेवक बंद झाला. नवा सक्रिय झाला — आता त्यांची माहिती भरा.'
-        : 'Previous Nagarsevak deactivated. New buyer is active — fill their profile now.');
-      notifyPortalUpdated();
-      setConfirmSwitch(null);
-      await loadData();
-    } catch (err) {
-      showToast(err.message || 'Could not change Nagarsevak.', 'error');
-    } finally {
-      setSaving(false);
-    }
+      if (effectiveWardId && next) localStorage.setItem(panelEditKey(effectiveWardId), next);
+    } catch { /* ignore */ }
   };
 
   // Open Add Work Modal
@@ -585,6 +661,7 @@ export default function PortalManagement() {
       const { pinFirst, videoUploading, ...itemFields } = itemFormData;
       const payload = {
         ...itemFields,
+        nagarsevakUserId: editorPanelId || representative?.id || portalConfig?.featuredNagarsevakUserId || null,
         showOnDashboard: !!itemFormData.showOnDashboard,
         title: (itemFormData.title || itemFormData.titleMr || '').trim(),
         titleMr: (itemFormData.titleMr || itemFormData.title || '').trim(),
@@ -625,6 +702,7 @@ export default function PortalManagement() {
         setDashboardWorkOrder(nextOrder);
         await api.updatePortalConfig({
           wardId: effectiveWardId,
+          nagarsevakUserId: editorPanelId || representative?.id || null,
           dashboardWorkOrder: nextOrder,
         });
       }
@@ -689,6 +767,7 @@ export default function PortalManagement() {
       setDashboardWorkOrder(nextOrder);
       await api.updatePortalConfig({
         wardId: effectiveWardId,
+        nagarsevakUserId: editorPanelId || representative?.id || null,
         dashboardWorkOrder: nextOrder,
       });
       try {
@@ -714,6 +793,7 @@ export default function PortalManagement() {
     try {
       await api.updatePortalConfig({
         wardId: effectiveWardId,
+        nagarsevakUserId: editorPanelId || representative?.id || null,
         dashboardWorkOrder: unique,
       });
       setOrderDirty(false);
@@ -862,13 +942,13 @@ export default function PortalManagement() {
         title={isMr ? 'पोर्टल व्यवस्थापन' : 'Portal Management'}
         subtitle={
           isMr
-            ? 'निवडलेल्या वॉर्डचे बॅनर, नगरसेवक प्रोफाइल आणि विकास कामे नागरिक पोर्टलवर प्रकाशित करा.'
-            : 'Publish banners, the Nagarsevak profile and public works for the selected ward’s citizen portal.'
+            ? 'नगरसेवक पॅनेल निवडा, मग त्या पॅनेलचे बॅनर, प्रोफाइल आणि कामे स्वतंत्र प्रकाशित करा.'
+            : 'Pick a Nagarsevak panel, then publish banners, profile and works for that panel only.'
         }
         action={
           <div className="portal-header-actions">
             <a
-              href={`/citizen-portal${effectiveWardId ? `?wardId=${effectiveWardId}` : ''}&preview=citizen`}
+              href={`/citizen-portal${effectiveWardId ? `?wardId=${effectiveWardId}` : ''}${editorPanelId ? `&nagarsevakId=${editorPanelId}` : ''}&preview=citizen`}
               target="_blank"
               rel="noreferrer"
               className="primary-btn portal-preview-btn"
@@ -965,6 +1045,24 @@ export default function PortalManagement() {
             <div className="exec-quick-ward">
               <WardFilter compact label="" />
             </div>
+            <div className="exec-quick-ward portal-panel-picker">
+              <SearchableSelect
+                compact
+                label=""
+                disabled={needsWardPick || isNagarsevak(user) || !nagarsevaks.length}
+                value={editorPanelId}
+                onChange={handleEditorPanel}
+                options={nagarsevaks.map((n) => ({
+                  value: n.id,
+                  label: `${n.name}${n.wardSeat ? ` · ${n.wardSeat}` : ''}${n.mobile ? ` · ${n.mobile}` : ''}`,
+                  title: n.name,
+                  hint: [n.wardSeat, n.mobile].filter(Boolean).join(' · '),
+                }))}
+                placeholder={isMr ? 'कोणत्या नगरसेवकाचे पॅनेल संपादित करायचे?' : 'Which Nagarsevak panel to edit'}
+                searchPlaceholder={isMr ? 'नगरसेवक शोधा…' : 'Search Nagarsevak…'}
+                clearable={false}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -973,7 +1071,7 @@ export default function PortalManagement() {
         <p className="ward-portal-hint">
           {isMr
             ? 'पोर्टल संपादनासाठी वॉर्ड निवडा. प्रत्येक वॉर्डची बॅनर, प्रोफाइल आणि कामे स्वतंत्र आहेत.'
-            : 'Select a ward to edit its citizen portal. Banners, profile and works are stored per ward.'}
+            : 'Select a ward, then choose which Nagarsevak panel to edit. Banners, profile and works are stored per panel.'}
         </p>
       )}
 
@@ -1050,27 +1148,58 @@ export default function PortalManagement() {
                     <div className="form-section-header">
                       <span className="form-section-title">
                         <span>🖼️</span>
-                        <span>{isMr ? 'नागरिक मुख्य बॅनर (Hero Section Banner)' : 'Citizen Home Hero Banner'}</span>
+                        <span>{isMr ? 'होम बॅनर' : 'Home banner'}</span>
                       </span>
-                      <span className="form-section-tag">{isMr ? 'मुख्य पान' : 'Home Page'}</span>
+                      <span className="form-section-tag">{isMr ? 'होम' : 'Home'}</span>
                     </div>
 
                     <ImageCropField
-                      label={isMr ? 'नागरिक Home बॅनर' : 'Citizen Home Banner'}
+                      key={`hero-${editorPanelId || 'none'}`}
+                      label=""
                       value={portalConfig?.heroBannerUrl || '/hero-ward-default.jpg'}
-                      onChange={(url) => setPortalConfig((prev) => ({ ...prev, heroBannerUrl: url || '/hero-ward-default.jpg' }))}
+                      onChange={async (url) => {
+                        const next = url || '/hero-ward-default.jpg';
+                        setPortalConfig((prev) => ({ ...prev, heroBannerUrl: next }));
+                        if (!String(next).startsWith('data:image/')) return;
+                        try {
+                          const stored = await persistLaptopImage(next);
+                          setPortalConfig((prev) => ({ ...prev, heroBannerUrl: stored || next }));
+                        } catch (err) {
+                          showToast(err.message || 'Could not upload that image.', 'error');
+                        }
+                      }}
                       aspect={CITIZEN_HERO_ASPECT}
+                      variant="hero"
                       outputWidth={1440}
                       uploadLabel={isMr ? 'Home बॅनर अपलोड करा' : 'Upload Home Banner'}
-                      adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust Frame'}
-                      hint={isMr ? 'इथेच क्रॉप करा — हाच फ्रेम नागरिक Home वर दिसेल.' : 'Crop it here — this is exactly how it appears on Citizen Home.'}
+                      adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
+                      hint={isMr ? 'हाच आकार नागरिक Home वर दिसेल.' : 'This is the same size residents see on Home.'}
                     />
 
                     <div style={{ marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
                       <button
                         type="button"
                         className="ghost-btn-xs"
-                        onClick={() => setPortalConfig((prev) => ({ ...prev, heroBannerUrl: '/hero-ward-default.jpg' }))}
+                        onClick={async () => {
+                          setPortalConfig((prev) => ({ ...prev, heroBannerUrl: '/hero-ward-default.jpg' }));
+                          if (!effectiveWardId) return;
+                          try {
+                            setSaving(true);
+                            await api.updatePortalConfig({
+                              wardId: effectiveWardId,
+                              nagarsevakUserId: editorPanelId || representative?.id || null,
+                              heroBannerUrl: '/hero-ward-default.jpg',
+                              useCivicHero: true,
+                            });
+                            notifyPortalUpdated(effectiveWardId);
+                            setPortalConfig((prev) => ({ ...prev, heroBannerUrl: '/hero-ward-default.jpg' }));
+                            showToast(isMr ? 'या पॅनेलवर अधिकृत महापालिका बॅनर सेट झाला.' : 'Official civic banner set for this panel.');
+                          } catch (err) {
+                            showToast(err.message || 'Could not reset banner.', 'error');
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
                         title={isMr ? 'अधिकृत महापालिका बॅनर वापरा' : 'Reset to official municipal civic banner'}
                       >
                         🏛️ {isMr ? 'अधिकृत महापालिका बॅनर वापरा' : 'Reset to Official Civic Banner'}
@@ -1082,28 +1211,70 @@ export default function PortalManagement() {
                     <div className="form-section-header">
                       <span className="form-section-title">
                         <span>📣</span>
-                        <span>{isMr ? 'तक्रार पानाचा बॅनर' : 'Complaints page banner'}</span>
+                        <span>{isMr ? 'तक्रार बॅनर' : 'Complaints banner'}</span>
                       </span>
                       <span className="form-section-tag">{isMr ? 'तक्रारी' : 'Complaints'}</span>
                     </div>
-                    <LiveBannerPreview
-                      url={portalConfig?.complaintsBannerUrl}
-                      emptyLabel={isMr ? 'अजून तक्रार बॅनर सेट नाही.' : 'No complaints banner set yet.'}
-                      aspect={2.4}
-                    />
                     <ImageCropField
-                      label={isMr ? 'तक्रार पानाचा कव्हर बॅनर' : 'Complaints cover banner'}
+                      label=""
                       value={portalConfig?.complaintsBannerUrl || ''}
-                      onChange={(url) => setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: url || '' }))}
-                      aspect={2.4}
-                      outputWidth={1200}
+                      onChange={async (url) => {
+                        const next = url || '';
+                        setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: next }));
+                        if (!String(next).startsWith('data:image/')) return;
+                        try {
+                          const stored = await persistLaptopImage(next);
+                          setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: stored || next }));
+                        } catch (err) {
+                          showToast(err.message || 'Could not upload that image.', 'error');
+                        }
+                      }}
+                      aspect={COMPLAINTS_BANNER_ASPECT}
+                      variant="hero"
+                      outputWidth={1440}
                       uploadLabel={isMr ? 'तक्रार बॅनर अपलोड करा' : 'Upload complaints banner'}
-                      adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust frame'}
-                      hint={isMr ? 'हा फोटो नागरिक तक्रार पानाच्या वर दिसेल.' : 'This photo appears at the top of the citizen complaints page.'}
+                      adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
+                      hint={isMr ? 'हाच आकार नागरिक तक्रार पानावर दिसेल.' : 'This is the same size residents see on Complaints.'}
                     />
                     <div className="portal-section-save">
                       <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveComplaintsBanner}>
                         {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'तक्रार बॅनर सेव्ह करा' : 'Save complaints banner')}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-section-box">
+                    <div className="form-section-header">
+                      <span className="form-section-title">
+                        <span>🖼️</span>
+                        <span>{isMr ? 'गॅलरी बॅनर' : 'Gallery banner'}</span>
+                      </span>
+                      <span className="form-section-tag">{isMr ? 'गॅलरी' : 'Gallery'}</span>
+                    </div>
+                    <ImageCropField
+                      label=""
+                      value={portalConfig?.galleryBannerUrl || ''}
+                      onChange={async (url) => {
+                        const next = url || '';
+                        setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: next }));
+                        if (!String(next).startsWith('data:image/')) return;
+                        try {
+                          const stored = await persistLaptopImage(next);
+                          setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: stored || next }));
+                        } catch (err) {
+                          showToast(err.message || 'Could not upload that image.', 'error');
+                        }
+                      }}
+                      aspect={GALLERY_BANNER_ASPECT}
+                      variant="hero"
+                      outputWidth={1440}
+                      uploadLabel={isMr ? 'गॅलरी बॅनर अपलोड करा' : 'Upload gallery banner'}
+                      adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
+                      hint={isMr ? 'हाच आकार नागरिक गॅलरी पानावर दिसेल.' : 'This is the same size residents see on Gallery.'}
+                    />
+                    <div className="portal-section-save">
+                      <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveGalleryBanner}>
+                        {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'गॅलरी बॅनर सेव्ह करा' : 'Save gallery banner')}
                       </button>
                     </div>
                   </div>
@@ -1170,7 +1341,7 @@ export default function PortalManagement() {
                             className="form-control"
                             value={portalConfig?.heroSubtitleEn || ''}
                             onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroSubtitleEn: e.target.value }))}
-                            placeholder="WardDesk is your digital ward desk for complaints, schemes and notices..."
+                            placeholder="WardSetu is your digital ward desk for complaints, schemes and notices..."
                           />
                           <span className="lang-corner-badge">EN</span>
                         </div>
@@ -1281,24 +1452,6 @@ export default function PortalManagement() {
                   <span>{isMr ? `${galleryItems.length} कार्ड · सर्व फोटो/व्हिडीओ` : `${galleryItems.length} cards · all photos/videos`}</span>
                 </button>
               </div>
-              {galleryFilter !== 'DASHBOARD' && (
-                <div className="portal-live-banner-card">
-                  <div className="portal-live-banner-head">
-                    <div>
-                      <strong>{isMr ? 'गॅलरी कव्हर बॅनर' : 'Gallery cover banner'}</strong>
-                      <span>{isMr ? 'सध्या नागरिक गॅलरी पानावर हा फोटो आहे.' : 'This is the photo currently on the citizen gallery page.'}</span>
-                    </div>
-                    <button type="button" className="ghost-btn" onClick={() => setShowGalleryBannerModal(true)}>
-                      {isMr ? 'बॅनर बदला' : 'Change banner'}
-                    </button>
-                  </div>
-                  <LiveBannerPreview
-                    url={portalConfig?.galleryBannerUrl}
-                    emptyLabel={isMr ? 'अजून गॅलरी बॅनर सेट नाही. Change banner दाबा.' : 'No gallery banner set yet. Click Change banner.'}
-                    aspect={2.4}
-                  />
-                </div>
-              )}
               <div className="portal-works-hint">
                 {galleryFilter === 'DASHBOARD'
                   ? (isMr
@@ -1342,15 +1495,6 @@ export default function PortalManagement() {
                 <div className="works-toolbar-actions">
                   <button
                     type="button"
-                    className="ghost-btn"
-                    onClick={() => setShowGalleryBannerModal(true)}
-                    title={isMr ? 'गॅलरी पानाचा मुख्य कव्हर बॅनर बदला' : 'Edit gallery cover banner'}
-                  >
-                    <span>🖼️</span>
-                    <span>{isMr ? 'गॅलरी कव्हर बॅनर' : 'Gallery Banner'}</span>
-                  </button>
-                  <button
-                    type="button"
                     className={`primary-btn save-order-btn ${orderDirty ? 'is-dirty' : ''}`}
                     disabled={!orderDirty || saving}
                     onClick={handleSaveOrder}
@@ -1376,20 +1520,6 @@ export default function PortalManagement() {
                   </div>
                 )}
               </div>
-
-              {galleryFilter !== 'DASHBOARD' && (
-                <div className="gallery-add-work-bar">
-                  <p>
-                    {isMr
-                      ? 'येथे नवीन फोटो/व्हिडीओ जोडा. नागरिक Home वर काय दिसेल ते ☆ डॅशबोर्डवर जोडा ने ठरवा.'
-                      : 'Add photos and videos here. Star ☆ Add to Dashboard for any work you want on citizen Home.'}
-                  </p>
-                  <button type="button" className="primary-btn add-work-btn" onClick={openAddModal}>
-                    <span>＋</span>
-                    <span>{isMr ? 'नवीन काम जोडा' : 'Add work'}</span>
-                  </button>
-                </div>
-              )}
 
               {/* Works List / Grid */}
               {filteredWorks.length === 0 ? (
@@ -1538,8 +1668,8 @@ export default function PortalManagement() {
                   <h3>{isMr ? 'नगरसेवक प्रोफाइल' : 'Nagarsevak profile'}</h3>
                   <p>
                     {isMr
-                      ? 'फक्त Ward activation मध्ये Active केलेल्या नगरसेवकांची प्रोफाइल येथे दिसते. नागरिकांना तेच दिसतात.'
-                      : 'Only Nagarsevaks you activated in Ward activation appear here. Residents see the same people.'}
+                      ? 'वरच्या ड्रॉपडाउनमधून ज्या नगरसेवकाचे पॅनेल संपादित करायचे आहे ते निवडा. प्रत्येक पॅनेल स्वतंत्र आहे.'
+                      : 'Use the dropdown above to choose which Nagarsevak panel you are editing. Each panel is independent.'}
                   </p>
                 </div>
                 {!activation?.wardActive && (
@@ -1550,44 +1680,20 @@ export default function PortalManagement() {
                     <a className="portal-inline-link" href="/ward-activation">Ward activation →</a>
                   </div>
                 )}
-                {canSwitchBuyer && purchasedNagarsevaks.length > 0 && (
-                  <div className="form-section-box nagar-buyer-box">
-                    <label className="form-label">{isMr ? 'Active नगरसेवक' : 'Active Nagarsevak'}</label>
-                    <select
-                      className="form-select"
-                      value={representative?.id || ''}
-                      disabled={saving || !activation?.wardActive}
-                      onChange={(e) => {
-                        const nextId = e.target.value;
-                        if (!nextId || String(nextId) === String(representative?.id)) return;
-                        const next = purchasedNagarsevaks.find((n) => String(n.id) === String(nextId));
-                        if (next) setConfirmSwitch({ from: representative, to: next, isFirst: !representative });
-                      }}
-                    >
-                      {!representative && (
-                        <option value="">{isMr ? 'Active नगरसेवक निवडा…' : 'Select the active Nagarsevak…'}</option>
-                      )}
-                      {purchasedNagarsevaks.map((n) => (
-                        <option key={n.id} value={n.id}>
-                          {n.name}{n.wardSeat ? ` · ${n.wardSeat}` : ''}{n.mobile ? ` · ${n.mobile}` : ''}
-                        </option>
-                      ))}
-                    </select>
+                {representative && (
+                  <div className="portal-purchase-note">
+                    {isMr
+                      ? `संपादन: ${representative.name}${representative.wardSeat ? ` · ${representative.wardSeat}` : ''}`
+                      : `Editing: ${representative.name}${representative.wardSeat ? ` · ${representative.wardSeat}` : ''}`}
                   </div>
                 )}
 
                 {!representative ? (
                   <Empty>
                     {isMr
-                      ? (activation?.wardActive
-                        ? 'या वॉर्डसाठी अजून कोणताही नगरसेवक Active नाही. Ward activation मध्ये ज्यांना Active केले आहे त्यांचीच प्रोफाइल येथे येते.'
-                        : 'आधी वॉर्ड Activate करा.')
-                      : (activation?.wardActive
-                        ? 'No active Nagarsevak on this ward yet. Only people you activate in Ward activation appear here.'
-                        : 'Activate the ward first.')}
-                    {activation?.wardActive && (
-                      <a className="portal-inline-link" href="/ward-activation">Ward activation →</a>
-                    )}
+                      ? 'या वॉर्डवर नगरसेवक नाहीत. Staff किंवा Ward activation मध्ये नगरसेवक जोडा, मग येथे त्यांचे पॅनेल संपादित करा.'
+                      : 'No Nagarsevak on this ward yet. Add them in Staff or Ward activation, then edit their panel here.'}
+                    <a className="portal-inline-link" href="/ward-activation">Ward activation →</a>
                   </Empty>
                 ) : (
                   <>
@@ -1683,13 +1789,15 @@ export default function PortalManagement() {
                             placeholder={isMr ? 'नागरिकांसाठी संदेश लिहा' : 'Write the message residents should see'}
                           />
                         </div>
-
-                        <HighlightCardsEditor
-                          isMr={isMr}
-                          cards={representative?.achievements}
-                          onChange={(next) => setRepresentative((prev) => ({ ...prev, achievements: next }))}
-                        />
                       </div>
+                    </div>
+
+                    <div className="portal-highlight-block">
+                      <HighlightCardsEditor
+                        isMr={isMr}
+                        cards={representative?.achievements}
+                        onChange={(next) => setRepresentative((prev) => ({ ...prev, achievements: next }))}
+                      />
                     </div>
 
                     <div className="form-actions-footer">
@@ -1704,70 +1812,6 @@ export default function PortalManagement() {
           )}
 
         </div>
-      )}
-
-      {confirmSwitch?.to && (
-        <Modal
-          title={confirmSwitch.isFirst
-            ? (isMr ? 'खरेदीदार सक्रिय करा' : 'Activate buyer')
-            : (isMr ? 'नगरसेवक बदला' : 'Change Nagarsevak')}
-          onClose={() => !saving && setConfirmSwitch(null)}
-        >
-          <p style={{ margin: '0 0 16px', lineHeight: 1.5 }}>
-            {confirmSwitch.isFirst
-              ? (isMr
-                ? `${confirmSwitch.to.name} या वॉर्डसाठी सक्रिय होतील. मग त्यांची प्रोफाइल माहिती भरा.`
-                : `${confirmSwitch.to.name} will be activated for this ward. Then fill their profile.`)
-              : (isMr
-                ? `${confirmSwitch.from?.name || 'सध्याचा नगरसेवक'} निष्क्रिय होतील आणि ${confirmSwitch.to.name} सक्रिय होतील. नागरिकांना नवा प्रोफाइल दिसेल.`
-                : `${confirmSwitch.from?.name || 'The current Nagarsevak'} will be deactivated and ${confirmSwitch.to.name} will be activated. Residents will see the new profile.`)}
-          </p>
-          <div className="modal-actions">
-            <button type="button" className="ghost-btn" disabled={saving} onClick={() => setConfirmSwitch(null)}>
-              {isMr ? 'रद्द' : 'Cancel'}
-            </button>
-            <button type="button" className="primary-btn" disabled={saving} onClick={() => applyBuyerSeat(confirmSwitch.to.id)}>
-              {saving ? (isMr ? 'बदलत आहे…' : 'Updating…') : (isMr ? 'होय, बदला' : 'Yes, switch')}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {/* ============================================================== */}
-      {/* GALLERY COVER BANNER MODAL */}
-      {/* ============================================================== */}
-      {showGalleryBannerModal && (
-        <Modal
-          wide
-          title={isMr ? 'गॅलरी कव्हर बॅनर संपादित करा' : 'Edit Gallery Cover Banner'}
-          onClose={() => setShowGalleryBannerModal(false)}
-        >
-          <div style={{ padding: '4px 0' }}>
-            <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: 14 }}>
-              {isMr
-                ? 'हा बॅनर नागरिक विकास गॅलरी पानाच्या शीर्षस्थानी दिसेल.'
-                : 'This banner appears at the top of the citizen development works gallery page.'}
-            </p>
-            <ImageCropField
-              label={isMr ? 'गॅलरी कव्हर बॅनर' : 'Gallery Cover Banner'}
-              value={portalConfig?.galleryBannerUrl || ''}
-              onChange={(url) => setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: url || '' }))}
-              aspect={2.4}
-              outputWidth={1200}
-              uploadLabel={isMr ? 'गॅलरी बॅनर अपलोड करा' : 'Upload Gallery Banner'}
-              adjustLabel={isMr ? 'क्रॉप / फ्रेम समायोजित करा' : 'Crop / Adjust Frame'}
-              hint={isMr ? 'फक्त गॅलरीच्या वरच्या हिरोवर हा फोटो दिसेल.' : 'Displayed at the top of the gallery page.'}
-            />
-            <div className="modal-actions" style={{ marginTop: 20 }}>
-              <button type="button" className="ghost-btn" onClick={() => setShowGalleryBannerModal(false)}>
-                {isMr ? 'रद्द करा' : 'Cancel'}
-              </button>
-              <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveGalleryBanner}>
-                {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'गॅलरी बॅनर सेव्ह करा' : 'Save Gallery Banner')}
-              </button>
-            </div>
-          </div>
-        </Modal>
       )}
 
       {/* ============================================================== */}

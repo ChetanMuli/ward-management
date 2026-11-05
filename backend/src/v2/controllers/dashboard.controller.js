@@ -12,6 +12,44 @@ const OPEN_STATUSES=['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','REOPENED'];
 const STATUS_LIST=['SUBMITTED','PENDING','ASSIGNED','IN_PROGRESS','RESOLVED','REOPENED','CLOSED'];
 const EMPTY_ID='00000000-0000-0000-0000-000000000000';
 
+async function countActivePeople({ areaIds, voterStatus, dobBetween } = {}) {
+  const replacements = {};
+  let sql = `SELECT COUNT(*) AS n
+    FROM persons p
+    INNER JOIN families f ON f.id = p.family_id AND f.deleted_at IS NULL
+    INNER JOIN houses h ON h.id = f.house_id AND h.deleted_at IS NULL
+    WHERE p.deleted_at IS NULL AND p.status = 'ACTIVE'`;
+  if (areaIds) {
+    sql += ' AND h.area_id IN (:areaIds)';
+    replacements.areaIds = areaIds.length ? areaIds : [EMPTY_ID];
+  }
+  if (voterStatus) {
+    sql += ' AND EXISTS (SELECT 1 FROM voter_profiles vp WHERE vp.person_id = p.id AND vp.status = :voterStatus)';
+    replacements.voterStatus = voterStatus;
+  }
+  if (dobBetween) {
+    sql += ' AND p.dob BETWEEN :dobStart AND :dobEnd';
+    replacements.dobStart = dobBetween[0];
+    replacements.dobEnd = dobBetween[1];
+  }
+  const [row] = await sequelize.query(sql, { replacements, type: QueryTypes.SELECT });
+  return Number(row?.n || 0);
+}
+
+async function countFamiliesInAreas(areaIds) {
+  const replacements = {};
+  let sql = `SELECT COUNT(*) AS n
+    FROM families f
+    INNER JOIN houses h ON h.id = f.house_id AND h.deleted_at IS NULL
+    WHERE f.deleted_at IS NULL`;
+  if (areaIds) {
+    sql += ' AND h.area_id IN (:areaIds)';
+    replacements.areaIds = areaIds.length ? areaIds : [EMPTY_ID];
+  }
+  const [row] = await sequelize.query(sql, { replacements, type: QueryTypes.SELECT });
+  return Number(row?.n || 0);
+}
+
 function scopeWardIds(requestedWardId, accessibleWardIds){
   if(requestedWardId) return [requestedWardId];
   return accessibleWardIds;
@@ -51,12 +89,6 @@ const summary = asyncHandler(async (req, res) => {
     ? { areaId:{[Op.in]:areaIds.length?areaIds:[EMPTY_ID]} }
     : {};
 
-  const familyInclude = needsAreaScope ? [{ model:House, as:'house', where:areaFilter, required:true }] : [];
-  const personInclude = [
-    { model: VoterProfile, as:'voterProfile' },
-    ...(needsAreaScope ? [{ model:Family, as:'family', include:[{ model:House, as:'house', where:areaFilter, required:true }], required:true }] : [])
-  ];
-
   const complaintScope={};
   if(req.user.roleName==='EMPLOYEE'){
     if(!req.user.employeeProfile?.id) return res.status(403).json({success:false,message:'Employee profile is missing',errors:null});
@@ -89,33 +121,18 @@ const summary = asyncHandler(async (req, res) => {
   const [houses,apartments,families,persons,voters,nonVoters,complaints,openComplaints,managedEmployees,corporatorCount,birthdayCount,upcomingCount,hospitals,shops] = await Promise.all([
     House.count({ where:areaFilter }),
     Apartment.count({ where:apartmentWhere }),
-    Family.count({ where:{}, include:familyInclude, distinct:true }),
-    Person.count({ where:{status:'ACTIVE'}, include:personInclude, distinct:true }),
-    Person.count({
-      where:{status:'ACTIVE'},
-      include:[
-        { model:VoterProfile, as:'voterProfile', required:true, where:{status:'VOTER'} },
-        ...personInclude.filter((inc)=>inc.as!=='voterProfile'),
-      ],
-      distinct:true,
-    }),
-    Person.count({
-      where:{status:'ACTIVE'},
-      include:[
-        { model:VoterProfile, as:'voterProfile', required:true, where:{status:'NON_VOTER'} },
-        ...personInclude.filter((inc)=>inc.as!=='voterProfile'),
-      ],
-      distinct:true,
-    }),
+    countFamiliesInAreas(needsAreaScope ? areaIds : null),
+    countActivePeople({ areaIds: needsAreaScope ? areaIds : null }),
+    countActivePeople({ areaIds: needsAreaScope ? areaIds : null, voterStatus: 'VOTER' }),
+    countActivePeople({ areaIds: needsAreaScope ? areaIds : null, voterStatus: 'NON_VOTER' }),
     Complaint.count({ where:complaintScope, ...countOpts }),
     Complaint.count({ where:whereWith({status:{[Op.in]:OPEN_STATUSES}}), ...countOpts }),
     req.user.roleName==='NAGARSEVAK' ? Employee.count({where:{managerUserId:req.user.id,status:'ACTIVE'}}) : Promise.resolve(0),
     ['SUPER_ADMIN','SUB_MASTER_ADMIN'].includes(req.user.roleName) ? (async()=>{const r=await Role.findOne({where:{name:'NAGARSEVAK'}});const wardWhere=requestedWardId?{wardId:requestedWardId}:accessibleWardIds===null?{}:{wardId:{[Op.in]:accessibleWardIds.length?accessibleWardIds:[EMPTY_ID]}};return r?User.count({where:{roleId:r.id,status:'ACTIVE',...wardWhere}}):0})() : Promise.resolve(0),
     PersonBirthday.count({ where:{ status:'ACTIVE', ...bdayWardWhere, [Op.or]:bdayPairs } }).catch(()=>0),
-    Person.count({
-      where:{ status:'ACTIVE', dob:{ [Op.between]:[turn18Start.toISOString().slice(0,10), turn18End.toISOString().slice(0,10)] } },
-      include:personInclude,
-      distinct:true,
+    countActivePeople({
+      areaIds: needsAreaScope ? areaIds : null,
+      dobBetween: [turn18Start.toISOString().slice(0,10), turn18End.toISOString().slice(0,10)],
     }),
     Hospital.count({ where: hospitalWhere }).catch(()=>0),
     Shop.count({
@@ -209,7 +226,16 @@ const summary = asyncHandler(async (req, res) => {
     const emp = await Employee.findByPk(req.user.employeeProfile.id, {
       include: [{ model: User, as: 'manager', attributes: ['id', 'name', 'mobile', 'email'] }]
     });
-    const areaIds = (emp?.assignedAreaIds || req.user.employeeProfile.assignedAreaIds || []);
+    const rawAreaIds = (emp?.assignedAreaIds || req.user.employeeProfile.assignedAreaIds || []);
+    let areaIds = [];
+    if (Array.isArray(rawAreaIds)) {
+      areaIds = rawAreaIds;
+    } else if (typeof rawAreaIds === 'string' && rawAreaIds.trim().length > 0) {
+      try {
+        const parsed = JSON.parse(rawAreaIds);
+        if (Array.isArray(parsed)) areaIds = parsed;
+      } catch (_) {}
+    }
     let assignedAreas = [];
     if (areaIds.length) {
       assignedAreas = await Area.findAll({

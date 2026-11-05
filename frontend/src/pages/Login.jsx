@@ -1,6 +1,8 @@
 import React,{useEffect,useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {api,getUser,setSession} from '../services/api';
+import {markNeedPanelPick, savePanelId, consumeNeedPanelPick, peekNeedPanelPick, activePanelsFromPortal} from '../utils/panelChoice';
+import NagarsevakPanelPicker from '../components/NagarsevakPanelPicker';
 import BrandIcon from '../components/BrandIcon';
 import {switchLanguage, initLanguage, ensureCurrentLanguage, getLanguage} from '../language';
 
@@ -105,7 +107,7 @@ export function AuthShell({admin,title,lead,pageLabel,register,children}){
  const label=pageLabel||defaultLabel;
 
  useEffect(()=>{
-  document.title=`${label} · WardDesk`;
+  document.title=`${label} · WardSetu`;
   initLanguage();
   ensureCurrentLanguage();
  },[label]);
@@ -125,7 +127,7 @@ export function AuthShell({admin,title,lead,pageLabel,register,children}){
    <div className="auth-blob auth-blob-b" aria-hidden="true"/>
    <div className="auth-simple-logo">
     <span className="brand-mark notranslate" translate="no"><BrandIcon size={34} variant="light" /></span>
-    <strong className="notranslate" translate="no">WardDesk</strong>
+    <strong className="notranslate" translate="no">WardSetu</strong>
    </div>
    <p className="auth-page-tag">{label}</p>
    <h1>{title}</h1>
@@ -173,8 +175,24 @@ export default function Login({mode='user'}){
  const [debugOtp,setDebugOtp]=useState('');
  const [sentTo,setSentTo]=useState('');
  const [mailFailed,setMailFailed]=useState(false);
+ const [pickOpen,setPickOpen]=useState(false);
+ const [pickList,setPickList]=useState([]);
+ const [pickWardId,setPickWardId]=useState('');
  const navigate=useNavigate();
  const forgotValue=emailId;
+
+ function enterCitizenHome(wardId,panelId){
+  if(wardId && panelId) savePanelId(wardId,panelId);
+  consumeNeedPanelPick();
+  window.location.replace('/');
+ }
+
+ async function loadCitizenPanels(user){
+  const wardId=user?.wardId||'';
+  setPickWardId(wardId);
+  const pc=await api.portalConfig(wardId?{wardId}:{});
+  return activePanelsFromPortal(pc.data);
+ }
 
  useEffect(()=>{
   initLanguage();
@@ -184,8 +202,27 @@ export default function Login({mode='user'}){
  useEffect(()=>{
   const u=getUser();
   if(!u) return;
-  const dest=String(u.role||'').toUpperCase()==='CITIZEN'?'/':'/dashboard';
-  window.location.replace(dest);
+  const citizen=String(u.role||'').toUpperCase()==='CITIZEN';
+  if(admin && citizen) return;
+  if(!citizen){
+   window.location.replace('/dashboard');
+   return;
+  }
+  if(!peekNeedPanelPick()){
+   window.location.replace('/');
+   return;
+  }
+  loadCitizenPanels(u).then((panels)=>{
+   if(panels.length<=1){
+    enterCitizenHome(u.wardId, panels[0]?.id);
+    return;
+   }
+   setPickList(panels);
+   setPickOpen(true);
+  }).catch(()=>{
+   consumeNeedPanelPick();
+   window.location.replace('/');
+  });
  },[admin]);
 
  useEffect(()=>{
@@ -232,9 +269,25 @@ export default function Login({mode='user'}){
    if(!admin&&!citizen) throw new Error(isMr?'हे प्रशासकीय खाते आहे. /admin वर साइन इन करा.':'This is an administration account. Sign in at /admin.');
    if(admin&&citizen) throw new Error(isMr?'हे नागरिक खाते आहे. /login वर साइन इन करा.':'This is a resident account. Sign in at /login.');
    setSession(result.data.token,result.data.user);
-   const dest=admin?'/dashboard':'/';
-   try{window.history.replaceState({wardSignedIn:1},'',dest);}catch{}
-   window.location.replace(dest);
+   if(citizen){
+    const wardId=result.data.user?.wardId||'';
+    try{
+     const panels=await loadCitizenPanels(result.data.user);
+     if(panels.length>1){
+      markNeedPanelPick();
+      setPickList(panels);
+      setPickOpen(true);
+      return;
+     }
+     if(panels.length===1) savePanelId(wardId, panels[0].id);
+    }catch{/* continue to home if directory is unavailable */}
+    consumeNeedPanelPick();
+    try{window.history.replaceState({wardSignedIn:1},'','/');}catch{}
+    window.location.replace('/');
+    return;
+   }
+   try{window.history.replaceState({wardSignedIn:1},'','/dashboard');}catch{}
+   window.location.replace('/dashboard');
    return;
   }catch(e){
    setError(e.message||(isMr?'साइन इन करण्यात अडचण आली.':'Unable to sign in.'));
@@ -294,6 +347,21 @@ export default function Login({mode='user'}){
   }finally{
    setBusy(false);
   }
+ }
+
+ if(pickOpen){
+  return (
+   <div className="login-page-v2 citizen-login panel-pick-gate-page" data-auth="user-login">
+    <NagarsevakPanelPicker
+     open
+     list={pickList}
+     selectedId=""
+     required
+     language={currentLang}
+     onSelect={(n)=>enterCitizenHome(pickWardId||getUser()?.wardId, n.id)}
+    />
+   </div>
+  );
  }
 
  if(view==='support'){

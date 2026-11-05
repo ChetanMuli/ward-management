@@ -984,7 +984,7 @@ body {
     </div>
 
     <!-- 7. Application name at the very end of card -->
-    <div class="card-app-credit">WardDesk</div>
+    <div class="card-app-credit">WardSetu</div>
   </div>
 </article>
 
@@ -1004,7 +1004,7 @@ export function printBirthdayCard(record, currentUser = getUser()) {
   const html = generateBirthdayCardHtml(record, true, currentUser);
   const w = window.open('', '_blank', 'width=950,height=800');
   if (!w) {
-    alert('Please allow pop-ups for WardDesk to print the birthday card directly, or use the "Preview Card" button to view and print.');
+    alert('Please allow pop-ups for WardSetu to print the birthday card directly, or use the "Preview Card" button to view and print.');
     return;
   }
   w.document.open();

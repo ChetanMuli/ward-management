@@ -68,6 +68,57 @@ async function ensureDatabaseSchema(sequelize) {
       await addHospitalIndex(['deleted_at'], 'idx_hospitals_deleted');
     }
 
+    // 0b. medical_stores table
+    if (!tables.includes('medical_stores')) {
+      console.log('[SCHEMA-SYNC] Creating table medical_stores...');
+      await queryInterface.createTable('medical_stores', {
+        id: { type: DataTypes.UUID, primaryKey: true, allowNull: false, defaultValue: DataTypes.UUIDV4 },
+        ward_id: { type: DataTypes.UUID, allowNull: false },
+        area_id: { type: DataTypes.UUID, allowNull: true },
+        name: { type: DataTypes.STRING, allowNull: false },
+        type: {
+          type: DataTypes.ENUM('ALLOPATHIC', 'AYURVEDIC', 'HOMOEOPATHIC', 'GENERIC', 'WHOLESALE_RETAIL', 'OTHER'),
+          allowNull: false,
+          defaultValue: 'ALLOPATHIC',
+        },
+        address: { type: DataTypes.TEXT, allowNull: true },
+        landmark: { type: DataTypes.STRING, allowNull: true },
+        phone: { type: DataTypes.STRING, allowNull: true },
+        emergency_phone: { type: DataTypes.STRING, allowNull: true },
+        opening_hours: { type: DataTypes.STRING, allowNull: true },
+        is_24x7: { type: DataTypes.BOOLEAN, defaultValue: false, allowNull: false },
+        home_delivery: { type: DataTypes.BOOLEAN, defaultValue: false, allowNull: false },
+        facilities: { type: DataTypes.TEXT, allowNull: true },
+        latitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
+        longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
+        notes: { type: DataTypes.TEXT, allowNull: true },
+        status: {
+          type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
+          allowNull: false,
+          defaultValue: 'ACTIVE',
+        },
+        created_by_user_id: { type: DataTypes.UUID, allowNull: true },
+        created_at: { type: DataTypes.DATE, allowNull: false },
+        updated_at: { type: DataTypes.DATE, allowNull: false },
+        deleted_at: { type: DataTypes.DATE, allowNull: true },
+      }, { charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
+      await queryInterface.addIndex('medical_stores', ['ward_id']).catch(() => {});
+      await queryInterface.addIndex('medical_stores', ['area_id']).catch(() => {});
+      await queryInterface.addIndex('medical_stores', ['status']).catch(() => {});
+      await queryInterface.addIndex('medical_stores', ['is_24x7']).catch(() => {});
+    }
+    if (tables.includes('medical_stores')) {
+      const addMedicalIndex = async (fields, name) => {
+        await queryInterface.addIndex('medical_stores', fields, { name }).catch(() => {});
+      };
+      await addMedicalIndex(['ward_id', 'status', 'deleted_at'], 'idx_medicals_ward_status_del');
+      await addMedicalIndex(['ward_id', 'is_24x7', 'status'], 'idx_medicals_ward_24x7');
+      await addMedicalIndex(['area_id', 'status', 'deleted_at'], 'idx_medicals_area_status_del');
+      await addMedicalIndex(['name'], 'idx_medicals_name');
+      await addMedicalIndex(['phone'], 'idx_medicals_phone');
+      await addMedicalIndex(['deleted_at'], 'idx_medicals_deleted');
+    }
+
     // 1. nagarsevak_schedules table
     if (!tables.includes('nagarsevak_schedules')) {
       console.log('[SCHEMA-SYNC] Creating table nagarsevak_schedules...');
@@ -171,7 +222,7 @@ async function ensureDatabaseSchema(sequelize) {
     await sequelize.query("ALTER TABLE complaints MODIFY COLUMN description TEXT NULL").catch(() => {});
 
     // 4. Ensure soft-delete deleted_at columns exist across all critical tables
-    for (const table of ['death_records', 'ward_updates', 'schemes', 'apartments', 'shops_and_offices', 'hospitals', 'nagarsevak_schedules', 'government_voter_lists', 'all_chat_messages', 'group_chat_messages', 'ward_chat_messages']) {
+    for (const table of ['death_records', 'ward_updates', 'schemes', 'apartments', 'shops_and_offices', 'hospitals', 'medical_stores', 'nagarsevak_schedules', 'government_voter_lists', 'all_chat_messages', 'group_chat_messages', 'ward_chat_messages']) {
       if (tables.includes(table)) {
         const desc = await queryInterface.describeTable(table).catch(() => ({}));
         if (!desc.deleted_at && !desc.deletedAt) {
@@ -316,6 +367,12 @@ async function ensureDatabaseSchema(sequelize) {
           allowNull: true,
         }).catch(() => {});
       }
+      await queryInterface.addIndex('ward_portal_configs', ['ward_id'], { unique: true, name: 'uq_portal_config_ward' }).catch(() => {});
+      await sequelize.query(`
+        UPDATE ward_portal_configs
+        SET meta = CAST(JSON_UNQUOTE(meta) AS JSON)
+        WHERE meta IS NOT NULL AND JSON_TYPE(meta) = 'STRING'
+      `).catch(() => {});
     }
 
     // 9. ward_gallery_items table
@@ -354,6 +411,14 @@ async function ensureDatabaseSchema(sequelize) {
 
     if (tables.includes('ward_gallery_items')) {
       const desc = await queryInterface.describeTable('ward_gallery_items').catch(() => ({}));
+      if (!desc.nagarsevak_user_id) {
+        console.log('[SCHEMA-SYNC] Adding missing column ward_gallery_items.nagarsevak_user_id...');
+        await queryInterface.addColumn('ward_gallery_items', 'nagarsevak_user_id', {
+          type: DataTypes.UUID,
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn nagarsevak_user_id:', e.message));
+        await queryInterface.addIndex('ward_gallery_items', ['nagarsevak_user_id']).catch(() => {});
+      }
       if (!desc.show_on_dashboard) {
         console.log('[SCHEMA-SYNC] Adding missing column ward_gallery_items.show_on_dashboard...');
         await queryInterface.addColumn('ward_gallery_items', 'show_on_dashboard', {
@@ -362,6 +427,18 @@ async function ensureDatabaseSchema(sequelize) {
           defaultValue: false,
         }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn show_on_dashboard:', e.message));
         await queryInterface.addIndex('ward_gallery_items', ['show_on_dashboard']).catch(() => {});
+      }
+    }
+
+    if (tables.includes('complaints')) {
+      const complaintDesc = await queryInterface.describeTable('complaints').catch(() => ({}));
+      if (!complaintDesc.assigned_nagarsevak_user_id) {
+        console.log('[SCHEMA-SYNC] Adding complaints.assigned_nagarsevak_user_id...');
+        await queryInterface.addColumn('complaints', 'assigned_nagarsevak_user_id', {
+          type: DataTypes.UUID,
+          allowNull: true,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn assigned_nagarsevak_user_id:', e.message));
+        await queryInterface.addIndex('complaints', ['assigned_nagarsevak_user_id'], { name: 'idx_complaints_assigned_nagarsevak' }).catch(() => {});
       }
     }
 
@@ -439,6 +516,21 @@ async function ensureDatabaseSchema(sequelize) {
       }
     }
 
+    if (tables.includes('ward_nagarsevak_subscriptions')) {
+      const subDesc = await queryInterface.describeTable('ward_nagarsevak_subscriptions').catch(() => ({}));
+      if (!subDesc.resident_visible) {
+        console.log('[SCHEMA-SYNC] Adding ward_nagarsevak_subscriptions.resident_visible...');
+        await queryInterface.addColumn('ward_nagarsevak_subscriptions', 'resident_visible', {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+        }).catch((e) => console.warn('[SCHEMA-SYNC] addColumn resident_visible:', e.message));
+        await sequelize.query(
+          "UPDATE ward_nagarsevak_subscriptions SET resident_visible = 1 WHERE status = 'ACTIVE'"
+        ).catch((e) => console.warn('[SCHEMA-SYNC] backfill resident_visible:', e.message));
+      }
+    }
+
     if (!tables.includes('chat_user_state')) {
       console.log('[SCHEMA-SYNC] Creating table chat_user_state...');
       await queryInterface.createTable('chat_user_state', {
@@ -476,7 +568,8 @@ async function ensureDatabaseSchema(sequelize) {
     };
     // Large ALTER INDEX on XAMPP MariaDB 10.4 can crash mysqld (families/persons).
     // Apply only when explicitly enabled; production can use sequelize migrations instead.
-    const applyScaleIndexes = String(process.env.SCHEMA_SYNC_PRODUCTION_INDEXES || '').trim() === '1';
+    const applyScaleIndexes = String(process.env.SCHEMA_SYNC_PRODUCTION_INDEXES || '').trim() === '1'
+      || String(process.env.NODE_ENV || '').trim() === 'production';
     if (applyScaleIndexes) {
     await addNamedIndex('notifications', ['user_id', 'created_at'], 'idx_notif_user_created');
     await addNamedIndex('notifications', ['sender_user_id', 'created_at'], 'idx_notif_sender_created');
@@ -542,8 +635,13 @@ async function ensureDatabaseSchema(sequelize) {
     }
     }
 
-    await repairAllForeignKeyOrphans(sequelize);
-    await repairChatUserForeignKeys(sequelize, tables);
+    const repairOrphans = String(process.env.SCHEMA_SYNC_REPAIR_ORPHANS || '').trim() === '1';
+    if (repairOrphans) {
+      await repairAllForeignKeyOrphans(sequelize);
+      await repairChatUserForeignKeys(sequelize, tables);
+    } else {
+      console.log('[SCHEMA-SYNC] Skipping FK orphan repair (set SCHEMA_SYNC_REPAIR_ORPHANS=1 to run).');
+    }
 
     // Demo gallery is served from the API default template, not copied into every ward.
 
@@ -561,6 +659,7 @@ async function ensureDatabaseSchema(sequelize) {
         '20261004000073-ward-public-registration-open.js',
         '20261004000074-ward-registration-invite-code.js',
         '20261016000078-chat-user-fk-cascade.js',
+        '20261021000079-live-resident-visible-and-gallery-owner.js',
       ];
       for (const mName of migrationsToRegister) {
         await sequelize.query('INSERT IGNORE INTO SequelizeMeta (name) VALUES (:name)', {

@@ -19,7 +19,8 @@ function persistDataUrl(value, prefix = 'img') {
   const str = String(value).trim();
   if (!str) return str;
   if (!str.startsWith('data:image/')) return str;
-  const m = str.match(/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i);
+  const m = str.match(/^data:image\/([a-z0-9.+-]+)(?:;charset=[^;]+)?;base64,([A-Za-z0-9+/=\s]+)$/i)
+    || str.match(/^data:image\/([a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i);
   if (!m) return str;
   let buf;
   try {
@@ -27,7 +28,7 @@ function persistDataUrl(value, prefix = 'img') {
   } catch (_) {
     return str;
   }
-  if (!buf.length || buf.length > 8 * 1024 * 1024) return str;
+  if (!buf.length || buf.length > 12 * 1024 * 1024) return str;
   const ext = /png/i.test(m[1]) ? 'png' : /webp/i.test(m[1]) ? 'webp' : 'jpg';
   try {
     return writePortalFile(buf, ext, prefix);

@@ -2,12 +2,12 @@ import ComplaintTimeline from '../components/ComplaintTimeline';
 import React,{useEffect,useMemo,useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import {api,getUser} from '../services/api';
-import {Empty,Field,MultiImageField,Loading,Modal,PageHeader,SearchableSelect,StatusPill,FaceAvatar} from '../components/Ui';
+import {Empty,Field,MultiImageField,Loading,Modal,StatusPill} from '../components/Ui';
 import {packComplaintImages,parseComplaintImages} from '../complaintMedia';
 import {openDirections, getTimelineDescription, formatStatusLabel} from './Complaints';
 import {getAccurateLocation} from '../location';
-import {formatWardLabel} from '../wardFormat';
 import { publicMediaUrl } from '../utils/portalDefaults';
+import { citizenPortalQuery, getSavedPanelId, assignedToPanel } from '../utils/panelChoice';
 
 export const COMPLAINT_CATEGORIES=[
   ['WATER','Water Supply','पाणी पुरवठा'],
@@ -31,23 +31,32 @@ function statusText(s){return String(s||'').replaceAll('_',' ')}
 
 export default function UserComplaints({language='en'}){
  const user=getUser(),location=useLocation(),mr=language==='mr';
+ const queryWardId=new URLSearchParams(location.search).get('wardId')||'';
+ const citizenWardId=queryWardId||user?.wardId||'';
  const [rows,setRows]=useState(null),[team,setTeam]=useState(null),[open,setOpen]=useState(false),[detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[statusFilter,setStatusFilter]=useState(''),[categoryFilter,setCategoryFilter]=useState(''),[priorityFilter,setPriorityFilter]=useState(''),[search,setSearch]=useState('');
  const [locating,setLocating]=useState(false);
  const [previewPhoto,setPreviewPhoto]=useState(null);
- const [form,setForm]=useState({category:'WATER',customCategory:'',description:'',priority:'MEDIUM',assignedNagarsevakUserId:'__ALL__',location:'',reportedImages:[]});
+ const panelId=getSavedPanelId(citizenWardId);
+ const [form,setForm]=useState({category:'WATER',customCategory:'',description:'',priority:'MEDIUM',assignedNagarsevakUserId:panelId||'',location:'',reportedImages:[]});
  const [portalNagarsevaks,setPortalNagarsevaks]=useState([]);
  const [portalConfig,setPortalConfig]=useState(null);
  function cachedHero(){
   try{
-    const v=localStorage.getItem(`ward_complaints_banner_${user?.wardId||''}`);
+    const v=localStorage.getItem(`ward_complaints_banner_${citizenWardId||''}_${panelId||''}`);
     if(v&&!String(v).startsWith('data:')&&!/hero-campaign-banner|hero-gauri-ajinkya|hero-poster-card/i.test(v)) return v;
   }catch{/* ignore */}
   return null;
  }
  const labels=mr?{title:'माझ्या तक्रारी',sub:'तुमच्या वॉर्डमध्ये नोंदवलेल्या तक्रारी आणि त्यांची प्रगती येथे पहा.',new:'नवीन तक्रार',empty:'अजून कोणतीही तक्रार नोंदवलेली नाही.',category:'तक्रारीचा प्रकार',description:'तक्रारीचे वर्णन',priority:'प्राधान्य',nagarsevak:'नगरसेवक निवडा',location:'ठिकाण / लँडमार्क',photo:'तक्रारीचे फोटो',submit:'तक्रार नोंदवा',cancel:'रद्द करा'}:{title:'My Complaints',sub:'Track complaints submitted from your registered ward account and follow every status update.',new:'New complaint',empty:'You have not submitted any complaints yet.',category:'Complaint category',description:'Describe the problem',priority:'Priority',nagarsevak:'Choose Nagarsevak',location:'Location / landmark',photo:'Problem photos',submit:'Submit complaint',cancel:'Cancel'};
 
- async function load(){try{setError('');const [c,t,pc]=await Promise.all([api.complaints({page:1,limit:40}),api.wardTeam(),api.portalConfig(user?.wardId?{wardId:user.wardId}:{})]);setRows(c.data||[]);setTeam(t.data||null);const cfg=pc.data?.config||pc.data||null;setPortalConfig(cfg);const complaintsBanner=cfg?.complaintsBannerUrl||cfg?.meta?.complaintsBannerUrl;if(complaintsBanner&&!String(complaintsBanner).startsWith('data:')){try{localStorage.setItem(`ward_complaints_banner_${user?.wardId||''}`,complaintsBanner)}catch{}}setPortalNagarsevaks(Array.isArray(pc.data?.nagarsevaks)?pc.data.nagarsevaks:(pc.data?.nagarsevak?[pc.data.nagarsevak]:[]))}catch(e){setRows([]);setError(e.message)}}
- useEffect(()=>{load()},[]);
+ async function load(){try{setError('');const q=citizenPortalQuery(citizenWardId);const panel=q.nagarsevakId||'';const [c,t,pc]=await Promise.all([api.complaints({page:1,limit:40,...q,assignedNagarsevakUserId:panel||undefined}),api.wardTeam(),api.portalConfig(q)]);setRows((c.data||[]).filter((row)=>assignedToPanel(row,panel)));setTeam(t.data||null);const cfg=pc.data?.config||pc.data||null;setPortalConfig(cfg);const complaintsBanner=cfg?.complaintsBannerUrl||cfg?.meta?.complaintsBannerUrl;if(complaintsBanner&&!String(complaintsBanner).startsWith('data:')){try{localStorage.setItem(`ward_complaints_banner_${citizenWardId||''}_${panel||''}`,complaintsBanner)}catch{}}setPortalNagarsevaks(Array.isArray(pc.data?.nagarsevaks)?pc.data.nagarsevaks:(pc.data?.nagarsevak?[pc.data.nagarsevak]:[]));if(panel) setForm((f)=>({...f,assignedNagarsevakUserId:panel}))}catch(e){setRows([]);setError(e.message)}}
+ useEffect(()=>{
+   load();
+   const syncTimer = setInterval(()=>{
+     if (document.visibilityState === 'visible') load();
+   }, 8000);
+   return () => clearInterval(syncTimer);
+ },[citizenWardId,panelId]);
  useEffect(()=>{
    const onPortalUpdate=()=>load();
    window.addEventListener('ward:portal-updated',onPortalUpdate);
@@ -61,8 +70,9 @@ export default function UserComplaints({language='en'}){
    return team?.nagarsevaks||[];
  },[team, portalNagarsevaks]);
  const liveComplaints=publicMediaUrl(portalConfig?.complaintsBannerUrl||portalConfig?.meta?.complaintsBannerUrl||'');
- const liveHero=(liveComplaints&&!String(liveComplaints).startsWith('data:'))?liveComplaints:null;
- const heroBanner=liveHero||cachedHero()||null;
+ const liveHome=publicMediaUrl(portalConfig?.heroBannerUrl||'');
+ const liveHero=(liveComplaints&&!String(liveComplaints).startsWith('data:'))?liveComplaints:((liveHome&&!String(liveHome).startsWith('data:'))?liveHome:null);
+ const heroBanner=liveHero||null;
  const nextAction=(status)=>({SUBMITTED:mr?'तक्रार नोंद झाली असून नगरसेवक / कर्मचाऱ्यांकडे पाठवली आहे.':'Complaint is open and waiting for ward assignment/action.',PENDING:mr?'तक्रारीवर पुढील कार्यवाहीची प्रतीक्षा.':'Waiting for the next ward action.',ASSIGNED:mr?'नियुक्त कर्मचारी काम सुरू करेल.':'Assigned employee should start the work.',IN_PROGRESS:mr?'काम सुरू आहे; पूर्ण झाल्यावर फोटोसह अपडेट होईल.':'Work is in progress; the responsible person should update it when completed.',RESOLVED:mr?'काम पूर्ण झाले आहे; प्रशासनाकडून बंद करण्याची प्रक्रिया बाकी.':'Work is marked complete; ward management can close the complaint.',REOPENED:mr?'तक्रार पुन्हा उघडली आहे; पुढील कार्यवाही अपेक्षित.':'Complaint was reopened and needs further action.',CLOSED:mr?'तक्रार बंद करण्यात आली आहे.':'Complaint is closed.'}[status]||'—');
 
  const getCategoryName=(cat)=>{
@@ -101,15 +111,18 @@ export default function UserComplaints({language='en'}){
  };
 
  const openNew=()=>{
-   setForm({category:'WATER',customCategory:'',description:'',priority:'MEDIUM',assignedNagarsevakUserId:'__ALL__',location:'',reportedImages:[]});
+   setForm({category:'WATER',customCategory:'',description:'',priority:'MEDIUM',assignedNagarsevakUserId:getSavedPanelId(citizenWardId)||'',location:'',reportedImages:[]});
    setError('');
    setOpen(true);
  };
 
  async function submit(e){
    e.preventDefault();
-   if(!form.assignedNagarsevakUserId){
-     setError(mr?'कृपया नगरसेवक किंवा सर्व नगरसेवक निवडा.':'Please select a Nagarsevak or All.');
+   const assignedId=form.assignedNagarsevakUserId && form.assignedNagarsevakUserId!=='__ALL__'
+     ? form.assignedNagarsevakUserId
+     : getSavedPanelId(citizenWardId);
+   if(!assignedId){
+     setError(mr?'कृपया नगरसेवक पॅनेल निवडा.':'Please choose a Nagarsevak panel first.');
      return;
    }
    if(form.category==='OTHER' && !String(form.customCategory||'').trim()){
@@ -128,7 +141,7 @@ export default function UserComplaints({language='en'}){
        customCategory: form.customCategory.trim(),
        description: finalDescription,
        priority: form.priority,
-       assignedNagarsevakUserId: form.assignedNagarsevakUserId==='__ALL__'?'':form.assignedNagarsevakUserId,
+       assignedNagarsevakUserId: assignedId,
        location: form.location,
        reportedImages: form.reportedImages,
        reportedImage: packComplaintImages(form.reportedImages)
@@ -145,7 +158,14 @@ export default function UserComplaints({language='en'}){
  }
 
  return <div className="user-complaints-page">
-  <PageHeader title={labels.title} action={<button className="primary-btn" onClick={openNew}>+ {labels.new}</button>}/>
+  <div className="user-complaints-head">
+    <div>
+      <span className="user-kicker">{mr ? 'नागरिक सेवा' : 'CITIZEN SERVICE'}</span>
+      <h1>{labels.title}</h1>
+      <p>{labels.sub}</p>
+    </div>
+    <button className="primary-btn" onClick={openNew}>+ {labels.new}</button>
+  </div>
   <div className="user-complaint-filterbar">
    <label><span>{mr?'शोध':'Search'}</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={mr?'क्रमांक, समस्या, ठिकाण…':'Complaint no., problem, location…'}/></label>
    <label><span>{mr?'स्थिती':'Status'}</span>
@@ -175,30 +195,12 @@ export default function UserComplaints({language='en'}){
    <button type="button" className="small-btn" onClick={()=>{setSearch('');setStatusFilter('');setCategoryFilter('');setPriorityFilter('')}}>{mr?'फिल्टर साफ करा':'Clear filters'}</button>
  </div>
   {error&&<div className="user-error"><span>{error}</span><button onClick={load}>Retry</button></div>}
-  <section className={`ward-info-card ${heroBanner?'has-portal-banner':''}`}>
-   {heroBanner?<img className="ward-info-banner-photo" src={heroBanner} alt="" decoding="async" onError={(e)=>{e.currentTarget.style.display='none'}}/>:null}
-   <div className="ward-info-main">
-    <span className="user-kicker">{mr?'तुमचा वॉर्ड':'Your ward'}</span>
-    <h2>{formatWardLabel(team?.ward||user?.ward,'')}</h2>
-   </div>
-   <div className="nagar-info-list">{nagarsevaks.length?nagarsevaks.slice(0,1).map(n=>{
-     const photoSrc = (typeof n.photo === 'string' && n.photo.trim()) ? n.photo.trim() : '';
-     const formattedName = n.name || (mr ? 'माननीय नगरसेवक' : 'Ward Nagarsevak');
-     const roleOrParty = [n.partyName, n.wardSeat, mr ? 'नगरसेवक' : 'Corporator'].filter(Boolean).join(' · ');
-     return (
-       <article className="nagar-info-card" key={n.id}>
-         <div className="nagar-avatar-wrap">
-           <FaceAvatar name={formattedName} photo={photoSrc}/>
-         </div>
-         <div className="nagar-info-copy">
-           <strong>{formattedName}</strong>
-           <span>{roleOrParty}</span>
-           {n.mobile?<a href={`tel:${n.mobile}`} className="nagar-info-phone">📞 {n.mobile}</a>:<span>{mr?'मोबाईल उपलब्ध नाही':'No mobile'}</span>}
-         </div>
-       </article>
-     );
-   }):<div className="user-nagar-empty"><strong>{mr?'नगरसेवक प्रोफाइल सध्या उपलब्ध नाही.':'Nagarsevak details are not available yet.'}</strong></div>}</div>
+  {heroBanner?(
+  <section className="ward-info-card has-portal-banner banner-only">
+   <img className="ward-info-banner-photo" src={heroBanner} alt="" decoding="async" onError={(e)=>{e.currentTarget.style.display='none'}}/>
+   <div className="user-hero-shade ward-info-shade" aria-hidden="true"/>
   </section>
+  ):null}
   {rows===null?<Loading/>:!filteredRows.length?<Empty>{search||statusFilter||categoryFilter||priorityFilter?(mr?'फिल्टरनुसार तक्रार सापडली नाही.':'No complaints match the selected filters.') : labels.empty}</Empty>:<><div className="complaint-results-summary">{mr?`${filteredRows.length} तक्रारी दिसत आहेत`:`Showing ${filteredRows.length} complaint${filteredRows.length===1?'':'s'}`}</div><div className="user-complaint-list">{filteredRows.map(c=><article className="user-complaint-card" key={c.id}><div className="user-complaint-card-head"><div><span className="complaint-number">{c.complaintNumber}</span><h3>{c.description}</h3></div><StatusPill>{c.status}</StatusPill></div><div className="user-complaint-meta"><span>{getCategoryName(c.category)}</span><span>{c.priority}</span><span>{fmt(c.createdAt)}</span></div><div className="complaint-status-stepper" aria-label={`Complaint status: ${c.status}`}>
  {statusFlow.map((stage,i)=>{const active=flowIndex(c.status)>=i;return <div className={`complaint-status-step ${active?'done':''} ${c.status===stage?'current':''}`} key={stage}><span className="complaint-status-dot">{active?'✓':i+1}</span><small>{statusLabel(stage)}</small></div>})}
  </div>
@@ -234,8 +236,14 @@ export default function UserComplaints({language='en'}){
           />
         </Field>
       )}
-      <SearchableSelect className="span-2" label={`${labels.nagarsevak}${nagarsevaks.length?' *':''}`} required={!!nagarsevaks.length} value={form.assignedNagarsevakUserId} onChange={v=>setForm({...form,assignedNagarsevakUserId:v})} options={nagarsevaks.length?[{value:'__ALL__',label:mr?'सर्व नगरसेवक (उपलब्ध नगरसेवकाकडे पाठवा)':'All Nagarsevaks (send to an available ward Nagarsevak)'},...nagarsevaks.map(n=>({value:n.id,label:`${n.name} · ${n.mobile||'No mobile'}`}))]:[{value:'__ALL__',label:mr?'नगरसेवक अद्याप उपलब्ध नाही':'Nagarsevak not available yet'}]} placeholder={mr?'नगरसेवक शोधा…':'Search active Nagarsevak…'}/>
-      <div className="span-2 complaint-form-help">{nagarsevaks.length?(mr?'फक्त तुमच्या वॉर्डासाठी उपलब्ध नगरसेवक येथे दिसतील.':'Only Nagarsevaks currently available for your ward are shown.'):(mr?'या वॉर्डासाठी नगरसेवक प्रोफाइल सध्या उपलब्ध नाही. तक्रार नोंदवता येईल.':'Nagarsevak details are not available yet. You can still submit the complaint.')}</div>
+      <div className="span-2 complaint-form-help">
+        {(() => {
+          const current=nagarsevaks.find((n)=>String(n.id)===String(form.assignedNagarsevakUserId||getSavedPanelId(citizenWardId)));
+          return current
+            ? (mr?`ही तक्रार ${current.name} यांच्या पॅनेलवर नोंदेल.`:`This complaint will be filed on ${current.name}'s panel.`)
+            : (mr?'ही तक्रार सध्या उघडलेल्या नगरसेवक पॅनेलवर नोंदेल.':'This complaint will be filed on the open Nagarsevak panel.');
+        })()}
+      </div>
       <div className="form-section-title span-2">
         <strong>{mr?'समस्या':'Problem'}</strong>
         <span>{mr?'ठिकाण, वर्णन (पर्यायी) आणि फोटो जोडता येतील.':'Add the location, optional description and photos.'}</span>

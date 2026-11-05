@@ -134,7 +134,7 @@ async function familyIdsForAreas(areaIds) {
     `SELECT f.id AS id FROM families f
      INNER JOIN houses h ON h.id = f.house_id AND h.deleted_at IS NULL
      WHERE f.deleted_at IS NULL AND h.area_id IN (:areaIds)
-     LIMIT 20000`,
+     LIMIT 100000`,
     { replacements: { areaIds } }
   );
   return (rows || []).map((r) => r.id);
@@ -590,11 +590,23 @@ const upcoming18 = asyncHandler(async (req, res) => {
     status: 'ACTIVE',
     dob: { [Op.between]: [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)] },
   };
+  const eighteenInclude = [...personListInclude];
   if (areaIds) {
-    const familyIds = await familyIdsForAreas(areaIds);
-    where.familyId = { [Op.in]: familyIds.length ? familyIds : ['00000000-0000-0000-0000-000000000000'] };
+    const list = areaIds.length ? areaIds : ['00000000-0000-0000-0000-000000000000'];
+    eighteenInclude[0] = {
+      model: Family,
+      as: 'family',
+      required: true,
+      include: [{
+        model: House,
+        as: 'house',
+        where: { areaId: { [Op.in]: list } },
+        required: true,
+        include: [{ model: Area, as: 'area', include: [{ model: Ward, as: 'ward' }] }, { model: Apartment, as: 'apartment', attributes: ['id', 'name'] }],
+      }],
+    };
   }
-  const rows = await Person.findAll({ where, include: personListInclude, limit: 400, order: [['dob', 'DESC']] });
+  const rows = await Person.findAll({ where, include: eighteenInclude, limit: 400, order: [['dob', 'DESC']] });
   let data = rows.map(p => ({
     person: p,
     wardId: p.family?.house?.area?.wardId || p.family?.house?.area?.ward?.id || null,
@@ -747,10 +759,7 @@ const createHouse = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Area not found');
   }
 
-  if (
-    req.user.roleName !== 'SUPER_ADMIN' &&
-    area.wardId !== req.user.wardId
-  ) {
+  if (!isWardAllowed(req, area.wardId)) {
     throw new ApiError(403, 'Area belongs to another ward');
   }
 
@@ -808,7 +817,7 @@ const createHouse = asyncHandler(async (req, res) => {
   });
 });
 
-const updateHouse = asyncHandler(async (req,res) => { const row=await assertHouse(req.params.id,req); const patch={...req.body}; for(const k of ['ownerName','ownerMobile','landmark','notes','city','pincode']) if(patch[k]==='') patch[k]=null; if('latitude' in patch || 'longitude' in patch){ const geo=pairCoords(patch.latitude ?? row.latitude, patch.longitude ?? row.longitude); patch.latitude=geo.latitude; patch.longitude=geo.longitude; } if(patch.areaId){const area=await Area.findByPk(req.body.areaId);if(!area)throw new ApiError(400,'Area not found');if(req.user.roleName!=='SUPER_ADMIN'&&area.wardId!==req.user.wardId)throw new ApiError(403,'Area belongs to another ward');} if('apartmentId' in patch){ if(!patch.apartmentId){ patch.apartmentId=null; } else { const apartment=await Apartment.findByPk(patch.apartmentId); const areaId=patch.areaId||row.areaId; if(!apartment||String(apartment.areaId)!==String(areaId)) throw new ApiError(400,'Apartment must belong to the selected colony'); if(!patch.houseType) patch.houseType='FLAT'; } } const old=row.toJSON(); await row.update(patch); await logAudit({user:req.user,action:'UPDATE_HOUSE',entity:'House',recordId:row.id,oldValue:old,newValue:patch,ipAddress:req.ip}); return success(res,{data:row,message:'House updated'}); });
+const updateHouse = asyncHandler(async (req,res) => { const row=await assertHouse(req.params.id,req); const patch={...req.body}; for(const k of ['ownerName','ownerMobile','landmark','notes','city','pincode']) if(patch[k]==='') patch[k]=null; if('latitude' in patch || 'longitude' in patch){ const geo=pairCoords(patch.latitude ?? row.latitude, patch.longitude ?? row.longitude); patch.latitude=geo.latitude; patch.longitude=geo.longitude; } if(patch.areaId){const area=await Area.findByPk(req.body.areaId);if(!area)throw new ApiError(400,'Area not found');if(!isWardAllowed(req,area.wardId))throw new ApiError(403,'Area belongs to another ward');} if('apartmentId' in patch){ if(!patch.apartmentId){ patch.apartmentId=null; } else { const apartment=await Apartment.findByPk(patch.apartmentId); const areaId=patch.areaId||row.areaId; if(!apartment||String(apartment.areaId)!==String(areaId)) throw new ApiError(400,'Apartment must belong to the selected colony'); if(!patch.houseType) patch.houseType='FLAT'; } } const old=row.toJSON(); await row.update(patch); await logAudit({user:req.user,action:'UPDATE_HOUSE',entity:'House',recordId:row.id,oldValue:old,newValue:patch,ipAddress:req.ip}); return success(res,{data:row,message:'House updated'}); });
 const deleteHouse = asyncHandler(async(req,res)=>{const row=await assertHouse(req.params.id,req);await row.destroy();await logAudit({user:req.user,action:'SOFT_DELETE_HOUSE',entity:'House',recordId:row.id,newValue:{deleted:true},ipAddress:req.ip});return success(res,{message:'House moved to recycle bin'});});
 const createFamily = asyncHandler(async(req,res)=>{
   await assertHouse(req.body.houseId,req);

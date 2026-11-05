@@ -30,21 +30,23 @@ function classifyType(typeCond) {
 function splitWhere(where = {}) {
   const { type, nagarsevakUserId, ...rest } = where;
   const classif = classifyType(type);
-  if (nagarsevakUserId !== undefined) classif.wantAll = false;
   const allWhere = { ...rest };
   const groupWhere = { ...rest };
-  if (nagarsevakUserId !== undefined) groupWhere.nagarsevakUserId = nagarsevakUserId;
+  if (nagarsevakUserId !== undefined) {
+    allWhere.nagarsevakUserId = nagarsevakUserId;
+    groupWhere.nagarsevakUserId = nagarsevakUserId;
+  }
   if (classif.groupType !== undefined) groupWhere.type = classif.groupType;
   return { classif, allWhere, groupWhere };
 }
 
 function allIncludes(include) {
-  return (include || []).filter((item) => item?.as !== 'nagarsevak');
+  return include || [];
 }
 
 function allAttributes(attributes) {
   if (!attributes) return attributes;
-  return attributes.filter((name) => !['type', 'nagarsevakUserId', 'channel', 'chatKind'].includes(name));
+  return attributes.filter((name) => !['type', 'channel', 'chatKind'].includes(name));
 }
 
 function mark(row, kind) {
@@ -64,7 +66,6 @@ function mark(row, kind) {
 function stripAllValues(values = {}) {
   const next = { ...values };
   delete next.type;
-  delete next.nagarsevakUserId;
   delete next.channel;
   delete next.chatKind;
   return next;
@@ -136,9 +137,8 @@ async function findAll(options = {}) {
 }
 
 async function findOrCreate({ where, defaults = {}, ...rest }) {
-  const { classif } = splitWhere(where || {});
+  const { classif, allWhere, groupWhere } = splitWhere(where || {});
   if (classif.wantAll && !classif.wantGroup) {
-    const { type, nagarsevakUserId, ...allWhere } = where || {};
     const [row, created] = await AllChat.findOrCreate({
       where: allWhere,
       defaults: stripAllValues(defaults),
@@ -146,7 +146,7 @@ async function findOrCreate({ where, defaults = {}, ...rest }) {
     });
     return [mark(row, 'all'), created];
   }
-  const [row, created] = await GroupChat.findOrCreate({ where, defaults, ...rest });
+  const [row, created] = await GroupChat.findOrCreate({ where: groupWhere, defaults, ...rest });
   return [mark(row, 'group'), created];
 }
 

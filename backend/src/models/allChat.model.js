@@ -6,6 +6,7 @@ const AllChat = sequelize.define('AllChat', {
   wardId: { type: DataTypes.UUID, allowNull: false, field: 'ward_id' },
   name: { type: DataTypes.STRING, allowNull: false },
   mode: { type: DataTypes.ENUM('CHAT', 'BROADCAST'), allowNull: false, defaultValue: 'CHAT' },
+  nagarsevakUserId: { type: DataTypes.UUID, allowNull: true, field: 'nagarsevak_user_id' },
   createdByUserId: { type: DataTypes.UUID, allowNull: true, field: 'created_by_user_id' },
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true, field: 'is_active' },
   type: { type: DataTypes.VIRTUAL, get() { return 'WARD'; } },

@@ -60,6 +60,10 @@ const v2=(path,p={})=>request(`/v2${path}${qs(p)}`);
 const v2Request=(path,options={})=>request(`/v2${path}`,options);
 
 export const api={
+ get:(path,p={})=>v2(path.startsWith('/v2')?path.slice(3):path,p),
+ post:(path,d)=>v2Request(path.startsWith('/v2')?path.slice(3):path,{method:'POST',body:JSON.stringify(d)}),
+ patch:(path,d)=>v2Request(path.startsWith('/v2')?path.slice(3):path,{method:'PATCH',body:JSON.stringify(d)}),
+ delete:path=>v2Request(path.startsWith('/v2')?path.slice(3):path,{method:'DELETE'}),
  login:(identifier,password)=>v2Request('/auth/login',{method:'POST',body:JSON.stringify({identifier,password})}),
  forgotRequest:d=>v2Request('/auth/forgot/request',{method:'POST',body:JSON.stringify(d)}),
  forgotReset:d=>v2Request('/auth/forgot/reset',{method:'POST',body:JSON.stringify(d)}),
@@ -115,6 +119,11 @@ export const api={
  createHospital:d=>v2Request('/hospitals',{method:'POST',body:JSON.stringify(d)}),
  updateHospital:(id,d)=>v2Request(`/hospitals/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
  deleteHospital:id=>v2Request(`/hospitals/${id}`,{method:'DELETE'}),
+ medicals:(p={})=>v2('/medicals',p),
+ medical:id=>v2(`/medicals/${id}`),
+ createMedical:d=>v2Request('/medicals',{method:'POST',body:JSON.stringify(d)}),
+ updateMedical:(id,d)=>v2Request(`/medicals/${id}`,{method:'PATCH',body:JSON.stringify(d)}),
+ deleteMedical:id=>v2Request(`/medicals/${id}`,{method:'DELETE'}),
  verifyHouse:id=>request(`/houses/${id}/verify`,{method:'POST'}),
  families:(p={})=>v2('/families',p),
  family:id=>v2(`/families/${id}`),
@@ -181,6 +190,7 @@ createRegistrationInvite:(wardId,opts={})=>v2Request('/registration-invite',{met
 nagarsevakSubscriptions:(p={})=>v2('/nagarsevak-subscriptions',p),
 setWardActivation:(wardId,d)=>v2Request(`/ward-activations/${wardId}/ward`,{method:'PATCH',body:JSON.stringify(d)}),
 setNagarsevakPurchase:(wardId,d)=>v2Request(`/ward-activations/${wardId}/nagarsevak`,{method:'PATCH',body:JSON.stringify(d)}),
+setNagarsevakResidentVisible:(wardId,d)=>v2Request(`/ward-activations/${wardId}/nagarsevak-visible`,{method:'PATCH',body:JSON.stringify(d)}),
 syncWardCommunity:(wardId)=>v2Request(`/ward-activations/${wardId}/sync`,{method:'POST'}),
 wardUpdates:(p={})=>v2('/ward-updates',p),
 createWardUpdate:d=>v2Request('/ward-updates',{method:'POST',body:JSON.stringify(d)}),

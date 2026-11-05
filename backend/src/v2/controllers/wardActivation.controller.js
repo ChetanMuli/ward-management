@@ -7,6 +7,7 @@ const {
   notifyExpiredNagarsevakSubscriptions,
   setWardActivation,
   setNagarsevakPurchase,
+  setNagarsevakResidentVisible,
   getResidentWardSnapshot,
   syncWardCommunityMembership,
 } = require('../../services/wardActivation.service');
@@ -72,8 +73,25 @@ const setPurchase = asyncHandler(async (req, res) => {
   return success(res, {
     data: sub,
     message: sub.status === 'ACTIVE'
-      ? 'Nagarsevak activated. They and their employees can sign in, and residents of this ward can see them.'
-      : 'Nagarsevak deactivated. Login for this Nagarsevak and their employees is paused, and residents will no longer see this profile.',
+      ? 'Nagarsevak panel is on. Use Show to residents separately if citizens should see this name. Other Nagarsevaks in this ward stay as they are.'
+      : 'Nagarsevak panel is off. Other Nagarsevaks in this ward stay as they are.',
+  });
+});
+
+const setResidentVisible = asyncHandler(async (req, res) => {
+  requireAdminDesk(req);
+  const sub = await setNagarsevakResidentVisible({
+    wardId: req.params.wardId,
+    nagarsevakUserId: req.body.nagarsevakUserId,
+    visible: req.body.visible !== false && req.body.visible !== 'false' && req.body.visible !== 0,
+    actor: req.user,
+    ipAddress: req.ip,
+  });
+  return success(res, {
+    data: sub,
+    message: sub.residentVisible
+      ? 'This Nagarsevak is now shown to residents. Other visible Nagarsevaks in this ward stay visible.'
+      : 'This Nagarsevak is hidden from residents. The panel can stay active. Other Nagarsevaks are unchanged.',
   });
 });
 
@@ -108,4 +126,4 @@ const createRegistrationInvite = asyncHandler(async (req, res) => {
   return success(res, { data, message: 'Share this link with residents of the selected ward.' });
 });
 
-module.exports = { board, myWard, setWard, setPurchase, sync, subscriptions, setRegistrationOpen, createRegistrationInvite };
+module.exports = { board, myWard, setWard, setPurchase, setResidentVisible, sync, subscriptions, setRegistrationOpen, createRegistrationInvite };

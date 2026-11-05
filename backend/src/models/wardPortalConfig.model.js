@@ -30,7 +30,40 @@ const WardPortalConfig = sequelize.define('WardPortalConfig', {
   showGalleryPreview: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true, field: 'show_gallery_preview' },
   minimalWorkCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 2, field: 'minimal_work_count' },
   featuredNagarsevakUserId: { type: DataTypes.UUID, allowNull: true, field: 'featured_nagarsevak_user_id' },
-  meta: { type: DataTypes.JSON, allowNull: true },
+  meta: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    get() {
+      const raw = this.getDataValue('meta');
+      if (!raw) return {};
+      if (typeof raw === 'string') {
+        try {
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+      if (typeof raw === 'object' && !Array.isArray(raw)) return raw;
+      return {};
+    },
+    set(value) {
+      if (!value) {
+        this.setDataValue('meta', null);
+        return;
+      }
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          this.setDataValue('meta', parsed && typeof parsed === 'object' ? parsed : {});
+        } catch {
+          this.setDataValue('meta', {});
+        }
+        return;
+      }
+      this.setDataValue('meta', value);
+    },
+  },
   updatedBy: { type: DataTypes.UUID, allowNull: true, field: 'updated_by' },
 }, {
   tableName: 'ward_portal_configs',

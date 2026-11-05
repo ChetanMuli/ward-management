@@ -166,7 +166,7 @@ async function nagarsevakRoleId() {
 
 function memberIdsForGroup(group, users, nagarRoleId, visibleNagarsevakIds, employeeRoleId, employeeManagerMap = new Map()) {
   const visible = new Set((visibleNagarsevakIds || []).map(String));
-  if (group.type === 'NAGARSEVAK' && nagarRoleId) {
+  if ((group.type === 'NAGARSEVAK' || group.nagarsevakUserId) && nagarRoleId) {
     const ownerVisible = visible.has(String(group.nagarsevakUserId));
     if (!ownerVisible) {
       return users.filter(u => String(u.id) === String(group.nagarsevakUserId)).map(u => u.id);
@@ -265,6 +265,48 @@ async function ensureNagarsevakGroup(nagarsevakUserId, options = {}) {
   return group;
 }
 
+async function ensureNagarsevakCommunityGroup(nagarsevakUserId, options = {}) {
+  const user = await User.findByPk(nagarsevakUserId);
+  if (!user || !user.wardId) return null;
+  const ward = options.wardId || user.wardId;
+  const visible = await isNagarsevakVisibleInWard(ward, user.id);
+  if (!visible || user.status !== 'ACTIVE') {
+    await archiveNagarsevakCommunityGroup(user.id);
+    return null;
+  }
+  const existing = await Chat.findOne({
+    where: { nagarsevakUserId: user.id, type: 'WARD' }
+  });
+  const name = `${user.name} • समुदाय गट`;
+  const group = existing
+    ? await existing.update({ wardId: ward, isActive: true, name, mode: 'CHAT' })
+    : await Chat.create({
+        wardId: ward,
+        name,
+        type: 'WARD',
+        nagarsevakUserId: user.id,
+        createdByUserId: null,
+        isActive: true,
+        mode: 'CHAT'
+      });
+
+  const [activeUsers, nagarRoleId, visibleIds] = await Promise.all([
+    staffUsersForWard(ward),
+    nagarsevakRoleId(),
+    getVisibleNagarsevakIds(ward)
+  ]);
+  await syncGroupMembers(group, activeUsers, nagarRoleId, visibleIds);
+  await ensureMembershipRow(group.id, user.id);
+  return group;
+}
+
+async function archiveNagarsevakCommunityGroup(nagarsevakUserId) {
+  await Chat.update(
+    { isActive: false },
+    { where: { nagarsevakUserId, type: 'WARD' } }
+  );
+}
+
 async function ensureAllNagarsevakGroups(wardId) {
   if (!wardId) return;
   const nagarRoleId = await nagarsevakRoleId();
@@ -272,15 +314,20 @@ async function ensureAllNagarsevakGroups(wardId) {
   const [rows, visibleIds] = await Promise.all([
     User.findAll({
       where: { wardId, roleId: nagarRoleId },
-      attributes: ['id'],
+      attributes: ['id', 'status'],
       hooks: false,
     }),
     getVisibleNagarsevakIds(wardId),
   ]);
   const visible = new Set(visibleIds.map(String));
   for (const row of rows) {
-    if (visible.has(String(row.id))) await ensureNagarsevakGroup(row.id, { wardId });
-    else await archiveNagarsevakGroup(row.id);
+    if (visible.has(String(row.id)) && row.status === 'ACTIVE') {
+      await ensureNagarsevakGroup(row.id, { wardId });
+      await ensureNagarsevakCommunityGroup(row.id, { wardId });
+    } else {
+      await archiveNagarsevakGroup(row.id);
+      await archiveNagarsevakCommunityGroup(row.id);
+    }
   }
 }
 
@@ -304,17 +351,18 @@ async function ensureMembership(groupId, userId, roleName = null) {
   if (roleName === 'CITIZEN' && group.wardId && String(group.wardId) !== String(user.wardId)) {
     throw new ApiError(403, 'You can only access chat groups in your registered ward');
   }
-  if (group.type === 'NAGARSEVAK' && roleName === 'CITIZEN') {
-    const visible = await isNagarsevakVisibleInWard(group.wardId, group.nagarsevakUserId);
+  const gNagarId = String(group.nagarsevakUserId || '');
+  if (gNagarId && roleName === 'CITIZEN') {
+    const visible = await isNagarsevakVisibleInWard(group.wardId, gNagarId);
     if (!visible) throw new ApiError(404, 'Chat group not found');
   }
-  if (group.type === 'NAGARSEVAK' && roleName === 'NAGARSEVAK' && String(group.nagarsevakUserId) !== String(userId)) {
-    throw new ApiError(403, 'You can access only your Nagarsevak group and the ward community.');
+  if (gNagarId && roleName === 'NAGARSEVAK' && gNagarId !== String(userId)) {
+    throw new ApiError(403, 'You can access only your own Nagarsevak community group and direct chat.');
   }
-  if (group.type === 'NAGARSEVAK' && roleName === 'EMPLOYEE') {
+  if (gNagarId && roleName === 'EMPLOYEE') {
     const emp = reqLike.user?.employeeProfile || await Employee.findOne({ where: { userId } }).catch(() => null);
-    if (emp?.managerUserId && String(group.nagarsevakUserId) !== String(emp.managerUserId)) {
-      throw new ApiError(403, 'You can access only your managing Nagarsevak group and the ward community.');
+    if (emp?.managerUserId && gNagarId !== String(emp.managerUserId)) {
+      throw new ApiError(403, 'You can access only your managing Nagarsevak groups.');
     }
   }
   const member = await ensureMembershipRow(groupId, userId);
@@ -367,22 +415,23 @@ async function reconcileWardGroupMembers(wardId) {
 async function ensureUserGroups(user) {
   if (!user.wardId) return;
   if (user.roleName === 'CITIZEN') {
-    await syncWardCommunityMembership(user.wardId);
+    await ensureAllNagarsevakGroups(user.wardId);
     return;
   }
   if (user.roleName === 'EMPLOYEE') {
-    const wardGroup = await Chat.findOne({ where: { wardId: user.wardId, type: 'WARD', isActive: true } });
-    if (wardGroup) await ensureMembershipRow(wardGroup.id, user.id);
     const emp = user.employeeProfile || await Employee.findOne({ where: { userId: user.id } }).catch(() => null);
     if (emp?.managerUserId) {
       const nagarGroup = await Chat.findOne({ where: { nagarsevakUserId: emp.managerUserId, type: 'NAGARSEVAK', isActive: true } });
       if (nagarGroup) await ensureMembershipRow(nagarGroup.id, user.id);
+      const commGroup = await Chat.findOne({ where: { nagarsevakUserId: emp.managerUserId, type: 'WARD', isActive: true } });
+      if (commGroup) await ensureMembershipRow(commGroup.id, user.id);
     }
     return;
   }
-  const wardGroup = await Chat.findOne({ where: { wardId: user.wardId, type: 'WARD', isActive: true } });
-  if (wardGroup) await ensureMembershipRow(wardGroup.id, user.id);
-  if (user.roleName === 'NAGARSEVAK') await ensureNagarsevakGroup(user.id);
+  if (user.roleName === 'NAGARSEVAK') {
+    await ensureNagarsevakGroup(user.id);
+    await ensureNagarsevakCommunityGroup(user.id);
+  }
 }
 
 async function unreadCountForGroup(groupId, userId, options = {}) {
@@ -434,34 +483,25 @@ const listGroups = asyncHandler(async (req, res) => {
     chatWhere.wardId = { [Op.in]: allowedForGroups };
   }
 
-  let rows = await Chat.findAll({
-    where: chatWhere,
-    include: [
-      { model: Ward, as: 'ward', attributes: ['id', 'wardNumber', 'name'] },
-      { model: User, as: 'nagarsevak', attributes: ['id', 'name', 'mobile', 'roleId'] },
-      { model: User, as: 'createdBy', attributes: ['id', 'name'] },
-    ],
-    order: [['type', 'ASC'], ['name', 'ASC']],
-  });
-
-  // Fallback: If a focused ward has no groups at all, initialize ward group once
-  if (focusWardId && rows.length === 0 && (req.user.roleName === 'SUPER_ADMIN' || isWardAllowed(req, focusWardId))) {
+  // Ensure all Nagarsevak community groups and direct chats exist for this ward
+  if (focusWardId && (req.user.roleName === 'SUPER_ADMIN' || isWardAllowed(req, focusWardId))) {
     try {
       await ensureWardGroup(focusWardId);
       await ensureAllNagarsevakGroups(focusWardId);
-      rows = await Chat.findAll({
-        where: chatWhere,
-        include: [
-          { model: Ward, as: 'ward', attributes: ['id', 'wardNumber', 'name'] },
-          { model: User, as: 'nagarsevak', attributes: ['id', 'name', 'mobile', 'roleId'] },
-          { model: User, as: 'createdBy', attributes: ['id', 'name'] },
-        ],
-        order: [['type', 'ASC'], ['name', 'ASC']],
-      });
     } catch (err) {
       console.error('[CHAT ENSURE]', err.message);
     }
   }
+
+  let rows = await Chat.findAll({
+    where: chatWhere,
+    include: [
+      { model: Ward, as: 'ward', attributes: ['id', 'wardNumber', 'name'] },
+      { model: User, as: 'nagarsevak', attributes: ['id', 'name', 'mobile', 'roleId', 'photo'] },
+      { model: User, as: 'createdBy', attributes: ['id', 'name'] },
+    ],
+    order: [['type', 'ASC'], ['name', 'ASC']],
+  });
 
   const wardIds = [...new Set(rows.map(g => g.wardId).filter(Boolean))];
   const visibleMap = await visibleIdsByWard(wardIds);
@@ -469,29 +509,42 @@ const listGroups = asyncHandler(async (req, res) => {
     ? new Set((visibleMap.get(String(req.user.wardId)) || []).map(String))
     : null;
   const allowed = allowedForGroups;
+  const reqNagarId = String(req.query.nagarsevakUserId || req.query.panelId || '').trim();
+
   const visibleRows = rows.filter(g => {
     const inWard = req.user.roleName === 'SUPER_ADMIN' || String(g.wardId) === String(req.user.wardId || '') || (allowed && allowed.map(String).includes(String(g.wardId)));
     if (!inWard) return false;
-    if (g.type === 'NAGARSEVAK') {
+    const gNagarId = String(g.nagarsevakUserId || '');
+    if (gNagarId) {
       const visible = new Set((visibleMap.get(String(g.wardId)) || []).map(String));
-      if (!visible.has(String(g.nagarsevakUserId))) return false;
+      if (!visible.has(gNagarId)) return false;
     }
     if (req.user.roleName === 'NAGARSEVAK') {
-      return g.type === 'WARD' || (g.type === 'NAGARSEVAK' && String(g.nagarsevakUserId) === String(req.user.id));
+      // Nagarsevak sees ONLY their own community group and their own direct chat
+      if (g.type === 'WARD') return gNagarId === String(req.user.id);
+      if (g.type === 'NAGARSEVAK') return gNagarId === String(req.user.id);
+      return g.createdByUserId === req.user.id;
     }
     if (req.user.roleName === 'EMPLOYEE') {
       if (String(g.wardId) !== String(req.user.wardId)) return false;
-      if (g.type === 'WARD') return true;
       const managerId = req.user.employeeProfile?.managerUserId;
+      if (g.type === 'WARD') {
+        return managerId ? gNagarId === String(managerId) : !gNagarId;
+      }
       if (g.type === 'NAGARSEVAK') {
-        return !managerId || String(g.nagarsevakUserId) === String(managerId);
+        return !managerId || gNagarId === String(managerId);
       }
       return g.type === 'CUSTOM';
     }
     if (req.user.roleName === 'CITIZEN') {
       if (String(g.wardId) !== String(req.user.wardId)) return false;
-      if (g.type === 'WARD') return true;
-      if (g.type === 'NAGARSEVAK') return citizenVisible.has(String(g.nagarsevakUserId));
+      if (reqNagarId) {
+        if (g.type === 'WARD') return gNagarId === reqNagarId;
+        if (g.type === 'NAGARSEVAK') return gNagarId === reqNagarId;
+        return false;
+      }
+      if (g.type === 'WARD') return gNagarId ? citizenVisible.has(gNagarId) : false;
+      if (g.type === 'NAGARSEVAK') return citizenVisible.has(gNagarId);
       return g.type === 'CUSTOM';
     }
     return true;
@@ -619,6 +672,19 @@ const listMessages = asyncHandler(async (req, res) => {
   const before = req.query.before ? new Date(req.query.before) : null;
   const after = req.query.after ? new Date(req.query.after) : null;
   const where = { groupId: group.id };
+  if (group.type === 'NAGARSEVAK') {
+    const isCitizen = req.user.roleName === 'CITIZEN';
+    const citizenId = req.query.citizenId || req.query.userId || (isCitizen ? req.user.id : null);
+    if (citizenId) {
+      where[Op.and] = where[Op.and] || [];
+      where[Op.and].push({
+        [Op.or]: [
+          { senderUserId: citizenId },
+          { recipientUserId: citizenId },
+        ]
+      });
+    }
+  }
   const clearedAt = await clearedAtFor(group.id, req.user.id, member);
   const effectiveAfter = [asDate(after), clearedAt].filter(Boolean)
     .sort((a, b) => a.getTime() - b.getTime()).pop() || null;
@@ -651,6 +717,10 @@ const listMessages = asyncHandler(async (req, res) => {
   const isReqUserCitizen = userRole === 'CITIZEN' || (!['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'].includes(userRole));
   const data = visibleRows.map(m => {
     const json = typeof m.toJSON === 'function' ? m.toJSON() : m;
+    if (json.imagePath) {
+      json.imageUrl = `/api/uploads/chat/${json.imagePath}`;
+      json.image = json.imageUrl;
+    }
     const extra = senderPhotos.get(String(m.senderUserId));
     if (json.sender) {
       if (extra?.photo) json.sender.photo = extra.photo;
@@ -673,41 +743,61 @@ const listMessages = asyncHandler(async (req, res) => {
 const sendMessage = asyncHandler(async (req, res) => {
   await cleanupOldMessages();
   const { group } = await ensureMembership(req.params.id, req.user.id, req.user.roleName);
-  if (req.user.roleName === 'CITIZEN' && group.type === 'NAGARSEVAK') {
+  if (req.user.roleName === 'CITIZEN' && group.nagarsevakUserId) {
     const visible = await isNagarsevakVisibleInWard(group.wardId, group.nagarsevakUserId);
     if (!visible) throw new ApiError(403, 'This Nagarsevak is not available for chat.');
   }
   if (group.mode === 'BROADCAST' && req.user.roleName !== 'SUPER_ADMIN' && group.createdByUserId !== req.user.id) {
     throw new ApiError(403, 'Only the group owner or Master Admin can send in a broadcast group');
   }
-  const type = String(req.body.messageType || 'TEXT').toUpperCase();
+
+  const rawData = String(req.body.imageData || req.body.image || '').trim();
+  let type = String(req.body.messageType || '').toUpperCase();
+  if (!type) {
+    if (rawData) {
+      if (/^data:video\//i.test(rawData)) type = 'VIDEO';
+      else if (/^data:application\/pdf/i.test(rawData)) type = 'PDF';
+      else type = 'IMAGE';
+    } else {
+      type = 'TEXT';
+    }
+  }
   if (!['TEXT', 'IMAGE', 'PDF', 'VIDEO'].includes(type)) throw new ApiError(400, 'Invalid message type');
   const content = String(req.body.content || '').trim();
   if (type === 'TEXT' && !content) throw new ApiError(400, 'Message cannot be empty');
+  if (type !== 'TEXT' && !rawData && !content) throw new ApiError(400, 'Attachment or message content is required');
+
   let imagePath = null, imageMime = null;
   if (type === 'IMAGE' || type === 'PDF' || type === 'VIDEO') {
-    const data = String(req.body.imageData || '');
+    const data = rawData;
     imageMime = String(req.body.imageMime || '').toLowerCase();
-    const imageMatch = data.match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/i);
+    let imageMatch = data.match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/i);
     const pdfMatch = data.match(/^data:application\/pdf;base64,(.+)$/i);
     const docMatch = data.match(/^data:(application\/(pdf|msword|vnd\.openxmlformats-officedocument\.\S+|vnd\.ms-excel|vnd\.ms-powerpoint|octet-stream)|text\/(plain|csv));base64,(.+)$/i);
     const videoMatch = data.match(/^data:video\/(mp4|webm|quicktime);base64,(.+)$/i);
-    if (type === 'IMAGE' && !imageMatch) throw new ApiError(400, 'Only JPG, PNG or WEBP images are allowed');
+
+    if (type === 'IMAGE') {
+      if (!imageMatch && !data.startsWith('data:')) {
+        imageMatch = [null, 'jpg', data];
+      }
+      if (!imageMatch) throw new ApiError(400, 'Only JPG, PNG or WEBP images are allowed');
+    }
     if (type === 'PDF' && !pdfMatch && !docMatch) throw new ApiError(400, 'Only PDF or document files are allowed');
     if (type === 'VIDEO' && !videoMatch) throw new ApiError(400, 'Only MP4, WEBM or MOV videos are allowed');
     if (data.length > 17 * 1024 * 1024) throw new ApiError(413, 'Attachment is too large. Maximum 12 MB.');
+
     let ext = 'pdf';
     if (type === 'VIDEO') {
       ext = videoMatch[1].toLowerCase() === 'quicktime' ? 'mov' : videoMatch[1].toLowerCase();
     } else if (type === 'IMAGE') {
-      ext = imageMatch[1].toLowerCase() === 'jpeg' ? 'jpg' : imageMatch[1].toLowerCase();
+      ext = (imageMatch[1] || 'jpg').toLowerCase() === 'jpeg' ? 'jpg' : (imageMatch[1] || 'jpg').toLowerCase();
     } else {
       const origExt = path.extname(content || '').replace('.', '').toLowerCase();
       ext = origExt && ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'].includes(origExt) ? origExt : 'pdf';
     }
     const payload = type === 'PDF'
       ? (pdfMatch ? pdfMatch[1] : docMatch ? docMatch[4] : (data.split(';base64,')[1] || data))
-      : (type === 'VIDEO' ? videoMatch[2] : imageMatch[2]);
+      : (type === 'VIDEO' ? videoMatch[2] : (imageMatch ? imageMatch[2] : data));
     imagePath = `${crypto.randomUUID()}.${ext}`;
     fs.writeFileSync(path.join(uploadDir, imagePath), Buffer.from(payload, 'base64'));
     imageMime = type === 'PDF'
@@ -716,10 +806,19 @@ const sendMessage = asyncHandler(async (req, res) => {
         ? (imageMime || `video/${ext === 'mov' ? 'quicktime' : ext}`)
         : (imageMime || `image/${ext === 'jpg' ? 'jpeg' : ext}`);
   }
+  let recipientUserId = req.body.recipientUserId || null;
+  if (group.type === 'NAGARSEVAK') {
+    if (req.user.roleName === 'CITIZEN') {
+      recipientUserId = group.nagarsevakUserId;
+    } else {
+      recipientUserId = req.body.recipientUserId || req.body.citizenId || null;
+    }
+  }
+
   const row = await Chat.Message.create({
     groupId: group.id,
     senderUserId: req.user.id,
-    recipientUserId: null,
+    recipientUserId,
     messageType: type,
     content: content || null,
     imageMime: imageMime || null,
@@ -745,6 +844,10 @@ const sendMessage = asyncHandler(async (req, res) => {
       json.sender.name = json.sender.person.fullName;
     }
   }
+  if (json && json.imagePath) {
+    json.imageUrl = `/api/uploads/chat/${json.imagePath}`;
+    json.image = json.imageUrl;
+  }
   if (group.wardId) {
     await reconcileWardGroupMembers(group.wardId).catch(() => {});
   }
@@ -755,7 +858,9 @@ const sendMessage = asyncHandler(async (req, res) => {
   const groupLabel = group.type === 'WARD'
     ? (formatWardNumber(group.ward?.wardNumber) || group.name || 'All chat')
     : (group.name || 'Group');
-  const otherMemberIds = members.map((m) => m.userId).filter(id => String(id) !== String(req.user.id));
+  const otherMemberIds = (group.type === 'NAGARSEVAK' && recipientUserId)
+    ? [recipientUserId].filter(id => String(id) !== String(req.user.id))
+    : members.map((m) => m.userId).filter(id => String(id) !== String(req.user.id));
   if (otherMemberIds.length > 0) {
     notifyUsers(otherMemberIds, {
       senderUserId: req.user.id,
@@ -985,4 +1090,122 @@ const getResidentDetails = asyncHandler(async (req, res) => {
   return success(res, { data });
 });
 
-module.exports = { listGroups, createGroup, deleteGroup, listMessages, sendMessage, deleteMessage, image, clearChat, markRead, joinGroup, leaveGroup, archiveOldChats, cleanupOldMessages, ensureNagarsevakGroup, archiveNagarsevakGroup, reconcileWardGroupMembers, ensureWardGroup, archiveWardGroups, ensureAllNagarsevakGroups, getResidentDetails };
+const listDirectConversations = asyncHandler(async (req, res) => {
+  const allowedRoles = ['SUPER_ADMIN', 'SUB_MASTER_ADMIN', 'NAGARSEVAK', 'EMPLOYEE'];
+  if (!allowedRoles.includes(String(req.user.roleName || '').toUpperCase())) {
+    throw new ApiError(403, 'Access denied. Only ward officials and staff can view direct citizen conversations.');
+  }
+
+  let nagarId = req.user.id;
+  if (req.user.roleName === 'EMPLOYEE') {
+    const emp = req.user.employeeProfile || await Employee.findOne({ where: { userId: req.user.id } }).catch(() => null);
+    if (emp?.managerUserId) nagarId = emp.managerUserId;
+  } else if (['SUPER_ADMIN', 'SUB_MASTER_ADMIN'].includes(req.user.roleName) && req.query.nagarsevakUserId) {
+    nagarId = req.query.nagarsevakUserId;
+  }
+
+  const wardId = req.query.wardId || req.user.wardId;
+  const whereGroup = { type: 'NAGARSEVAK', nagarsevakUserId: nagarId, isActive: true };
+  if (wardId) whereGroup.wardId = wardId;
+
+  let group = await Chat.findOne({ where: whereGroup });
+  if (!group && wardId) {
+    group = await ensureNagarsevakGroup(nagarId, { wardId });
+  }
+
+  if (!group) {
+    return success(res, { data: [] });
+  }
+
+  const messages = await Chat.Message.findAll({
+    where: { groupId: group.id },
+    order: [['createdAt', 'DESC']],
+    attributes: ['id', 'groupId', 'senderUserId', 'recipientUserId', 'messageType', 'content', 'createdAt'],
+  });
+
+  const citizenMap = new Map();
+  for (const msg of messages) {
+    const json = typeof msg.toJSON === 'function' ? msg.toJSON() : msg;
+    const isFromCitizen = String(json.senderUserId) !== String(nagarId);
+    const citizenId = isFromCitizen ? String(json.senderUserId) : String(json.recipientUserId || '');
+    if (!citizenId || citizenId === String(nagarId)) continue;
+
+    if (!citizenMap.has(citizenId)) {
+      citizenMap.set(citizenId, {
+        citizenId,
+        lastMessage: json,
+        messagesCount: 1,
+      });
+    } else {
+      const entry = citizenMap.get(citizenId);
+      entry.messagesCount += 1;
+    }
+  }
+
+  const citizenIds = [...citizenMap.keys()];
+  if (!citizenIds.length) {
+    return success(res, { data: [], group: { id: group.id, name: group.name, wardId: group.wardId } });
+  }
+
+  const users = await User.findAll({
+    where: { id: { [Op.in]: citizenIds } },
+    attributes: ['id', 'name', 'mobile', 'email', 'photo', 'roleId', 'personId'],
+    include: [
+      { model: Role, attributes: ['name'] },
+      {
+        model: Person,
+        as: 'person',
+        attributes: ['id', 'fullName', 'mobile', 'gender'],
+        include: [
+          {
+            model: Family,
+            as: 'family',
+            attributes: ['id', 'familyName'],
+            include: [{ model: House, as: 'house', attributes: ['id', 'houseNumber', 'address'], include: [{ model: Area, as: 'area', attributes: ['id', 'name'] }] }]
+          }
+        ]
+      }
+    ]
+  });
+
+  const userMap = new Map(users.map(u => [String(u.id), u]));
+  const results = [];
+  for (const cid of citizenIds) {
+    const u = userMap.get(cid);
+    const meta = citizenMap.get(cid);
+    const person = u?.person;
+    const name = person?.fullName || u?.name || 'Citizen';
+    const mobile = u?.mobile || person?.mobile || '';
+    const house = person?.family?.house;
+    const areaName = house?.area?.name || '';
+    const houseNo = house?.houseNumber || '';
+
+    const addrParts = [];
+    if (houseNo) addrParts.push(`House #${houseNo}`);
+    if (areaName) addrParts.push(areaName);
+
+    results.push({
+      id: `${group.id}_${cid}`,
+      groupId: group.id,
+      groupName: group.name,
+      type: 'DIRECT_CITIZEN',
+      citizenId: cid,
+      citizenName: name,
+      citizenMobile: mobile,
+      citizenPhoto: u?.photo || null,
+      address: addrParts.join(', '),
+      lastMessage: meta.lastMessage,
+      unreadCount: 0,
+      updatedAt: meta.lastMessage?.createdAt,
+    });
+  }
+
+  results.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+
+  return success(res, {
+    data: results,
+    meta: { group: { id: group.id, name: group.name, wardId: group.wardId } }
+  });
+});
+
+module.exports = { listGroups, listDirectConversations, createGroup, deleteGroup, listMessages, sendMessage, deleteMessage, image, clearChat, markRead, joinGroup, leaveGroup, archiveOldChats, cleanupOldMessages, ensureNagarsevakGroup, archiveNagarsevakGroup, reconcileWardGroupMembers, ensureWardGroup, archiveWardGroups, ensureAllNagarsevakGroups, getResidentDetails };

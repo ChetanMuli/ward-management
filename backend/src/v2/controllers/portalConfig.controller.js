@@ -18,11 +18,26 @@ const path = require('path');
   CIVIC_DEFAULT_HERO,
   isProtectedCustomWard,
   isCampaignStockUrl,
+  isGenericDefaultHero,
   resolveCitizenHeroUrl,
 } = require('../../utils/defaultCitizenPortal');
-const { getVisibleNagarsevakIds } = require('../../services/wardActivation.service');
+const { getActiveNagarsevakIds, getVisibleNagarsevakIds } = require('../../services/wardActivation.service');
 const portalLayout = require('../../services/portalLayout.service');
 const { Op } = require('sequelize');
+
+function asMeta(value) {
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) return { ...value };
+  return {};
+}
 
 const DEFAULT_PORTAL_CONFIG = {
   heroBannerUrl: CIVIC_DEFAULT_HERO,
@@ -194,13 +209,139 @@ async function loadWardNagarsevaks(wardId, { includeInactive = false } = {}) {
 
 function mergeConfig(row, ward) {
   const json = row ? (typeof row.toJSON === 'function' ? row.toJSON() : row) : {};
+  json.meta = asMeta(json.meta);
   return {
     ...DEFAULT_PORTAL_CONFIG,
     ...json,
     heroBannerUrl: json.heroBannerUrl || DEFAULT_PORTAL_CONFIG.heroBannerUrl,
+    meta: json.meta,
     wardId: json.wardId || ward?.id || null,
     isCustomized: Boolean(row && row.wardId),
   };
+}
+
+const PANEL_OVERLAY_FIELDS = [
+  'heroBannerUrl',
+  'heroTitleEn',
+  'heroTitleMr',
+  'heroSubtitleEn',
+  'heroSubtitleMr',
+  'heroBadgeEn',
+  'heroBadgeMr',
+  'ctaPrimaryTextEn',
+  'ctaPrimaryTextMr',
+  'ctaPrimaryLink',
+  'ctaSecondaryTextEn',
+  'ctaSecondaryTextMr',
+  'ctaSecondaryLink',
+  'showGalleryPreview',
+  'minimalWorkCount',
+];
+
+function readPanelOverlay(meta, nagarsevakId) {
+  const parsed = asMeta(meta);
+  const id = String(nagarsevakId || '').trim();
+  if (!id || !parsed.panels || typeof parsed.panels !== 'object') return null;
+  const overlay = parsed.panels[id];
+  return overlay && typeof overlay === 'object' ? overlay : null;
+}
+
+function blankPanelConfig(configData) {
+  const meta = { ...(configData.meta && typeof configData.meta === 'object' ? configData.meta : {}) };
+  meta.complaintsBannerUrl = '';
+  meta.galleryBannerUrl = '';
+  meta.dashboardWorkOrder = [];
+  meta.repPhoto = '';
+  return {
+    ...configData,
+    heroBannerUrl: CIVIC_DEFAULT_HERO,
+    complaintsBannerUrl: '',
+    galleryBannerUrl: '',
+    dashboardWorkOrder: [],
+    meta,
+  };
+}
+
+function sameAsset(a, b) {
+  const left = String(a || '').trim().split('?')[0].replace(/^\/api/, '');
+  const right = String(b || '').trim().split('?')[0].replace(/^\/api/, '');
+  return Boolean(left && right && left === right);
+}
+
+function applyPanelOverlay(configData, nagarsevakId, { ownerId, wardSnapshot } = {}) {
+  const overlay = readPanelOverlay(configData?.meta, nagarsevakId);
+  const next = blankPanelConfig(configData);
+  if (!overlay) return next;
+  for (const key of PANEL_OVERLAY_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(overlay, key)) next[key] = overlay[key];
+  }
+  if (Object.prototype.hasOwnProperty.call(overlay, 'complaintsBannerUrl')) {
+    next.meta.complaintsBannerUrl = overlay.complaintsBannerUrl;
+    next.complaintsBannerUrl = overlay.complaintsBannerUrl;
+  }
+  if (Object.prototype.hasOwnProperty.call(overlay, 'galleryBannerUrl')) {
+    next.meta.galleryBannerUrl = overlay.galleryBannerUrl;
+    next.galleryBannerUrl = overlay.galleryBannerUrl;
+  }
+  if (Object.prototype.hasOwnProperty.call(overlay, 'dashboardWorkOrder')) {
+    next.meta.dashboardWorkOrder = overlay.dashboardWorkOrder;
+    next.dashboardWorkOrder = overlay.dashboardWorkOrder;
+  }
+  const isOwner = ownerId && String(nagarsevakId) === String(ownerId);
+  const customHero = overlay.heroBannerUrl && !isGenericDefaultHero(overlay.heroBannerUrl);
+  if (customHero) {
+    next.heroBannerUrl = overlay.heroBannerUrl;
+  } else if (overlay.useCivicHero || isGenericDefaultHero(overlay.heroBannerUrl) || isGenericDefaultHero(next.heroBannerUrl)) {
+    next.heroBannerUrl = CIVIC_DEFAULT_HERO;
+  } else if (!isOwner && wardSnapshot && sameAsset(next.heroBannerUrl, wardSnapshot.heroBannerUrl)) {
+    next.heroBannerUrl = CIVIC_DEFAULT_HERO;
+  }
+  if (!isOwner && wardSnapshot) {
+    if (sameAsset(next.complaintsBannerUrl, wardSnapshot.complaintsBannerUrl)) {
+      next.complaintsBannerUrl = '';
+      next.meta.complaintsBannerUrl = '';
+    }
+    if (sameAsset(next.galleryBannerUrl, wardSnapshot.galleryBannerUrl)) {
+      next.galleryBannerUrl = '';
+      next.meta.galleryBannerUrl = '';
+    }
+  }
+  if (isGenericDefaultHero(next.heroBannerUrl)) {
+    next.heroBannerUrl = CIVIC_DEFAULT_HERO;
+  } else {
+    next.heroBannerUrl = publicImageUrl(next.heroBannerUrl, CIVIC_DEFAULT_HERO);
+  }
+  next.complaintsBannerUrl = publicImageUrl(next.complaintsBannerUrl, '');
+  next.galleryBannerUrl = publicImageUrl(next.galleryBannerUrl, '');
+  next.meta.complaintsBannerUrl = publicImageUrl(next.meta.complaintsBannerUrl, '');
+  next.meta.galleryBannerUrl = publicImageUrl(next.meta.galleryBannerUrl, '');
+  return next;
+}
+
+function snapshotWardBanners(configData) {
+  const overlay = {};
+  for (const key of PANEL_OVERLAY_FIELDS) {
+    if (configData[key] !== undefined) overlay[key] = configData[key];
+  }
+  overlay.complaintsBannerUrl = configData.complaintsBannerUrl || configData.meta?.complaintsBannerUrl || '';
+  overlay.galleryBannerUrl = configData.galleryBannerUrl || configData.meta?.galleryBannerUrl || '';
+  overlay.dashboardWorkOrder = Array.isArray(configData.dashboardWorkOrder)
+    ? configData.dashboardWorkOrder
+    : (Array.isArray(configData.meta?.dashboardWorkOrder) ? configData.meta.dashboardWorkOrder : []);
+  return overlay;
+}
+
+function resolveLegacyOwnerId(configData, nagarsevaks, fallbackId) {
+  const meta = configData?.meta && typeof configData.meta === 'object' ? configData.meta : {};
+  const repName = String(meta.repName || '').trim().toLowerCase();
+  if (repName) {
+    const exact = nagarsevaks.find((n) => String(n.name || '').trim().toLowerCase() === repName);
+    if (exact) return String(exact.id);
+    const first = repName.split(/\s+/)[0];
+    const partial = nagarsevaks.find((n) => String(n.name || '').toLowerCase().includes(first));
+    if (partial) return String(partial.id);
+  }
+  return fallbackId ? String(fallbackId) : '';
 }
 
 /**
@@ -224,7 +365,7 @@ const getPortalConfig = asyncHandler(async (req, res) => {
     });
   }
   const ward = wardId ? await Ward.findByPk(wardId, { attributes: ['id', 'wardNumber', 'name', 'status'] }) : null;
-  const configData = mergeConfig(configRow, ward);
+  let configData = mergeConfig(configRow, ward);
   if (wardId) configData.wardId = wardId;
 
   const persistJobs = [];
@@ -258,45 +399,46 @@ const getPortalConfig = asyncHandler(async (req, res) => {
   await portalLayout.attachLayout(wardId, configData, persistJobs);
 
   const manager = canManage(req);
-  const featuredId = req.query.nagarsevakId || configData.featuredNagarsevakUserId;
+  const visibleIds = wardId ? (await getVisibleNagarsevakIds(wardId)).map(String) : [];
+  const activeIds = wardId ? (await getActiveNagarsevakIds(wardId)).map(String) : [];
+  const requestedId = String(req.query.nagarsevakId || '').trim();
   const nagarsevaks = await loadWardNagarsevaks(wardId, { includeInactive: manager });
+  const editorIds = manager ? activeIds : visibleIds;
+  const featuredId = (requestedId && editorIds.includes(requestedId))
+    ? requestedId
+    : (visibleIds.includes(String(configData.featuredNagarsevakUserId || ''))
+      ? String(configData.featuredNagarsevakUserId)
+      : (visibleIds[0] || (manager ? (activeIds[0] || '') : '')));
+  const legacyOwnerId = visibleIds.includes(String(configData.featuredNagarsevakUserId || ''))
+    ? String(configData.featuredNagarsevakUserId)
+    : (visibleIds[0] || activeIds[0] || '');
   nagarsevaks.sort((a, b) => {
     if (String(a.id) === String(featuredId)) return -1;
     if (String(b.id) === String(featuredId)) return 1;
     return 0;
   });
-  let featuredPhotoDone = false;
   for (const nagar of nagarsevaks) {
     if (nagar?.photo && String(nagar.photo).startsWith('data:image/')) {
       const raw = nagar.photo;
-      if (!featuredPhotoDone) {
+      persistJobs.push(async () => {
         const fileUrl = persistDataUrl(raw, `nagar-${String(nagar.id || 'p').slice(0, 8)}`);
         if (fileUrl && !String(fileUrl).startsWith('data:')) {
-          nagar.photo = fileUrl;
-          persistJobs.push(async () => {
-            const acc = await NagarsevakUser.findByPk(nagar.id);
-            if (acc) await acc.update({ photo: fileUrl });
-          });
-        } else {
-          nagar.photo = '';
+          const acc = await NagarsevakUser.findByPk(nagar.id);
+          if (acc) await acc.update({ photo: fileUrl });
         }
-        featuredPhotoDone = true;
-      } else {
-        persistJobs.push(async () => {
-          const fileUrl = persistDataUrl(raw, `nagar-${String(nagar.id || 'p').slice(0, 8)}`);
-          if (fileUrl && !String(fileUrl).startsWith('data:')) {
-            const acc = await NagarsevakUser.findByPk(nagar.id);
-            if (acc) await acc.update({ photo: fileUrl });
-          }
-        });
-        nagar.photo = '';
-      }
+      });
+      nagar.photo = '';
     }
     if (nagar) nagar.photo = publicImageUrl(nagar.photo, '');
   }
 
-  const visibleIds = wardId ? (await getVisibleNagarsevakIds(wardId)).map(String) : [];
   const purchased = nagarsevaks.filter((n) => visibleIds.includes(String(n.id)));
+  const activeNagarsevaks = nagarsevaks.filter((n) => activeIds.includes(String(n.id)));
+  const ownerId = resolveLegacyOwnerId(configData, nagarsevaks, legacyOwnerId);
+  const wardSnapshot = snapshotWardBanners(configData);
+  if (featuredId) {
+    configData = applyPanelOverlay(configData, featuredId, { ownerId, wardSnapshot });
+  }
   const wardInactive = String(ward?.status || '').toUpperCase() !== 'ACTIVE';
   const demoMode = !purchased.length || wardInactive;
   if (demoMode && !manager) {
@@ -310,9 +452,10 @@ const getPortalConfig = asyncHandler(async (req, res) => {
   } else if (!demoMode) {
     configData.heroBannerUrl = resolveCitizenHeroUrl(configData.heroBannerUrl, { demoMode: false });
   }
-  const nagarsevak = purchased.find((n) => String(n.id) === String(featuredId))
+  const nagarsevak = nagarsevaks.find((n) => String(n.id) === String(featuredId))
     || purchased.find((n) => String(n.id) === String(req.user?.id))
     || purchased[0]
+    || nagarsevaks[0]
     || null;
 
   persistInBackground(persistJobs);
@@ -321,20 +464,21 @@ const getPortalConfig = asyncHandler(async (req, res) => {
       config: {
         ...configData,
         demoMode,
+        selectedNagarsevakUserId: featuredId || null,
         purchasedNagarsevakUserId: (req.user?.roleName === 'NAGARSEVAK' && purchased.some((n) => String(n.id) === String(req.user.id)))
           ? req.user.id
-          : (purchased[0]?.id || null),
+          : (featuredId || purchased[0]?.id || null),
       },
       ward: ward ? { id: ward.id, wardNumber: ward.wardNumber, name: ward.name, status: ward.status } : null,
       nagarsevak,
-      nagarsevaks: purchased,
+      nagarsevaks: manager ? activeNagarsevaks : purchased,
       purchasedNagarsevaks: purchased,
       activation: {
         wardActive: !wardInactive,
         purchasedCount: purchased.length,
         purchasedNagarsevakUserId: (req.user?.roleName === 'NAGARSEVAK' && purchased.some((n) => String(n.id) === String(req.user.id)))
           ? req.user.id
-          : (purchased[0]?.id || null),
+          : (featuredId || purchased[0]?.id || null),
         demoMode,
       },
     },
@@ -393,7 +537,7 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     patch.heroBannerUrl = publicImageUrl(patch.heroBannerUrl, patch.heroBannerUrl);
   }
 
-  const existingMeta = (config && config.meta && typeof config.meta === 'object') ? config.meta : {};
+  const existingMeta = asMeta(config && config.meta);
   if (Object.prototype.hasOwnProperty.call(req.body, 'dashboardWorkOrder')) {
     const ids = Array.isArray(req.body.dashboardWorkOrder) ? req.body.dashboardWorkOrder.map(String).filter(Boolean) : [];
     patch.meta = { ...existingMeta, ...(patch.meta && typeof patch.meta === 'object' ? patch.meta : {}), dashboardWorkOrder: ids };
@@ -424,7 +568,52 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     }
   }
 
-  if (Object.prototype.hasOwnProperty.call(patch, 'featuredNagarsevakUserId') && patch.featuredNagarsevakUserId) {
+  const panelId = String(req.body.nagarsevakUserId || req.body.nagarsevakId || req.body.nagarsevak?.id || '').trim();
+  if (panelId) {
+    const incomingMeta = (patch.meta && typeof patch.meta === 'object') ? { ...patch.meta } : {};
+    delete incomingMeta.panels;
+    const nextMeta = { ...existingMeta, ...incomingMeta, panels: { ...(existingMeta.panels && typeof existingMeta.panels === 'object' ? existingMeta.panels : {}) } };
+    const overlay = { ...((nextMeta.panels[panelId] && typeof nextMeta.panels[panelId] === 'object') ? nextMeta.panels[panelId] : {}) };
+    for (const field of PANEL_OVERLAY_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(patch, field)) {
+        overlay[field] = patch[field];
+        delete patch[field];
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'complaintsBannerUrl')) {
+      overlay.complaintsBannerUrl = Object.prototype.hasOwnProperty.call(nextMeta, 'complaintsBannerUrl')
+        ? nextMeta.complaintsBannerUrl
+        : req.body.complaintsBannerUrl;
+      delete nextMeta.complaintsBannerUrl;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'galleryBannerUrl')) {
+      overlay.galleryBannerUrl = Object.prototype.hasOwnProperty.call(nextMeta, 'galleryBannerUrl')
+        ? nextMeta.galleryBannerUrl
+        : req.body.galleryBannerUrl;
+      delete nextMeta.galleryBannerUrl;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'dashboardWorkOrder')) {
+      overlay.dashboardWorkOrder = nextMeta.dashboardWorkOrder;
+      delete nextMeta.dashboardWorkOrder;
+    }
+    persistImageFields(overlay, ['heroBannerUrl'], `hero-p-${String(panelId).slice(0, 8)}`);
+    if (typeof overlay.heroBannerUrl === 'string' && overlay.heroBannerUrl.startsWith('data:')) {
+      throw new ApiError(400, 'Could not store the hero banner on the server. Check that the uploads/portal folder is writable.');
+    }
+    const hasCustomHero = overlay.heroBannerUrl && !isGenericDefaultHero(overlay.heroBannerUrl);
+    overlay.useCivicHero = hasCustomHero
+      ? false
+      : (Object.prototype.hasOwnProperty.call(req.body, 'useCivicHero')
+        ? Boolean(req.body.useCivicHero)
+        : true);
+    if (overlay.useCivicHero) overlay.heroBannerUrl = CIVIC_DEFAULT_HERO;
+    persistImageFields(overlay, ['complaintsBannerUrl'], `complaints-p-${String(panelId).slice(0, 8)}`);
+    persistImageFields(overlay, ['galleryBannerUrl'], `gallery-p-${String(panelId).slice(0, 8)}`);
+    nextMeta.panels = { ...(nextMeta.panels && typeof nextMeta.panels === 'object' ? nextMeta.panels : {}), [panelId]: overlay };
+    patch.meta = JSON.parse(JSON.stringify(nextMeta));
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, 'featuredNagarsevakUserId') && patch.featuredNagarsevakUserId && !panelId) {
     const visibleIds = (await getVisibleNagarsevakIds(wardId)).map(String);
     if (!visibleIds.includes(String(patch.featuredNagarsevakUserId))) {
       throw new ApiError(400, 'Show only a Nagarsevak you have already activated for this ward.');
@@ -439,26 +628,32 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     patch.wardId = wardId;
     config = await WardPortalConfig.create(patch);
   } else {
+    if (patch.meta) {
+      config.set('meta', patch.meta);
+      config.changed('meta', true);
+    }
     await config.update(patch);
   }
 
-  if (Object.prototype.hasOwnProperty.call(req.body, 'dashboardWorkOrder')) {
+  if (Object.prototype.hasOwnProperty.call(req.body, 'dashboardWorkOrder') && !panelId) {
     const ids = Array.isArray(req.body.dashboardWorkOrder) ? req.body.dashboardWorkOrder.map(String).filter(Boolean) : [];
     await portalLayout.setHomeWorkIds(wardId, ids);
   }
 
-  const bannerUrls = {};
-  if (Object.prototype.hasOwnProperty.call(patch, 'heroBannerUrl') || Object.prototype.hasOwnProperty.call(req.body, 'heroBannerUrl')) {
-    bannerUrls.homeBannerUrl = patch.heroBannerUrl || req.body.heroBannerUrl;
-  }
-  if (Object.prototype.hasOwnProperty.call(req.body, 'complaintsBannerUrl') || patch.meta?.complaintsBannerUrl !== undefined) {
-    bannerUrls.complaintsBannerUrl = req.body.complaintsBannerUrl !== undefined ? req.body.complaintsBannerUrl : patch.meta.complaintsBannerUrl;
-  }
-  if (Object.prototype.hasOwnProperty.call(req.body, 'galleryBannerUrl') || patch.meta?.galleryBannerUrl !== undefined) {
-    bannerUrls.galleryBannerUrl = req.body.galleryBannerUrl !== undefined ? req.body.galleryBannerUrl : patch.meta.galleryBannerUrl;
-  }
-  if (Object.keys(bannerUrls).length) {
-    await portalLayout.upsertBanners(wardId, bannerUrls, req.user.id);
+  if (!panelId) {
+    const bannerUrls = {};
+    if (Object.prototype.hasOwnProperty.call(patch, 'heroBannerUrl') || Object.prototype.hasOwnProperty.call(req.body, 'heroBannerUrl')) {
+      bannerUrls.homeBannerUrl = patch.heroBannerUrl || req.body.heroBannerUrl;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'complaintsBannerUrl') || patch.meta?.complaintsBannerUrl !== undefined) {
+      bannerUrls.complaintsBannerUrl = req.body.complaintsBannerUrl !== undefined ? req.body.complaintsBannerUrl : patch.meta.complaintsBannerUrl;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'galleryBannerUrl') || patch.meta?.galleryBannerUrl !== undefined) {
+      bannerUrls.galleryBannerUrl = req.body.galleryBannerUrl !== undefined ? req.body.galleryBannerUrl : patch.meta.galleryBannerUrl;
+    }
+    if (Object.keys(bannerUrls).length) {
+      await portalLayout.upsertBanners(wardId, bannerUrls, req.user.id);
+    }
   }
 
   // Update Nagarsevak details if provided in request
@@ -471,11 +666,6 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     if (req.user.roleName === 'NAGARSEVAK') {
       targetNagar = await User.findByPk(req.user.id);
     } else if (wardId && nagarRole) {
-      const visibleIds = (await getVisibleNagarsevakIds(wardId)).map(String);
-      const requestedId = nagarData.id ? String(nagarData.id) : '';
-      if (requestedId && !visibleIds.includes(requestedId)) {
-        throw new ApiError(400, 'Save only a Nagarsevak you have already activated. Activate the seat in Ward activation first.');
-      }
       if (nagarData.id) {
         targetNagar = await User.findOne({
           where: { id: nagarData.id, roleId: nagarRole.id, wardId },
@@ -533,10 +723,15 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     || nagarsevaks[0]
     || null;
 
+  const saved = typeof config.toJSON === 'function' ? config.toJSON() : config;
+  const ownerId = resolveLegacyOwnerId(saved, nagarsevaks, String(featuredId || ''));
+  const shown = panelId
+    ? applyPanelOverlay(saved, panelId, { ownerId, wardSnapshot: snapshotWardBanners(saved) })
+    : saved;
   return success(res, {
     message: 'Portal configuration updated successfully.',
     data: {
-      config: config.toJSON(),
+      config: shown,
       nagarsevak: featured,
       nagarsevaks,
     },
@@ -568,6 +763,24 @@ const listGalleryItems = asyncHandler(async (req, res) => {
 
   if (req.query.mediaType) {
     where.mediaType = req.query.mediaType;
+  }
+
+  const panelId = String(req.query.nagarsevakId || '').trim();
+  if (panelId) {
+    const cfg = await WardPortalConfig.findOne({ where: { wardId }, attributes: ['featuredNagarsevakUserId'] });
+    const visibleIds = (await getVisibleNagarsevakIds(wardId)).map(String);
+    const activeIds = (await getActiveNagarsevakIds(wardId)).map(String);
+    const legacyOwnerId = visibleIds.includes(String(cfg?.featuredNagarsevakUserId || ''))
+      ? String(cfg.featuredNagarsevakUserId)
+      : (visibleIds[0] || activeIds[0] || '');
+    if (legacyOwnerId && String(panelId) === String(legacyOwnerId)) {
+      where[Op.or] = [
+        { nagarsevakUserId: panelId },
+        { nagarsevakUserId: null },
+      ];
+    } else {
+      where.nagarsevakUserId = panelId;
+    }
   }
 
   const dashboardFilter = req.query.showOnDashboard;
@@ -697,9 +910,13 @@ const createGalleryItem = asyncHandler(async (req, res) => {
   const storedMedia = persistDataUrl(mediaUrl, `work-${String(wardId).slice(0, 8)}`);
   const storedVideo = persistVideoUrl(videoUrl, `vid-${String(wardId).slice(0, 8)}`);
 
+  const ownerId = req.user.roleName === 'NAGARSEVAK'
+    ? req.user.id
+    : (req.body.nagarsevakUserId || null);
+
   const item = await WardGalleryItem.create({
     wardId,
-    nagarsevakUserId: req.user.roleName === 'NAGARSEVAK' ? req.user.id : null,
+    nagarsevakUserId: ownerId,
     title: String(title).trim(),
     titleMr: titleMr ? String(titleMr).trim() : null,
     category: String(category).toUpperCase(),
@@ -772,6 +989,7 @@ const updateGalleryItem = asyncHandler(async (req, res) => {
     'status',
     'orderIndex',
     'showOnDashboard',
+    'nagarsevakUserId',
   ];
 
   const patch = {};

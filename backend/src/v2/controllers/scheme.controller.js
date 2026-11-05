@@ -32,12 +32,27 @@ function scopeWhere(req){
 }
 const list=asyncHandler(async(req,res)=>{
   const where={...scopeWhere(req)};
+  const requestedWardId = String(req.query.wardId || '').trim();
+  if (requestedWardId) where.wardId = requestedWardId;
   if(req.query.status) where.status=req.query.status;
   if(req.query.search) where[Op.or]=[
     {title:{[Op.like]:`%${req.query.search}%`}},
     {description:{[Op.like]:`%${req.query.search}%`}},
     {audience:{[Op.like]:`%${req.query.search}%`}}
   ];
+
+  const panelId = String(req.query.nagarsevakId || req.query.panelId || '').trim();
+  if (req.user?.roleName === 'NAGARSEVAK') {
+    const { Employee } = require('../../models');
+    const emps = await Employee.findAll({ where: { managerUserId: req.user.id }, attributes: ['userId'] });
+    const authorIds = [req.user.id, ...emps.map(e => e.userId)];
+    where.createdByUserId = { [Op.in]: authorIds };
+  } else if (panelId) {
+    const { Employee } = require('../../models');
+    const emps = await Employee.findAll({ where: { managerUserId: panelId }, attributes: ['userId'] });
+    const authorIds = [panelId, ...emps.map(e => e.userId)];
+    where.createdByUserId = { [Op.in]: authorIds };
+  }
   const rows=await Scheme.findAll({where,include:[
     {model:Ward,as:'ward',attributes:['id','wardNumber','name']},
     {model:User,as:'createdBy',attributes:['id','name','email','mobile'],include:[{model:Role,attributes:['id','name']}]},

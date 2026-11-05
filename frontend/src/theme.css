@@ -1527,7 +1527,7 @@ html body .photo-crop-stage{
   background:#0b1624;cursor:grab;touch-action:none;user-select:none;
 }
 html body .photo-crop-stage:active{cursor:grabbing}
-html body .photo-crop-stage img{position:absolute;max-width:none;pointer-events:none;user-select:none}
+html body .photo-crop-stage img{position:absolute;max-width:none;pointer-events:none;user-select:none;transform-origin:center center}
 html body .photo-crop-ring{
   position:absolute;inset:0;border:3px solid rgba(255,255,255,.92);border-radius:50%;
   box-shadow:inset 0 0 0 80px rgba(11,22,36,.18);pointer-events:none;
@@ -10421,12 +10421,10 @@ html body .photo-crop-modal.banner-crop-modal{
 html body .banner-crop-stage{
   width:100% !important;
   height:auto !important;
-  aspect-ratio:2.4 / 1 !important;
   margin:12px 0 14px !important;
   border-radius:14px !important;
 }
 html body .banner-crop-preview{
-  aspect-ratio:2.4 / 1 !important;
   min-height:0 !important;
 }
 html body .user-hero-live-badge,
@@ -20539,9 +20537,16 @@ html body .hospital-type-chip {
   color: #334155 !important;
 }
 html body .hospital-type-chip.type-government,
-html body .hospital-type-chip.type-phc { background: #ecfdf5 !important; color: #047857 !important; }
+html body .hospital-type-chip.type-phc { background: #ecfdf5 !important; color: #047857 !important; border: 1px solid #a7f3d0 !important; }
 html body .hospital-type-chip.type-private,
-html body .hospital-type-chip.type-clinic { background: #eff6ff !important; color: #1d4ed8 !important; }
+html body .hospital-type-chip.type-clinic { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #bfdbfe !important; }
+html body .hospital-type-chip.type-trust { background: #fdf2f8 !important; color: #be185d !important; border: 1px solid #fbcfe8 !important; }
+html body .hospital-type-chip.type-ayush { background: #f0fdf4 !important; color: #15803d !important; border: 1px solid #bbf7d0 !important; }
+html body .hospital-type-chip.type-allopathic { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #bfdbfe !important; }
+html body .hospital-type-chip.type-generic { background: #ecfdf5 !important; color: #047857 !important; border: 1px solid #a7f3d0 !important; }
+html body .hospital-type-chip.type-ayurvedic { background: #fefce8 !important; color: #a16207 !important; border: 1px solid #fde047 !important; }
+html body .hospital-type-chip.type-homoeopathic { background: #f5f3ff !important; color: #6d28d9 !important; border: 1px solid #ddd6fe !important; }
+html body .hospital-type-chip.type-wholesale_retail { background: #fff7ed !important; color: #c2410c !important; border: 1px solid #fed7aa !important; }
 html body .hospital-card-addr,
 html body .hospital-card-facilities {
   margin: 0 0 8px !important;
@@ -20604,7 +20609,7 @@ html body .hospitals-page .exec-toolbar-row,
 html body .hospitals-page .exec-toolbar-left {
   display: flex !important;
   align-items: center !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
   gap: 8px !important;
   overflow: visible !important;
   width: 100% !important;
@@ -20615,6 +20620,7 @@ html body .hospitals-page .exec-quick-ward,
 html body .hospitals-page .exec-quick-status,
 html body .hospitals-page .exec-quick-presence,
 html body .hospitals-page .exec-filter-select,
+html body .hospitals-page .exec-filter-chip,
 html body .hospitals-page .exec-quick-ward .ward-filter,
 html body .hospitals-page .exec-quick-ward .ward-picker,
 html body .hospitals-page .exec-quick-ward .searchable-select,
@@ -20662,14 +20668,69 @@ html body .hospitals-page .exec-filter-select {
   font-size: 13px !important;
   padding: 0 28px 0 10px !important;
 }
+html body .exec-filter-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+}
+html body .exec-filter-chip:hover {
+  border-color: #94a3b8 !important;
+  color: #1e293b !important;
+}
+html body .exec-filter-chip.active {
+  border-color: #0f766e !important;
+  background: #f0fdfa !important;
+  color: #0f766e !important;
+  box-shadow: 0 1px 2px rgba(15, 118, 110, 0.12) !important;
+}
+html body .exec-btn-delete {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+  border: 1px solid #fecaca !important;
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+}
+html body .exec-btn-delete:hover {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+}
 html body .hospitals-table-wrap {
+  width: 100% !important;
   background: #fff !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 12px !important;
-  overflow: hidden !important;
+  overflow-x: auto !important;
 }
 html body .hospitals-table {
   width: 100% !important;
+  min-width: 950px !important;
   border-collapse: collapse !important;
 }
 html body .hospitals-table th,
@@ -20732,6 +20793,29 @@ html body .hospitals-page .exec-action-group {
   justify-content: center !important;
   gap: 6px !important;
   flex-wrap: nowrap !important;
+}
+html body .hospitals-table td[data-label="Actions"] {
+  text-align: center !important;
+  white-space: nowrap !important;
+  width: 195px !important;
+  min-width: 195px !important;
+}
+html body .hospitals-table td[data-label="Ward & Area"] {
+  width: 140px !important;
+  min-width: 120px !important;
+}
+html body .hospitals-table td[data-label="Contact"],
+html body .hospitals-table td[data-label="Contact & Hours"] {
+  width: 180px !important;
+  min-width: 160px !important;
+}
+html body .hospitals-table td[data-label="Location"] {
+  min-width: 180px !important;
+}
+html body .hospitals-table td[data-label="Status"] {
+  width: 90px !important;
+  min-width: 90px !important;
+  text-align: center !important;
 }
 html body .hospitals-table .table-directions-btn {
   height: 32px !important;
@@ -21688,6 +21772,4033 @@ html body .app-shell .team-subnav-icon{
   html body .app-shell .complaint-quick-ward{
     flex:1 1 220px !important;
     max-width:none !important;
+  }
+}
+
+/* ===== Mobile-ready last-wins: admin + citizen ===== */
+@media (max-width: 900px){
+  html, body, #root{
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+  }
+  html body .app-shell,
+  html body .user-portal{
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  html body .app-shell .main{
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+  html body .app-shell .content{
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 14px 12px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box !important;
+  }
+  html body .app-shell .topbar{
+    height: 56px !important;
+    min-height: 56px !important;
+    padding: 0 10px !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+  html body .app-shell .menu-btn{
+    display: grid !important;
+    place-items: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    flex: 0 0 40px !important;
+  }
+  html body .app-shell aside.sidebar,
+  html body .app-shell .sidebar{
+    transform: translateX(-110%) !important;
+    pointer-events: none !important;
+    width: min(310px, 86vw) !important;
+    z-index: 1200 !important;
+  }
+  html body .app-shell .sidebar.open{
+    transform: translateX(0) !important;
+    pointer-events: auto !important;
+  }
+  html body .app-shell .topbar-title{
+    font-size: 14px !important;
+    max-width: 46vw !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  html body .app-shell .user-text{ display: none !important; }
+  html body .app-shell .page-header{
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+    padding-bottom: 10px !important;
+  }
+  html body .app-shell .page-header h1{ font-size: 20px !important; }
+  html body .app-shell .page-header .primary-btn,
+  html body .app-shell .page-header .ghost-btn{
+    width: 100% !important;
+    min-height: 42px !important;
+  }
+
+  html body .stat-grid,
+  html body .app-shell .stat-grid,
+  html body .admin-dashboard-page .stat-grid,
+  html body .dashboard-glance-grid{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  html body .stat-card,
+  html body .app-shell .stat-card{
+    min-width: 0 !important;
+    padding: 12px 10px !important;
+  }
+  html body .stat-card strong,
+  html body .app-shell .stat-card strong{
+    font-size: 22px !important;
+    word-break: break-word !important;
+  }
+  html body .team-kpi-grid,
+  html body .team-kpi-grid.cols-5,
+  html body .shops-page .team-kpi-grid,
+  html body .families-page .team-kpi-grid,
+  html body .houses-page .team-kpi-grid,
+  html body .hospitals-page .team-kpi-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  html body .admin-dashboard-page .dash-top-bar{
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  html body .dash-heading{ font-size: 20px !important; }
+  html body .dash-scope-badge{ width: 100% !important; box-sizing: border-box !important; }
+  html body .dashboard-scope-panel{
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  html body .dashboard-scope-control,
+  html body .dashboard-scope-control .searchable-select{
+    max-width: none !important;
+    width: 100% !important;
+  }
+  html body .dash-pipeline-grid{ grid-template-columns: 1fr 1fr !important; }
+  html body .dash-agenda-grid{ grid-template-columns: 1fr !important; }
+  html body .dash-hero-card,
+  html body .executive-hero-card{
+    padding: 14px !important;
+  }
+  html body .dash-hero-main-row{
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  html body .panel{ padding: 14px !important; }
+  html body .toolbar,
+  html body .exec-toolbar-row,
+  html body .complaint-toolbar-row{
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+  }
+  html body .app-shell .complaint-toolbar-row{
+    flex-wrap: wrap !important;
+  }
+  html body .app-shell .complaint-search-box,
+  html body .app-shell .complaint-quick-ward,
+  html body .app-shell .complaint-quick-filters-row,
+  html body .app-shell .complaint-toolbar-actions{
+    flex: 1 1 100% !important;
+    max-width: none !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+  html body .app-shell .filter-toggle-btn{ width: 100% !important; }
+  html body .table-wrap{
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  html body .form-grid{ grid-template-columns: 1fr !important; }
+  html body .form-grid .span-2{ grid-column: 1 !important; }
+  html body .modal{
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px !important;
+    max-height: calc(100dvh - 16px) !important;
+  }
+  html body .two-col, html body .detail-grid{ grid-template-columns: 1fr !important; }
+
+  html body .user-portal .user-main,
+  html body .user-portal .user-page-main{
+    padding: 12px 12px calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+    max-width: 100% !important;
+  }
+  html body .user-portal .user-bottom-nav{
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 90 !important;
+  }
+  html body .user-portal .user-mobile-menu-wrap,
+  html body .user-portal .user-mobile-menu{
+    display: none !important;
+  }
+  html body .user-portal .user-hero,
+  html body .user-portal .user-hero.has-portal-banner,
+  html body .user-portal .user-hero.has-custom-hero,
+  html body .user-portal .user-hero.is-civic-plain{
+    min-height: 240px !important;
+    height: auto !important;
+    padding: 22px 16px !important;
+    border-radius: 16px !important;
+    margin-bottom: 14px !important;
+  }
+  html body .user-portal .user-hero h1{ font-size: 22px !important; line-height: 1.2 !important; }
+  html body .user-portal .user-hero-actions{
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  html body .user-portal .user-hero-actions .primary-btn,
+  html body .user-portal .user-hero-actions .ghost-btn{
+    width: 100% !important;
+    min-height: 44px !important;
+  }
+  html body .user-portal .user-hero-card{ display: none !important; }
+  html body .user-portal .user-stat-grid,
+  html body .user-portal .user-content-grid{
+    grid-template-columns: 1fr !important;
+  }
+  html body .user-portal .user-stat-grid{ grid-template-columns: 1fr 1fr !important; }
+  html body .user-portal .civic-dir-shell{
+    padding: 16px 14px 20px !important;
+    border-radius: 16px !important;
+  }
+  html body .gallery-banner-photo{ height: 180px !important; }
+  html body .gallery-banner-hero{ min-height: 180px !important; }
+  html body .ward-info-card{ min-height: 0 !important; padding: 16px 14px !important; }
+  html body .user-portal .user-hospitals-panel{ padding: 14px !important; }
+  html body .nagar-spotlight-body{ grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 560px){
+  html body .stat-grid,
+  html body .app-shell .stat-grid,
+  html body .admin-dashboard-page .stat-grid{
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  html body .team-kpi-grid,
+  html body .team-kpi-grid.cols-5{
+    grid-template-columns: 1fr 1fr !important;
+  }
+  html body .dash-pipeline-grid{ grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  html body .stat-card span{ font-size: 10px !important; }
+  html body .stat-card strong{ font-size: 20px !important; }
+  html body .app-shell .content{ padding: 12px 10px 22px !important; }
+  html body .user-portal .user-hero h1{ font-size: 20px !important; }
+  html body .user-portal .user-hero{ min-height: 210px !important; padding: 18px 14px !important; }
+}
+
+@media (min-width: 901px){
+  html body .app-shell .menu-btn{ display: none !important; }
+  html body .app-shell aside.sidebar,
+  html body .app-shell .sidebar{
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+  html body .user-portal .user-bottom-nav{ display: none !important; }
+}
+
+/* Admin chrome locked: sidebar + topbar never scroll with page */
+html:has(.app-shell),
+html:has(.app-shell) body,
+html:has(.app-shell) #root{
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}
+html body .app-shell{
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+}
+html body .app-shell aside.sidebar,
+html body .app-shell .sidebar{
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  z-index: 1200 !important;
+}
+html body .app-shell .scrim{
+  z-index: 1100 !important;
+}
+html body .app-shell .sidebar nav{
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+html body .app-shell .main{
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+html body .app-shell .topbar{
+  position: relative !important;
+  flex: 0 0 64px !important;
+  width: 100% !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  z-index: 30 !important;
+  background: #fff !important;
+  box-sizing: border-box !important;
+}
+html body .app-shell .content{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+html body .app-shell .content .app-footer{
+  margin-top: 18px !important;
+  padding: 12px 0 8px !important;
+}
+
+@media (max-width: 900px){
+  html body .app-shell .main{
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  html body .app-shell .topbar{
+    flex-basis: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    width: 100% !important;
+  }
+  html body .app-shell .content{
+    padding: 12px 12px 24px !important;
+  }
+  html body .admin-dashboard-page{
+    padding-bottom: 8px !important;
+  }
+  html body .admin-dashboard-page .dash-heading{
+    font-size: 18px !important;
+    line-height: 1.25 !important;
+  }
+  html body .admin-dashboard-page .dash-subheading{
+    font-size: 12px !important;
+  }
+  html body .app-shell .dashboard-scope-panel,
+  html body .dashboard-scope-panel{
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    grid-template-columns: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 14px !important;
+    gap: 10px !important;
+  }
+  html body .dashboard-scope-control,
+  html body .dashboard-scope-control .searchable-select{
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  html body .app-shell .dashboard-ward-facts{
+    grid-template-columns: 1fr 1fr !important;
+  }
+  html body .app-shell .two-col{
+    grid-template-columns: 1fr !important;
+  }
+  html body .dashboard-info-panel .dash-metrics-head{
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  html body .dash-metric-block .stat-grid,
+  html body .admin-dashboard-page .stat-grid,
+  html body .complaints-page .team-kpi-grid,
+  html body .complaints-page .complaint-kpi-grid,
+  html body .staff-page .team-kpi-grid,
+  html body .people-page .team-kpi-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  html body .dash-scope-badge{
+    justify-content: flex-start !important;
+  }
+  html body .user-portal .civic-dir-shell .civic-metric-grid{
+    grid-template-columns: 1fr !important;
+  }
+  html body .user-portal .user-topbar{
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    background: #fff !important;
+  }
+}
+
+/* Citizen home: rounded professional cards + mobile hero */
+html body .user-portal .user-hero,
+html body .user-portal .user-hero.has-portal-banner,
+html body .user-portal .user-hero.has-custom-hero,
+html body .user-portal .user-hero.is-civic-plain{
+  border-radius: 22px !important;
+  overflow: hidden !important;
+}
+html body .user-portal .user-panel-card,
+html body .user-portal .user-updates-panel,
+html body .user-portal .user-schemes-panel,
+html body .user-portal .user-hospitals-panel,
+html body .user-portal .nagar-spotlight-card,
+html body .user-portal .nagar-minimal-work-card{
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+html body .user-portal .user-stat-card,
+html body .user-portal .nagar-minimal-work-item{
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+html body .user-portal .home-feed-list{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  margin-top: 12px !important;
+}
+html body .user-portal .home-feed-card{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 16px 16px 14px !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  background: #ffffff !important;
+  border: 1px solid #e8edf3 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04) !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+html body .user-portal .home-feed-card:hover{
+  transform: none !important;
+  border-color: #d5dee9 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07) !important;
+}
+html body .user-portal .home-feed-top{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+html body .user-portal .home-feed-badge{
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 22px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+}
+html body .user-portal .home-feed-card.is-update .home-feed-badge{
+  background: #ecfeff !important;
+  color: #0f766e !important;
+}
+html body .user-portal .home-feed-card.is-event .home-feed-badge{
+  background: #fff7ed !important;
+  color: #c2410c !important;
+}
+html body .user-portal .home-feed-card.is-scheme .home-feed-badge{
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+}
+html body .user-portal .home-feed-card.is-hospital .home-feed-badge{
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+}
+html body .user-portal .home-feed-top time{
+  font-size: 11px !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+html body .user-portal .home-feed-card h3{
+  margin: 0 !important;
+  font-size: 15.5px !important;
+  line-height: 1.35 !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+html body .user-portal .home-feed-card p{
+  margin: 0 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  color: #64748b !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+html body .user-portal .home-feed-meta{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding-top: 8px !important;
+  margin-top: 2px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  font-size: 11.5px !important;
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+}
+html body .user-portal .home-feed-meta span{
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 900px){
+  html body .user-portal .user-hero,
+  html body .user-portal .user-hero.has-portal-banner,
+  html body .user-portal .user-hero.has-custom-hero,
+  html body .user-portal .user-hero.is-civic-plain,
+  html body .user-portal .user-hero.is-civic-hero,
+  html body .user-portal .user-hero.is-hero-loading{
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    align-items: stretch !important;
+    min-height: 360px !important;
+    height: 360px !important;
+    max-height: 42dvh !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    margin-bottom: 14px !important;
+    border-radius: 22px !important;
+    overflow: hidden !important;
+    background: #0b1624 !important;
+  }
+  html body .user-portal .user-hero-media,
+  html body .user-hero-media{
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    aspect-ratio: auto !important;
+    flex: none !important;
+    z-index: 0 !important;
+    background: transparent !important;
+  }
+  html body .user-portal .user-hero-bg-photo,
+  html body .user-hero-bg-photo{
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+  }
+  html body .user-portal .user-hero-media::after,
+  html body .user-hero-media::after{
+    content: none !important;
+    display: none !important;
+  }
+  html body .user-portal .user-hero::before{
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    background: linear-gradient(180deg, rgba(8,15,28,.12) 0%, rgba(8,15,28,.08) 38%, rgba(8,15,28,.55) 68%, rgba(8,15,28,.82) 100%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  html body .user-portal .user-hero .user-hero-copy,
+  html body .user-portal .user-hero-copy{
+    position: relative !important;
+    z-index: 2 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 18px 16px 16px !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+  html body .user-portal .user-hero .user-kicker{
+    display: inline-flex !important;
+    margin-bottom: 6px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.14em !important;
+    color: #99f6e4 !important;
+  }
+  html body .user-portal .user-hero h1{
+    font-size: 24px !important;
+    line-height: 1.15 !important;
+    margin: 0 0 8px !important;
+    color: #fff !important;
+    text-shadow: 0 2px 12px rgba(0,0,0,.35) !important;
+  }
+  html body .user-portal .user-hero-subtitle,
+  html body .user-portal .user-hero .user-hero-subtitle,
+  html body .user-portal .user-hero p{
+    display: none !important;
+  }
+  html body .user-portal .user-hero .user-ward-chip,
+  html body .user-portal .user-hero .user-ward-chip.compact{
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin: 0 0 12px !important;
+    padding: 6px 10px !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,.16) !important;
+    border: 1px solid rgba(255,255,255,.28) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+  html body .user-portal .user-hero-actions{
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-top: 0 !important;
+  }
+  html body .user-portal .user-hero-actions .primary-btn{
+    width: 100% !important;
+    min-height: 42px !important;
+    border-radius: 12px !important;
+    font-size: 12.5px !important;
+    padding: 0 10px !important;
+    background: #0f766e !important;
+    box-shadow: 0 8px 18px rgba(15,118,110,.35) !important;
+  }
+  html body .user-portal .user-hero-actions .ghost-btn{
+    width: 100% !important;
+    min-height: 42px !important;
+    border-radius: 12px !important;
+    font-size: 12.5px !important;
+    padding: 0 10px !important;
+    background: rgba(255,255,255,.14) !important;
+    border: 1px solid rgba(255,255,255,.38) !important;
+    color: #fff !important;
+  }
+  html body .user-portal .user-hero-card{ display: none !important; }
+  html body .user-portal .user-updates-panel,
+  html body .user-portal .user-schemes-panel,
+  html body .user-portal .user-hospitals-panel,
+  html body .user-portal .nagar-spotlight-card,
+  html body .user-portal .nagar-minimal-work-card{
+    padding: 16px 14px !important;
+    border-radius: 20px !important;
+    min-height: 0 !important;
+  }
+  html body .user-portal .home-feed-card{
+    border-radius: 16px !important;
+    padding: 14px !important;
+  }
+  html body .user-portal .nagar-minimal-work-grid{
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  html body .user-portal .nagar-minimal-work-item{
+    border-radius: 14px !important;
+  }
+}
+
+/* Gallery + Complaints — professional citizen pages */
+html body .user-portal .gallery-page-container{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+html body .user-portal .gallery-banner-hero{
+  position: relative !important;
+  min-height: 240px !important;
+  height: 280px !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  background: #0b1624 !important;
+}
+html body .user-portal .gallery-banner-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 35% !important;
+}
+html body .user-portal .gallery-banner-copy{
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 2 !important;
+  padding: 56px 20px 18px !important;
+  background: linear-gradient(180deg, transparent 0%, rgba(8,15,28,.78) 72%) !important;
+}
+html body .user-portal .gallery-banner-copy .user-kicker{
+  color: #99f6e4 !important;
+}
+html body .user-portal .gallery-banner-copy h1{
+  margin: 6px 0 6px !important;
+  font-size: 24px !important;
+  line-height: 1.2 !important;
+  color: #fff !important;
+}
+html body .user-portal .gallery-banner-copy p{
+  margin: 0 !important;
+  max-width: 36rem !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  color: rgba(255,255,255,.84) !important;
+}
+html body .user-portal .nagar-gallery-card{
+  padding: 16px !important;
+  border-radius: 20px !important;
+  border: 1px solid #e8edf3 !important;
+  box-shadow: 0 6px 20px rgba(15,23,42,.04) !important;
+}
+html body .user-portal .nagar-gallery-item{
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+html body .user-portal .nagar-gallery-caption{
+  padding: 12px 12px 14px !important;
+}
+html body .user-portal .nagar-caption-title{
+  font-size: 14.5px !important;
+  line-height: 1.35 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+html body .user-portal .nagar-caption-desc{
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+html body .user-portal .user-complaints-head{
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin: 0 0 14px !important;
+}
+html body .user-portal .user-complaints-head h1{
+  margin: 4px 0 6px !important;
+  font-size: 26px !important;
+  letter-spacing: -0.03em !important;
+  color: #0f172a !important;
+}
+html body .user-portal .user-complaints-head p{
+  margin: 0 !important;
+  max-width: 40rem !important;
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+  color: #64748b !important;
+}
+html body .user-portal .user-complaint-filterbar{
+  display: grid !important;
+  gap: 10px !important;
+  padding: 14px !important;
+  margin-bottom: 14px !important;
+  background: #fff !important;
+  border: 1px solid #e8edf3 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 4px 16px rgba(15,23,42,.04) !important;
+}
+html body .user-portal .user-complaint-card{
+  border-radius: 18px !important;
+  border: 1px solid #e8edf3 !important;
+  box-shadow: 0 4px 16px rgba(15,23,42,.04) !important;
+  padding: 16px !important;
+}
+html body .user-portal .user-complaint-card h3{
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+@media (max-width: 900px){
+  html body .user-portal .gallery-banner-hero{
+    height: 240px !important;
+    min-height: 240px !important;
+    border-radius: 20px !important;
+  }
+  html body .user-portal .gallery-banner-copy{
+    padding: 40px 16px 16px !important;
+  }
+  html body .user-portal .gallery-banner-copy h1{
+    font-size: 20px !important;
+  }
+  html body .user-portal .gallery-banner-copy p{
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  html body .user-portal .nagar-gallery-grid{
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  html body .user-portal .nagar-gallery-card{
+    padding: 12px !important;
+    border-radius: 18px !important;
+  }
+  html body .user-portal .nagar-gallery-caption{
+    padding: 10px 10px 12px !important;
+  }
+  html body .user-portal .nagar-caption-title{
+    font-size: 13px !important;
+  }
+  html body .user-portal .nagar-caption-desc,
+  html body .user-portal .nagar-duration-chip{
+    display: none !important;
+  }
+  html body .user-portal .user-complaints-head{
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  html body .user-portal .user-complaints-head h1{
+    font-size: 22px !important;
+  }
+  html body .user-portal .user-complaints-head p{
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  html body .user-portal .user-complaints-head .primary-btn{
+    width: 100% !important;
+    min-height: 44px !important;
+    border-radius: 12px !important;
+  }
+  html body .user-portal .user-complaint-filterbar{
+    grid-template-columns: 1fr 1fr !important;
+    border-radius: 16px !important;
+    padding: 12px !important;
+  }
+  html body .user-portal .user-complaint-filterbar label:first-child,
+  html body .user-portal .user-complaint-filterbar > button{
+    grid-column: 1 / -1 !important;
+  }
+  html body .user-portal .user-complaint-filterbar input,
+  html body .user-portal .user-complaint-filterbar select,
+  html body .user-portal .user-complaint-filterbar > button{
+    width: 100% !important;
+    min-height: 42px !important;
+    border-radius: 12px !important;
+  }
+  html body .user-portal .ward-info-card,
+  html body .user-complaints-page .ward-info-card{
+    min-height: 0 !important;
+    padding: 16px 14px !important;
+    border-radius: 20px !important;
+    gap: 12px !important;
+  }
+  html body .user-complaints-page .ward-info-card::before,
+  html body .user-portal .ward-info-card::before{
+    background: linear-gradient(180deg, rgba(8,15,28,.28) 0%, rgba(8,15,28,.78) 100%) !important;
+  }
+  html body .user-portal .ward-info-card .ward-info-main h2{
+    font-size: 18px !important;
+    line-height: 1.25 !important;
+  }
+  html body .user-portal .ward-info-card .nagar-info-card{
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 16px !important;
+    padding: 12px 14px !important;
+    background: rgba(15,23,42,.62) !important;
+  }
+  html body .user-portal .user-complaint-card{
+    border-radius: 16px !important;
+    padding: 14px !important;
+  }
+  html body .user-portal .user-complaint-card .complaint-status-stepper{
+    display: none !important;
+  }
+  html body .user-portal .user-complaint-card .card-actions .small-btn,
+  html body .user-portal .user-complaint-card .view-btn{
+    width: 100% !important;
+    min-height: 42px !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* Citizen home hero — cinematic executive civic workspace */
+html body .user-portal .user-hero.user-hero-pro {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  align-items: flex-start !important;
+  min-height: 520px !important;
+  height: 520px !important;
+  padding: 36px 32px !important;
+  margin: 0 0 24px !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  background: #09131f !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14) !important;
+  box-sizing: border-box !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-media,
+html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  aspect-ratio: auto !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  z-index: 0 !important;
+  background: transparent !important;
+  pointer-events: none !important;
+}
+
+html body .user-hero-fallback-pattern {
+  position: absolute !important;
+  inset: 0 !important;
+  background: 
+    radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(15, 118, 110, 0.22) 0%, transparent 50%),
+    linear-gradient(135deg, #09131f 0%, #0f1d30 50%, #07253b 100%) !important;
+  z-index: 0 !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-media::after {
+  display: none !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro::before {
+  display: none !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-shade {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 17, 30, 0) 0%,
+    rgba(8, 17, 30, 0) 38%,
+    rgba(8, 17, 30, 0.28) 62%,
+    rgba(8, 17, 30, 0.72) 86%,
+    rgba(8, 17, 30, 0.88) 100%
+  ) !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-copy {
+  position: relative !important;
+  z-index: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  max-width: 640px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html body .user-kicker-row,
+html body .user-portal .user-hero.user-hero-pro .user-kicker-row,
+html body .user-portal .user-hero.user-hero-pro .user-kicker-badge{
+  display: none !important;
+}
+
+html body .user-kicker-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: rgba(10, 20, 32, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 9999px !important;
+  padding: 5px 12px !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+html body .kicker-pulse-dot {
+  width: 7.5px !important;
+  height: 7.5px !important;
+  border-radius: 50% !important;
+  background: #10b981 !important;
+  box-shadow: 0 0 0 2.5px rgba(16, 185, 129, 0.35) !important;
+  flex-shrink: 0 !important;
+  display: inline-block !important;
+}
+
+html body .kicker-text {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #a7f3d0 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro h1,
+html body .user-hero-title {
+  margin: 0 0 10px !important;
+  color: #ffffff !important;
+  font-size: 34px !important;
+  line-height: 1.16 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55) !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-lede,
+html body .user-hero-lede {
+  display: block !important;
+  margin: 0 !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: 14px !important;
+  font-weight: 450 !important;
+  line-height: 1.5 !important;
+  max-width: 580px !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45) !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-ward-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 14px 0 16px 0 !important;
+  padding: 6px 14px !important;
+  border-radius: 9999px !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-ward-icon {
+  font-size: 14px !important;
+  color: #38bdf8 !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-ward-chip small {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  display: block !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-ward-chip strong {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin: 0 !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-actions .primary-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px 22px !important;
+  min-height: 44px !important;
+  border-radius: 9999px !important;
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-actions .primary-btn:hover {
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(15, 118, 110, 0.45) !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-actions .ghost-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px 22px !important;
+  min-height: 44px !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-actions .ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile Responsiveness for User Hero */
+@media (max-width: 900px) {
+  html body .user-portal .user-hero.user-hero-pro {
+    min-height: 440px !important;
+    height: 440px !important;
+    padding: 22px 18px 18px 18px !important;
+    margin-bottom: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  html body .user-portal .user-hero.user-hero-pro .user-hero-copy {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  html body .user-portal .user-hero.user-hero-pro h1,
+  html body .user-hero-title {
+    font-size: 26px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 8px !important;
+  }
+
+  html body .user-portal .user-hero.user-hero-pro .user-hero-lede,
+  html body .user-hero-lede {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: 10px !important;
+    margin-top: 6px !important;
+  }
+
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions .primary-btn,
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions .ghost-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    font-size: 13px !important;
+    padding: 0 10px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Civic Plain Hero Modernization */
+html body .user-portal .user-hero.is-civic-plain {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 20px !important;
+  padding: 28px 30px !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05) !important;
+  margin-bottom: 22px !important;
+}
+
+html body .user-portal .user-hero.is-civic-plain .user-hero-title {
+  color: #0f172a !important;
+  font-size: 30px !important;
+  text-shadow: none !important;
+}
+
+html body .user-portal .user-hero.is-civic-plain .user-hero-lede {
+  color: #475569 !important;
+  font-size: 14.5px !important;
+  text-shadow: none !important;
+}
+
+html body .user-portal .user-hero.is-civic-plain .user-kicker-badge {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html body .user-portal .user-hero.is-civic-plain .kicker-text {
+  color: #0284c7 !important;
+  text-shadow: none !important;
+}
+
+html body .user-portal .user-hero.is-civic-plain .user-ward-chip {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html body .user-portal .user-hero.is-civic-plain .user-ward-meta small {
+  color: #64748b !important;
+}
+
+html body .user-portal .user-hero.is-civic-plain .user-ward-meta strong {
+  color: #0f172a !important;
+}
+
+html body .user-portal .gallery-hero-pro{
+  position: relative !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  min-height: 280px !important;
+  height: 300px !important;
+  margin: 0 0 14px !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  background: #0b1624 !important;
+}
+html body .user-portal .gallery-hero-pro .gallery-banner-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 35% !important;
+}
+html body .user-portal .gallery-hero-pro .gallery-hero-shade{
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  background: linear-gradient(180deg, rgba(8,15,28,0) 0%, rgba(8,15,28,.12) 45%, rgba(8,15,28,.72) 100%) !important;
+}
+html body .user-portal .gallery-hero-pro .gallery-banner-copy{
+  position: relative !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  padding: 22px 18px 16px !important;
+  background: transparent !important;
+}
+html body .user-portal .gallery-hero-pro .gallery-banner-copy .user-kicker,
+html body .user-portal .gallery-hero-pro .user-ward-chip,
+html body .user-portal .user-hero.user-hero-pro .user-ward-chip{
+  display: none !important;
+}
+html body .user-portal .gallery-hero-pro .gallery-banner-copy h1{
+  margin: 0 0 8px !important;
+  font-size: 24px !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+  color: #fff !important;
+  letter-spacing: -0.02em !important;
+}
+html body .user-portal .gallery-hero-pro .gallery-banner-copy p{
+  margin: 0 0 12px !important;
+  max-width: 36rem !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  color: rgba(255,255,255,.86) !important;
+}
+html body .user-portal .gallery-hero-pro .user-ward-chip{
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 6px 14px !important;
+  border-radius: 9999px !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+html body .user-portal .gallery-hero-pro .user-ward-chip small{
+  display: block !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.72) !important;
+}
+html body .user-portal .gallery-hero-pro .user-ward-chip strong{
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+html body .user-portal .gallery-hero-pro .user-ward-icon{
+  color: #38bdf8 !important;
+}
+html body .user-portal .nagar-gallery-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+}
+html body .user-portal .nagar-gallery-item{
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  background: #fff !important;
+  border: 1px solid #e8edf3 !important;
+  box-shadow: 0 8px 22px rgba(15,23,42,.05) !important;
+}
+html body .user-portal .nagar-gallery-img-wrapper{
+  padding-top: 56% !important;
+}
+html body .user-portal .nagar-gallery-hover-overlay{
+  display: none !important;
+}
+html body .user-portal .nagar-gallery-video-play-btn{
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 50% !important;
+}
+html body .user-portal .nagar-duration-chip{
+  display: none !important;
+}
+html body .user-portal .nagar-caption-title{
+  -webkit-line-clamp: 3 !important;
+  font-size: 16px !important;
+}
+html body .user-portal .nagar-caption-desc{
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+@media (max-width: 900px){
+  html body .user-portal .gallery-hero-pro{
+    height: 240px !important;
+    min-height: 240px !important;
+    border-radius: 20px !important;
+  }
+  html body .user-portal .gallery-hero-pro .gallery-banner-copy{
+    padding: 18px 16px 14px !important;
+  }
+  html body .user-portal .gallery-hero-pro .gallery-banner-copy h1{
+    font-size: 20px !important;
+  }
+  html body .user-portal .gallery-hero-pro .gallery-banner-copy p{
+    font-size: 12.5px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  html body .user-portal .nagar-gallery-grid{
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  html body .user-portal .nagar-gallery-card{
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  html body .user-portal .nagar-gallery-item{
+    border-radius: 18px !important;
+  }
+  html body .user-portal .nagar-gallery-caption{
+    padding: 12px 14px 14px !important;
+  }
+  html body .user-portal .nagar-caption-title{
+    font-size: 15px !important;
+  }
+}
+
+/* Banner crop = live citizen hero; never freeze an old Home photo */
+html body .banner-crop-stage{
+  cursor: grab !important;
+  touch-action: none !important;
+}
+html body .banner-crop-stage:active{
+  cursor: grabbing !important;
+}
+html body .banner-crop-stage img{
+  pointer-events: none !important;
+  max-width: none !important;
+  user-select: none !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo,
+html body .user-hero-bg-photo{
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+
+/* Live banners: admin crop + citizen Home/Gallery/Complaints share 2.4:1 */
+html body .portal-management-page{
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: left !important;
+}
+html body .portal-management-page .page-header{
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+}
+html body .portal-management-page .team-kpi-grid{
+  width: 100% !important;
+  margin: 0 0 14px !important;
+  justify-items: stretch !important;
+}
+html body .portal-management-page .exec-toolbar-panel,
+html body .portal-management-page .exec-toolbar-row,
+html body .portal-management-page .exec-toolbar-left,
+html body .portal-management-page .exec-quick-ward,
+html body .portal-management-page .portal-tabs-nav,
+html body .portal-management-page .portal-tab-content,
+html body .portal-management-page .portal-hero-studio,
+html body .portal-management-page .portal-studio-layout,
+html body .portal-management-page .portal-form-card{
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  float: none !important;
+}
+html body .portal-management-page .exec-toolbar-left{
+  display: flex !important;
+  justify-content: flex-start !important;
+}
+html body .portal-management-page .form-section-box,
+html body .portal-management-page .form-row-2,
+html body .portal-management-page .banner-crop-field{
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+html body .portal-management-page .form-section-header{
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+html body .portal-management-page .form-section-title{
+  margin: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  flex: 0 1 auto !important;
+  text-align: left !important;
+  max-width: 100% !important;
+}
+html body .portal-management-page .form-section-tag{
+  margin: 0 !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  float: none !important;
+  align-self: flex-start !important;
+}
+html body .portal-management-page .banner-crop-field,
+html body .portal-management-page .banner-crop-actions{
+  width: 100% !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+html body .portal-management-page .banner-crop-actions .small-btn{
+  width: 100% !important;
+  margin: 0 !important;
+}
+html body .portal-management-page .banner-crop-preview{
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 2.4 / 1 !important;
+  background-position: center center !important;
+  background-size: cover !important;
+}
+html body .banner-crop-stage{
+  width: 100% !important;
+  height: auto !important;
+}
+html body .banner-crop-stage.hero-live-stage{
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 12px 0 !important;
+}
+html body .portal-live-banner-photo{
+  aspect-ratio: 2.4 / 1 !important;
+  background-position: center center !important;
+  background-size: cover !important;
+}
+
+html body .user-portal .user-hero.user-hero-pro,
+html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+html body .user-portal .user-hero.user-hero-pro.has-custom-hero{
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  height: 480px !important;
+  min-height: 480px !important;
+  aspect-ratio: auto !important;
+  padding: 32px 32px 28px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-media,
+html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 28% !important;
+  aspect-ratio: auto !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-shade{
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 17, 30, 0.08) 0%,
+    rgba(8, 17, 30, 0.04) 42%,
+    rgba(8, 17, 30, 0.45) 68%,
+    rgba(8, 17, 30, 0.82) 100%
+  ) !important;
+}
+html body .user-portal .gallery-banner-hero,
+html body .user-portal .gallery-hero-pro{
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 2.4 / 1 !important;
+}
+html body .user-portal .gallery-banner-photo{
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+html body .user-complaints-page .ward-info-card.has-portal-banner,
+html body .ward-info-card.has-portal-banner{
+  position: relative !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+  height: auto !important;
+  aspect-ratio: 2.4 / 1 !important;
+}
+html body .ward-info-banner-photo{
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+
+html body .banner-crop-nudge{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin: 0 0 12px !important;
+}
+html body .banner-crop-nudge .small-btn{
+  flex: 1 1 calc(50% - 8px) !important;
+  min-height: 40px !important;
+}
+
+@media (max-width: 900px){
+  html body .user-portal .user-hero.user-hero-pro,
+  html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+  html body .user-portal .user-hero.user-hero-pro.has-custom-hero,
+  html body .admin-hero-live{
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: 0.88 / 1 !important;
+    padding: 18px 16px 16px !important;
+    overflow: hidden !important;
+    border-radius: 22px !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-media,
+  html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo{
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    aspect-ratio: auto !important;
+    object-fit: cover !important;
+    object-position: center 22% !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-shade{
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(
+      180deg,
+      rgba(8, 17, 30, 0) 0%,
+      rgba(8, 17, 30, 0.08) 48%,
+      rgba(8, 17, 30, 0.55) 72%,
+      rgba(8, 17, 30, 0.88) 100%
+    ) !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-copy{
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro h1,
+  html body .user-hero-title{
+    font-size: 24px !important;
+    line-height: 1.15 !important;
+    margin: 0 0 6px !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-lede{
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    -webkit-line-clamp: 2 !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    margin: 0 0 12px !important;
+    max-width: 100% !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions{
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions .primary-btn,
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions .ghost-btn{
+    min-height: 42px !important;
+    width: 100% !important;
+    font-size: 13px !important;
+    padding: 0 10px !important;
+  }
+  html body .user-portal .gallery-banner-hero,
+  html body .user-portal .gallery-hero-pro,
+  html body .user-complaints-page .ward-info-card.has-portal-banner{
+    aspect-ratio: 2.4 / 1 !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  html body .portal-management-page .form-row-2,
+  html body .portal-management-page .form-row-3{
+    grid-template-columns: 1fr !important;
+  }
+  html body .portal-management-page .team-kpi-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  html body .portal-management-page .portal-tabs-nav{
+    width: 100% !important;
+  }
+  html body .portal-management-page .form-section-header{
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+  }
+  html body .portal-management-page .form-section-box,
+  html body .portal-management-page .portal-form-card,
+  html body .portal-management-page .portal-card{
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+  html body .portal-management-page .banner-crop-preview.hero-live-preview{
+    height: 360px !important;
+    min-height: 360px !important;
+    max-height: 360px !important;
+    aspect-ratio: unset !important;
+    background-position: center 22% !important;
+    border-radius: 22px !important;
+  }
+}
+
+@media (min-width: 901px){
+  html body .portal-management-page .banner-crop-preview.hero-live-preview{
+    height: 520px !important;
+    min-height: 520px !important;
+    max-height: 520px !important;
+    aspect-ratio: unset !important;
+    background-position: center 28% !important;
+  }
+}
+
+/* Admin preview = exact citizen Home hero */
+html body .admin-hero-live,
+html body .portal-management-page .admin-hero-live{
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 9 !important;
+  margin: 0 0 12px !important;
+  padding: 0 !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  background: #09131f !important;
+}
+html body .admin-hero-live .user-hero-media,
+html body .admin-hero-live .user-hero-bg-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 28% !important;
+}
+html body .admin-hero-live .user-hero-shade{
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(180deg, rgba(8,17,30,.08) 0%, rgba(8,17,30,.04) 42%, rgba(8,17,30,.45) 68%, rgba(8,17,30,.82) 100%) !important;
+}
+html body .admin-hero-live::before{
+  display: none !important;
+}
+html body .user-portal .user-hero.user-hero-pro,
+html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+html body .user-portal .user-hero.user-hero-pro.has-custom-hero{
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 9 !important;
+}
+@media (max-width: 900px){
+  html body .admin-hero-live,
+  html body .portal-management-page .admin-hero-live,
+  html body .user-portal .user-hero.user-hero-pro,
+  html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+  html body .user-portal .user-hero.user-hero-pro.has-custom-hero{
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: 0.88 / 1 !important;
+    border-radius: 22px !important;
+  }
+  html body .admin-hero-live .user-hero-bg-photo,
+  html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo{
+    object-fit: cover !important;
+    object-position: center 22% !important;
+  }
+  html body .admin-hero-live::before{
+    padding-top: 142.857% !important;
+  }
+}
+
+/* Portal cards flush left + taller Home hero with bottom text fade */
+html body .app-shell:has(.portal-management-page) .content{
+  overflow-x: hidden !important;
+}
+html body .portal-management-page{
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+html body .portal-management-page .portal-tab-content,
+html body .portal-management-page .portal-hero-studio,
+html body .portal-management-page .portal-studio-layout,
+html body .portal-management-page .portal-form-card,
+html body .portal-management-page .portal-card,
+html body .portal-management-page .form-section-box,
+html body .portal-management-page .banner-crop-field,
+html body .portal-management-page .nagar-buyer-box{
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  justify-self: stretch !important;
+  align-self: stretch !important;
+  float: none !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+html body .portal-management-page .portal-studio-layout{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+}
+html body .portal-management-page .form-section-header{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-shade,
+html body .admin-hero-live .user-hero-shade{
+  inset: auto 0 0 0 !important;
+  top: auto !important;
+  height: 46% !important;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 17, 30, 0) 0%,
+    rgba(8, 17, 30, 0.28) 34%,
+    rgba(8, 17, 30, 0.62) 68%,
+    rgba(8, 17, 30, 0.88) 100%
+  ) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 42%, #000 100%) !important;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 42%, #000 100%) !important;
+}
+html body .user-portal .user-hero.user-hero-pro,
+html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+html body .user-portal .user-hero.user-hero-pro.has-custom-hero,
+html body .admin-hero-live,
+html body .portal-management-page .admin-hero-live{
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9 !important;
+}
+@media (max-width: 900px){
+  html body .user-portal .user-hero.user-hero-pro,
+  html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+  html body .user-portal .user-hero.user-hero-pro.has-custom-hero,
+  html body .admin-hero-live,
+  html body .portal-management-page .admin-hero-live{
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    aspect-ratio: 0.72 / 1 !important;
+  }
+  html body .admin-hero-live::before{
+    display: none !important;
+  }
+}
+
+/* Complaints banner: same photo treatment as Home, but always wide 16:9 */
+html body .user-portal .ward-info-card.has-portal-banner,
+html body .user-complaints-page .ward-info-card.has-portal-banner,
+html body .ward-info-card.has-portal-banner{
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 9 !important;
+  padding: 16px 16px 14px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  background: #09131f !important;
+  background-image: none !important;
+}
+html body .ward-info-banner-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 28% !important;
+  z-index: 0 !important;
+}
+html body .user-portal .ward-info-card::before,
+html body .user-complaints-page .ward-info-card::before,
+html body .ward-info-card::before{
+  display: none !important;
+}
+html body .ward-info-shade{
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 52% !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 17, 30, 0) 0%,
+    rgba(8, 17, 30, 0.22) 32%,
+    rgba(8, 17, 30, 0.58) 68%,
+    rgba(8, 17, 30, 0.86) 100%
+  ) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 40%, #000 100%) !important;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 40%, #000 100%) !important;
+}
+html body .ward-info-card .ward-info-main,
+html body .ward-info-card .nagar-info-list{
+  position: relative !important;
+  z-index: 2 !important;
+}
+html body .ward-info-card .nagar-info-card{
+  background: rgba(15, 23, 42, 0.42) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+@media (max-width: 900px){
+  html body .user-portal .ward-info-card.has-portal-banner,
+  html body .user-complaints-page .ward-info-card.has-portal-banner,
+  html body .ward-info-card.has-portal-banner{
+    aspect-ratio: 16 / 9 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 14px 12px 12px !important;
+  }
+  html body .ward-info-banner-photo{
+    object-position: center 28% !important;
+  }
+}
+
+/* Home hero = shorter desktop strip; mobile stacks compact copy */
+html body .user-portal .user-hero.user-hero-pro,
+html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+html body .user-portal .user-hero.user-hero-pro.has-custom-hero{
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 400px !important;
+  aspect-ratio: 2.4 / 1 !important;
+  padding: 28px 32px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-media,
+html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo,
+html body .admin-hero-live .user-hero-media,
+html body .admin-hero-live .user-hero-bg-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: right center !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-shade,
+html body .admin-hero-live .user-hero-shade{
+  inset: 0 !important;
+  top: 0 !important;
+  height: 100% !important;
+  background: linear-gradient(
+    90deg,
+    rgba(8, 17, 30, 0.10) 0%,
+    rgba(8, 17, 30, 0.03) 10%,
+    rgba(8, 17, 30, 0) 18%
+  ) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-kicker-row,
+html body .user-portal .user-hero.user-hero-pro .user-kicker-badge{
+  display: none !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-copy{
+  position: relative !important;
+  z-index: 2 !important;
+  max-width: 560px !important;
+  background: transparent !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-ward-chip{
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 14px 0 16px !important;
+}
+html body .admin-hero-live,
+html body .portal-management-page .admin-hero-live{
+  aspect-ratio: 2.4 / 1 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 400px !important;
+  max-width: 100% !important;
+}
+@media (max-width: 900px){
+  html body .user-portal .user-hero.user-hero-pro,
+  html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+  html body .user-portal .user-hero.user-hero-pro.has-custom-hero{
+    aspect-ratio: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+    justify-content: flex-start !important;
+    border-radius: 22px !important;
+    overflow: hidden !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-media{
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 16 / 9 !important;
+    overflow: hidden !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo{
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center 22% !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-shade{
+    display: none !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-media::after{
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    height: 64px !important;
+    background: linear-gradient(180deg, rgba(18,26,36,0) 0%, rgba(18,26,36,0.35) 55%, #121a24 100%) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    filter: none !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo{
+    filter: none !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-copy{
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 0 !important;
+    padding: 14px 16px 16px !important;
+    background: #121a24 !important;
+    box-sizing: border-box !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-ward-chip{
+    display: none !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro h1,
+  html body .user-hero-title{
+    font-size: 21px !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.01em !important;
+    word-spacing: normal !important;
+    margin: 0 0 6px !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-lede{
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    opacity: 0.82 !important;
+    -webkit-line-clamp: 2 !important;
+    margin: 0 0 12px !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions{
+    margin: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions .primary-btn,
+  html body .user-portal .user-hero.user-hero-pro .user-hero-actions .ghost-btn{
+    width: 100% !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    border-radius: 999px !important;
+  }
+  html body .admin-hero-live,
+  html body .portal-management-page .admin-hero-live{
+    aspect-ratio: 2.4 / 1 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+  html body .admin-hero-live .user-hero-bg-photo{
+    object-position: center 22% !important;
+  }
+}
+
+html body .user-portal .ward-info-card.banner-only,
+html body .user-complaints-page .ward-info-card.banner-only{
+  padding: 0 !important;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 9 !important;
+  background: #09131f !important;
+}
+html body .ward-info-card.banner-only .ward-info-main,
+html body .ward-info-card.banner-only .nagar-info-list,
+html body .ward-info-card.banner-only .ward-info-shade{
+  display: none !important;
+}
+html body .portal-management-page .banner-crop-actions,
+html body .portal-management-page .banner-crop-field .banner-crop-actions{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin-top: 10px !important;
+}
+html body .portal-management-page .banner-crop-actions .small-btn{
+  width: auto !important;
+  flex: 0 0 auto !important;
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+html body .portal-management-page .banner-crop-actions .small-btn.danger{
+  margin-left: auto !important;
+}
+
+html body .user-portal .gallery-banner-hero,
+html body .user-portal .gallery-hero-pro{
+  width: 100% !important;
+  height: auto !important;
+  min-height: 220px !important;
+  max-height: none !important;
+  aspect-ratio: 16 / 9 !important;
+}
+html body .user-portal .gallery-banner-photo,
+html body .user-portal .gallery-hero-pro .gallery-banner-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  object-fit: cover !important;
+  object-position: center 28% !important;
+}
+html body .user-portal .nagar-gallery-filters,
+html body .user-portal .gallery-filters-below{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+  gap: 8px !important;
+}
+html body .user-portal .nagar-filter-pill{
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  word-spacing: normal !important;
+  letter-spacing: 0 !important;
+  font-size: 13px !important;
+  padding: 8px 14px !important;
+}
+html body .portal-management-page .form-section-header{
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin-bottom: 10px !important;
+}
+html body .portal-management-page .form-section-title{
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  color: #334155 !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+  white-space: nowrap !important;
+}
+html body .portal-management-page .form-section-title span{
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+  white-space: nowrap !important;
+}
+html body .portal-management-page .form-section-tag{
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  margin: 0 !important;
+  padding: 2px 8px !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+  white-space: nowrap !important;
+}
+
+html body .banner-crop-nudge{ display: none !important; }
+
+html body .nagar-spotlight-header{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+html body .nagar-spotlight-header .nagar-header-row{
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  column-gap: 10px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+html body .nagar-spotlight-header .nagar-kicker-badge,
+html body .nagar-spotlight-header .nagar-ward-name-badge{
+  justify-self: start !important;
+  min-width: 0 !important;
+}
+html body .nagar-spotlight-header .nagar-seat-badge,
+html body .nagar-spotlight-header .nagar-party-badge{
+  justify-self: end !important;
+  margin: 0 !important;
+  max-width: min(58vw, 220px) !important;
+}
+html body .nagar-ward-name-badge{
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+html body .nagar-party-name{
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html body .user-portal .user-content-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+html body .user-portal .user-side-stack{
+  display: contents !important;
+  height: auto !important;
+}
+html body .user-portal .user-updates-panel,
+html body .user-portal .user-schemes-panel,
+html body .user-portal .user-hospitals-panel{
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 18px 18px 16px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 22px rgba(15, 23, 42, 0.04) !important;
+  box-sizing: border-box !important;
+}
+html body .user-portal .user-updates-panel .user-section-head,
+html body .user-portal .user-schemes-panel .user-section-head,
+html body .user-portal .user-hospitals-panel .user-section-head{
+  flex: 0 0 auto !important;
+  height: auto !important;
+}
+html body .user-portal .user-section-head{
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: start !important;
+  justify-content: stretch !important;
+  gap: 8px 12px !important;
+  margin: 0 0 14px !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid #eef2f7 !important;
+}
+html body .user-portal .user-section-head > div{
+  min-width: 0 !important;
+  flex: none !important;
+  grid-column: 1 !important;
+}
+html body .user-portal .user-section-head .user-text-btn{
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  flex: none !important;
+  align-self: start !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  justify-content: flex-end !important;
+}
+html body .user-portal .user-updates-panel .user-mini-empty,
+html body .user-portal .user-schemes-panel .user-mini-empty,
+html body .user-portal .user-hospitals-panel .user-mini-empty,
+html body .user-portal .user-updates-panel .user-empty{
+  flex: 0 0 auto !important;
+}
+html body .user-portal .user-mini-empty,
+html body .user-portal .user-empty{
+  min-height: 108px !important;
+  padding: 22px 16px !important;
+  margin: 0 !important;
+  border: 1px dashed #d7e0ea !important;
+  border-radius: 14px !important;
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-size: 13.5px !important;
+  line-height: 1.45 !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 4px !important;
+}
+html body .user-portal .user-mini-empty strong,
+html body .user-portal .user-empty strong{
+  color: #0f172a !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+html body .user-portal .user-mini-empty span,
+html body .user-portal .user-empty span{
+  color: #64748b !important;
+  font-size: 12.5px !important;
+  max-width: 28ch !important;
+}
+
+html body .user-portal .user-health-empty{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 18px 14px 16px !important;
+  min-height: 0 !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+}
+html body .user-portal .user-health-empty strong,
+html body .user-portal .user-health-empty > span{
+  align-self: center !important;
+  max-width: 100% !important;
+}
+html body .user-portal .user-health-helplines{
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: 10px !important;
+  box-sizing: border-box !important;
+}
+html body .user-portal .user-health-helplines a{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 38px !important;
+  padding: 0 10px !important;
+  border-radius: 10px !important;
+  background: #fff1f2 !important;
+  border: 1px solid #fecdd3 !important;
+  color: #9f1239 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+}
+
+html body .user-portal .nagar-minimal-work-card .user-section-head{
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: start !important;
+}
+html body .user-portal .nagar-minimal-work-card .user-section-head h2{
+  font-size: 18px !important;
+  line-height: 1.28 !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+  word-break: normal !important;
+}
+html body .user-portal .nagar-minimal-work-card .user-section-head p{
+  font-size: 12.5px !important;
+  line-height: 1.4 !important;
+  color: #64748b !important;
+}
+html body .user-portal .nagar-minimal-work-card .nagar-view-all-link,
+html body .user-portal .nagar-minimal-work-card .user-text-btn{
+  display: inline-flex !important;
+  align-self: start !important;
+  justify-content: flex-end !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #0f766e !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  transform: none !important;
+}
+html body .user-portal .nagar-minimal-work-grid{
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+html body .user-portal .nagar-minimal-work-item{
+  min-width: 0 !important;
+}
+html body .user-portal .nagar-minimal-work-thumb{
+  aspect-ratio: 4 / 3 !important;
+}
+html body .user-portal .nagar-minimal-work-body{
+  padding: 12px 12px 14px !important;
+  gap: 8px !important;
+}
+html body .user-portal .nagar-minimal-meta{
+  flex-wrap: wrap !important;
+  gap: 4px 8px !important;
+}
+html body .user-portal .nagar-minimal-loc{
+  display: none !important;
+}
+html body .user-portal .nagar-minimal-title{
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  min-height: 2.8em !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+@media (min-width: 900px){
+  html body .user-portal .nagar-minimal-work-grid{
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+  html body .user-portal .nagar-minimal-loc{
+    display: inline !important;
+  }
+  html body .user-portal .nagar-minimal-title{
+    font-size: 15px !important;
+    min-height: 0 !important;
+  }
+}
+
+@media (min-width: 960px){
+  html body .user-portal .user-content-grid{
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+}
+
+html body .user-portal .nagar-spotlight-header,
+html body .nagar-spotlight-header{
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  column-gap: 10px !important;
+  row-gap: 8px !important;
+  width: 100% !important;
+  flex-wrap: nowrap !important;
+  flex-direction: unset !important;
+}
+html body .nagar-spotlight-header .nagar-kicker-badge{
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  justify-self: start !important;
+  white-space: nowrap !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.04em !important;
+}
+html body .nagar-spotlight-header .nagar-seat-badge{
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  width: auto !important;
+  max-width: none !important;
+}
+html body .nagar-spotlight-header .nagar-header-meta-line{
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+html body .nagar-spotlight-header .nagar-ward-name-badge{
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+html body .nagar-spotlight-header .nagar-party-badge{
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: none !important;
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+}
+html body .nagar-spotlight-header .nagar-kicker-badge,
+html body .nagar-spotlight-header .nagar-seat-badge,
+html body .nagar-spotlight-header .nagar-ward-name-badge,
+html body .nagar-spotlight-header .nagar-party-badge{
+  margin: 0 !important;
+  min-height: 26px !important;
+  box-sizing: border-box !important;
+}
+html body .nagar-spotlight-header .nagar-party-name{
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+}
+
+html body .user-portal .user-hospitals-panel .user-section-head{
+  flex: 0 0 auto !important;
+  height: auto !important;
+  border-bottom: 1px solid #eef2f7 !important;
+}
+html body .user-portal .user-section-title-row{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+html body .user-portal .user-section-title-row h2{
+  margin: 0 !important;
+  min-width: 0 !important;
+}
+html body .user-portal .user-section-title-row .user-text-btn{
+  position: static !important;
+  grid-column: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-self: center !important;
+}
+html body .user-portal .user-health-empty{
+  border-style: solid !important;
+  border-color: #eef2f7 !important;
+}
+
+html body .portal-management-page .banner-crop-actions,
+html body .portal-management-page .banner-crop-field .banner-crop-actions{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+html body .portal-management-page .banner-crop-actions .small-btn{
+  width: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  border-radius: 9px !important;
+  white-space: nowrap !important;
+}
+html body .portal-management-page .works-toolbar-actions{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+html body .portal-management-page .works-toolbar-actions .primary-btn,
+html body .portal-management-page .works-toolbar-actions .ghost-btn{
+  width: auto !important;
+  min-height: 40px !important;
+}
+
+@media (max-width: 700px){
+  html body .portal-management-page .works-toolbar-actions{
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+  }
+  html body .portal-management-page .works-toolbar-actions .primary-btn,
+  html body .portal-management-page .works-toolbar-actions .ghost-btn{
+    width: 100% !important;
+  }
+}
+
+html body .portal-management-page .portal-rep-studio,
+html body .portal-management-page .portal-rep-studio .portal-form-card,
+html body .portal-management-page .nagar-buyer-box{
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 8 !important;
+}
+html body .portal-management-page .nagar-buyer-picker{
+  position: relative !important;
+  width: 100% !important;
+}
+html body .portal-management-page .nagar-buyer-trigger{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  padding: 10px 12px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #0f172a !important;
+  font-size: 14px !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+html body .portal-management-page .nagar-buyer-trigger span:first-child{
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+html body .portal-management-page .nagar-buyer-menu{
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: calc(100% + 6px) !important;
+  z-index: 80 !important;
+  max-height: 240px !important;
+  overflow: auto !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14) !important;
+  padding: 6px !important;
+}
+html body .portal-management-page .nagar-buyer-option{
+  display: block !important;
+  width: 100% !important;
+  text-align: left !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #0f172a !important;
+  font-size: 13.5px !important;
+  cursor: pointer !important;
+}
+html body .portal-management-page .nagar-buyer-option.is-active,
+html body .portal-management-page .nagar-buyer-option:hover{
+  background: #f1f5f9 !important;
+}
+html body .portal-management-page .portal-rep-studio .circle-photo-actions{
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  justify-content: stretch !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+html body .portal-management-page .portal-rep-studio .circle-photo-actions .small-btn:first-of-type{
+  grid-column: 1 / -1 !important;
+}
+html body .portal-management-page .portal-rep-studio .circle-photo-actions .small-btn{
+  width: 100% !important;
+  flex: none !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+}
+html body .portal-management-page .portal-rep-studio .circle-photo-actions p{
+  grid-column: 1 / -1 !important;
+  text-align: center !important;
+  margin: 2px 0 0 !important;
+}
+html body .portal-management-page .highlight-card-editor-head{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+html body .portal-management-page .highlight-card-editor-head .small-btn{
+  width: auto !important;
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 12px !important;
+  white-space: nowrap !important;
+}
+html body .portal-management-page .highlight-edit-top{
+  display: grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 10px !important;
+  flex-wrap: nowrap !important;
+}
+html body .portal-management-page .highlight-edit-kicker{
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+}
+html body .portal-management-page .highlight-remove{
+  margin: 0 !important;
+  width: auto !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0 12px !important;
+}
+html body .portal-management-page .highlight-icon-grid{
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  justify-content: stretch !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 0 14px !important;
+}
+html body .portal-management-page .highlight-edit-card .form-row-2{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+html body .photo-crop-backdrop{
+  z-index: 200080 !important;
+}
+html body .photo-crop-stage.circle-crop-canvas-stage{
+  width: 260px !important;
+  height: 260px !important;
+  max-width: 260px !important;
+  aspect-ratio: 1 / 1 !important;
+  overflow: hidden !important;
+  background: #0b1624 !important;
+}
+html body .photo-crop-stage.circle-crop-canvas-stage canvas{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 260px !important;
+  height: 260px !important;
+  max-width: none !important;
+  max-height: none !important;
+  display: block !important;
+  pointer-events: none !important;
+  border-radius: 50% !important;
+}
+html body .photo-crop-stage.circle-crop-canvas-stage img{
+  display: none !important;
+}
+html body .portal-management-page .portal-highlight-block{
+  margin: 8px 0 0 !important;
+  padding: 18px 0 4px !important;
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  border-top: 1px solid #e2e8f0 !important;
+  clear: both !important;
+}
+html body .user-portal .nagar-minimal-work-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+}
+html body .user-portal .nagar-minimal-work-item{
+  min-width: 0 !important;
+}
+html body .user-portal .nagar-minimal-work-thumb{
+  aspect-ratio: 16 / 10 !important;
+  min-height: 168px !important;
+}
+html body .user-portal .nagar-minimal-work-thumb img{
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+html body .user-portal .nagar-minimal-title{
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  min-height: 0 !important;
+  -webkit-line-clamp: 2 !important;
+}
+@media (min-width: 640px){
+  html body .user-portal .nagar-minimal-work-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+  html body .user-portal .nagar-minimal-work-thumb{
+    min-height: 180px !important;
+  }
+}
+
+html body .portal-management-page .highlight-edit-card{
+  padding: 14px 14px 16px !important;
+  border-radius: 16px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+html body .portal-management-page .highlight-icon-btn,
+html body .portal-management-page .highlight-icon-custom-wrap{
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  border-radius: 12px !important;
+  font-size: 18px !important;
+}
+html body .portal-management-page .highlight-icon-custom-wrap{
+  border: 1px dashed #cbd5e1 !important;
+  background: #f8fafc !important;
+  overflow: hidden !important;
+  grid-column: auto !important;
+}
+html body .portal-management-page .highlight-icon-custom{
+  width: 44px !important;
+  max-width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  text-align: center !important;
+  font-size: 18px !important;
+  box-shadow: none !important;
+}
+html body .portal-management-page .highlight-edit-card .form-group{
+  margin: 0 0 12px !important;
+}
+html body .portal-management-page .highlight-edit-card .form-group:last-child{
+  margin-bottom: 0 !important;
+}
+
+html body .user-portal .nagar-gallery-filters,
+html body .user-portal .gallery-filters-below,
+html body .user-portal .hospital-type-filters{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  overflow: visible !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+html body .user-portal .nagar-filter-pill{
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-height: 40px !important;
+  height: auto !important;
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  border: 1px solid #d7e0ea !important;
+  color: #1e293b !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
+html body .user-portal .nagar-filter-pill:hover{
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+html body .user-portal .nagar-filter-pill.active{
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+html body .user-portal .user-hospital-filterbar{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  margin: 0 0 16px !important;
+}
+html body .user-portal .user-hospital-filterbar .exec-search-box{
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 44px !important;
+}
+html body .user-portal .hospital-card-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+}
+@media (min-width: 720px){
+  html body .user-portal .hospital-card-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+}
+
+html body .portal-management-page .portal-works-studio{
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 4px 12px !important;
+  box-sizing: border-box !important;
+}
+html body .portal-management-page .portal-works-toolbar{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 14px !important;
+  margin-bottom: 16px !important;
+}
+html body .portal-management-page .toolbar-category-filter{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+html body .portal-management-page .filter-pill{
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-height: 38px !important;
+  padding: 8px 14px !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  border-radius: 999px !important;
+}
+html body .portal-management-page .works-toolbar-actions{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+  margin: 0 !important;
+  gap: 8px !important;
+}
+html body .portal-management-page .works-toolbar-actions .primary-btn,
+html body .portal-management-page .works-toolbar-actions .add-work-btn{
+  flex: 1 1 calc(50% - 4px) !important;
+  width: auto !important;
+  min-width: 140px !important;
+  min-height: 42px !important;
+}
+html body .portal-management-page .works-toolbar-actions .primary-btn:only-child{
+  flex: 1 1 100% !important;
+}
+html body .portal-management-page .portal-works-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+  width: 100% !important;
+}
+html body .portal-management-page .work-manage-card{
+  width: 100% !important;
+  max-width: none !important;
+}
+html body .portal-management-page .work-media-thumbnail{
+  height: 220px !important;
+}
+html body .portal-management-page .work-card-footer{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+}
+html body .portal-management-page .order-stepper-wrap{
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+html body .portal-management-page .home-toggle-btn{
+  width: 100% !important;
+  flex: 1 1 100% !important;
+  justify-content: center !important;
+  min-height: 38px !important;
+  margin: 0 !important;
+}
+html body .portal-management-page .card-action-btns{
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  flex: 1 1 100% !important;
+  gap: 8px !important;
+  margin: 0 !important;
+}
+html body .portal-management-page .card-action-btns .ghost-btn-xs,
+html body .portal-management-page .card-action-btns .danger-btn-xs{
+  width: 100% !important;
+  margin: 0 !important;
+  min-height: 36px !important;
+  justify-content: center !important;
+}
+@media (min-width: 980px){
+  html body .portal-management-page .portal-works-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+html body .portal-management-page .highlight-live-preview{
+  width: 100% !important;
+  padding: 14px 12px 16px !important;
+  box-sizing: border-box !important;
+}
+html body .portal-management-page .highlight-live-preview .nagar-impact-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+html body .portal-management-page .highlight-live-preview .nagar-impact-card{
+  min-height: 72px !important;
+  padding: 14px 16px !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+html body .portal-management-page .highlight-live-preview .nagar-impact-icon{
+  font-size: 26px !important;
+  flex: none !important;
+}
+html body .portal-management-page .highlight-live-preview .nagar-impact-metric{
+  font-size: 18px !important;
+  line-height: 1.25 !important;
+}
+html body .portal-management-page .highlight-live-preview .nagar-impact-label{
+  font-size: 13.5px !important;
+  line-height: 1.35 !important;
+  white-space: normal !important;
+}
+@media (min-width: 640px){
+  html body .portal-management-page .highlight-live-preview .nagar-impact-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+html body .portal-management-page .highlight-card-editor,
+html body .portal-management-page .highlight-card-list,
+html body .portal-management-page .highlight-edit-card,
+html body .portal-management-page .highlight-live-preview,
+html body .portal-management-page .highlight-edit-card .form-row-2,
+html body .portal-management-page .highlight-edit-card .form-group,
+html body .portal-management-page .highlight-edit-card .form-control{
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+html body .portal-management-page .rep-spotlight-layout{
+  width: 100% !important;
+  max-width: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+html body .portal-management-page .highlight-edit-card{
+  padding: 16px !important;
+}
+
+html body .user-portal .gallery-banner-hero,
+html body .user-portal .gallery-hero-pro,
+html body .user-portal .gallery-banner-hero.gallery-hero-pro,
+html body .user-complaints-page .ward-info-card.has-portal-banner,
+html body .user-portal .ward-info-card.has-portal-banner,
+html body .ward-info-card.has-portal-banner{
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 400px !important;
+  aspect-ratio: 2.4 / 1 !important;
+  margin: 0 0 14px !important;
+  padding: 0 !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  background: #09131f !important;
+}
+html body .user-portal .gallery-banner-photo,
+html body .ward-info-banner-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 28% !important;
+}
+html body .user-portal .gallery-banner-copy,
+html body .user-portal .gallery-hero-pro .gallery-banner-copy{
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 28px 20px 18px !important;
+  background: linear-gradient(180deg, transparent 0%, rgba(8,15,28,.72) 100%) !important;
+}
+html body .user-portal .gallery-banner-copy h1,
+html body .user-portal .gallery-hero-pro .gallery-banner-copy h1{
+  font-size: 24px !important;
+  margin: 0 0 6px !important;
+}
+html body .portal-management-page .admin-hero-live,
+html body .admin-hero-live{
+  aspect-ratio: 2.4 / 1 !important;
+  max-height: 400px !important;
+  height: auto !important;
+}
+html body .user-portal .nagar-gallery-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+}
+html body .user-portal .nagar-gallery-item{
+  min-width: 0 !important;
+  height: 100% !important;
+}
+html body .user-portal .nagar-gallery-img-wrapper{
+  padding-top: 0 !important;
+  aspect-ratio: 16 / 10 !important;
+}
+html body .user-portal .nagar-gallery-caption{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+}
+html body .user-portal .nagar-caption-title{
+  min-height: 2.6em !important;
+}
+html body .user-portal .civic-dir-shell.user-hospitals-page .civic-hospital-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+  margin-top: 16px !important;
+}
+html body .user-portal .civic-dir-shell.user-hospitals-page .hospital-card{
+  border-radius: 10px !important;
+  padding: 16px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+  height: 100% !important;
+}
+@media (min-width: 640px){
+  html body .user-portal .nagar-gallery-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+  html body .user-portal .civic-dir-shell.user-hospitals-page .civic-hospital-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (min-width: 960px){
+  html body .user-portal .nagar-gallery-grid{
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 900px){
+  html body .user-portal .gallery-banner-hero,
+  html body .user-portal .gallery-hero-pro,
+  html body .user-portal .gallery-banner-hero.gallery-hero-pro,
+  html body .user-complaints-page .ward-info-card.has-portal-banner,
+  html body .user-portal .ward-info-card.has-portal-banner,
+  html body .ward-info-card.has-portal-banner{
+    max-height: none !important;
+    aspect-ratio: 16 / 9 !important;
+    border-radius: 16px !important;
+  }
+  html body .user-portal .gallery-banner-copy,
+  html body .user-portal .gallery-hero-pro .gallery-banner-copy{
+    padding: 20px 14px 14px !important;
+  }
+  html body .user-portal .gallery-banner-copy h1,
+  html body .user-portal .gallery-hero-pro .gallery-banner-copy h1{
+    font-size: 18px !important;
+  }
+}
+
+/* Home = Gallery = Complaints banner box; Home showcase header/photo aligned */
+html body .user-portal .user-hero.user-hero-pro,
+html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+html body .user-portal .user-hero.user-hero-pro.has-custom-hero,
+html body .user-portal .gallery-banner-hero,
+html body .user-portal .gallery-hero-pro,
+html body .user-portal .gallery-banner-hero.gallery-hero-pro,
+html body .user-complaints-page .ward-info-card.has-portal-banner,
+html body .user-portal .ward-info-card.has-portal-banner,
+html body .ward-info-card.has-portal-banner,
+html body .admin-hero-live,
+html body .portal-management-page .admin-hero-live{
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 400px !important;
+  aspect-ratio: 2.4 / 1 !important;
+  margin: 0 0 14px !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo,
+html body .user-portal .gallery-banner-photo,
+html body .user-portal .gallery-hero-pro .gallery-banner-photo,
+html body .ward-info-banner-photo,
+html body .admin-hero-live .user-hero-bg-photo{
+  object-fit: cover !important;
+  object-position: center 28% !important;
+}
+html body .user-portal .nagar-spotlight-header,
+html body .nagar-spotlight-header{
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px 16px !important;
+  width: 100% !important;
+  margin: 0 0 18px !important;
+  grid-template-columns: none !important;
+}
+html body .nagar-spotlight-header .nagar-header-left,
+html body .nagar-spotlight-header .nagar-header-right{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+html body .nagar-spotlight-header .nagar-header-left{
+  justify-content: flex-start !important;
+  flex: 1 1 auto !important;
+}
+html body .nagar-spotlight-header .nagar-header-right{
+  justify-content: flex-end !important;
+  margin-left: auto !important;
+  flex: 0 1 auto !important;
+}
+html body .nagar-spotlight-header .nagar-kicker-badge,
+html body .nagar-spotlight-header .nagar-seat-badge,
+html body .nagar-spotlight-header .nagar-ward-name-badge,
+html body .nagar-spotlight-header .nagar-party-badge{
+  grid-column: auto !important;
+  grid-row: auto !important;
+  justify-self: auto !important;
+  margin: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  min-height: 28px !important;
+  white-space: nowrap !important;
+}
+html body .nagar-spotlight-header .nagar-ward-name-badge{
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  background: transparent !important;
+  padding: 0 2px !important;
+}
+html body .user-portal .nagar-spotlight-body,
+html body .nagar-spotlight-body{
+  display: grid !important;
+  grid-template-columns: 132px minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 22px !important;
+  row-gap: 16px !important;
+  text-align: left !important;
+}
+html body .user-portal .nagar-photo-column,
+html body .nagar-photo-column{
+  width: 132px !important;
+  margin: 0 !important;
+  justify-self: start !important;
+}
+html body .user-portal .nagar-photo-frame,
+html body .nagar-photo-frame{
+  width: 124px !important;
+  height: 124px !important;
+}
+html body .user-portal .nagar-photo-frame .user-avatar,
+html body .user-portal .nagar-photo-frame img.user-avatar,
+html body .user-portal .nagar-photo-frame .nagar-portrait-avatar,
+html body .nagar-photo-frame .user-avatar{
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+html body .user-portal .nagar-info-column,
+html body .nagar-info-column{
+  min-width: 0 !important;
+  align-items: stretch !important;
+}
+@media (max-width: 900px){
+  html body .user-portal .user-hero.user-hero-pro,
+  html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+  html body .user-portal .user-hero.user-hero-pro.has-custom-hero{
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    padding: 0 !important;
+  }
+  html body .user-portal .gallery-banner-hero,
+  html body .user-portal .gallery-hero-pro,
+  html body .user-portal .gallery-banner-hero.gallery-hero-pro,
+  html body .user-complaints-page .ward-info-card.has-portal-banner,
+  html body .user-portal .ward-info-card.has-portal-banner,
+  html body .ward-info-card.has-portal-banner,
+  html body .admin-hero-live,
+  html body .portal-management-page .admin-hero-live{
+    max-height: none !important;
+    aspect-ratio: 16 / 9 !important;
+    border-radius: 16px !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-media{
+    aspect-ratio: 16 / 9 !important;
+  }
+}
+@media (max-width: 768px){
+  html body .user-portal .nagar-spotlight-body,
+  html body .nagar-spotlight-body{
+    grid-template-columns: 1fr !important;
+    justify-items: start !important;
+    text-align: left !important;
+  }
+  html body .user-portal .nagar-photo-column,
+  html body .nagar-photo-column{
+    width: auto !important;
+  }
+  html body .user-portal .nagar-photo-frame,
+  html body .nagar-photo-frame{
+    width: 104px !important;
+    height: 104px !important;
+  }
+  html body .nagar-spotlight-header .nagar-header-right{
+    margin-left: 0 !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+}
+
+html body .user-portal .user-hero.user-hero-pro .user-hero-shade,
+html body .admin-hero-live .user-hero-shade,
+html body .user-portal .gallery-hero-shade,
+html body .user-portal .gallery-hero-pro .gallery-hero-shade,
+html body .user-portal .ward-info-shade,
+html body .ward-info-shade,
+html body .ward-info-card.banner-only .ward-info-shade,
+html body .user-portal .ward-info-card .user-hero-shade{
+  display: none !important;
+  background: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  filter: none !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo,
+html body .user-portal .gallery-banner-photo,
+html body .ward-info-banner-photo,
+html body .admin-hero-live .user-hero-bg-photo{
+  filter: none !important;
+}
+html body .user-portal .gallery-banner-copy,
+html body .user-portal .gallery-hero-pro .gallery-banner-copy{
+  position: relative !important;
+  z-index: 2 !important;
+  background: transparent !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html body .user-portal .user-hero-lede{
+  max-width: 36rem !important;
+}
+html body .user-portal .user-hero-lede-line{
+  display: block !important;
+}
+html body .user-portal .user-hero-lede-line + .user-hero-lede-line{
+  margin-top: 6px !important;
+}
+
+html body .support-page{
+  width: 100% !important;
+  max-width: 760px !important;
+  margin: 0 auto !important;
+  padding: 8px 0 28px !important;
+}
+html body .support-hero{
+  margin: 0 0 18px !important;
+}
+html body .support-kicker{
+  display: inline-block !important;
+  margin: 0 0 8px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  color: #0f766e !important;
+}
+html body .support-hero h1{
+  margin: 0 0 8px !important;
+  font-size: 28px !important;
+  letter-spacing: -0.03em !important;
+  color: #0f172a !important;
+}
+html body .support-hero p{
+  margin: 0 !important;
+  max-width: 40rem !important;
+  color: #475569 !important;
+  font-size: 14.5px !important;
+  line-height: 1.55 !important;
+}
+html body .support-company-card{
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 16px 18px !important;
+  margin: 0 0 16px !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04) !important;
+}
+html body .support-brand{
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+html body .support-brand-mark{
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 14px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: none !important;
+}
+html body .support-brand strong{
+  display: block !important;
+  font-size: 16px !important;
+  color: #0f172a !important;
+}
+html body .support-brand span{
+  display: block !important;
+  margin-top: 3px !important;
+  font-size: 13px !important;
+  color: #64748b !important;
+}
+html body .support-contact-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+}
+html body .support-contact-card{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+  padding: 18px 18px 16px !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04) !important;
+  transition: border-color .15s ease, transform .15s ease !important;
+}
+html body .support-contact-card:hover{
+  border-color: #99f6e4 !important;
+  transform: translateY(-1px) !important;
+}
+html body .support-contact-ico{
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: #ecfeff !important;
+  color: #0f766e !important;
+  font-size: 16px !important;
+  margin-bottom: 6px !important;
+}
+html body .support-contact-card small{
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  color: #64748b !important;
+}
+html body .support-contact-card strong{
+  font-size: 16px !important;
+  color: #0f172a !important;
+  word-break: break-all !important;
+}
+html body .support-contact-card em{
+  font-style: normal !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: #0f766e !important;
+  margin-top: 4px !important;
+}
+html body .support-note{
+  margin: 16px 0 0 !important;
+  font-size: 13px !important;
+  color: #64748b !important;
+  line-height: 1.5 !important;
+}
+@media (min-width: 640px){
+  html body .support-contact-grid{
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+html body .user-complaints-page .ward-info-card.has-portal-banner,
+html body .user-portal .user-complaints-page .ward-info-card.has-portal-banner,
+html body .user-complaints-page .ward-info-card.banner-only{
+  max-height: 280px !important;
+  aspect-ratio: 3.1 / 1 !important;
+}
+@media (max-width: 900px){
+  html body .user-complaints-page .ward-info-card.has-portal-banner,
+  html body .user-portal .user-complaints-page .ward-info-card.has-portal-banner,
+  html body .user-complaints-page .ward-info-card.banner-only{
+    max-height: 168px !important;
+    aspect-ratio: 2.2 / 1 !important;
+  }
+}
+
+html body .panel-pick-gate-page{
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  background: #f8fafc !important;
+}
+html body .panel-pick-gate-page .panel-pick-backdrop{
+  background: #f8fafc !important;
+}
+html body .panel-pick-backdrop{
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 120000 !important;
+  background: rgba(15, 23, 42, 0.46) !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 18px !important;
+}
+html body .panel-pick-modal{
+  width: min(520px, 100%) !important;
+  max-height: min(86vh, 640px) !important;
+  overflow: auto !important;
+  background: #fff !important;
+  border-radius: 18px !important;
+  padding: 22px 20px 16px !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22) !important;
+}
+html body .panel-pick-kicker{
+  display: block !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  color: #0f766e !important;
+  margin-bottom: 6px !important;
+}
+html body .panel-pick-head h2{
+  margin: 0 0 6px !important;
+  font-size: 22px !important;
+  letter-spacing: -0.03em !important;
+  color: #0f172a !important;
+}
+html body .panel-pick-head p{
+  margin: 0 0 16px !important;
+  color: #64748b !important;
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+}
+html body .panel-pick-list{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+html body .panel-pick-card{
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  text-align: left !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #fff !important;
+  border-radius: 14px !important;
+  padding: 12px 14px !important;
+  cursor: pointer !important;
+}
+html body .panel-pick-card.is-active,
+html body .panel-pick-card:hover{
+  border-color: #5eead4 !important;
+  background: #f0fdfa !important;
+}
+html body .panel-pick-avatar,
+html body .panel-pick-card .user-avatar{
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 50% !important;
+}
+html body .panel-pick-copy{
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+html body .panel-pick-copy strong{
+  display: block !important;
+  font-size: 15px !important;
+  color: #0f172a !important;
+}
+html body .panel-pick-copy span{
+  display: block !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+html body .panel-pick-card em{
+  font-style: normal !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #0f766e !important;
+}
+html body .panel-pick-actions{
+  margin-top: 14px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+html body .user-panel-switch-btn{
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  max-width: 160px !important;
+  min-width: 0 !important;
+  padding: 4px 10px !important;
+  border: 1px solid #dbe4ee !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  cursor: pointer !important;
+}
+html body .user-panel-switch-btn span{
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+}
+html body .user-panel-switch-btn strong{
+  font-size: 12px !important;
+  color: #0f172a !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 140px !important;
+}
+html body .active-panel-board{
+  margin: 0 0 18px !important;
+  padding: 16px 18px !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+}
+html body .active-panel-board-head h3{
+  margin: 0 0 4px !important;
+  font-size: 16px !important;
+}
+html body .active-panel-board-head p{
+  margin: 0 0 14px !important;
+  color: #64748b !important;
+  font-size: 13px !important;
+}
+html body .active-panel-board-grid{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+}
+html body .active-panel-board-card{
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+  background: #f8fafc !important;
+}
+html body .active-panel-board-card header{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+html body .active-panel-board-card ul{
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+html body .active-panel-board-card li{
+  margin: 0 0 6px !important;
+}
+html body .active-panel-board-card b{
+  display: block !important;
+  font-size: 13.5px !important;
+}
+html body .active-panel-board-card small{
+  color: #64748b !important;
+}
+html body .active-panel-board-empty{
+  margin: 0 !important;
+  font-size: 12.5px !important;
+  color: #94a3b8 !important;
+}
+html body .active-nagar-more{
+  margin: 4px 0 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  font-size: 12px !important;
+  color: #334155 !important;
+}
+@media (min-width: 800px){
+  html body .active-panel-board-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 900px){
+  html body .user-panel-switch-btn{
+    display: none !important;
+  }
+}
+
+html body .active-panels-grid{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+html body .active-panels-ward{
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+}
+html body .active-panels-ward-head{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 12px !important;
+}
+html body .active-panels-ward-head strong{
+  display: block !important;
+  font-size: 16px !important;
+}
+html body .active-panels-ward-head span{
+  display: block !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+  margin-top: 2px !important;
+}
+html body .active-panels-people{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+html body .active-panels-card{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 14px 16px !important;
+  background: #f8fafc !important;
+}
+html body .active-panels-card.is-visible{
+  background: #f0fdfa !important;
+  border-color: #99f6e4 !important;
+}
+html body .active-panels-name-row{
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+html body .active-panels-card-copy p,
+html body .active-panels-card-copy small{
+  display: block !important;
+  margin: 4px 0 0 !important;
+  color: #64748b !important;
+  font-size: 12.5px !important;
+}
+html body .active-panels-card-action{
+  flex: 0 0 auto !important;
+}
+html body .nagar-activation-action{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  min-width: 168px !important;
+}
+html body .nagar-activation-action .btn-action{
+  width: 100% !important;
+  white-space: nowrap !important;
+}
+
+html body .active-panels-page .exec-toolbar-panel,
+html body .portal-management-page .exec-toolbar-panel{
+  overflow: visible !important;
+}
+html body .active-panels-page .exec-toolbar-row,
+html body .portal-management-page .exec-toolbar-row{
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+}
+html body .active-panels-page .exec-toolbar-left,
+html body .portal-management-page .exec-toolbar-left{
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+html body .active-panels-page .exec-search-box,
+html body .portal-management-page .exec-search-box{
+  flex: 1 1 240px !important;
+  min-width: 180px !important;
+  max-width: none !important;
+  height: 38px !important;
+}
+html body .active-panels-page .exec-quick-ward,
+html body .active-panels-page .exec-quick-status,
+html body .portal-management-page .exec-quick-ward{
+  flex: 0 1 280px !important;
+  width: auto !important;
+  min-width: 200px !important;
+  max-width: 340px !important;
+  height: 38px !important;
+}
+html body .active-panels-page .exec-quick-status{
+  flex: 0 1 180px !important;
+  min-width: 160px !important;
+  max-width: 220px !important;
+}
+html body .active-panels-page .exec-quick-ward .searchable-select,
+html body .active-panels-page .exec-quick-status .searchable-select,
+html body .portal-management-page .exec-quick-ward .searchable-select{
+  width: 100% !important;
+  min-width: 0 !important;
+}
+html body .active-panels-page .searchable-control,
+html body .portal-management-page .exec-quick-ward .searchable-control{
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+}
+@media (max-width: 900px){
+  html body .active-panels-page .exec-toolbar-row,
+  html body .portal-management-page .exec-toolbar-row,
+  html body .active-panels-page .exec-toolbar-left,
+  html body .portal-management-page .exec-toolbar-left{
+    flex-wrap: wrap !important;
+  }
+  html body .active-panels-page .exec-quick-ward,
+  html body .active-panels-page .exec-quick-status,
+  html body .portal-management-page .exec-quick-ward{
+    flex: 1 1 220px !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+}
+
+/* Admin crop/preview uses the exact citizen Home/Gallery/Complaints banner frame */
+html body .user-portal .user-hero.user-hero-pro,
+html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+html body .user-portal .user-hero.user-hero-pro.has-custom-hero,
+html body .user-portal .gallery-banner-hero,
+html body .user-portal .gallery-hero-pro,
+html body .user-portal .gallery-banner-hero.gallery-hero-pro,
+html body .user-complaints-page .ward-info-card.has-portal-banner,
+html body .user-portal .ward-info-card.has-portal-banner,
+html body .ward-info-card.has-portal-banner,
+html body .admin-hero-live,
+html body .portal-management-page .admin-hero-live,
+html body .portal-management-page .citizen-banner-frame,
+html body .citizen-banner-frame,
+html body .portal-management-page .banner-crop-preview,
+html body .banner-crop-stage.hero-live-stage{
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 400px !important;
+  aspect-ratio: 2.4 / 1 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 0 !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-media,
+html body .user-portal .user-hero.user-hero-pro .user-hero-bg-photo,
+html body .user-portal .gallery-banner-photo,
+html body .user-portal .gallery-hero-pro .gallery-banner-photo,
+html body .ward-info-banner-photo,
+html body .admin-hero-live .user-hero-media,
+html body .admin-hero-live .user-hero-bg-photo,
+html body .citizen-banner-frame .user-hero-media,
+html body .citizen-banner-frame .user-hero-bg-photo{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 28% !important;
+  aspect-ratio: auto !important;
+}
+html body .user-portal .user-hero.user-hero-pro .user-hero-copy{
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 28px 32px !important;
+  box-sizing: border-box !important;
+}
+html body .photo-crop-modal.banner-crop-modal{
+  width: min(1100px, calc(100vw - 24px)) !important;
+  max-width: min(1100px, calc(100vw - 24px)) !important;
+}
+html body .banner-crop-stage.hero-live-stage{
+  margin: 12px 0 14px !important;
+}
+@media (max-width: 900px){
+  html body .user-portal .user-hero.user-hero-pro,
+  html body .user-portal .user-hero.user-hero-pro.has-portal-banner,
+  html body .user-portal .user-hero.user-hero-pro.has-custom-hero,
+  html body .user-portal .gallery-banner-hero,
+  html body .user-portal .gallery-hero-pro,
+  html body .user-portal .gallery-banner-hero.gallery-hero-pro,
+  html body .user-complaints-page .ward-info-card.has-portal-banner,
+  html body .user-portal .ward-info-card.has-portal-banner,
+  html body .ward-info-card.has-portal-banner,
+  html body .admin-hero-live,
+  html body .portal-management-page .admin-hero-live,
+  html body .citizen-banner-frame,
+  html body .banner-crop-stage.hero-live-stage{
+    max-height: none !important;
+    aspect-ratio: 2.4 / 1 !important;
+    border-radius: 16px !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-media{
+    position: absolute !important;
+    inset: 0 !important;
+    height: 100% !important;
+    aspect-ratio: auto !important;
+  }
+  html body .user-portal .user-hero.user-hero-pro .user-hero-copy{
+    padding: 18px 16px !important;
   }
 }
 

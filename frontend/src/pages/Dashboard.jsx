@@ -868,7 +868,7 @@ export default function Dashboard() {
     const timer = setInterval(() => {
       if (document.visibilityState === 'hidden') return;
       loadDashboard();
-    }, 60000);
+    }, 10000);
     return () => {
       clearInterval(timer);
     };

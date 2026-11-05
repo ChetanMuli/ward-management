@@ -38,7 +38,7 @@ const login = asyncHandler(async (req, res) => {
 
   return success(res, {
     message: 'Login successful',
-    data: { token: issueToken(user), user: { id: user.id, name: user.name, role: user.Role.name } },
+    data: { token: issueToken(user), user: { id: user.id, name: user.name, role: user.Role.name, wardId: user.wardId } },
   });
 });
 
@@ -69,7 +69,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
   return success(res, {
     message: 'Login successful',
-    data: { token: issueToken(user), user: { id: user.id, name: user.name, role: user.Role.name } },
+    data: { token: issueToken(user), user: { id: user.id, name: user.name, role: user.Role.name, wardId: user.wardId } },
   });
 });
 

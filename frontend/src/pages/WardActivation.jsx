@@ -4,7 +4,7 @@ import {isMaster} from '../rbac';
 import {Empty,ErrorBox,Loading,Modal,PageHeader,StatusPill} from '../components/Ui';
 import {formatWardLabel, formatWardNumber} from '../wardFormat';
 import TeamNav from '../components/TeamNav';
-import { BuildingIcon, ZapIcon, LockOpenIcon, UsersIcon, PhoneIcon, SearchIcon } from '../components/Icons';
+import { BuildingIcon, ZapIcon, LockOpenIcon, UsersIcon, SearchIcon } from '../components/Icons';
 
 function Confirm({title,message,confirmLabel,tone='primary',busy,onClose,onConfirm}){
  return (
@@ -173,20 +173,15 @@ export default function WardActivation(){
      <table className="activation-board-table">
       <thead>
        <tr>
-        <th style={{ width: '20%' }}>Ward</th>
-        <th style={{ width: '12%' }}>Ward status</th>
-        <th style={{ width: '15%' }}>Registration</th>
-        <th style={{ width: '23%' }}>Active Nagarsevak</th>
-        <th style={{ width: '16%' }}>Residents & App Users</th>
+        <th style={{ width: '24%' }}>Ward</th>
+        <th style={{ width: '14%' }}>Ward status</th>
+        <th style={{ width: '18%' }}>Registration</th>
+        <th style={{ width: '20%' }}>Residents & App Users</th>
         <th style={{ textAlign: 'center' }}>Actions</th>
        </tr>
       </thead>
       <tbody>
        {filteredRows.map(w=>{
-        const activeNagars = w.purchasedNagarsevaks || [];
-        const hasActiveNagar = activeNagars.length > 0;
-        const totalNagars = w.nagarsevaks || [];
-
         return (
          <tr key={w.id}>
           <td data-label="Ward">
@@ -214,37 +209,6 @@ export default function WardActivation(){
              <span className="team-badge gray">{w.status === 'ACTIVE' ? 'CLOSED' : '—'}</span>
              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px' }}>Direct links only</div>
             </div>
-           )}
-          </td>
-          <td data-label="Active Nagarsevak">
-           {hasActiveNagar ? (
-            <div>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <strong style={{ fontSize: '13px', color: '#0f172a' }}>{activeNagars[0].name}</strong>
-              <span className="team-badge green">Active</span>
-             </div>
-             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '3px', flexWrap: 'wrap', fontSize: '12px' }}>
-              {activeNagars[0].partyName && <span style={{ color: '#64748b' }}>{activeNagars[0].partyName}</span>}
-              {activeNagars[0].mobile && (
-               <a href={`tel:${activeNagars[0].mobile}`} className="team-contact-link notranslate" translate="no">
-                <PhoneIcon size={12} />
-                <span>{activeNagars[0].mobile}</span>
-               </a>
-              )}
-             </div>
-             {activeNagars.length > 1 && (
-              <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '2px' }}>
-               +{activeNagars.length - 1} more active
-              </div>
-             )}
-            </div>
-           ) : totalNagars.length > 0 ? (
-            <div>
-             <span className="team-badge amber">{totalNagars.length} assigned (Inactive)</span>
-             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>Click Manage to activate</div>
-            </div>
-           ) : (
-            <span className="team-badge gray">None assigned</span>
            )}
           </td>
           <td data-label="Residents & App Users">
@@ -318,13 +282,14 @@ export default function WardActivation(){
    {pick&&<Modal wide title={`${formatWardNumber(pick.wardNumber)} · Nagarsevak activation`} onClose={()=>setPick(null)}>
     <p className="activation-confirm-copy">
      {pick.status==='ACTIVE'
-      ? 'Activate only the Nagarsevak who purchased this ward. Residents will see that one profile. Other seats stay in administration and cannot sign in.'
-      : 'Activate this ward first, then activate the buyer. Resident registration stays closed until the ward is open.'}
+      ? 'Turn each Nagarsevak panel on or off independently. Showing to residents is a separate choice — an active panel can stay hidden from citizens.'
+      : 'Activate this ward first, then activate Nagarsevak panels. Resident registration stays closed until the ward is open.'}
     </p>
     {!pick.nagarsevaks?.length?<Empty>No Nagarsevak accounts are assigned to this ward yet. Create them under Nagarsevak & Employees and select this ward.</Empty>:(
      <div className="nagar-activation-list">
       {pick.nagarsevaks.map(n=>{
-       const visible=n.purchaseStatus==='ACTIVE';
+       const panelOn=n.purchaseStatus==='ACTIVE';
+       const visible=panelOn && !!n.residentVisible;
        return (
         <article className={`nagar-activation-card ${visible?'is-active':''}`} key={n.id}>
           <div className="nagar-activation-main">
@@ -336,6 +301,7 @@ export default function WardActivation(){
             <strong style={{ fontSize: '15px', color: '#0f172a', display: 'block' }}>{n.name}</strong>
             <div className="nagar-activation-pills" style={{ marginTop: '4px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
              <StatusPill>{n.accountStatus==='ACTIVE'?'ACCOUNT ACTIVE':'ACCOUNT INACTIVE'}</StatusPill>
+             <StatusPill>{panelOn?'PANEL ON':'PANEL OFF'}</StatusPill>
              <StatusPill>{visible?'VISIBLE TO CITIZENS':'HIDDEN'}</StatusPill>
             </div>
            </div>
@@ -350,12 +316,12 @@ export default function WardActivation(){
           </dl>
          </div>
          <div className="nagar-activation-action">
-          {visible ? (
+          {panelOn ? (
            <button
             type="button"
             className="btn-action btn-ward-deactivate"
             onClick={()=>setConfirm({kind:'nagar-off',ward:pick,nagar:n})}
-            title="Deactivate this Nagarsevak profile"
+            title="Turn this Nagarsevak panel off. Other panels stay as they are."
            >
             Deactivate Profile
            </button>
@@ -364,10 +330,30 @@ export default function WardActivation(){
             type="button"
             className="btn-action btn-ward-activate"
             disabled={pick.status!=='ACTIVE'}
-            title={pick.status==='ACTIVE'?'Activate this Nagarsevak profile':'Activate the ward first'}
+            title={pick.status==='ACTIVE'?'Turn this Nagarsevak panel on. Other panels stay as they are.':'Activate the ward first'}
             onClick={()=>setConfirm({kind:'nagar-on',ward:pick,nagar:n})}
            >
             Activate Profile
+           </button>
+          )}
+          {visible ? (
+           <button
+            type="button"
+            className="btn-action btn-ward-deactivate"
+            onClick={()=>setConfirm({kind:'nagar-hide',ward:pick,nagar:n})}
+            title="Hide this Nagarsevak from residents. The panel can stay active."
+           >
+            Hide from residents
+           </button>
+          ) : (
+           <button
+            type="button"
+            className="btn-action btn-ward-activate"
+            disabled={pick.status!=='ACTIVE'}
+            title={pick.status==='ACTIVE'?'Show this Nagarsevak to residents. Other names stay as they are.':'Activate the ward first'}
+            onClick={()=>setConfirm({kind:'nagar-show',ward:pick,nagar:n})}
+           >
+            Show to residents
            </button>
           )}
          </div>
@@ -383,8 +369,10 @@ export default function WardActivation(){
    {confirm?.kind==='ward-off'&&<Confirm title={`Deactivate ${formatWardNumber(confirm.ward.wardNumber)}?`} message="This ward will close for registration and Nagarsevak profiles will be hidden from residents. Historical records stay in the database." confirmLabel="Deactivate ward" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardActivation(confirm.ward.id,{status:'INACTIVE'}))}/>}
    {confirm?.kind==='signup-on'&&<Confirm title={`Open registration for ${formatWardNumber(confirm.ward.wardNumber)}?`} message="This ward will be added to the Create account ward list. Other open wards stay open, so residents can choose from every ward you have opened." confirmLabel="Open registration" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardRegistrationOpen(confirm.ward.id,true))}/>}
    {confirm?.kind==='signup-off'&&<Confirm title={`Close registration for ${formatWardNumber(confirm.ward.wardNumber)}?`} message="This ward will leave the Create account list. Other open wards stay open. Residents may still register with a Nagarsevak or employee link." confirmLabel="Close registration" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setWardRegistrationOpen(confirm.ward.id,false))}/>}
-   {confirm?.kind==='nagar-on'&&<Confirm title={`Activate ${confirm.nagar.name}?`} message={`${confirm.nagar.name} will be the only Nagarsevak residents of ${formatWardNumber(confirm.ward.wardNumber)} can see. Any other active Nagarsevak in this ward will be turned off automatically. Then fill their photo and works in Portal Management.`} confirmLabel="Activate Nagarsevak" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakPurchase(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,status:'ACTIVE'}),{keepList:true})}/>}
-   {confirm?.kind==='nagar-off'&&<Confirm title={`Deactivate ${confirm.nagar.name}?`} message="This Nagarsevak and their employees will not be able to sign in. Residents will see the shared demo page until another Nagarsevak is activated." confirmLabel="Deactivate Nagarsevak" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakPurchase(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,status:'DEACTIVATED'}),{keepList:true})}/>}
+   {confirm?.kind==='nagar-on'&&<Confirm title={`Activate ${confirm.nagar.name}?`} message={`${confirm.nagar.name} panel will turn on. Other Nagarsevaks in ${formatWardNumber(confirm.ward.wardNumber)} stay as they are. Use Show to residents if citizens should see this name.`} confirmLabel="Activate panel" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakPurchase(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,status:'ACTIVE'}),{keepList:true})}/>}
+   {confirm?.kind==='nagar-off'&&<Confirm title={`Deactivate ${confirm.nagar.name}?`} message="This panel will turn off and hide from residents. Other Nagarsevaks in the same ward stay as they are." confirmLabel="Deactivate panel" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakPurchase(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,status:'DEACTIVATED'}),{keepList:true})}/>}
+   {confirm?.kind==='nagar-show'&&<Confirm title={`Show ${confirm.nagar.name}?`} message={`${confirm.nagar.name} will appear for residents of ${formatWardNumber(confirm.ward.wardNumber)}. Other visible Nagarsevaks stay visible.`} confirmLabel="Show to residents" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakResidentVisible(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,visible:true}),{keepList:true})}/>}
+   {confirm?.kind==='nagar-hide'&&<Confirm title={`Hide ${confirm.nagar.name}?`} message="Residents will no longer see this Nagarsevak. The panel can stay active. Other Nagarsevaks stay as they are." confirmLabel="Hide from residents" tone="danger" busy={busy} onClose={()=>setConfirm(null)} onConfirm={()=>run(()=>api.setNagarsevakResidentVisible(confirm.ward.id,{nagarsevakUserId:confirm.nagar.id,visible:false}),{keepList:true})}/>}
   </div>
  );
 }

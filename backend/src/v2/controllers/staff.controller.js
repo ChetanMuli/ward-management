@@ -61,10 +61,10 @@ const listCorporators = asyncHandler(async (req, res) => {
   const subs = ids.length
     ? await WardNagarsevakSubscription.findAll({
       where: { nagarsevakUserId: { [Op.in]: ids }, status: 'ACTIVE' },
-      attributes: ['nagarsevakUserId', 'wardId', 'status'],
+      attributes: ['nagarsevakUserId', 'wardId', 'status', 'residentVisible'],
     })
     : [];
-  const activeSub = new Set(subs.map((s) => `${s.nagarsevakUserId}:${s.wardId}`));
+  const activeSub = new Set(subs.filter((s) => s.residentVisible).map((s) => `${s.nagarsevakUserId}:${s.wardId}`));
   const photos = await nagarsevakPublicByIds(ids);
   return success(res, {
     data: result.rows.map(u => {

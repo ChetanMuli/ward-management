@@ -64,7 +64,7 @@ const list = asyncHandler(async (req, res) => {
       throw new ApiError(403, 'You can view updates only for your assigned ward');
     }
     where.wardId = ownWardId;
-    where.audience = 'CITIZEN';
+    where.audience = { [Op.in]: ['CITIZEN', 'ALL', 'PUBLIC', ''] };
     where.status = 'PUBLISHED';
   } else {
     const allowed = allowedWardIds(req);
@@ -85,6 +85,19 @@ const list = asyncHandler(async (req, res) => {
 
   const type = String(req.query.type || '').trim().toUpperCase();
   if (!isCitizen && ['WARD_UPDATE', 'EVENT'].includes(type)) where.type = type;
+
+  const panelId = String(req.query.nagarsevakId || req.query.panelId || '').trim();
+  if (roleName === 'NAGARSEVAK') {
+    const { Employee } = require('../../models');
+    const emps = await Employee.findAll({ where: { managerUserId: req.user.id }, attributes: ['userId'] });
+    const authorIds = [req.user.id, ...emps.map(e => e.userId)];
+    where.createdByUserId = { [Op.in]: authorIds };
+  } else if (panelId) {
+    const { Employee } = require('../../models');
+    const emps = await Employee.findAll({ where: { managerUserId: panelId }, attributes: ['userId'] });
+    const authorIds = [panelId, ...emps.map(e => e.userId)];
+    where.createdByUserId = { [Op.in]: authorIds };
+  }
 
   const search = String(req.query.search || '').trim();
   if (search) {

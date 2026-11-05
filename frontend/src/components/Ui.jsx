@@ -555,6 +555,28 @@ export function isUsablePhoto(value){
  if(!src||src==='null'||src==='undefined') return false;
  return /^(data:image\/[a-z0-9.+-]+;base64,|blob:|https?:\/\/|\/(?!\/))/i.test(src);
 }
+function cropToast(message, type='error'){
+  window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type,message}}));
+}
+function blobToDataUrl(blob){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result||''));
+    reader.onerror=()=>reject(new Error('Could not read image'));
+    reader.readAsDataURL(blob);
+  });
+}
+async function ensureLocalImageSrc(input){
+  const raw=String(input||'').trim();
+  if(!raw) return '';
+  if(raw.startsWith('data:image/')) return raw;
+  const url=raw.startsWith('blob:') ? raw : publicMediaUrl(raw);
+  const res=await fetch(url,{credentials:'same-origin',cache:'no-store'});
+  if(!res.ok) throw new Error('Could not load image for crop');
+  const blob=await res.blob();
+  if(!blob || !blob.size) throw new Error('Not an image');
+  return blobToDataUrl(blob);
+}
 export function ImageCropField({
   label='Image',
   value='',
@@ -564,11 +586,21 @@ export function ImageCropField({
   hint='',
   uploadLabel='Upload image',
   adjustLabel='Adjust crop',
+  variant='',
 }){
   const shown=publicMediaUrl(value);
-  const fileRef=useRef(null),stageRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1),stageSizeRef=useRef({w:640,h:267});
-  const ratio=Math.max(1.2, Number(aspect)||2.4);
-  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false),[stageSize,setStageSize]=useState({w:640,h:267});
+  const fileRef=useRef(null),stageRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1.25),stageSizeRef=useRef({w:640,h:267});
+  const [liveAspect,setLiveAspect]=useState(()=>Number(aspect)||16/9);
+  useEffect(()=>{
+    if(variant!=='hero') return undefined;
+    const sync=()=>setLiveAspect(2.4);
+    sync();
+    window.addEventListener('resize',sync);
+    return()=>window.removeEventListener('resize',sync);
+  },[variant]);
+  const ratio=Math.max(0.5, variant==='hero' ? liveAspect : (Number(aspect)||2.4));
+  const MIN_Z=1, MAX_Z=4, START_Z=1.25;
+  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(START_Z),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false),[stageSize,setStageSize]=useState({w:640,h:Math.round(640/ratio)});
   const STAGE_W=Math.max(160, stageSize.w||640);
   const STAGE_H=Math.max(80, stageSize.h||Math.round(STAGE_W/ratio));
   const cover=Math.max(STAGE_W/(nat.w||1), STAGE_H/(nat.h||1));
@@ -581,15 +613,27 @@ export function ImageCropField({
     const maxY=Math.max(0,((h||1)*s-sh)/2);
     return {x:Math.min(maxX,Math.max(-maxX,next.x||0)),y:Math.min(maxY,Math.max(-maxY,next.y||0))};
   }
-  function openCrop(data){
-    setSrc(data);setZoom(1);zoomRef.current=1;setPos({x:0,y:0});posRef.current={x:0,y:0};setNat({w:1,h:1});setReady(false);setOpen(true);
+  function setZoomSafe(next){
+    const z=Math.min(MAX_Z, Math.max(MIN_Z, Number(next)||MIN_Z));
+    zoomRef.current=z;
+    setZoom(z);
+  }
+  async function openCrop(data){
+    try{
+      const local=await ensureLocalImageSrc(data);
+      if(!local){ cropToast('Could not open this image for cropping.'); return; }
+      setSrc(local);setZoomSafe(START_Z);setPos({x:0,y:0});posRef.current={x:0,y:0};setNat({w:1,h:1});natRef.current={w:1,h:1};setReady(false);setOpen(true);
+    }catch{
+      cropToast('Could not load this image for cropping. Please upload it again.');
+    }
   }
   function readFile(file){
     if(!file)return;
-    if(!file.type.startsWith('image/')){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Please select an image file.'}}));return;}
-    if(file.size>10*1024*1024){window.dispatchEvent(new CustomEvent('ward:toast',{detail:{type:'error',message:'Image must be under 10MB.'}}));return;}
+    if(!file.type.startsWith('image/')){cropToast('Please select an image file.');return;}
+    if(file.size>10*1024*1024){cropToast('Image must be under 10MB.');return;}
     const reader=new FileReader();
     reader.onload=()=>openCrop(String(reader.result||''));
+    reader.onerror=()=>cropToast('Could not read that file.');
     reader.readAsDataURL(file);
   }
   useEffect(()=>{posRef.current=pos;},[pos]);
@@ -604,73 +648,92 @@ export function ImageCropField({
       if(w>40 && h>40) setStageSize({w,h});
     };
     measure();
+    requestAnimationFrame(measure);
     const ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(measure):null;
     ro?.observe(el);
     window.addEventListener('resize',measure);
-    return()=>{ro?.disconnect();window.removeEventListener('resize',measure)};
-  },[open]);
-  useEffect(()=>{
-    if(!open)return;
-    const move=e=>{
+    const onWheel=(e)=>{
+      e.preventDefault();
+      setZoomSafe(zoomRef.current+(e.deltaY<0?0.1:-0.1));
+    };
+    const onDown=(e)=>{
+      if(e.button!=null && e.button!==0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dragRef.current={x:e.clientX-posRef.current.x,y:e.clientY-posRef.current.y};
+    };
+    const onMove=(e)=>{
       if(!dragRef.current)return;
       e.preventDefault();
       const box=stageSizeRef.current;
       const next=clamp({x:e.clientX-dragRef.current.x,y:e.clientY-dragRef.current.y},natRef.current.w,natRef.current.h,zoomRef.current,box.w,box.h);
       posRef.current=next;setPos(next);
     };
-    const up=()=>{dragRef.current=null};
-    window.addEventListener('pointermove',move,{passive:false});
-    window.addEventListener('pointerup',up);
-    window.addEventListener('pointercancel',up);
-    return()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up)};
+    const onUp=()=>{dragRef.current=null};
+    el.addEventListener('wheel',onWheel,{passive:false});
+    el.addEventListener('pointerdown',onDown);
+    window.addEventListener('pointermove',onMove,{passive:false});
+    window.addEventListener('pointerup',onUp);
+    window.addEventListener('pointercancel',onUp);
+    return()=>{
+      ro?.disconnect();
+      window.removeEventListener('resize',measure);
+      el.removeEventListener('wheel',onWheel);
+      el.removeEventListener('pointerdown',onDown);
+      window.removeEventListener('pointermove',onMove);
+      window.removeEventListener('pointerup',onUp);
+      window.removeEventListener('pointercancel',onUp);
+    };
   },[open]);
   function apply(){
     if(!src||!ready)return;
     const img=new Image();
     img.onload=()=>{
-      const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
-      const box=stageSizeRef.current;
-      const sw=Math.max(1,box.w), sh=Math.max(1,box.h);
-      const outW=outputWidth, outH=Math.round(outW/ratio);
-      const canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;
-      const ctx=canvas.getContext('2d');if(!ctx)return;
-      const z=zoomRef.current, p=posRef.current;
-      const s=(Math.max(sw/w, sh/h))*z;
-      const left=(sw-w*s)/2+p.x;
-      const top=(sh-h*s)/2+p.y;
-      ctx.fillStyle='#0b1624';ctx.fillRect(0,0,outW,outH);
-      ctx.drawImage(img, -left/s, -top/s, sw/s, sh/s, 0, 0, outW, outH);
-      let data=canvas.toDataURL('image/jpeg',0.86);
-      if(data.length>900000) data=canvas.toDataURL('image/jpeg',0.7);
-      onChange(data);setOpen(false);setSrc('');
+      try{
+        const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+        const box=stageSizeRef.current;
+        const sw=Math.max(1,box.w), sh=Math.max(1,box.h);
+        const outW=outputWidth, outH=Math.max(1, Math.round(outW/ratio));
+        const canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;
+        const ctx=canvas.getContext('2d');if(!ctx)return;
+        const z=zoomRef.current, p=posRef.current;
+        const s=(Math.max(sw/w, sh/h))*z;
+        const left=(sw-w*s)/2+p.x;
+        const top=(sh-h*s)/2+p.y;
+        ctx.fillStyle='#0b1624';ctx.fillRect(0,0,outW,outH);
+        ctx.drawImage(img, -left/s, -top/s, sw/s, sh/s, 0, 0, outW, outH);
+        let data=canvas.toDataURL('image/jpeg',0.86);
+        if(data.length>900000) data=canvas.toDataURL('image/jpeg',0.68);
+        if(!data || !data.startsWith('data:image/')) throw new Error('empty crop');
+        onChange(data);setOpen(false);setSrc('');
+      }catch{
+        cropToast('Could not crop this image. Please upload it again.');
+      }
     };
+    img.onerror=()=>cropToast('Could not crop this image. Please upload it again.');
     img.src=src;
   }
   const node=open?(
-    <div className="photo-crop-backdrop" style={{zIndex:200040}} onPointerDown={()=>{setOpen(false);setSrc('')}}>
-      <div className="photo-crop-modal banner-crop-modal" onPointerDown={e=>e.stopPropagation()}>
+    <div className="photo-crop-backdrop" style={{zIndex:200040}} onMouseDown={e=>{if(e.target===e.currentTarget){setOpen(false);setSrc('');}}}>
+      <div className="photo-crop-modal banner-crop-modal" onMouseDown={e=>e.stopPropagation()}>
         <div className="modal-header">
           <div>
             <h2>Adjust image</h2>
-            <span>Drag to position, then zoom so faces and the important area fill this frame. This is the same frame residents see.</span>
+            <span>Zoom and drag the photo. This frame is what residents see.</span>
           </div>
           <button type="button" className="icon-btn" onClick={()=>{setOpen(false);setSrc('')}}>×</button>
         </div>
         <div
           ref={stageRef}
-          className="banner-crop-stage"
+          className={`banner-crop-stage${variant==='hero'?' hero-live-stage citizen-banner-frame':''}${variant==='pageBanner'?' page-banner-stage':''}`}
           style={{aspectRatio:`${ratio} / 1`}}
-          onPointerDown={e=>{e.preventDefault();e.stopPropagation();dragRef.current={x:e.clientX-posRef.current.x,y:e.clientY-posRef.current.y};}}
-          onWheel={e=>{
-            e.preventDefault();
-            const next=Math.min(3, Math.max(1, zoomRef.current+(e.deltaY<0?0.08:-0.08)));
-            zoomRef.current=next;setZoom(next);
-          }}
         >
           {src&&<img src={src} alt="" draggable="false" onLoad={e=>{const w=e.currentTarget.naturalWidth||1,h=e.currentTarget.naturalHeight||1;natRef.current={w,h};setNat({w,h});setReady(true);setPos(p=>clamp(p,w,h,zoomRef.current));}} style={{width:dw,height:dh,left:(STAGE_W-dw)/2+pos.x,top:(STAGE_H-dh)/2+pos.y}}/>}
           <span className="banner-crop-frame" aria-hidden="true"/>
         </div>
-        <label className="photo-crop-zoom">Zoom<input type="range" min="1" max="3" step="0.02" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
+        <label className="photo-crop-zoom">Zoom
+          <input type="range" min={MIN_Z} max={MAX_Z} step="0.02" value={zoom} onChange={e=>setZoomSafe(Number(e.target.value))}/>
+        </label>
         <div className="modal-actions">
           <button type="button" className="ghost-btn" onClick={()=>{setOpen(false);setSrc('')}}>Cancel</button>
           <button type="button" className="primary-btn" disabled={!ready} onClick={apply}>{ready?'Use this crop':'Loading…'}</button>
@@ -679,20 +742,27 @@ export function ImageCropField({
     </div>
   ):null;
   return (
-    <div className="banner-crop-field">
+    <div className={`banner-crop-field${variant==='pageBanner'?' page-banner-crop':''}`}>
       {label?<div className="section-label">{label}</div>:null}
-      {shown?(
+      {shown && variant==='hero'?(
+        <div className="user-hero user-hero-pro has-portal-banner has-custom-hero has-photo admin-hero-live citizen-banner-frame">
+          <div className="user-hero-media" aria-hidden="true">
+            <img className="user-hero-bg-photo" src={shown} alt="" decoding="async" draggable="false"/>
+          </div>
+          <div className="user-hero-shade" aria-hidden="true"/>
+        </div>
+      ):shown?(
         <div
-          className="banner-crop-preview"
+          className={`banner-crop-preview${variant==='pageBanner'?' page-banner-preview':''}`}
           style={{
-            backgroundImage: `url(${shown})`,
-            aspectRatio: `${Number(aspect) || 2.4} / 1`,
+            backgroundImage: `url("${String(shown).replace(/"/g,'')}")`,
+            aspectRatio: `${ratio} / 1`,
             height: 'auto',
           }}
         />
       ):null}
       <div className="banner-crop-actions">
-        <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{shown?'Replace image':uploadLabel}</button>
+        <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{shown?'Replace':uploadLabel}</button>
         {shown?<button type="button" className="small-btn" onClick={()=>openCrop(shown)}>{adjustLabel}</button>:null}
         {shown?<button type="button" className="small-btn danger" onClick={()=>onChange('')}>Remove</button>:null}
       </div>
@@ -713,22 +783,74 @@ export function FaceAvatar({name='User',photo,className=''}){
  return <div className={`user-avatar user-avatar-fallback notranslate ${className}`.trim()} aria-hidden="true" translate="no"><span>{initialsOf(name)}</span></div>;
 }
 export function CirclePhotoField({label='Profile photo',name,value,onChange,optional=true,allowCamera=true}){
- const fileRef=useRef(null),cameraRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1);
- const STAGE=Math.min(280, typeof window==='undefined'?280:Math.max(220, Math.min(280, window.innerWidth-56)));
+ const STAGE=260;
+ const fileRef=useRef(null),cameraRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1),stageRef=useRef(null),canvasRef=useRef(null),previewImgRef=useRef(null);
  const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[zoom,setZoom]=useState(1),[pos,setPos]=useState({x:0,y:0}),[nat,setNat]=useState({w:1,h:1}),[ready,setReady]=useState(false);
  const [liveCameraOpen,setLiveCameraOpen]=useState(false);
- const cover=STAGE/Math.min(nat.w||1,nat.h||1);
- const scale=cover*zoom;
- const dw=(nat.w||1)*scale, dh=(nat.h||1)*scale;
- function clamp(next, w=nat.w, h=nat.h, z=zoom){
-  const c=STAGE/Math.min(w||1,h||1);
-  const s=c*z;
+ function clamp(next, w=natRef.current.w, h=natRef.current.h, z=zoomRef.current){
+  const s=(STAGE/Math.min(w||1,h||1))*z;
   const maxX=Math.max(0,((w||1)*s-STAGE)/2);
   const maxY=Math.max(0,((h||1)*s-STAGE)/2);
   return {x:Math.min(maxX,Math.max(-maxX,next.x||0)),y:Math.min(maxY,Math.max(-maxY,next.y||0))};
  }
- function openCrop(data){
-  setSrc(data);setZoom(1);zoomRef.current=1;setPos({x:0,y:0});posRef.current={x:0,y:0};setNat({w:1,h:1});setReady(false);setOpen(true);
+ function drawCrop(){
+  const canvas=canvasRef.current, img=previewImgRef.current;
+  if(!canvas||!img) return;
+  const w=img.naturalWidth||img.width||1, h=img.naturalHeight||img.height||1;
+  const z=zoomRef.current, p=posRef.current;
+  const s=(STAGE/Math.min(w,h))*z;
+  const left=(STAGE-w*s)/2+p.x;
+  const top=(STAGE-h*s)/2+p.y;
+  const dpr=typeof window!=='undefined'?Math.min(2, window.devicePixelRatio||1):1;
+  if(canvas.width!==STAGE*dpr || canvas.height!==STAGE*dpr){
+    canvas.width=STAGE*dpr;
+    canvas.height=STAGE*dpr;
+  }
+  const ctx=canvas.getContext('2d');
+  if(!ctx) return;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,STAGE,STAGE);
+  ctx.fillStyle='#0b1624';
+  ctx.fillRect(0,0,STAGE,STAGE);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(STAGE/2,STAGE/2,STAGE/2,0,Math.PI*2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(img, left, top, w*s, h*s);
+  ctx.restore();
+ }
+ function setZoomSafe(next){
+  const z=Math.min(3, Math.max(1, Number(next)||1));
+  zoomRef.current=z;
+  setZoom(z);
+  const kept=clamp(posRef.current);
+  posRef.current=kept;
+  setPos(kept);
+ }
+ async function openCrop(data){
+  try{
+    const local=await ensureLocalImageSrc(data);
+    if(!local){ cropToast('Could not open this photo for cropping.'); return; }
+    const img=new Image();
+    img.onload=()=>{
+      const w=img.naturalWidth||img.width||1, h=img.naturalHeight||img.height||1;
+      previewImgRef.current=img;
+      natRef.current={w,h};
+      setNat({w,h});
+      setSrc(local);
+      zoomRef.current=1;
+      setZoom(1);
+      posRef.current={x:0,y:0};
+      setPos({x:0,y:0});
+      setReady(true);
+      setOpen(true);
+    };
+    img.onerror=()=>cropToast('Could not load this photo for cropping. Please upload it again.');
+    img.src=local;
+  }catch{
+    cropToast('Could not load this photo for cropping. Please upload it again.');
+  }
  }
  function readFile(file){
   if(!file)return;
@@ -738,45 +860,64 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
   reader.readAsDataURL(file);
  }
  useEffect(()=>{posRef.current=pos;},[pos]);
- useEffect(()=>{zoomRef.current=zoom;setPos(p=>clamp(p,nat.w,nat.h,zoom));},[zoom,nat.w,nat.h]);
+ useEffect(()=>{natRef.current=nat;},[nat]);
+ useEffect(()=>{
+  if(!open || !ready) return;
+  drawCrop();
+  const t=window.requestAnimationFrame(drawCrop);
+  return ()=>window.cancelAnimationFrame(t);
+ },[open,src,ready,zoom,pos,nat.w,nat.h]);
  useEffect(()=>{
   if(!open)return;
+  const el=stageRef.current;
   const move=e=>{
    if(!dragRef.current)return;
    e.preventDefault();
-   const next=clamp({x:e.clientX-dragRef.current.x,y:e.clientY-dragRef.current.y},natRef.current.w,natRef.current.h,zoomRef.current);
-   posRef.current=next;setPos(next);
+   const next=clamp({x:e.clientX-dragRef.current.x,y:e.clientY-dragRef.current.y});
+   posRef.current=next;
+   setPos(next);
   };
   const up=()=>{dragRef.current=null};
+  const onWheel=e=>{
+    e.preventDefault();
+    setZoomSafe(zoomRef.current+(e.deltaY<0?0.08:-0.08));
+  };
   window.addEventListener('pointermove',move,{passive:false});
   window.addEventListener('pointerup',up);
   window.addEventListener('pointercancel',up);
-  return()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up)};
+  el?.addEventListener('wheel',onWheel,{passive:false});
+  return()=>{
+    window.removeEventListener('pointermove',move);
+    window.removeEventListener('pointerup',up);
+    window.removeEventListener('pointercancel',up);
+    el?.removeEventListener('wheel',onWheel);
+  };
  },[open]);
  function onPointerDown(e){
   e.preventDefault();e.stopPropagation();
   dragRef.current={x:e.clientX-posRef.current.x,y:e.clientY-posRef.current.y};
  }
  function apply(){
-  if(!src||!ready)return;
-  const img=new Image();
-  img.onload=()=>{
-   const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
-   const size=400,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
-   const ctx=canvas.getContext('2d');if(!ctx)return;
-   const z=zoomRef.current, p=posRef.current;
-   const s=(STAGE/Math.min(w,h))*z;
-   const left=(STAGE-w*s)/2+p.x;
-   const top=(STAGE-h*s)/2+p.y;
-   const srcSize=STAGE/s;
-   ctx.fillStyle='#0b1624';ctx.fillRect(0,0,size,size);
-   ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.closePath();ctx.clip();
-   ctx.drawImage(img,-left/s,-top/s,srcSize,srcSize,0,0,size,size);
-   let data=canvas.toDataURL('image/jpeg',.78);
-   if(data.length>400000) data=canvas.toDataURL('image/jpeg',.62);
-   onChange(data);setOpen(false);setSrc('');
-  };
-  img.src=src;
+  const img=previewImgRef.current;
+  if(!img||!ready)return;
+  try{
+    const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+    const size=400,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+    const ctx=canvas.getContext('2d');if(!ctx)return;
+    const z=zoomRef.current, p=posRef.current;
+    const s=(STAGE/Math.min(w,h))*z;
+    const left=(STAGE-w*s)/2+p.x;
+    const top=(STAGE-h*s)/2+p.y;
+    const scaleOut=size/STAGE;
+    ctx.fillStyle='#0b1624';ctx.fillRect(0,0,size,size);
+    ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.closePath();ctx.clip();
+    ctx.drawImage(img, left*scaleOut, top*scaleOut, w*s*scaleOut, h*s*scaleOut);
+    let data=canvas.toDataURL('image/jpeg',.78);
+    if(data.length>400000) data=canvas.toDataURL('image/jpeg',.62);
+    onChange(data);setOpen(false);setSrc('');
+  }catch{
+    cropToast('Could not crop this photo. Please upload it again.');
+  }
  }
 
  const handleCameraClick=()=>{
@@ -792,11 +933,15 @@ export function CirclePhotoField({label='Profile photo',name,value,onChange,opti
   <div className="photo-crop-backdrop" style={{zIndex:200040}} onPointerDown={()=>{setOpen(false);setSrc('')}}>
    <div className="photo-crop-modal" onPointerDown={e=>e.stopPropagation()}>
     <div className="modal-header"><div><h2>Adjust profile photo</h2><span>Drag to centre the face, then zoom until it fills the circle.</span></div><button type="button" className="icon-btn" onClick={()=>{setOpen(false);setSrc('')}}>×</button></div>
-    <div className="photo-crop-stage" style={{width:STAGE,height:STAGE}} onPointerDown={onPointerDown}>
-     {src&&<img src={src} alt="" draggable="false" onLoad={e=>{const w=e.currentTarget.naturalWidth||1,h=e.currentTarget.naturalHeight||1;natRef.current={w,h};setNat({w,h});setReady(true);setPos(p=>clamp(p,w,h,zoomRef.current));}} style={{width:dw,height:dh,left:(STAGE-dw)/2+pos.x,top:(STAGE-dh)/2+pos.y}}/>}
+    <div
+      ref={stageRef}
+      className="photo-crop-stage circle-crop-canvas-stage"
+      onPointerDown={onPointerDown}
+    >
+     <canvas ref={canvasRef} width={STAGE} height={STAGE} aria-hidden="true"/>
      <span className="photo-crop-ring" aria-hidden="true"/>
     </div>
-    <label className="photo-crop-zoom">Zoom<input type="range" min="1" max="3" step="0.02" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
+    <label className="photo-crop-zoom">Zoom<input type="range" min="1" max="3" step="0.02" value={zoom} onChange={e=>setZoomSafe(Number(e.target.value))}/></label>
     <div className="modal-actions">
      <button type="button" className="ghost-btn" onClick={()=>{setOpen(false);setSrc('')}}>Cancel</button>
      <button type="button" className="primary-btn" disabled={!ready} onClick={apply}>{ready?'Use this photo':'Loading…'}</button>

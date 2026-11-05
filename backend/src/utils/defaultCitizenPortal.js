@@ -17,6 +17,11 @@ function isCampaignStockUrl(url) {
   return CAMPAIGN_STOCK_RE.test(String(url || ''));
 }
 
+function isGenericDefaultHero(url) {
+  const raw = String(url || '').trim();
+  return !raw || raw === CIVIC_DEFAULT_HERO || /hero-civic-default|hero-ward-default/i.test(raw);
+}
+
 function resolveCitizenHeroUrl(url, { demoMode = false } = {}) {
   if (demoMode) return CIVIC_DEFAULT_HERO;
   const live = String(Array.isArray(url) ? url[0] : url || '').trim();
@@ -150,5 +155,6 @@ module.exports = {
   DEFAULT_DEMO_WORKS,
   isProtectedCustomWard,
   isCampaignStockUrl,
+  isGenericDefaultHero,
   resolveCitizenHeroUrl,
 };

@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "test": "node --test src/services/*.test.js",
     "schema:ensure": "node scripts/ensure-schema.js",
+    "db:live": "node scripts/live-db-prepare.js",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
     "seed": "sequelize-cli db:seed:all",

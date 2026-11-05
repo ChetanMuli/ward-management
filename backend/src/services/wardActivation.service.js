@@ -18,6 +18,7 @@ const { notifyUsers } = require('./notify.service');
 const { formatWardLabel } = require('../utils/wardFormat');
 const { canResidentSeeNagarsevak } = require('./wardActivation.rules');
 const { decorateNagarsevakPhotos } = require('../utils/photo');
+const { CIVIC_DEFAULT_HERO } = require('../utils/defaultCitizenPortal');
 
 const PUBLIC_NAGAR_ATTRS = ['id', 'name', 'email', 'mobile', 'wardId', 'status', 'roleId'];
 const COMPANY_NAME = 'KairoEdge Technologies PVT LTD';
@@ -82,13 +83,30 @@ function isWardActive(ward) {
   return String(ward?.status || '').toUpperCase() === 'ACTIVE';
 }
 
+async function getActiveNagarsevakIds(wardId) {
+  if (!wardId) return [];
+  const nagarRole = await roleId('NAGARSEVAK');
+  if (!nagarRole) return [];
+  const subs = await WardNagarsevakSubscription.findAll({
+    where: { wardId, status: 'ACTIVE' },
+    attributes: ['nagarsevakUserId'],
+  });
+  const subIds = subs.map((s) => s.nagarsevakUserId);
+  if (!subIds.length) return [];
+  const users = await User.findAll({
+    where: { id: { [Op.in]: subIds }, roleId: nagarRole, wardId, status: 'ACTIVE' },
+    attributes: ['id'],
+  });
+  return users.map((u) => u.id);
+}
+
 async function getVisibleNagarsevakIds(wardId) {
   const ward = await getWard(wardId);
   if (!ward || !isWardActive(ward)) return [];
   const nagarRole = await roleId('NAGARSEVAK');
   if (!nagarRole) return [];
   const subs = await WardNagarsevakSubscription.findAll({
-    where: { wardId, status: 'ACTIVE' },
+    where: { wardId, status: 'ACTIVE', residentVisible: true },
     attributes: ['nagarsevakUserId'],
   });
   const subIds = subs.map((s) => s.nagarsevakUserId);
@@ -232,8 +250,36 @@ async function ensureNagarsevakChatGroup(user) {
   });
 }
 
+async function ensureNagarsevakCommunityGroup(user) {
+  if (!user?.id || !user.wardId) return null;
+  const name = `${user.name} • समुदाय गट`;
+  const existing = await Chat.findOne({ where: { nagarsevakUserId: user.id, type: 'WARD' } });
+  if (existing) {
+    await existing.update({ wardId: user.wardId, isActive: true, name, mode: 'CHAT' });
+    return existing;
+  }
+  return Chat.create({
+    wardId: user.wardId,
+    name,
+    type: 'WARD',
+    nagarsevakUserId: user.id,
+    createdByUserId: null,
+    isActive: true,
+    mode: 'CHAT',
+  });
+}
+
 async function replaceGroupMembers(groupId, allowedUserIds) {
   await Chat.Member.reconcile(groupId, allowedUserIds);
+}
+
+async function eligibleNagarsevakStaffUserIds(nagarsevakUserId) {
+  const empRows = await Employee.findAll({
+    where: { managerUserId: nagarsevakUserId },
+    attributes: ['userId'],
+  }).catch(() => []);
+  const empUserIds = empRows.map((e) => e.userId).filter(Boolean);
+  return [...new Set([String(nagarsevakUserId), ...empUserIds.map(String)])];
 }
 
 async function syncWardCommunityMembership(wardId) {
@@ -250,18 +296,23 @@ async function syncWardCommunityMembership(wardId) {
   const allNagars = nagarRole
     ? await User.findAll({ where: { wardId, roleId: nagarRole }, attributes: ['id', 'name', 'wardId', 'status'] })
     : [];
-  const staffIds = await eligibleStaffUserIds(wardId, []);
   const visibleSet = new Set(visibleIds.map(String));
 
   for (const nagar of allNagars) {
     if (visibleSet.has(String(nagar.id)) && nagar.status === 'ACTIVE') {
+      const allowedStaffIds = await eligibleNagarsevakStaffUserIds(nagar.id);
       const group = await ensureNagarsevakChatGroup(nagar);
-      if (!group) continue;
-      for (const userId of [...staffIds, nagar.id]) await ensureMembershipRow(group.id, userId);
+      if (group) {
+        await Chat.Member.reconcile(group.id, allowedStaffIds);
+      }
+      const commGroup = await ensureNagarsevakCommunityGroup(nagar);
+      if (commGroup) {
+        await Chat.Member.reconcile(commGroup.id, allowedStaffIds);
+      }
     } else {
       await Chat.update(
         { isActive: false },
-        { where: { nagarsevakUserId: nagar.id, type: 'NAGARSEVAK' } }
+        { where: { nagarsevakUserId: nagar.id } }
       );
     }
   }
@@ -363,6 +414,27 @@ async function assertEmployeeLoginAllowed(employee) {
   }
 }
 
+async function seedIndependentPanel(wardId, nagarsevakUserId) {
+  if (!wardId || !nagarsevakUserId) return;
+  const portal = await WardPortalConfig.findOne({ where: { wardId } });
+  if (!portal) return;
+  const rawMeta = portal.meta;
+  const meta = typeof rawMeta === 'string'
+    ? (() => { try { const parsed = JSON.parse(rawMeta); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } })()
+    : ((rawMeta && typeof rawMeta === 'object' && !Array.isArray(rawMeta)) ? { ...rawMeta } : {});
+  const panels = { ...(meta.panels && typeof meta.panels === 'object' ? meta.panels : {}) };
+  const id = String(nagarsevakUserId);
+  if (panels[id] && typeof panels[id] === 'object') return;
+  panels[id] = {
+    heroBannerUrl: CIVIC_DEFAULT_HERO,
+    complaintsBannerUrl: '',
+    galleryBannerUrl: '',
+    dashboardWorkOrder: [],
+  };
+  meta.panels = panels;
+  await portal.update({ meta });
+}
+
 async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, ipAddress, notes }) {
   const ward = await Ward.findByPk(wardId);
   if (!ward) throw new ApiError(404, 'Ward not found');
@@ -394,6 +466,7 @@ async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, 
       wardId,
       nagarsevakUserId: user.id,
       status: 'PENDING',
+      residentVisible: false,
     },
   });
   const previous = sub.status;
@@ -407,6 +480,7 @@ async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, 
   } else if (['INACTIVE', 'DEACTIVATED'].includes(next)) {
     patch.deactivatedAt = now;
     patch.deactivatedBy = actor?.id || null;
+    patch.residentVisible = false;
   }
   await sub.update(patch);
   const eventAction = next === 'ACTIVE'
@@ -425,17 +499,18 @@ async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, 
     const team = await Employee.findAll({ where: { managerUserId: user.id }, attributes: ['userId'] });
     const empIds = team.map((row) => row.userId).filter(Boolean);
     if (empIds.length) await User.update({ status: 'ACTIVE' }, { where: { id: empIds, status: 'INACTIVE' } });
-    await WardNagarsevakSubscription.update(
-      { status: 'DEACTIVATED', deactivatedAt: now, deactivatedBy: actor?.id || null },
-      { where: { wardId, nagarsevakUserId: { [Op.ne]: user.id }, status: 'ACTIVE' } }
-    );
-    const portal = await WardPortalConfig.findOne({ where: { wardId } });
-    if (portal) await portal.update({ featuredNagarsevakUserId: user.id, updatedBy: actor?.id || null });
+    await seedIndependentPanel(wardId, user.id);
+    // Multiple ACTIVE Nagarsevaks can exist in the same ward. Never deactivate siblings.
   } else if (['INACTIVE', 'DEACTIVATED'].includes(next)) {
     if (user.status === 'ACTIVE') await user.update({ status: 'INACTIVE' });
     const team = await Employee.findAll({ where: { managerUserId: user.id }, attributes: ['userId'] });
     const empIds = team.map((row) => row.userId).filter(Boolean);
     if (empIds.length) await User.update({ status: 'INACTIVE' }, { where: { id: empIds, status: 'ACTIVE' } });
+    const portal = await WardPortalConfig.findOne({ where: { wardId } });
+    if (portal && String(portal.featuredNagarsevakUserId || '') === String(user.id)) {
+      const remaining = await getVisibleNagarsevakIds(wardId);
+      await portal.update({ featuredNagarsevakUserId: remaining[0] || null, updatedBy: actor?.id || null });
+    }
   }
   await syncWardCommunityMembership(wardId);
 
@@ -460,6 +535,56 @@ async function setNagarsevakPurchase({ wardId, nagarsevakUserId, status, actor, 
     });
   }
 
+  return sub.reload();
+}
+
+async function setNagarsevakResidentVisible({ wardId, nagarsevakUserId, visible, actor, ipAddress }) {
+  const ward = await Ward.findByPk(wardId);
+  if (!ward) throw new ApiError(404, 'Ward not found');
+  if (!nagarsevakUserId) throw new ApiError(400, 'Nagarsevak is required');
+  const show = Boolean(visible);
+  if (show && !isWardActive(ward)) {
+    throw new ApiError(400, 'Activate this ward first, then show the Nagarsevak to residents.');
+  }
+  const nagarRole = await roleId('NAGARSEVAK');
+  const user = await User.findOne({ where: { id: nagarsevakUserId, roleId: nagarRole }, attributes: ['id', 'name', 'wardId', 'status'] });
+  if (!user) throw new ApiError(404, 'Nagarsevak not found');
+  const [sub] = await WardNagarsevakSubscription.findOrCreate({
+    where: { wardId, nagarsevakUserId: user.id },
+    defaults: { id: crypto.randomUUID(), wardId, nagarsevakUserId: user.id, status: 'PENDING', residentVisible: false },
+  });
+  if (show && sub.status !== 'ACTIVE') {
+    await setNagarsevakPurchase({
+      wardId,
+      nagarsevakUserId: user.id,
+      status: 'ACTIVE',
+      actor,
+      ipAddress,
+      notes: 'Activated so this Nagarsevak can be shown to residents.',
+    });
+  }
+  await sub.reload();
+  await sub.update({ residentVisible: show });
+  if (show) await seedIndependentPanel(wardId, user.id);
+  const portal = await WardPortalConfig.findOne({ where: { wardId } });
+  if (portal) {
+    if (show && !portal.featuredNagarsevakUserId) {
+      await portal.update({ featuredNagarsevakUserId: user.id, updatedBy: actor?.id || null });
+    } else if (!show && String(portal.featuredNagarsevakUserId || '') === String(user.id)) {
+      const remaining = await getVisibleNagarsevakIds(wardId);
+      await portal.update({ featuredNagarsevakUserId: remaining[0] || null, updatedBy: actor?.id || null });
+    }
+  }
+  await syncWardCommunityMembership(wardId);
+  await logAudit({
+    user: actor,
+    action: show ? 'SHOW_NAGARSEVAK_TO_RESIDENTS' : 'HIDE_NAGARSEVAK_FROM_RESIDENTS',
+    entity: 'WardNagarsevakSubscription',
+    recordId: sub.id,
+    oldValue: { residentVisible: !show },
+    newValue: { residentVisible: show, wardNumber: ward.wardNumber, nagarsevak: user.name },
+    ipAddress,
+  });
   return sub.reload();
 }
 
@@ -575,9 +700,9 @@ async function listActivationBoard() {
   return wards.map((ward) => {
     const list = nagarByWard.get(String(ward.id)) || [];
     const subscriptions = subByWard.get(String(ward.id)) || [];
-    const purchased = subscriptions.filter((s) => s.status === 'ACTIVE').map((s) => {
+    const purchased = subscriptions.filter((s) => s.status === 'ACTIVE' && s.residentVisible).map((s) => {
       const n = list.find((u) => String(u.id) === String(s.nagarsevakUserId));
-      return n ? { ...publicNagarsevak(n), purchaseStatus: s.status, purchasedAt: s.purchasedAt, activatedAt: s.activatedAt } : null;
+      return n ? { ...publicNagarsevak(n), purchaseStatus: s.status, residentVisible: true, purchasedAt: s.purchasedAt, activatedAt: s.activatedAt } : null;
     }).filter(Boolean);
     const community = communityByWard.get(String(ward.id));
     return {
@@ -610,6 +735,7 @@ async function listActivationBoard() {
           socialLinks: account.socialLinks || null,
           accountStatus: n.status,
           purchaseStatus: sub?.status || 'PENDING',
+          residentVisible: String(sub?.status || '').toUpperCase() === 'ACTIVE' && Boolean(sub?.residentVisible),
           purchasedAt: sub?.purchasedAt || null,
           activatedAt: sub?.activatedAt || null,
         };
@@ -678,6 +804,7 @@ async function listNagarsevakSubscriptions() {
       activatedAt,
       deactivatedAt: sub?.deactivatedAt || null,
       purchaseStatus,
+      residentVisible: purchaseStatus === 'ACTIVE' && Boolean(sub?.residentVisible),
       expiresAt,
       daysLeft,
       cycle,
@@ -771,6 +898,7 @@ module.exports = {
   canResidentSeeNagarsevak,
   getWard,
   isWardActive,
+  getActiveNagarsevakIds,
   getVisibleNagarsevakIds,
   getVisibleNagarsevaks,
   isNagarsevakVisibleInWard,
@@ -779,6 +907,7 @@ module.exports = {
   syncWardCommunityMembership,
   setWardActivation,
   setNagarsevakPurchase,
+  setNagarsevakResidentVisible,
   getResidentWardSnapshot,
   listActivationBoard,
   listNagarsevakSubscriptions,

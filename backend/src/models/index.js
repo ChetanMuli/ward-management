@@ -8,6 +8,7 @@ const Apartment = require('./apartment.model');
 const House = require('./house.model');
 const Shop = require('./shop.model');
 const Hospital = require('./hospital.model');
+const MedicalStore = require('./medicalStore.model');
 const Family = require('./family.model');
 const Person = require('./person.model');
 const VoterProfile = require('./voterProfile.model');
@@ -86,6 +87,13 @@ Area.hasMany(Hospital, { foreignKey: 'areaId', as: 'hospitals' });
 Hospital.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
 User.hasMany(Hospital, { foreignKey: 'createdByUserId', as: 'hospitalsCreated' });
 Hospital.belongsTo(User, { foreignKey: 'createdByUserId', as: 'createdBy' });
+
+Ward.hasMany(MedicalStore, { foreignKey: 'wardId', as: 'medicals' });
+MedicalStore.belongsTo(Ward, { foreignKey: 'wardId', as: 'ward' });
+Area.hasMany(MedicalStore, { foreignKey: 'areaId', as: 'medicals' });
+MedicalStore.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
+User.hasMany(MedicalStore, { foreignKey: 'createdByUserId', as: 'medicalsCreated' });
+MedicalStore.belongsTo(User, { foreignKey: 'createdByUserId', as: 'createdBy' });
 
 // ---- House <-> Family ----
 House.hasMany(Family, { foreignKey: 'houseId', as: 'families' });
@@ -193,6 +201,8 @@ Scheme.belongsTo(User, { foreignKey: 'createdByUserId', as: 'createdBy' });
 // ---- All chat (ward community) ----
 Ward.hasMany(AllChat, { foreignKey:'wardId', as:'allChats' });
 AllChat.belongsTo(Ward, { foreignKey:'wardId', as:'ward' });
+User.hasMany(AllChat, { foreignKey:'nagarsevakUserId', as:'nagarsevakAllChats' });
+AllChat.belongsTo(User, { foreignKey:'nagarsevakUserId', as:'nagarsevak' });
 User.hasMany(AllChat, { foreignKey:'createdByUserId', as:'createdAllChats' });
 AllChat.belongsTo(User, { foreignKey:'createdByUserId', as:'createdBy' });
 AllChat.hasMany(AllChatMember, { foreignKey:'groupId', as:'members' });
@@ -297,6 +307,7 @@ module.exports = {
   House,
   Shop,
   Hospital,
+  MedicalStore,
   Family,
   Person,
   VoterProfile,

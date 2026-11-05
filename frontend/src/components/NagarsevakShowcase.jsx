@@ -329,25 +329,22 @@ export default function NagarsevakShowcase({
   }
 
   // Prepared data fields
-  const repMeta = portalConfig?.meta || {};
   const rawName = current.name || '';
   const name = current.isDemo
     ? (isMr ? 'आपले नगरसेवक' : 'Your Nagarsevak')
     : (rawName || (isMr ? 'माननीय नगरसेवक' : 'Ward Nagarsevak'));
-  const rawPhoto = (typeof current.photo === 'string' && current.photo.trim())
-    ? current.photo
-    : (typeof repMeta.repPhoto === 'string' && repMeta.repPhoto.trim() ? repMeta.repPhoto : '');
+  const rawPhoto = (typeof current.photo === 'string' && current.photo.trim()) ? current.photo : '';
   const photo = isUsablePhoto(rawPhoto) && !String(rawPhoto).startsWith('data:') ? rawPhoto : '';
-  const partyName = current.partyName || repMeta.repParty || '';
+  const partyName = current.partyName || '';
   const wardSeat = current.wardSeat
     ? `${isMr ? 'प्रभाग' : 'Ward'} ${current.wardSeat}`
     : (ward?.wardNumber ? formatWardNumber(ward.wardNumber, isMr ? 'mr' : 'en') : '');
   const wardName = ward?.name ? ward.name : '';
-  const officialAddress = current.officialAddress || repMeta.repAddress || '';
-  const bio = current.bio || (isMr ? (repMeta.repBioMr || repMeta.repBio) : repMeta.repBio) || '';
-  const mobile = current.mobile || repMeta.repPhone || '';
-  const whatsappNum = repMeta.repWhatsapp || current.whatsapp || mobile;
-  const email = repMeta.repEmail || current.email || '';
+  const officialAddress = current.officialAddress || '';
+  const bio = current.bio || '';
+  const mobile = current.mobile || '';
+  const whatsappNum = current.whatsapp || mobile;
+  const email = current.email || '';
 
   // WhatsApp click link
   const waText = encodeURIComponent(
@@ -398,23 +395,23 @@ export default function NagarsevakShowcase({
           </div>
         )}
 
-        {/* Top Header Badge Ribbon */}
         <div className="nagar-spotlight-header">
-          <div className="nagar-kicker-group">
+          <div className="nagar-header-left">
             <span className="nagar-kicker-badge">
               <span className="nagar-kicker-icon">🏛️</span>
               {isMr ? 'माननीय नगरसेवक' : 'WARD REPRESENTATIVE'}
             </span>
-            {wardSeat && <span className="nagar-seat-badge">{wardSeat}</span>}
-            {wardName && <span className="nagar-ward-name-badge">{wardName}</span>}
+            {wardName ? <span className="nagar-ward-name-badge">{wardName}</span> : null}
           </div>
-
-          {partyName ? (
-            <div className="nagar-party-badge" title={partyName}>
-              <span className="nagar-party-dot" />
-              <span className="nagar-party-name">{partyName}</span>
-            </div>
-          ) : null}
+          <div className="nagar-header-right">
+            {wardSeat ? <span className="nagar-seat-badge">{wardSeat}</span> : null}
+            {partyName ? (
+              <div className="nagar-party-badge" title={partyName}>
+                <span className="nagar-party-dot" />
+                <span className="nagar-party-name">{partyName}</span>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {/* Profile Hero Section */}
@@ -511,23 +508,23 @@ export default function NagarsevakShowcase({
             <section className="user-panel-card nagar-minimal-work-card">
               <div className="user-section-head">
                 <div>
-                  <span className="user-kicker">{isMr ? 'प्रमुख विकास कामे' : 'KEY DEVELOPMENT WORKS'}</span>
-                  <h2>{isMr ? 'प्रभाग विकास व कामे अहवाल' : 'Ward Development & Civic Works'}</h2>
+                  <span className="user-kicker">{isMr ? 'विकास कामे' : 'CIVIC WORKS'}</span>
+                  <h2>{isMr ? 'प्रभाग विकास कामे' : 'Ward development works'}</h2>
                   <p>
                     {isMr
-                      ? `${ward?.wardNumber ? formatWardNumber(ward.wardNumber, 'mr') : 'वॉर्ड'} मधील चालू व पूर्ण झालेल्या प्रमुख विकास कामांची संक्षिप्त पाहणी`
-                      : `Brief visual overview of completed and ongoing civic projects in ${ward?.wardNumber ? formatWardNumber(ward.wardNumber) : 'your ward'}`}
+                      ? `${ward?.wardNumber ? formatWardNumber(ward.wardNumber, 'mr') : 'वॉर्ड'} मधील पूर्ण व चालू कामे`
+                      : `Completed and ongoing projects in ${ward?.wardNumber ? formatWardNumber(ward.wardNumber) : 'your ward'}`}
                   </p>
                 </div>
                 <Link
                   to="/gallery"
-                  className="nagar-view-all-link"
+                  className="user-text-btn nagar-view-all-link"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onOpenGallery) onOpenGallery();
                   }}
                 >
-                  {isMr ? 'सर्व कामे व व्हिडीओ पहा →' : 'View All Works & Videos →'}
+                  {isMr ? 'सर्व पहा →' : 'View all →'}
                 </Link>
               </div>
 

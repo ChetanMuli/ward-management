@@ -8,8 +8,10 @@ export function publicMediaUrl(url) {
   if (s.startsWith('uploads/')) return `/api/${s}`;
   return s;
 }
-/** Same frame as Citizen Home hero (desktop overlay card). */
+/** Same cinematic Home banner on admin crop + citizen desktop/mobile. */
 export const CITIZEN_HERO_ASPECT = 2.4;
+export const COMPLAINTS_BANNER_ASPECT = CITIZEN_HERO_ASPECT;
+export const GALLERY_BANNER_ASPECT = CITIZEN_HERO_ASPECT;
 export const CAMPAIGN_STOCK_RE = /hero-campaign-banner|hero-gauri-ajinkya|hero-poster-card|hero-civic-default/i;
 
 export function wardNumberDigits(ward) {
