@@ -45,8 +45,7 @@ export function sameHeroUrl(a, b) {
 /** One banner for desktop + mobile. Inactive wards use the building default. */
 export function resolveCitizenHeroUrl(url, { demoMode = false, fallback = CIVIC_DEFAULT_HERO } = {}) {
   const live = publicMediaUrl(String(Array.isArray(url) ? url[0] : url || '').trim());
-  const usable = live && !live.startsWith('data:');
-  if (usable && !isGenericDefaultHero(usable)) return usable;
+  if (live && !isGenericDefaultHero(live)) return live;
   return fallback || CIVIC_DEFAULT_HERO;
 }
 

@@ -64,7 +64,7 @@ function readStickyHero(wardId, panelId) {
   if (_stickyHeroByWard[id]) return _stickyHeroByWard[id];
   try {
     const stored = String(sessionStorage.getItem(id) || '').trim();
-    if (stored && !stored.startsWith('data:')) {
+    if (stored) {
       _stickyHeroByWard[id] = publicMediaUrl(stored);
       return _stickyHeroByWard[id];
     }
@@ -74,10 +74,12 @@ function readStickyHero(wardId, panelId) {
 
 function commitHero(wardId, panelId, url) {
   const next = publicMediaUrl(String(url || '').trim().split('?')[0]);
-  if (!next || next.startsWith('data:')) return '';
+  if (!next) return '';
   const id = stickyKey(wardId, panelId);
   _stickyHeroByWard[id] = next;
-  try { sessionStorage.setItem(id, next); } catch { /* ignore */ }
+  try {
+    if (next.length < 500000) sessionStorage.setItem(id, next);
+  } catch { /* ignore */ }
   return next;
 }
 
@@ -569,10 +571,7 @@ export default function UserPanel({ plainMode = false } = {}) {
                   fetchPriority="high"
                   draggable="false"
                   onError={(e) => {
-                    if (e.currentTarget.src && !e.currentTarget.src.includes('hero-ward-default.jpg')) {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = '/hero-ward-default.jpg';
-                    }
+                    e.currentTarget.style.display = 'none';
                   }}
                 />
               ) : (

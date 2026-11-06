@@ -44,21 +44,29 @@ function notifyPortalUpdated(wardId) {
 
 function rememberBannerUrl(key, url) {
   try {
-    if (url && !String(url).startsWith('data:')) localStorage.setItem(key, url);
+    if (url) {
+      if (String(url).startsWith('data:') && String(url).length > 500000) return;
+      localStorage.setItem(key, url);
+    }
   } catch { /* ignore */ }
 }
 
 async function persistLaptopImage(url) {
   const raw = String(url || '').trim();
   if (!raw.startsWith('data:image/')) return raw;
-  const blob = await (await fetch(raw)).blob();
-  if (!blob || !blob.size) throw new Error('Could not read that image.');
-  const ext = /png/i.test(blob.type) ? 'png' : /webp/i.test(blob.type) ? 'webp' : 'jpg';
-  const file = new File([blob], `banner.${ext}`, { type: blob.type || 'image/jpeg' });
-  const res = await api.uploadPortalMedia(file);
-  const stored = res?.data?.url || res?.url || '';
-  if (!stored) throw new Error('Could not upload that image.');
-  return stored;
+  try {
+    const blob = await (await fetch(raw)).blob();
+    if (!blob || !blob.size) return raw;
+    const ext = /png/i.test(blob.type) ? 'png' : /webp/i.test(blob.type) ? 'webp' : 'jpg';
+    const file = new File([blob], `banner.${ext}`, { type: blob.type || 'image/jpeg' });
+    const res = await api.uploadPortalMedia(file);
+    const stored = res?.data?.url || res?.url || '';
+    if (stored) return stored;
+    return raw;
+  } catch (err) {
+    console.warn('[BANNER UPLOAD] Falling back to direct data URL save:', err?.message);
+    return raw;
+  }
 }
 
 function panelEditKey(wardId) {

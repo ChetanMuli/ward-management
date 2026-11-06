@@ -87,13 +87,10 @@ function portalFileName(value) {
 function publicImageUrl(value, fallback = '') {
   if (value == null) return fallback;
   let str = String(value).trim();
-  if (!str || str.startsWith('data:')) return fallback;
+  if (!str) return fallback;
+  if (str.startsWith('data:') || str.startsWith('blob:')) return str;
   if (str.startsWith('/uploads/')) str = `/api${str}`;
   else if (str.startsWith('uploads/')) str = `/api/${str}`;
-  const name = portalFileName(str);
-  if (name && !fs.existsSync(path.join(ROOT, name))) {
-    return fallback;
-  }
   return str;
 }
 

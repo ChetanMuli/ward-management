@@ -24,8 +24,7 @@ function isGenericDefaultHero(url) {
 
 function resolveCitizenHeroUrl(url, { demoMode = false } = {}) {
   const live = String(Array.isArray(url) ? url[0] : url || '').trim();
-  const usable = live && !live.startsWith('data:');
-  if (usable && !isGenericDefaultHero(usable)) return usable;
+  if (live && !isGenericDefaultHero(live)) return live;
   return CIVIC_DEFAULT_HERO;
 }
 

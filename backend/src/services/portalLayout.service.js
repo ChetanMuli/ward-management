@@ -8,12 +8,12 @@ const { isGenericDefaultHero } = require('../utils/defaultCitizenPortal');
 function pickHeroUrl(primary, secondary) {
   const a = publicImageUrl(primary, '');
   const b = publicImageUrl(secondary, '');
-  const aCustom = a && !isGenericDefaultHero(a) && !String(a).startsWith('data:');
-  const bCustom = b && !isGenericDefaultHero(b) && !String(b).startsWith('data:');
+  const aCustom = a && !isGenericDefaultHero(a);
+  const bCustom = b && !isGenericDefaultHero(b);
   if (aCustom) return a;
   if (bCustom) return b;
-  if (a && !String(a).startsWith('data:')) return a;
-  if (b && !String(b).startsWith('data:') && !isGenericDefaultHero(b)) return b;
+  if (a) return a;
+  if (b && !isGenericDefaultHero(b)) return b;
   return a || b || '';
 }
 
@@ -55,10 +55,7 @@ async function upsertBanners(wardId, urls = {}, userId = null) {
   for (const key of ['homeBannerUrl', 'complaintsBannerUrl', 'galleryBannerUrl']) {
     if (typeof patch[key] === 'string' && patch[key].startsWith('data:')) {
       const stored = persistDataUrl(patch[key], `${key}-${String(wardId).slice(0, 8)}`);
-      const prev = existing ? existing[key] : '';
-      patch[key] = stored && !String(stored).startsWith('data:')
-        ? stored
-        : (prev && !String(prev).startsWith('data:') ? prev : '');
+      patch[key] = stored || patch[key];
     }
   }
   if (existing) {

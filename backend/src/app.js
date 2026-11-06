@@ -51,6 +51,9 @@ app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 const path = require('path');
 const fs = require('fs');
 const uploadsRoot = path.resolve(__dirname, '../uploads');
+try {
+  fs.mkdirSync(path.join(uploadsRoot, 'portal'), { recursive: true });
+} catch (_) {}
 const uploadsStatic = express.static(uploadsRoot, { maxAge: '7d', fallthrough: true });
 app.use('/uploads', uploadsStatic);
 app.use('/api/uploads', uploadsStatic);

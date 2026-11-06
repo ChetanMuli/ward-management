@@ -348,16 +348,8 @@ const getPortalConfig = asyncHandler(async (req, res) => {
   const wardId = await resolveWardId(req, { forWrite: false });
   let configRow = null;
   if (wardId) {
-    const portalAttrs = Object.keys(WardPortalConfig.rawAttributes).filter((k) => k !== 'heroBannerUrl');
     configRow = await WardPortalConfig.findOne({
       where: { wardId },
-      attributes: [
-        ...portalAttrs,
-        [
-          WardPortalConfig.sequelize.literal("CASE WHEN `hero_banner_url` LIKE 'data:%' THEN '/hero-ward-default.jpg' ELSE `hero_banner_url` END"),
-          'heroBannerUrl',
-        ],
-      ],
     });
   }
   const ward = wardId ? await Ward.findByPk(wardId, { attributes: ['id', 'wardNumber', 'name', 'status'] }) : null;
@@ -366,7 +358,6 @@ const getPortalConfig = asyncHandler(async (req, res) => {
 
   const persistJobs = [];
   if (configRow && configData.heroBannerUrl && String(configData.heroBannerUrl).startsWith('data:image/')) {
-    configData.heroBannerUrl = DEFAULT_PORTAL_CONFIG.heroBannerUrl;
     persistJobs.push(async () => {
       const rawHero = configRow.heroBannerUrl;
       if (!rawHero || !String(rawHero).startsWith('data:image/')) return;
@@ -529,9 +520,6 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
   }
   const prevHero = config?.heroBannerUrl;
   persistImageFields(patch, ['heroBannerUrl'], `hero-${String(wardId).slice(0, 8)}`);
-  if (typeof patch.heroBannerUrl === 'string' && patch.heroBannerUrl.startsWith('data:')) {
-    throw new ApiError(400, 'Could not store the hero banner on the server. Check that the uploads/portal folder is writable.');
-  }
   if (typeof patch.heroBannerUrl === 'string') {
     patch.heroBannerUrl = publicImageUrl(patch.heroBannerUrl, patch.heroBannerUrl);
   }
@@ -562,7 +550,7 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
     for (const key of Object.keys(patch.meta)) {
       if (typeof patch.meta[key] === 'string' && patch.meta[key].startsWith('data:')) {
         const stored = persistDataUrl(patch.meta[key], `meta-${key}`);
-        patch.meta[key] = stored && !String(stored).startsWith('data:') ? stored : (existingMeta[key] && !String(existingMeta[key]).startsWith('data:') ? existingMeta[key] : '');
+        patch.meta[key] = stored || patch.meta[key];
       }
     }
   }
@@ -592,9 +580,6 @@ const updatePortalConfig = asyncHandler(async (req, res) => {
       overlay.dashboardWorkOrder = nextMeta.dashboardWorkOrder;
     }
     persistImageFields(overlay, ['heroBannerUrl'], `hero-p-${String(panelId).slice(0, 8)}`);
-    if (typeof overlay.heroBannerUrl === 'string' && overlay.heroBannerUrl.startsWith('data:')) {
-      throw new ApiError(400, 'Could not store the hero banner on the server. Check that the uploads/portal folder is writable.');
-    }
     const chosenHero = overlay.heroBannerUrl || patch.heroBannerUrl || req.body.heroBannerUrl;
     const hasCustomHero = chosenHero && !isGenericDefaultHero(chosenHero);
     overlay.heroBannerUrl = hasCustomHero

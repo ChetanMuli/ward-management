@@ -754,10 +754,7 @@ export function ImageCropField({
               decoding="async"
               draggable="false"
               onError={(e) => {
-                if (e.currentTarget.src && !e.currentTarget.src.includes('hero-ward-default.jpg')) {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = '/hero-ward-default.jpg';
-                }
+                e.currentTarget.style.display = 'none';
               }}
             />
           </div>
