@@ -630,9 +630,45 @@ export function ImageCropField({
   function readFile(file){
     if(!file)return;
     if(!file.type.startsWith('image/')){cropToast('Please select an image file.');return;}
-    if(file.size>10*1024*1024){cropToast('Image must be under 10MB.');return;}
+    if(file.size>15*1024*1024){cropToast('Image must be under 15MB.');return;}
     const reader=new FileReader();
-    reader.onload=()=>openCrop(String(reader.result||''));
+    reader.onload=()=>{
+      const raw=String(reader.result||'');
+      if(!raw)return;
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const w=img.naturalWidth||img.width;
+          const h=img.naturalHeight||img.height;
+          const targetRatio=Number(ratio)||2.4;
+          const outW=Math.min(w, outputWidth||1440);
+          const outH=Math.max(1, Math.round(outW/targetRatio));
+          const canvas=document.createElement('canvas');
+          canvas.width=outW;
+          canvas.height=outH;
+          const ctx=canvas.getContext('2d');
+          if(ctx){
+            const scale=Math.max(outW/w, outH/h);
+            const sw=w*scale;
+            const sh=h*scale;
+            const ox=(outW-sw)/2;
+            const oy=(outH-sh)/2;
+            ctx.fillStyle='#0b1624';
+            ctx.fillRect(0,0,outW,outH);
+            ctx.drawImage(img, ox, oy, sw, sh);
+            let data=canvas.toDataURL('image/jpeg', 0.88);
+            if(data.length>900000) data=canvas.toDataURL('image/jpeg', 0.72);
+            onChange(data);
+          }else{
+            onChange(raw);
+          }
+        }catch{
+          onChange(raw);
+        }
+      };
+      img.onerror=()=>onChange(raw);
+      img.src=raw;
+    };
     reader.onerror=()=>cropToast('Could not read that file.');
     reader.readAsDataURL(file);
   }
@@ -748,11 +784,15 @@ export function ImageCropField({
         <div className="user-hero user-hero-pro has-portal-banner has-custom-hero has-photo admin-hero-live citizen-banner-frame">
           <div className="user-hero-media" aria-hidden="true">
             <img
+              key={shown}
               className="user-hero-bg-photo"
               src={shown}
               alt=""
               decoding="async"
               draggable="false"
+              onLoad={(e) => {
+                e.currentTarget.style.display = 'block';
+              }}
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
@@ -762,6 +802,7 @@ export function ImageCropField({
         </div>
       ):shown?(
         <div
+          key={shown}
           className={`banner-crop-preview${variant==='pageBanner'?' page-banner-preview':''}`}
           style={{
             backgroundImage: `url("${String(shown).replace(/"/g,'')}")`,

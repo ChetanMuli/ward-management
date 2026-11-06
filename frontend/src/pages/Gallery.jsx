@@ -44,8 +44,12 @@ export default function Gallery() {
           if (nextConfig) {
             setPortalConfig(nextConfig);
             const gb = nextConfig.galleryBannerUrl || nextConfig.meta?.galleryBannerUrl;
-            if (gb && !String(gb).startsWith('data:')) {
-              try { localStorage.setItem(`ward_gallery_banner_${wardId || ''}_${q.nagarsevakId || ''}`, gb); } catch { /* ignore */ }
+            if (gb) {
+              try {
+                if (!String(gb).startsWith('data:') || String(gb).length < 500000) {
+                  localStorage.setItem(`ward_gallery_banner_${wardId || ''}_${q.nagarsevakId || ''}`, gb);
+                }
+              } catch { /* ignore */ }
             }
           }
           setPortalGallery(nextGallery);
@@ -141,11 +145,11 @@ export default function Gallery() {
   const liveGalleryBanner = portalConfig?.galleryBannerUrl || portalConfig?.meta?.galleryBannerUrl || '';
   const galleryBanner = (() => {
     let raw = '';
-    if (liveGalleryBanner && !String(liveGalleryBanner).startsWith('data:')) raw = liveGalleryBanner;
+    if (liveGalleryBanner) raw = liveGalleryBanner;
     else {
       try {
         const v = localStorage.getItem(`ward_gallery_banner_${user?.wardId || ''}_${getSavedPanelId(user?.wardId) || ''}`);
-        if (v && !String(v).startsWith('data:') && !isCampaignStockUrl(v)) raw = v;
+        if (v && !isCampaignStockUrl(v)) raw = v;
       } catch { /* ignore */ }
     }
     return resolveCitizenHeroUrl(raw, { demoMode: Boolean(portalConfig?.demoMode), ward });

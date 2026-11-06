@@ -1198,16 +1198,8 @@ export default function PortalManagement() {
                       key={`hero-${editorPanelId || 'none'}`}
                       label=""
                       value={portalConfig?.heroBannerUrl || '/hero-ward-default.jpg'}
-                      onChange={async (url) => {
-                        const next = url || '/hero-ward-default.jpg';
-                        setPortalConfig((prev) => ({ ...prev, heroBannerUrl: next }));
-                        if (!String(next).startsWith('data:image/')) return;
-                        try {
-                          const stored = await persistLaptopImage(next);
-                          setPortalConfig((prev) => ({ ...prev, heroBannerUrl: stored || next }));
-                        } catch (err) {
-                          showToast(err.message || 'Could not upload that image.', 'error');
-                        }
+                      onChange={(next) => {
+                        setPortalConfig((prev) => ({ ...prev, heroBannerUrl: next || '/hero-ward-default.jpg' }));
                       }}
                       aspect={CITIZEN_HERO_ASPECT}
                       variant="hero"
@@ -1260,18 +1252,11 @@ export default function PortalManagement() {
                       <span className="form-section-tag">{isMr ? 'तक्रारी' : 'Complaints'}</span>
                     </div>
                     <ImageCropField
+                      key={`complaints-${editorPanelId || 'none'}`}
                       label=""
                       value={portalConfig?.complaintsBannerUrl || ''}
-                      onChange={async (url) => {
-                        const next = url || '';
-                        setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: next }));
-                        if (!String(next).startsWith('data:image/')) return;
-                        try {
-                          const stored = await persistLaptopImage(next);
-                          setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: stored || next }));
-                        } catch (err) {
-                          showToast(err.message || 'Could not upload that image.', 'error');
-                        }
+                      onChange={(next) => {
+                        setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: next || '' }));
                       }}
                       aspect={COMPLAINTS_BANNER_ASPECT}
                       variant="hero"
@@ -1296,18 +1281,11 @@ export default function PortalManagement() {
                       <span className="form-section-tag">{isMr ? 'गॅलरी' : 'Gallery'}</span>
                     </div>
                     <ImageCropField
+                      key={`gallery-${editorPanelId || 'none'}`}
                       label=""
                       value={portalConfig?.galleryBannerUrl || ''}
-                      onChange={async (url) => {
-                        const next = url || '';
-                        setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: next }));
-                        if (!String(next).startsWith('data:image/')) return;
-                        try {
-                          const stored = await persistLaptopImage(next);
-                          setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: stored || next }));
-                        } catch (err) {
-                          showToast(err.message || 'Could not upload that image.', 'error');
-                        }
+                      onChange={(next) => {
+                        setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: next || '' }));
                       }}
                       aspect={GALLERY_BANNER_ASPECT}
                       variant="hero"

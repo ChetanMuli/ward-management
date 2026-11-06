@@ -71,7 +71,7 @@ export default function UserComplaints({language='en'}){
  },[team, portalNagarsevaks]);
  const liveComplaints=publicMediaUrl(portalConfig?.complaintsBannerUrl||portalConfig?.meta?.complaintsBannerUrl||'');
  const liveHome=publicMediaUrl(portalConfig?.heroBannerUrl||'');
- const liveHero=(liveComplaints&&!String(liveComplaints).startsWith('data:'))?liveComplaints:((liveHome&&!String(liveHome).startsWith('data:'))?liveHome:null);
+ const liveHero=liveComplaints||liveHome||null;
  const heroBanner=liveHero||null;
  const nextAction=(status)=>({SUBMITTED:mr?'तक्रार नोंद झाली असून नगरसेवक / कर्मचाऱ्यांकडे पाठवली आहे.':'Complaint is open and waiting for ward assignment/action.',PENDING:mr?'तक्रारीवर पुढील कार्यवाहीची प्रतीक्षा.':'Waiting for the next ward action.',ASSIGNED:mr?'नियुक्त कर्मचारी काम सुरू करेल.':'Assigned employee should start the work.',IN_PROGRESS:mr?'काम सुरू आहे; पूर्ण झाल्यावर फोटोसह अपडेट होईल.':'Work is in progress; the responsible person should update it when completed.',RESOLVED:mr?'काम पूर्ण झाले आहे; प्रशासनाकडून बंद करण्याची प्रक्रिया बाकी.':'Work is marked complete; ward management can close the complaint.',REOPENED:mr?'तक्रार पुन्हा उघडली आहे; पुढील कार्यवाही अपेक्षित.':'Complaint was reopened and needs further action.',CLOSED:mr?'तक्रार बंद करण्यात आली आहे.':'Complaint is closed.'}[status]||'—');
 
