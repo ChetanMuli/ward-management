@@ -58,6 +58,16 @@ const uploadsStatic = express.static(uploadsRoot, { maxAge: '7d', fallthrough: t
 app.use('/uploads', uploadsStatic);
 app.use('/api/uploads', uploadsStatic);
 
+// Also serve from tmp fallback if uploads fallback directory exists
+try {
+  const tmpUploads = path.resolve('/tmp/ward-portal-uploads');
+  if (fs.existsSync(tmpUploads)) {
+    const tmpStatic = express.static(tmpUploads, { maxAge: '7d', fallthrough: true });
+    app.use('/uploads/portal', tmpStatic);
+    app.use('/api/uploads/portal', tmpStatic);
+  }
+} catch (_) {}
+
 // General API rate limit; auth routes carry their own tighter limiter.
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 2000, standardHeaders: true, legacyHeaders: false }));
 

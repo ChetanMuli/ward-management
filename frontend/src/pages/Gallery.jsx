@@ -93,7 +93,7 @@ export default function Gallery() {
       id: item.id || `work-${Math.random()}`,
       orderIndex: Number.isFinite(Number(item.orderIndex ?? item.order_index)) ? Number(item.orderIndex ?? item.order_index) : 999,
       type: item.type || item.mediaType || (item.videoUrl ? 'video' : 'image'),
-      url: item.url || item.mediaUrl || (item.videoUrl ? '/gallery/road-construction.svg' : '/gallery/water-pipeline.svg'),
+      url: item.url || item.mediaUrl || (item.videoUrl ? '/gallery-media/road-construction.svg' : '/gallery-media/water-pipeline.svg'),
       videoUrl: item.videoUrl || null,
       duration: item.duration || '02:00',
       title: isMr && item.titleMr ? item.titleMr : (item.title || item.titleMr || 'विकास काम'),

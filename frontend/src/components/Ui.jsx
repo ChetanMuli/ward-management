@@ -589,6 +589,8 @@ export function ImageCropField({
   variant='',
 }){
   const shown=publicMediaUrl(value);
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => { setImgFailed(false); }, [shown]);
   const fileRef=useRef(null),stageRef=useRef(null),dragRef=useRef(null),natRef=useRef({w:1,h:1}),posRef=useRef({x:0,y:0}),zoomRef=useRef(1.25),stageSizeRef=useRef({w:640,h:267});
   const [liveAspect,setLiveAspect]=useState(()=>Number(aspect)||16/9);
   useEffect(()=>{
@@ -706,8 +708,9 @@ export function ImageCropField({
         const top=(sh-h*s)/2+p.y;
         ctx.fillStyle='#0b1624';ctx.fillRect(0,0,outW,outH);
         ctx.drawImage(img, -left/s, -top/s, sw/s, sh/s, 0, 0, outW, outH);
-        let data=canvas.toDataURL('image/jpeg',0.86);
-        if(data.length>900000) data=canvas.toDataURL('image/jpeg',0.68);
+        let data=canvas.toDataURL('image/jpeg',0.82);
+        if(data.length>350000) data=canvas.toDataURL('image/jpeg',0.70);
+        if(data.length>500000) data=canvas.toDataURL('image/jpeg',0.58);
         if(!data || !data.startsWith('data:image/')) throw new Error('empty crop');
         onChange(data);setOpen(false);setSrc('');
       }catch{
@@ -751,20 +754,27 @@ export function ImageCropField({
       {shown && variant==='hero'?(
         <div className="user-hero user-hero-pro has-portal-banner has-custom-hero has-photo admin-hero-live citizen-banner-frame">
           <div className="user-hero-media" aria-hidden="true">
-            <img
-              key={shown}
-              className="user-hero-bg-photo"
-              src={shown}
-              alt=""
-              decoding="async"
-              draggable="false"
-              onLoad={(e) => {
-                e.currentTarget.style.display = 'block';
-              }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+            {!imgFailed ? (
+              <img
+                key={shown}
+                className="user-hero-bg-photo"
+                src={shown}
+                alt=""
+                decoding="async"
+                draggable="false"
+                onLoad={() => {
+                  setImgFailed(false);
+                }}
+                onError={() => {
+                  setImgFailed(true);
+                }}
+              />
+            ) : (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0b1624', color: '#94a3b8', fontSize: 13, gap: 6, zIndex: 1 }}>
+                <span style={{ fontSize: 28 }}>🖼️</span>
+                <span>Image preview unavailable. Click "Replace" to choose a new photo.</span>
+              </div>
+            )}
           </div>
           <div className="user-hero-shade" aria-hidden="true"/>
         </div>
@@ -773,11 +783,20 @@ export function ImageCropField({
           key={shown}
           className={`banner-crop-preview${variant==='pageBanner'?' page-banner-preview':''}`}
           style={{
-            backgroundImage: `url("${String(shown).replace(/"/g,'')}")`,
-            aspectRatio: `${ratio} / 1`,
-            height: 'auto',
+            aspectRatio:`${ratio} / 1`,
+            backgroundImage: !imgFailed ? `url("${String(shown).replace(/"/g, '')}")` : 'none',
+            backgroundColor: '#0b1624',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-        />
+        >
+          {imgFailed && (
+            <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: 12 }}>
+              🖼️ Image preview unavailable. Click "Replace" to choose a new photo.
+            </div>
+          )}
+        </div>
       ):null}
       <div className="banner-crop-actions">
         <button type="button" className="small-btn" onClick={()=>fileRef.current?.click()}>{shown?'Replace':uploadLabel}</button>

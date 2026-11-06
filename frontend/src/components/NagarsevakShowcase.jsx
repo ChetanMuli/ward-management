@@ -17,7 +17,7 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '३० सप्टेंबर २०२६',
     dateFormattedEn: '30 Sep 2026',
     location: 'स्थानिक प्रभाग परिसर',
-    url: '/gallery/road-construction.svg',
+    url: '/gallery-media/road-construction.svg',
     badge: 'सेवा हाच धर्म, विकास हाच संकल्प',
     description: 'प्रभागातील नागरिकांच्या न्याय्य हक्कांसाठी व शाश्वत विकासासाठी कटिबद्ध अधिकृत नगरसेवक जनसंपर्क अहवाल.'
   },
@@ -33,8 +33,8 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '२४ सप्टेंबर २०२६',
     dateFormattedEn: '24 Sep 2026',
     location: 'स्थानिक मुख्य रस्ता',
-    url: '/gallery/road-construction.svg',
-    videoUrl: '/gallery/ward-road-work.mp4',
+    url: '/gallery-media/road-construction.svg',
+    videoUrl: '/gallery-media/ward-road-work.mp4',
     duration: '02:15',
     badge: 'व्हिडीओ · VIDEO',
     description: 'प्रभागातील मुख्य रस्ता कॉंक्रिटीकरण व गतिरोधक कामांची प्रत्यक्ष पाहणी करताना नगरसेवक. कामाच्या उच्च दर्जाची खात्री.'
@@ -51,8 +51,8 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '१८ सप्टेंबर २०२६',
     dateFormattedEn: '18 Sep 2026',
     location: 'प्रभाग जलकुंभ परिसर',
-    url: '/gallery/water-pipeline.svg',
-    videoUrl: '/gallery/ward-water-project.mp4',
+    url: '/gallery-media/water-pipeline.svg',
+    videoUrl: '/gallery-media/ward-water-project.mp4',
     duration: '01:45',
     badge: 'व्हिडीओ · VIDEO',
     description: 'नवीन उच्च दाबाच्या डीआय जलवाहिनीची प्रत्यक्ष पाहणी व प्रभागातील रहिवाशांशी पाण्याचा दाब व स्वच्छतेबाबत चर्चा.'
@@ -69,8 +69,8 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '२७ सप्टेंबर २०२६',
     dateFormattedEn: '27 Sep 2026',
     location: 'जनसंपर्क कार्यालय',
-    url: '/gallery/janta-darbar.svg',
-    videoUrl: '/gallery/ward-janta-darbar.mp4',
+    url: '/gallery-media/janta-darbar.svg',
+    videoUrl: '/gallery-media/ward-janta-darbar.mp4',
     duration: '03:10',
     badge: 'व्हिडीओ · VIDEO',
     description: 'प्रभागातील नागरिकांशी थेट संवाद साधून रस्ते, वीज, ड्रेनेज व स्वच्छता समस्यांचे मनपा अधिकाऱ्यांमार्फत तात्काळ निवारण.'
@@ -87,8 +87,8 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '२० सप्टेंबर २०२६',
     dateFormattedEn: '20 Sep 2026',
     location: 'प्रमुख चौक व अंतर्गत रस्ते',
-    url: '/gallery/smart-led-lights.svg',
-    videoUrl: '/gallery/ward-lights-inspection.mp4',
+    url: '/gallery-media/smart-led-lights.svg',
+    videoUrl: '/gallery-media/ward-lights-inspection.mp4',
     duration: '02:40',
     badge: 'व्हिडीओ · VIDEO',
     description: 'महिला व ज्येष्ठ नागरिकांच्या सुरक्षिततेसाठी प्रभागातील प्रमुख चौकांमध्ये हायमास्ट आणि अंतर्गत रस्त्यांवर ऊर्जाबचत करणारे स्मार्ट एलईडी दिवे कार्यान्वित केले.'
@@ -105,8 +105,8 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '०८ सप्टेंबर २०२६',
     dateFormattedEn: '08 Sep 2026',
     location: 'स्थानिक समाज मंदिर',
-    url: '/gallery/health-camp.svg',
-    videoUrl: '/gallery/ward-health-camp.mp4',
+    url: '/gallery-media/health-camp.svg',
+    videoUrl: '/gallery-media/ward-health-camp.mp4',
     duration: '03:25',
     badge: 'व्हिडीओ · VIDEO',
     description: 'प्रभागातील ज्येष्ठ नागरिक व महिलांसाठी मोफत रक्त तपासणी, ईसीजी आणि मोफत चष्मे वाटप करण्यात आले. तज्ज्ञ डॉक्टरांचे मोफत मार्गदर्शन लाभले.'
@@ -123,7 +123,7 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '१२ ऑगस्ट २०२६',
     dateFormattedEn: '12 Aug 2026',
     location: 'स्थानिक मुख्य रस्ता',
-    url: '/gallery/road-construction.svg',
+    url: '/gallery-media/road-construction.svg',
     badge: 'काम पूर्ण · COMPLETED',
     description: 'प्रभागातील मुख्य रस्ता व अंतर्गत गल्ल्यांचे उच्च दर्जाचे कॉंक्रिटीकरण, गतिरोधक व पेव्हर ब्लॉक बसविण्याचे काम यशस्वीरीत्या पूर्ण करण्यात आले.'
   },
@@ -139,7 +139,7 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '२८ ऑगस्ट २०२६',
     dateFormattedEn: '28 Aug 2026',
     location: 'प्रभाग अंतर्गत वसाहत',
-    url: '/gallery/water-pipeline.svg',
+    url: '/gallery-media/water-pipeline.svg',
     badge: '२४/७ पाणी पुरवठा',
     description: 'नागरिकांच्या पाण्याच्या दाबाच्या तक्रारींचे तातडीने निवारण करून नवीन डीआय पाईपलाईन टाकण्यात आली व ड्रेनेज चेंबर दुरुस्ती पूर्ण झाली.'
   },
@@ -155,7 +155,7 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '०५ सप्टेंबर २०२६',
     dateFormattedEn: '05 Sep 2026',
     location: 'स्थानिक समाज मंदिर',
-    url: '/gallery/health-camp.svg',
+    url: '/gallery-media/health-camp.svg',
     badge: '८५०+ लाभार्थी',
     description: 'प्रभागातील ज्येष्ठ नागरिक व महिलांसाठी मोफत रक्त तपासणी, ईसीजी आणि मोफत चष्मे वाटप करण्यात आले. तज्ज्ञ डॉक्टरांचे मोफत मार्गदर्शन लाभले.'
   },
@@ -171,7 +171,7 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '१५ सप्टेंबर २०२६',
     dateFormattedEn: '15 Sep 2026',
     location: 'स्थानिक उद्यान व सार्वजनिक परिसर',
-    url: '/gallery/tree-plantation.svg',
+    url: '/gallery-media/tree-plantation.svg',
     badge: 'पर्यावरण संवर्धन',
     description: 'प्रदूषणमुक्त व निरोगी प्रभागासाठी देशी वृक्षांची लागवड करून संरक्षक जाळ्या बसविण्यात आल्या. स्थानिक नागरिक व तरुणांचा उत्स्फूर्त सहभाग लाभला.'
   },
@@ -187,7 +187,7 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '२० सप्टेंबर २०२६',
     dateFormattedEn: '20 Sep 2026',
     location: 'प्रमुख चौक व अंतर्गत वसाहती',
-    url: '/gallery/smart-led-lights.svg',
+    url: '/gallery-media/smart-led-lights.svg',
     badge: '१००% एलईडी प्रकाश',
     description: 'महिला व ज्येष्ठ नागरिकांच्या सुरक्षिततेसाठी प्रभागातील प्रमुख चौकांमध्ये हायमास्ट आणि अंतर्गत रस्त्यांवर ऊर्जाबचत करणारे स्मार्ट एलईडी दिवे कार्यान्वित केले.'
   },
@@ -203,7 +203,7 @@ export const DEFAULT_DEMO_GALLERY = [
     dateFormatted: '२६ सप्टेंबर २०२६',
     dateFormattedEn: '26 Sep 2026',
     location: 'जनसंपर्क कार्यालय',
-    url: '/gallery/janta-darbar.svg',
+    url: '/gallery-media/janta-darbar.svg',
     badge: 'थेट निवारण',
     description: 'प्रभागातील नागरिकांशी थेट संवाद साधून त्यांच्या समस्या प्रत्यक्ष ऐकून घेतल्या आणि महापालिका अधिकाऱ्यांमार्फत तात्काळ निवारणाचे आदेश देण्यात आले.'
   }
@@ -275,7 +275,7 @@ export default function NagarsevakShowcase({
       id: item.id || `work-${Math.random()}`,
       orderIndex: Number.isFinite(Number(item.orderIndex ?? item.order_index)) ? Number(item.orderIndex ?? item.order_index) : 999,
       type: item.type || item.mediaType || (item.videoUrl ? 'video' : 'image'),
-      url: item.url || item.mediaUrl || (item.videoUrl ? '/gallery/road-construction.svg' : '/gallery/water-pipeline.svg'),
+      url: item.url || item.mediaUrl || (item.videoUrl ? '/gallery-media/road-construction.svg' : '/gallery-media/water-pipeline.svg'),
       videoUrl: item.videoUrl || null,
       duration: item.duration || '02:00',
       title: isMr && item.titleMr ? item.titleMr : (item.title || item.titleMr || 'विकास काम'),

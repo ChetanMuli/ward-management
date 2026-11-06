@@ -8402,6 +8402,36 @@ html body .ward-info-card .nagar-info-phone:hover {
   margin-top: 5px;
 }
 
+/* Banner Studio Subnavigation */
+.banner-studio-subnav {
+  transition: all 0.2s ease;
+}
+.banner-subnav-btn:hover:not(.active) {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+.banner-status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.banner-status-pill.civic {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.banner-status-pill.custom {
+  background: #dcfce7;
+  color: #15803d;
+}
+.banner-status-pill.default {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 /* Form Group Sections */
 .form-section-box {
   background: #f8fafc;

@@ -236,6 +236,7 @@ export default function PortalManagement() {
   const needsWardPick = canSelect && !effectiveWardId;
 
   const [activeTab, setActiveTab] = useState('HERO'); // 'HERO' | 'WORKS' | 'REPRESENTATIVE'
+  const [bannerSubTab, setBannerSubTab] = useState('HOME'); // 'HOME' | 'COMPLAINTS' | 'GALLERY' | 'HEADLINES' | 'ALL'
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -1178,265 +1179,410 @@ export default function PortalManagement() {
               <div className="portal-studio-layout">
                 {/* Editor Form */}
                 <form className="portal-card portal-form-card" onSubmit={handleSavePortalConfig}>
-                  <div className="portal-card-header">
+                  <div className="portal-card-header" style={{ marginBottom: 16 }}>
                     <h3>{isMr ? 'बॅनर व स्वागत मजकूर' : 'Banners & welcome copy'}</h3>
                     <p>{isMr ? 'नागरिक होम, तक्रार आणि गॅलरी पानांसाठी बॅनर व शीर्षक येथे सेट करा.' : 'Set banners and headlines for citizen Home, Complaints and Gallery.'}</p>
                   </div>
 
+                  {/* Subnav for Banner Studio */}
+                  <div className="banner-studio-subnav" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20, padding: 6, background: '#f1f5f9', borderRadius: 10 }}>
+                    <button
+                      type="button"
+                      className={`banner-subnav-btn ${bannerSubTab === 'HOME' ? 'active' : ''}`}
+                      onClick={() => setBannerSubTab('HOME')}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: bannerSubTab === 'HOME' ? '#0f766e' : 'transparent',
+                        color: bannerSubTab === 'HOME' ? '#fff' : '#475569',
+                      }}
+                    >
+                      <span>🏠</span>
+                      <span>{isMr ? 'होम बॅनर' : 'Home Banner'}</span>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#38bdf8' : '#22c55e' }} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`banner-subnav-btn ${bannerSubTab === 'COMPLAINTS' ? 'active' : ''}`}
+                      onClick={() => setBannerSubTab('COMPLAINTS')}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: bannerSubTab === 'COMPLAINTS' ? '#0f766e' : 'transparent',
+                        color: bannerSubTab === 'COMPLAINTS' ? '#fff' : '#475569',
+                      }}
+                    >
+                      <span>📣</span>
+                      <span>{isMr ? 'तक्रार बॅनर' : 'Complaints Banner'}</span>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: portalConfig?.complaintsBannerUrl ? '#22c55e' : '#94a3b8' }} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`banner-subnav-btn ${bannerSubTab === 'GALLERY' ? 'active' : ''}`}
+                      onClick={() => setBannerSubTab('GALLERY')}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: bannerSubTab === 'GALLERY' ? '#0f766e' : 'transparent',
+                        color: bannerSubTab === 'GALLERY' ? '#fff' : '#475569',
+                      }}
+                    >
+                      <span>🖼️</span>
+                      <span>{isMr ? 'गॅलरी बॅनर' : 'Gallery Banner'}</span>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: portalConfig?.galleryBannerUrl ? '#22c55e' : '#94a3b8' }} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`banner-subnav-btn ${bannerSubTab === 'HEADLINES' ? 'active' : ''}`}
+                      onClick={() => setBannerSubTab('HEADLINES')}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: bannerSubTab === 'HEADLINES' ? '#0f766e' : 'transparent',
+                        color: bannerSubTab === 'HEADLINES' ? '#fff' : '#475569',
+                      }}
+                    >
+                      <span>✍️</span>
+                      <span>{isMr ? 'स्वागत मथळा व बटणे' : 'Headlines & CTA'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`banner-subnav-btn ${bannerSubTab === 'ALL' ? 'active' : ''}`}
+                      onClick={() => setBannerSubTab('ALL')}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: bannerSubTab === 'ALL' ? '#0f766e' : 'transparent',
+                        color: bannerSubTab === 'ALL' ? '#fff' : '#475569',
+                      }}
+                    >
+                      <span>📑</span>
+                      <span>{isMr ? 'सर्व पर्याय' : 'View All'}</span>
+                    </button>
+                  </div>
+
                   {/* Section 1: Hero Banner Image Selection */}
-                  <div className="form-section-box">
-                    <div className="form-section-header">
-                      <span className="form-section-title">
-                        <span>🖼️</span>
-                        <span>{isMr ? 'होम बॅनर' : 'Home banner'}</span>
-                      </span>
-                      <span className="form-section-tag">{isMr ? 'होम' : 'Home'}</span>
-                    </div>
+                  {(bannerSubTab === 'HOME' || bannerSubTab === 'ALL') && (
+                    <div className="form-section-box">
+                      <div className="form-section-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <span className="form-section-title">
+                            <span>🏠</span>
+                            <span>{isMr ? 'होम बॅनर (नागरिक डॅशबोर्ड)' : 'Home Banner (Citizen Dashboard)'}</span>
+                          </span>
+                          <span className="form-section-tag" style={{ background: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#e0f2fe' : '#dcfce7', color: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#0284c7' : '#15803d' }}>
+                            {isGenericDefaultHero(portalConfig?.heroBannerUrl) ? (isMr ? '🏛️ महापालिका डिफॉल्ट' : '🏛️ Civic Default') : (isMr ? '✅ सक्रिय कस्टम बॅनर' : '✅ Active Custom Banner')}
+                          </span>
+                        </div>
+                        <small style={{ color: '#64748b', fontSize: 12 }}>
+                          {isMr ? 'आकारमान: 1440 × 600 px (2.4:1 रेशिओ). नागरिक होम पानावर मुख्य बॅनर म्हणून दिसेल.' : 'Recommended: 1440 × 600 px (2.4:1 ratio). Displayed across desktop and mobile citizen home.'}
+                        </small>
+                      </div>
 
-                    <ImageCropField
-                      key={`hero-${editorPanelId || 'none'}`}
-                      label=""
-                      value={portalConfig?.heroBannerUrl || '/hero-ward-default.jpg'}
-                      onChange={(next) => {
-                        setPortalConfig((prev) => ({ ...prev, heroBannerUrl: next || '/hero-ward-default.jpg' }));
-                      }}
-                      aspect={CITIZEN_HERO_ASPECT}
-                      variant="hero"
-                      outputWidth={1440}
-                      uploadLabel={isMr ? 'Home बॅनर अपलोड करा' : 'Upload Home Banner'}
-                      adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
-                      hint={isMr ? 'हाच आकार नागरिक Home वर दिसेल.' : 'This is the same size residents see on Home.'}
-                    />
-
-                    <div className="portal-section-save" style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveHeroBanner}>
-                        {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'होम बॅनर सेव्ह करा' : 'Save home banner')}
-                      </button>
-                      <button
-                        type="button"
-                        className="ghost-btn-xs"
-                        onClick={async () => {
-                          setPortalConfig((prev) => ({ ...prev, heroBannerUrl: '/hero-ward-default.jpg' }));
-                          if (!effectiveWardId) return;
-                          try {
-                            setSaving(true);
-                            await api.updatePortalConfig({
-                              wardId: effectiveWardId,
-                              nagarsevakUserId: editorPanelId || representative?.id || null,
-                              heroBannerUrl: '/hero-ward-default.jpg',
-                              useCivicHero: true,
-                            });
-                            notifyPortalUpdated(effectiveWardId);
-                            setPortalConfig((prev) => ({ ...prev, heroBannerUrl: '/hero-ward-default.jpg' }));
-                            showToast(isMr ? 'या पॅनेलवर अधिकृत महापालिका बॅनर सेट झाला.' : 'Official civic banner set for this panel.');
-                          } catch (err) {
-                            showToast(err.message || 'Could not reset banner.', 'error');
-                          } finally {
-                            setSaving(false);
-                          }
+                      <ImageCropField
+                        key={`hero-${editorPanelId || 'none'}`}
+                        label=""
+                        value={portalConfig?.heroBannerUrl || '/hero-ward-default.jpg'}
+                        onChange={(next) => {
+                          setPortalConfig((prev) => ({ ...prev, heroBannerUrl: next || '/hero-ward-default.jpg' }));
                         }}
-                        title={isMr ? 'अधिकृत महापालिका बॅनर वापरा' : 'Reset to official municipal civic banner'}
-                      >
-                        🏛️ {isMr ? 'अधिकृत महापालिका बॅनर वापरा' : 'Reset to Official Civic Banner'}
-                      </button>
-                    </div>
-                  </div>
+                        aspect={CITIZEN_HERO_ASPECT}
+                        variant="hero"
+                        outputWidth={1440}
+                        uploadLabel={isMr ? 'Home बॅनर अपलोड करा' : 'Upload Home Banner'}
+                        adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
+                        hint={isMr ? 'हाच आकार नागरिक Home वर दिसेल.' : 'This is the same size residents see on Home.'}
+                      />
 
-                  <div className="form-section-box">
-                    <div className="form-section-header">
-                      <span className="form-section-title">
-                        <span>📣</span>
-                        <span>{isMr ? 'तक्रार बॅनर' : 'Complaints banner'}</span>
-                      </span>
-                      <span className="form-section-tag">{isMr ? 'तक्रारी' : 'Complaints'}</span>
+                      <div className="portal-section-save" style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveHeroBanner}>
+                          {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'होम बॅनर सेव्ह करा' : 'Save home banner')}
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn-xs"
+                          onClick={async () => {
+                            setPortalConfig((prev) => ({ ...prev, heroBannerUrl: '/hero-ward-default.jpg' }));
+                            if (!effectiveWardId) return;
+                            try {
+                              setSaving(true);
+                              await api.updatePortalConfig({
+                                wardId: effectiveWardId,
+                                nagarsevakUserId: editorPanelId || representative?.id || null,
+                                heroBannerUrl: '/hero-ward-default.jpg',
+                                useCivicHero: true,
+                              });
+                              notifyPortalUpdated(effectiveWardId);
+                              setPortalConfig((prev) => ({ ...prev, heroBannerUrl: '/hero-ward-default.jpg' }));
+                              showToast(isMr ? 'या पॅनेलवर अधिकृत महापालिका बॅनर सेट झाला.' : 'Official civic banner set for this panel.');
+                            } catch (err) {
+                              showToast(err.message || 'Could not reset banner.', 'error');
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                          title={isMr ? 'अधिकृत महापालिका बॅनर वापरा' : 'Reset to official municipal civic banner'}
+                        >
+                          🏛️ {isMr ? 'अधिकृत महापालिका बॅनर वापरा' : 'Reset to Official Civic Banner'}
+                        </button>
+                      </div>
                     </div>
-                    <ImageCropField
-                      key={`complaints-${editorPanelId || 'none'}`}
-                      label=""
-                      value={portalConfig?.complaintsBannerUrl || ''}
-                      onChange={(next) => {
-                        setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: next || '' }));
-                      }}
-                      aspect={COMPLAINTS_BANNER_ASPECT}
-                      variant="hero"
-                      outputWidth={1440}
-                      uploadLabel={isMr ? 'तक्रार बॅनर अपलोड करा' : 'Upload complaints banner'}
-                      adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
-                      hint={isMr ? 'हाच आकार नागरिक तक्रार पानावर दिसेल.' : 'This is the same size residents see on Complaints.'}
-                    />
-                    <div className="portal-section-save">
-                      <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveComplaintsBanner}>
-                        {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'तक्रार बॅनर सेव्ह करा' : 'Save complaints banner')}
-                      </button>
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="form-section-box">
-                    <div className="form-section-header">
-                      <span className="form-section-title">
-                        <span>🖼️</span>
-                        <span>{isMr ? 'गॅलरी बॅनर' : 'Gallery banner'}</span>
-                      </span>
-                      <span className="form-section-tag">{isMr ? 'गॅलरी' : 'Gallery'}</span>
+                  {/* Section: Complaints Banner */}
+                  {(bannerSubTab === 'COMPLAINTS' || bannerSubTab === 'ALL') && (
+                    <div className="form-section-box">
+                      <div className="form-section-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <span className="form-section-title">
+                            <span>📣</span>
+                            <span>{isMr ? 'तक्रार बॅनर (नागरिक तक्रार पान)' : 'Complaints Banner (Citizen Grievance Page)'}</span>
+                          </span>
+                          <span className="form-section-tag" style={{ background: portalConfig?.complaintsBannerUrl ? '#dcfce7' : '#f1f5f9', color: portalConfig?.complaintsBannerUrl ? '#15803d' : '#64748b' }}>
+                            {portalConfig?.complaintsBannerUrl ? (isMr ? '✅ स्वतंत्र बॅनर सेट' : '✅ Custom Banner Active') : (isMr ? 'ℹ️ होम बॅनर वापरला जाईल' : 'ℹ️ Defaulting to Home Banner')}
+                          </span>
+                        </div>
+                        <small style={{ color: '#64748b', fontSize: 12 }}>
+                          {isMr ? 'आकारमान: 1440 × 600 px. नागरिक तक्रार पानावर वरच्या भागात दिसेल.' : 'Recommended: 1440 × 600 px. Displayed at top of citizen grievance page.'}
+                        </small>
+                      </div>
+                      <ImageCropField
+                        key={`complaints-${editorPanelId || 'none'}`}
+                        label=""
+                        value={portalConfig?.complaintsBannerUrl || ''}
+                        onChange={(next) => {
+                          setPortalConfig((prev) => ({ ...prev, complaintsBannerUrl: next || '' }));
+                        }}
+                        aspect={COMPLAINTS_BANNER_ASPECT}
+                        variant="hero"
+                        outputWidth={1440}
+                        uploadLabel={isMr ? 'तक्रार बॅनर अपलोड करा' : 'Upload complaints banner'}
+                        adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
+                        hint={isMr ? 'हाच आकार नागरिक तक्रार पानावर दिसेल.' : 'This is the same size residents see on Complaints.'}
+                      />
+                      <div className="portal-section-save" style={{ marginTop: 14 }}>
+                        <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveComplaintsBanner}>
+                          {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'तक्रार बॅनर सेव्ह करा' : 'Save complaints banner')}
+                        </button>
+                      </div>
                     </div>
-                    <ImageCropField
-                      key={`gallery-${editorPanelId || 'none'}`}
-                      label=""
-                      value={portalConfig?.galleryBannerUrl || ''}
-                      onChange={(next) => {
-                        setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: next || '' }));
-                      }}
-                      aspect={GALLERY_BANNER_ASPECT}
-                      variant="hero"
-                      outputWidth={1440}
-                      uploadLabel={isMr ? 'गॅलरी बॅनर अपलोड करा' : 'Upload gallery banner'}
-                      adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
-                      hint={isMr ? 'हाच आकार नागरिक गॅलरी पानावर दिसेल.' : 'This is the same size residents see on Gallery.'}
-                    />
-                    <div className="portal-section-save">
-                      <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveGalleryBanner}>
-                        {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'गॅलरी बॅनर सेव्ह करा' : 'Save gallery banner')}
-                      </button>
+                  )}
+
+                  {/* Section: Gallery Banner */}
+                  {(bannerSubTab === 'GALLERY' || bannerSubTab === 'ALL') && (
+                    <div className="form-section-box">
+                      <div className="form-section-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <span className="form-section-title">
+                            <span>🖼️</span>
+                            <span>{isMr ? 'गॅलरी बॅनर (नागरिक विकास कामे)' : 'Gallery Banner (Citizen Public Works)'}</span>
+                          </span>
+                          <span className="form-section-tag" style={{ background: portalConfig?.galleryBannerUrl ? '#dcfce7' : '#f1f5f9', color: portalConfig?.galleryBannerUrl ? '#15803d' : '#64748b' }}>
+                            {portalConfig?.galleryBannerUrl ? (isMr ? '✅ स्वतंत्र बॅनर सेट' : '✅ Custom Banner Active') : (isMr ? 'ℹ️ होम बॅनर वापरला जाईल' : 'ℹ️ Defaulting to Home Banner')}
+                          </span>
+                        </div>
+                        <small style={{ color: '#64748b', fontSize: 12 }}>
+                          {isMr ? 'आकारमान: 1440 × 600 px. नागरिक गॅलरी / विकास कामे पानावर वरच्या भागात दिसेल.' : 'Recommended: 1440 × 600 px. Displayed at top of citizen public works gallery.'}
+                        </small>
+                      </div>
+                      <ImageCropField
+                        key={`gallery-${editorPanelId || 'none'}`}
+                        label=""
+                        value={portalConfig?.galleryBannerUrl || ''}
+                        onChange={(next) => {
+                          setPortalConfig((prev) => ({ ...prev, galleryBannerUrl: next || '' }));
+                        }}
+                        aspect={GALLERY_BANNER_ASPECT}
+                        variant="hero"
+                        outputWidth={1440}
+                        uploadLabel={isMr ? 'गॅलरी बॅनर अपलोड करा' : 'Upload gallery banner'}
+                        adjustLabel={isMr ? 'क्रॉप' : 'Crop'}
+                        hint={isMr ? 'हाच आकार नागरिक गॅलरी पानावर दिसेल.' : 'This is the same size residents see on Gallery.'}
+                      />
+                      <div className="portal-section-save" style={{ marginTop: 14 }}>
+                        <button type="button" className="primary-btn" disabled={saving} onClick={handleSaveGalleryBanner}>
+                          {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'गॅलरी बॅनर सेव्ह करा' : 'Save gallery banner')}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Section 2: Welcome Headlines */}
-                  <div className="form-section-box">
-                    <div className="form-section-header">
-                      <span className="form-section-title">
-                        <span>✨</span>
-                        <span>{isMr ? 'स्वागत मथळा (Welcome Headline)' : 'Welcome Headlines'}</span>
-                      </span>
-                      <span className="form-section-tag">{isMr ? 'द्विभाषिक' : 'Dual Language'}</span>
-                    </div>
-
-                    <div className="form-row-2">
-                      <div className="form-group">
-                        <label className="form-label">{isMr ? 'मुख्य मथळा (इंग्रजी)' : 'Welcome Title (English)'}</label>
-                        <div className="input-with-lang-badge">
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={portalConfig?.heroTitleEn || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroTitleEn: e.target.value }))}
-                            placeholder="Welcome"
-                          />
-                          <span className="lang-corner-badge">EN</span>
+                  {(bannerSubTab === 'HEADLINES' || bannerSubTab === 'ALL') && (
+                    <>
+                      <div className="form-section-box">
+                        <div className="form-section-header">
+                          <span className="form-section-title">
+                            <span>✨</span>
+                            <span>{isMr ? 'स्वागत मथळा (Welcome Headline)' : 'Welcome Headlines'}</span>
+                          </span>
+                          <span className="form-section-tag">{isMr ? 'द्विभाषिक' : 'Dual Language'}</span>
                         </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">{isMr ? 'मुख्य मथळा (मराठी)' : 'Welcome Title (Marathi)'}</label>
-                        <div className="input-with-lang-badge">
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={portalConfig?.heroTitleMr || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroTitleMr: e.target.value }))}
-                            placeholder="स्वागत आहे"
-                          />
-                          <span className="lang-corner-badge">MR</span>
-                        </div>
-                      </div>
-                    </div>
-                    <small className="field-hint">
-                      {isMr ? 'टिप: {name} वापरून नागरिकाचे नाव थेट दाखवता येते (उदा. "स्वागत आहे, {name}")' : 'Tip: Use {name} for citizen personalization (e.g. "Welcome, {name}.")'}
-                    </small>
-                  </div>
 
-                  {/* Section 3: Subtitles / Descriptions */}
-                  <div className="form-section-box">
-                    <div className="form-section-header">
-                      <span className="form-section-title">
-                        <span>📝</span>
-                        <span>{isMr ? 'पोर्टल वर्णन / सबटायटल' : 'Portal Subtitles / Descriptions'}</span>
-                      </span>
-                      <span className="form-section-tag">{isMr ? 'द्विभाषिक' : 'Dual Language'}</span>
-                    </div>
-
-                    <div className="form-row-2">
-                      <div className="form-group">
-                        <label className="form-label">{isMr ? 'वर्णन (इंग्रजी)' : 'Hero Subtitle (English)'}</label>
-                        <div className="input-with-lang-badge">
-                          <textarea
-                            rows={3}
-                            className="form-control"
-                            value={portalConfig?.heroSubtitleEn || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroSubtitleEn: e.target.value }))}
-                            placeholder="WardSetu is your digital ward desk for complaints, schemes and notices..."
-                          />
-                          <span className="lang-corner-badge">EN</span>
+                        <div className="form-row-2">
+                          <div className="form-group">
+                            <label className="form-label">{isMr ? 'मुख्य मथळा (इंग्रजी)' : 'Welcome Title (English)'}</label>
+                            <div className="input-with-lang-badge">
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={portalConfig?.heroTitleEn || ''}
+                                onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroTitleEn: e.target.value }))}
+                                placeholder="Welcome"
+                              />
+                              <span className="lang-corner-badge">EN</span>
+                            </div>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">{isMr ? 'मुख्य मथळा (मराठी)' : 'Welcome Title (Marathi)'}</label>
+                            <div className="input-with-lang-badge">
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={portalConfig?.heroTitleMr || ''}
+                                onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroTitleMr: e.target.value }))}
+                                placeholder="स्वागत आहे"
+                              />
+                              <span className="lang-corner-badge">MR</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">{isMr ? 'वर्णन (मराठी)' : 'Hero Subtitle (Marathi)'}</label>
-                        <div className="input-with-lang-badge">
-                          <textarea
-                            rows={3}
-                            className="form-control"
-                            value={portalConfig?.heroSubtitleMr || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroSubtitleMr: e.target.value }))}
-                            placeholder="तुमच्या वॉर्डमधील अपडेट्स, कार्यक्रम, योजना आणि तक्रारींची माहिती एका ठिकाणी..."
-                          />
-                          <span className="lang-corner-badge">MR</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section 5: CTA Action Buttons */}
-                  <div className="form-section-box">
-                    <div className="form-section-header">
-                      <span className="form-section-title">
-                        <span>🔘</span>
-                        <span>{isMr ? 'कृती बटणे (Call To Action)' : 'Hero Action Buttons (CTA)'}</span>
-                      </span>
-                      <span className="form-section-tag">{isMr ? 'नेव्हिगेशन' : 'Actions'}</span>
-                    </div>
-
-                    <div className="form-row-2">
-                      <div className="form-group">
-                        <label className="form-label">{isMr ? 'बटण १ (इंग्रजी व मराठी)' : 'Primary Button 1 (EN / MR)'}</label>
-                        <div className="input-group-dual">
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={portalConfig?.ctaPrimaryTextEn || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, ctaPrimaryTextEn: e.target.value }))}
-                            placeholder="Raise a complaint"
-                          />
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={portalConfig?.ctaPrimaryTextMr || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, ctaPrimaryTextMr: e.target.value }))}
-                            placeholder="तक्रार नोंदवा"
-                          />
-                        </div>
-                        <small className="field-hint">{isMr ? 'लक्ष्य URL: /my-complaints' : 'Target URL: /my-complaints'}</small>
+                        <small className="field-hint">
+                          {isMr ? 'टिप: {name} वापरून नागरिकाचे नाव थेट दाखवता येते (उदा. "स्वागत आहे, {name}")' : 'Tip: Use {name} for citizen personalization (e.g. "Welcome, {name}.")'}
+                        </small>
                       </div>
 
-                      <div className="form-group">
-                        <label className="form-label">{isMr ? 'बटण २ (इंग्रजी व मराठी)' : 'Secondary Button 2 (EN / MR)'}</label>
-                        <div className="input-group-dual">
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={portalConfig?.ctaSecondaryTextEn || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, ctaSecondaryTextEn: e.target.value }))}
-                            placeholder="View Work"
-                          />
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={portalConfig?.ctaSecondaryTextMr || ''}
-                            onChange={(e) => setPortalConfig((prev) => ({ ...prev, ctaSecondaryTextMr: e.target.value }))}
-                            placeholder="विकास कामे पहा"
-                          />
+                      {/* Section 3: Subtitles / Descriptions */}
+                      <div className="form-section-box">
+                        <div className="form-section-header">
+                          <span className="form-section-title">
+                            <span>📝</span>
+                            <span>{isMr ? 'पोर्टल वर्णन / सबटायटल' : 'Portal Subtitles / Descriptions'}</span>
+                          </span>
+                          <span className="form-section-tag">{isMr ? 'द्विभाषिक' : 'Dual Language'}</span>
                         </div>
-                        <small className="field-hint">{isMr ? 'लक्ष्य URL: /gallery' : 'Target URL: /gallery'}</small>
+
+                        <div className="form-row-2">
+                          <div className="form-group">
+                            <label className="form-label">{isMr ? 'वर्णन (इंग्रजी)' : 'Hero Subtitle (English)'}</label>
+                            <div className="input-with-lang-badge">
+                              <textarea
+                                rows={3}
+                                className="form-control"
+                                value={portalConfig?.heroSubtitleEn || ''}
+                                onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroSubtitleEn: e.target.value }))}
+                                placeholder="WardSetu is your digital ward desk for complaints, schemes and notices..."
+                              />
+                              <span className="lang-corner-badge">EN</span>
+                            </div>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">{isMr ? 'वर्णन (मराठी)' : 'Hero Subtitle (Marathi)'}</label>
+                            <div className="input-with-lang-badge">
+                              <textarea
+                                rows={3}
+                                className="form-control"
+                                value={portalConfig?.heroSubtitleMr || ''}
+                                onChange={(e) => setPortalConfig((prev) => ({ ...prev, heroSubtitleMr: e.target.value }))}
+                                placeholder="तुमच्या वॉर्डमधील अपडेट्स, कार्यक्रम, योजना आणि तक्रारींची माहिती एका ठिकाणी..."
+                              />
+                              <span className="lang-corner-badge">MR</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+
+                      {/* Section 5: CTA Action Buttons */}
+                      <div className="form-section-box">
+                        <div className="form-section-header">
+                          <span className="form-section-title">
+                            <span>🔘</span>
+                            <span>{isMr ? 'कृती बटणे (Call To Action)' : 'Hero Action Buttons (CTA)'}</span>
+                          </span>
+                          <span className="form-section-tag">{isMr ? 'नेव्हिगेशन' : 'Actions'}</span>
+                        </div>
+
+                        <div className="form-row-2">
+                          <div className="form-group">
+                            <label className="form-label">{isMr ? 'बटण १ (इंग्रजी व मराठी)' : 'Primary Button 1 (EN / MR)'}</label>
+                            <div className="input-group-dual">
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={portalConfig?.ctaPrimaryTextEn || ''}
+                                onChange={(e) => setPortalConfig((prev) => ({ ...prev, ctaPrimaryTextEn: e.target.value }))}
+                                placeholder="Raise a complaint"
+                              />
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={portalConfig?.ctaPrimaryTextMr || ''}
+                                onChange={(e) => setPortalConfig((prev) => ({ ...prev, ctaPrimaryTextMr: e.target.value }))}
+                                placeholder="तक्रार नोंदवा"
+                              />
+                            </div>
+                            <small className="field-hint">{isMr ? 'लक्ष्य URL: /my-complaints' : 'Target URL: /my-complaints'}</small>
+                          </div>
+
+                          <div className="form-group">
+                            <label className="form-label">{isMr ? 'बटण २ (इंग्रजी व मराठी)' : 'Secondary Button 2 (EN / MR)'}</label>
+                            <div className="input-group-dual">
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={portalConfig?.ctaSecondaryTextEn || ''}
+                                onChange={(e) => setPortalConfig((prev) => ({ ...prev, ctaSecondaryTextEn: e.target.value }))}
+                                placeholder="View Work"
+                              />
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={portalConfig?.ctaSecondaryTextMr || ''}
+                                onChange={(e) => setPortalConfig((prev) => ({ ...prev, ctaSecondaryTextMr: e.target.value }))}
+                                placeholder="विकास कामे पहा"
+                              />
+                            </div>
+                            <small className="field-hint">{isMr ? 'लक्ष्य URL: /gallery' : 'Target URL: /gallery'}</small>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="form-actions-footer">
                     <button type="submit" className="primary-btn portal-save-btn" disabled={saving}>
@@ -1560,7 +1706,7 @@ export default function PortalManagement() {
                         <div
                           className="work-media-thumbnail"
                           style={{
-                            backgroundImage: `url(${item.mediaUrl || (isVid ? '/gallery/road-construction.svg' : '/gallery/water-pipeline.svg')})`,
+                            backgroundImage: `url(${item.mediaUrl || (isVid ? '/gallery-media/road-construction.svg' : '/gallery-media/water-pipeline.svg')})`,
                           }}
                         >
                           <div className="thumbnail-badges">

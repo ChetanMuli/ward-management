@@ -4,13 +4,34 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const ROOT = path.resolve(process.env.PORTAL_UPLOAD_DIR || path.join(__dirname, '../../uploads/portal'));
+function getPortalUploadDir() {
+  const candidates = [
+    process.env.PORTAL_UPLOAD_DIR,
+    path.resolve(__dirname, '../../uploads/portal'),
+    path.resolve(__dirname, '../uploads/portal'),
+    path.resolve(process.cwd(), 'uploads/portal'),
+    path.resolve(process.cwd(), 'backend/uploads/portal'),
+    path.resolve('/tmp/ward-portal-uploads'),
+  ].filter(Boolean);
+
+  for (const dir of candidates) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.accessSync(dir, fs.constants.W_OK);
+      return dir;
+    } catch (_) {}
+  }
+  return path.resolve(candidates[0]);
+}
+
+const ROOT = getPortalUploadDir();
 try { fs.mkdirSync(ROOT, { recursive: true }); } catch (_) {}
 
 function writePortalFile(buf, ext, prefix = 'file') {
   const name = `${String(prefix || 'file').replace(/[^a-z0-9_-]/gi, '').slice(0, 40)}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
-  fs.mkdirSync(ROOT, { recursive: true });
-  fs.writeFileSync(path.join(ROOT, name), buf);
+  const targetDir = getPortalUploadDir();
+  try { fs.mkdirSync(targetDir, { recursive: true }); } catch (_) {}
+  fs.writeFileSync(path.join(targetDir, name), buf);
   return `/api/uploads/portal/${name}`;
 }
 
@@ -88,6 +109,8 @@ function publicImageUrl(value, fallback = '') {
   if (value == null) return fallback;
   let str = String(value).trim();
   if (!str) return fallback;
+  if (str.startsWith('/gallery/')) str = `/gallery-media/${str.slice('/gallery/'.length)}`;
+  else if (str.startsWith('gallery/')) str = `/gallery-media/${str.slice('gallery/'.length)}`;
   if (str.startsWith('data:') || str.startsWith('blob:')) return str;
   if (str.startsWith('/uploads/')) str = `/api${str}`;
   else if (str.startsWith('uploads/')) str = `/api/${str}`;

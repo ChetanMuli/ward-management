@@ -780,7 +780,7 @@ const listGalleryItems = asyncHandler(async (req, res) => {
       'mediaType', 'videoUrl', 'duration', 'date', 'dateFormatted', 'dateFormattedMr', 'location', 'badge',
       'description', 'descriptionMr', 'status', 'orderIndex', 'showOnDashboard', 'createdAt', 'updatedAt',
       [
-        WardGalleryItem.sequelize.literal("CASE WHEN `media_url` LIKE 'data:%' THEN '/gallery/water-pipeline.svg' ELSE `media_url` END"),
+        WardGalleryItem.sequelize.literal("CASE WHEN `media_url` LIKE 'data:%' THEN '/gallery-media/water-pipeline.svg' ELSE `media_url` END"),
         'mediaUrl',
       ],
     ],
@@ -908,7 +908,7 @@ const createGalleryItem = asyncHandler(async (req, res) => {
     categoryLabel: categoryLabel || null,
     categoryLabelMr: categoryLabelMr || null,
     mediaType: mediaType === 'video' ? 'video' : 'image',
-    mediaUrl: storedMedia || (mediaType === 'video' ? '/gallery/road-construction.svg' : ''),
+    mediaUrl: storedMedia || (mediaType === 'video' ? '/gallery-media/road-construction.svg' : ''),
     videoUrl: storedVideo || null,
     duration: duration || null,
     date: date || new Date().toISOString().split('T')[0],

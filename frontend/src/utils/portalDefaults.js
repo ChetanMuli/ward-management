@@ -2,8 +2,10 @@ export const CIVIC_DEFAULT_HERO = '/hero-ward-default.jpg';
 
 /** Production nginx usually proxies only /api, not /uploads. */
 export function publicMediaUrl(url) {
-  const s = String(url || '').trim();
+  let s = String(url || '').trim();
   if (!s) return s;
+  if (s.startsWith('/gallery/')) s = `/gallery-media/${s.slice('/gallery/'.length)}`;
+  else if (s.startsWith('gallery/')) s = `/gallery-media/${s.slice('gallery/'.length)}`;
   if (s.startsWith('/uploads/')) return `/api${s}`;
   if (s.startsWith('uploads/')) return `/api/${s}`;
   return s;

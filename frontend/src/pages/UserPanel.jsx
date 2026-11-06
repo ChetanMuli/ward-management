@@ -182,6 +182,7 @@ export default function UserPanel({ plainMode = false } = {}) {
   const [targetWard, setTargetWard] = useState(null);
   const [targetNagarsevak, setTargetNagarsevak] = useState(null);
   const [portalNagarsevaks, setPortalNagarsevaks] = useState([]);
+  const [heroLoadFailed, setHeroLoadFailed] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState(null);
 
@@ -562,7 +563,7 @@ export default function UserPanel({ plainMode = false } = {}) {
         <>
           <section className={`user-hero user-hero-pro has-portal-banner has-custom-hero ${heroSrc ? 'has-photo' : 'no-photo'}`}>
             <div className="user-hero-media" aria-hidden="true">
-              {heroSrc ? (
+              {heroSrc && !heroLoadFailed ? (
                 <img
                   className="user-hero-bg-photo"
                   src={withHeroCacheBust(heroSrc, portalConfig?.updatedAt)}
@@ -570,12 +571,19 @@ export default function UserPanel({ plainMode = false } = {}) {
                   decoding="async"
                   fetchPriority="high"
                   draggable="false"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
+                  onError={() => {
+                    setHeroLoadFailed(true);
                   }}
                 />
               ) : (
-                <div className="user-hero-fallback-pattern" />
+                <img
+                  className="user-hero-bg-photo"
+                  src="/hero-ward-default.jpg"
+                  alt=""
+                  decoding="async"
+                  fetchPriority="high"
+                  draggable="false"
+                />
               )}
             </div>
             <div className="user-hero-shade" aria-hidden="true" />
