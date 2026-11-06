@@ -409,11 +409,16 @@ export default function PortalManagement() {
       if (cfgRes?.data) {
         const loaded = cfgRes.data.config || {};
         const loadedMeta = loaded.meta && typeof loaded.meta === 'object' ? loaded.meta : {};
-        setPortalConfig({
-          ...loaded,
-          heroBannerUrl: loaded.heroBannerUrl || '/hero-ward-default.jpg',
-          complaintsBannerUrl: loaded.complaintsBannerUrl || loadedMeta.complaintsBannerUrl || '',
-          galleryBannerUrl: loaded.galleryBannerUrl || loadedMeta.galleryBannerUrl || '',
+        setPortalConfig((prev) => {
+          const keepHero = prev?.heroBannerUrl && String(prev.heroBannerUrl).startsWith('data:image/');
+          const keepComplaints = prev?.complaintsBannerUrl && String(prev.complaintsBannerUrl).startsWith('data:image/');
+          const keepGallery = prev?.galleryBannerUrl && String(prev.galleryBannerUrl).startsWith('data:image/');
+          return {
+            ...loaded,
+            heroBannerUrl: keepHero ? prev.heroBannerUrl : (loaded.heroBannerUrl || '/hero-ward-default.jpg'),
+            complaintsBannerUrl: keepComplaints ? prev.complaintsBannerUrl : (loaded.complaintsBannerUrl || loadedMeta.complaintsBannerUrl || ''),
+            galleryBannerUrl: keepGallery ? prev.galleryBannerUrl : (loaded.galleryBannerUrl || loadedMeta.galleryBannerUrl || ''),
+          };
         });
         const cfgMeta = loadedMeta;
         setDashboardWorkOrder(Array.isArray(cfgMeta.dashboardWorkOrder) ? cfgMeta.dashboardWorkOrder.map(String) : []);
@@ -487,11 +492,6 @@ export default function PortalManagement() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(() => {
-      if (!saving && !itemModalOpen && !orderDirty) {
-        loadData({ silent: true });
-      }
-    }, 8000);
 
     const handlePortalUpdated = (e) => {
       if (!e.detail?.wardId || String(e.detail.wardId) === String(effectiveWardId)) {
@@ -501,10 +501,9 @@ export default function PortalManagement() {
     window.addEventListener('ward:portal-updated', handlePortalUpdated);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('ward:portal-updated', handlePortalUpdated);
     };
-  }, [effectiveWardId, editorPanelId, saving, itemModalOpen, orderDirty]);
+  }, [effectiveWardId, editorPanelId]);
 
   // Save Hero & Portal Config
   const handleSavePortalConfig = async (e) => {

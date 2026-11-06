@@ -624,7 +624,11 @@ export function ImageCropField({
       if(!local){ cropToast('Could not open this image for cropping.'); return; }
       setSrc(local);setZoomSafe(START_Z);setPos({x:0,y:0});posRef.current={x:0,y:0};setNat({w:1,h:1});natRef.current={w:1,h:1};setReady(false);setOpen(true);
     }catch{
-      cropToast('Could not load this image for cropping. Please upload it again.');
+      if (typeof data === 'string' && data) {
+        setSrc(data);setZoomSafe(START_Z);setPos({x:0,y:0});posRef.current={x:0,y:0};setNat({w:1,h:1});natRef.current={w:1,h:1};setReady(false);setOpen(true);
+      } else {
+        cropToast('Could not load this image for cropping. Please upload it again.');
+      }
     }
   }
   function readFile(file){
@@ -632,43 +636,7 @@ export function ImageCropField({
     if(!file.type.startsWith('image/')){cropToast('Please select an image file.');return;}
     if(file.size>15*1024*1024){cropToast('Image must be under 15MB.');return;}
     const reader=new FileReader();
-    reader.onload=()=>{
-      const raw=String(reader.result||'');
-      if(!raw)return;
-      const img=new Image();
-      img.onload=()=>{
-        try{
-          const w=img.naturalWidth||img.width;
-          const h=img.naturalHeight||img.height;
-          const targetRatio=Number(ratio)||2.4;
-          const outW=Math.min(w, outputWidth||1440);
-          const outH=Math.max(1, Math.round(outW/targetRatio));
-          const canvas=document.createElement('canvas');
-          canvas.width=outW;
-          canvas.height=outH;
-          const ctx=canvas.getContext('2d');
-          if(ctx){
-            const scale=Math.max(outW/w, outH/h);
-            const sw=w*scale;
-            const sh=h*scale;
-            const ox=(outW-sw)/2;
-            const oy=(outH-sh)/2;
-            ctx.fillStyle='#0b1624';
-            ctx.fillRect(0,0,outW,outH);
-            ctx.drawImage(img, ox, oy, sw, sh);
-            let data=canvas.toDataURL('image/jpeg', 0.88);
-            if(data.length>900000) data=canvas.toDataURL('image/jpeg', 0.72);
-            onChange(data);
-          }else{
-            onChange(raw);
-          }
-        }catch{
-          onChange(raw);
-        }
-      };
-      img.onerror=()=>onChange(raw);
-      img.src=raw;
-    };
+    reader.onload=()=>openCrop(String(reader.result||''));
     reader.onerror=()=>cropToast('Could not read that file.');
     reader.readAsDataURL(file);
   }
