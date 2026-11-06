@@ -10,7 +10,7 @@ const TYPES = ['ALLOPATHIC', 'AYURVEDIC', 'HOMOEOPATHIC', 'GENERIC', 'WHOLESALE_
 const EMPTY_ID = '00000000-0000-0000-0000-000000000000';
 const LIST_ATTR = [
   'id', 'wardId', 'areaId', 'name', 'type', 'address', 'landmark',
-  'phone', 'openingHours', 'is24x7', 'homeDelivery',
+  'phone', 'emergencyPhone', 'openingHours', 'is24x7', 'homeDelivery',
   'facilities', 'notes', 'latitude', 'longitude', 'status', 'updatedAt',
 ];
 
@@ -42,7 +42,7 @@ function medicalFields(body) {
     address: String(body.address || '').trim().slice(0, 2000),
     landmark: emptyToNull(body.landmark)?.slice(0, 180) || null,
     phone: emptyToNull(body.phone)?.slice(0, 20) || null,
-    emergencyPhone: null,
+    emergencyPhone: emptyToNull(body.emergencyPhone)?.slice(0, 20) || null,
     openingHours: emptyToNull(body.openingHours)?.slice(0, 120) || null,
     is24x7: toBoolean(body.is24x7),
     homeDelivery: toBoolean(body.homeDelivery),
@@ -117,6 +117,7 @@ function scopedWhere(req, { listFilters = true } = {}) {
     where[Op.or] = [
       { name: { [Op.like]: like } },
       { phone: { [Op.like]: like } },
+      { emergencyPhone: { [Op.like]: like } },
       { address: { [Op.like]: like } },
       { landmark: { [Op.like]: like } },
       { facilities: { [Op.like]: like } },
@@ -191,11 +192,13 @@ const create = asyncHandler(async (req, res) => {
     createdByUserId: req.user.id,
   });
 
-  await logAudit(req, {
+  await logAudit({
+    user: req.user,
     action: 'CREATE_MEDICAL',
     entity: 'MedicalStore',
-    entityId: created.id,
-    details: { name: created.name, wardId, areaId: created.areaId },
+    recordId: created.id,
+    newValue: { name: created.name, wardId, areaId: created.areaId },
+    ipAddress: req.ip,
   });
 
   const full = await MedicalStore.findByPk(created.id, { include });
@@ -227,11 +230,14 @@ const update = asyncHandler(async (req, res) => {
     areaId: nextAreaId,
   });
 
-  await logAudit(req, {
+  await logAudit({
+    user: req.user,
     action: 'UPDATE_MEDICAL',
     entity: 'MedicalStore',
-    entityId: row.id,
-    details: { name: row.name, wardId: row.wardId, areaId: row.areaId },
+    recordId: row.id,
+    oldValue: { name: row.name, wardId: row.wardId },
+    newValue: { name: patch.name, wardId: nextWardId, areaId: nextAreaId },
+    ipAddress: req.ip,
   });
 
   const full = await MedicalStore.findByPk(row.id, { include });
@@ -247,11 +253,13 @@ const remove = asyncHandler(async (req, res) => {
 
   await row.destroy();
 
-  await logAudit(req, {
+  await logAudit({
+    user: req.user,
     action: 'DELETE_MEDICAL',
     entity: 'MedicalStore',
-    entityId: row.id,
-    details: { name: row.name, wardId: row.wardId },
+    recordId: row.id,
+    newValue: { deleted: true, name: row.name },
+    ipAddress: req.ip,
   });
 
   return success(res, { data: { id: req.params.id }, message: 'Medical store deleted successfully' });

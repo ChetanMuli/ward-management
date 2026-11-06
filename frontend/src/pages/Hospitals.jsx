@@ -76,6 +76,7 @@ const medicalBlank = {
   address: '',
   landmark: '',
   phone: '',
+  emergencyPhone: '',
   openingHours: '',
   is24x7: false,
   homeDelivery: false,
@@ -481,65 +482,70 @@ function AdminHospitalCard({ h, isMr, canEdit, canDelete, onView, onEdit, onDele
         </div>
       </div>
 
-      {/* Action Buttons Row */}
+      {/* Action Buttons: Clean Symmetrical Two-Tier Layout */}
       <div className="admin-card-actions">
-        {pinned && (
-          <a
-            href={directionsUrl(h.latitude, h.longitude)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="admin-act-btn is-dir"
-            title={isMr ? 'गुगल मॅप्सवर दिशा पहा' : 'View directions in Google Maps'}
-          >
-            <MapPinIcon size={13} />
-            <span>{isMr ? 'दिशा पहा' : 'Directions'}</span>
-          </a>
-        )}
+        <div className="admin-card-btn-row primary-row">
+          {pinned ? (
+            <a
+              href={directionsUrl(h.latitude, h.longitude)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="admin-act-btn is-dir"
+              title={isMr ? 'गुगल मॅप्सवर दिशा पहा' : 'View directions in Google Maps'}
+            >
+              <MapPinIcon size={14} />
+              <span>{isMr ? 'दिशा पहा' : 'Directions'}</span>
+            </a>
+          ) : null}
 
-        {canEdit && (
+          {canEdit && (
+            <button
+              type="button"
+              className={`admin-act-btn is-update-loc ${pinned ? 'has-pin' : 'no-pin'}`}
+              onClick={() => onUpdateLocation(h)}
+              title={isMr ? 'स्थान पिन अपडेट करा' : 'Update GPS Location'}
+            >
+              <MapPinIcon size={14} />
+              <span>{pinned ? (isMr ? 'स्थान अपडेट करा' : 'Update Location') : (isMr ? 'स्थान सेट करा' : 'Set Location')}</span>
+            </button>
+          )}
+        </div>
+
+        <div className="admin-card-btn-row manage-row">
           <button
             type="button"
-            className={`admin-act-btn is-update-loc ${pinned ? 'has-pin' : 'no-pin'}`}
-            onClick={() => onUpdateLocation(h)}
-            title={isMr ? 'स्थान पिन अपडेट करा' : 'Update GPS Location'}
+            className="admin-act-btn is-view"
+            onClick={() => onView(h)}
+            title={isMr ? 'तपशील पहा' : 'View Details'}
           >
-            <MapPinIcon size={13} />
-            <span>{pinned ? (isMr ? 'स्थान अपडेट करा' : 'Update Location') : (isMr ? 'स्थान सेट करा' : 'Set Location')}</span>
+            <EyeIcon size={13} />
+            <span>{isMr ? 'पहा' : 'View'}</span>
           </button>
-        )}
 
-        <button
-          type="button"
-          className="admin-act-btn is-view"
-          onClick={() => onView(h)}
-          title={isMr ? 'तपशील पहा' : 'View Details'}
-        >
-          <EyeIcon size={13} />
-          <span>{isMr ? 'पहा' : 'View'}</span>
-        </button>
+          {canEdit && (
+            <button
+              type="button"
+              className="admin-act-btn is-edit"
+              onClick={() => onEdit(h)}
+              title={isMr ? 'संपादित करा' : 'Edit'}
+            >
+              <EditIcon size={13} />
+              <span>{isMr ? 'संपादित' : 'Edit'}</span>
+            </button>
+          )}
 
-        {canEdit && (
-          <button
-            type="button"
-            className="admin-act-btn is-edit"
-            onClick={() => onEdit(h)}
-            title={isMr ? 'संपादित करा' : 'Edit'}
-          >
-            <EditIcon size={13} />
-            <span>{isMr ? 'संपादित' : 'Edit'}</span>
-          </button>
-        )}
-
-        {canDelete && (
-          <button
-            type="button"
-            className="admin-act-btn is-delete"
-            onClick={() => onDelete(h)}
-            title={isMr ? 'हटवा' : 'Delete'}
-          >
-            <TrashIcon size={13} />
-          </button>
-        )}
+          {canDelete && (
+            <button
+              type="button"
+              className="admin-act-btn is-delete"
+              onClick={() => onDelete(h)}
+              title={isMr ? 'हटवा' : 'Delete'}
+            >
+              <TrashIcon size={13} />
+              <span>{isMr ? 'हटवा' : 'Delete'}</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -647,65 +653,70 @@ function AdminMedicalCard({ m, isMr, canEdit, canDelete, onView, onEdit, onDelet
         </div>
       </div>
 
-      {/* Action Buttons Row */}
+      {/* Action Buttons: Clean Symmetrical Two-Tier Layout */}
       <div className="admin-card-actions">
-        {pinned && (
-          <a
-            href={directionsUrl(m.latitude, m.longitude)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="admin-act-btn is-dir"
-            title={isMr ? 'गुगल मॅप्सवर दिशा पहा' : 'View directions in Google Maps'}
-          >
-            <MapPinIcon size={13} />
-            <span>{isMr ? 'दिशा पहा' : 'Directions'}</span>
-          </a>
-        )}
+        <div className="admin-card-btn-row primary-row">
+          {pinned ? (
+            <a
+              href={directionsUrl(m.latitude, m.longitude)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="admin-act-btn is-dir"
+              title={isMr ? 'गुगल मॅप्सवर दिशा पहा' : 'View directions in Google Maps'}
+            >
+              <MapPinIcon size={14} />
+              <span>{isMr ? 'दिशा पहा' : 'Directions'}</span>
+            </a>
+          ) : null}
 
-        {canEdit && (
+          {canEdit && (
+            <button
+              type="button"
+              className={`admin-act-btn is-update-loc ${pinned ? 'has-pin' : 'no-pin'}`}
+              onClick={() => onUpdateLocation(m)}
+              title={isMr ? 'स्थान पिन अपडेट करा' : 'Update GPS Location'}
+            >
+              <MapPinIcon size={14} />
+              <span>{pinned ? (isMr ? 'स्थान अपडेट करा' : 'Update Location') : (isMr ? 'स्थान सेट करा' : 'Set Location')}</span>
+            </button>
+          )}
+        </div>
+
+        <div className="admin-card-btn-row manage-row">
           <button
             type="button"
-            className={`admin-act-btn is-update-loc ${pinned ? 'has-pin' : 'no-pin'}`}
-            onClick={() => onUpdateLocation(m)}
-            title={isMr ? 'स्थान पिन अपडेट करा' : 'Update GPS Location'}
+            className="admin-act-btn is-view"
+            onClick={() => onView(m)}
+            title={isMr ? 'तपशील पहा' : 'View Details'}
           >
-            <MapPinIcon size={13} />
-            <span>{pinned ? (isMr ? 'स्थान अपडेट करा' : 'Update Location') : (isMr ? 'स्थान सेट करा' : 'Set Location')}</span>
+            <EyeIcon size={13} />
+            <span>{isMr ? 'पहा' : 'View'}</span>
           </button>
-        )}
 
-        <button
-          type="button"
-          className="admin-act-btn is-view"
-          onClick={() => onView(m)}
-          title={isMr ? 'तपशील पहा' : 'View Details'}
-        >
-          <EyeIcon size={13} />
-          <span>{isMr ? 'पहा' : 'View'}</span>
-        </button>
+          {canEdit && (
+            <button
+              type="button"
+              className="admin-act-btn is-edit"
+              onClick={() => onEdit(m)}
+              title={isMr ? 'संपादित करा' : 'Edit'}
+            >
+              <EditIcon size={13} />
+              <span>{isMr ? 'संपादित' : 'Edit'}</span>
+            </button>
+          )}
 
-        {canEdit && (
-          <button
-            type="button"
-            className="admin-act-btn is-edit"
-            onClick={() => onEdit(m)}
-            title={isMr ? 'संपादित करा' : 'Edit'}
-          >
-            <EditIcon size={13} />
-            <span>{isMr ? 'संपादित' : 'Edit'}</span>
-          </button>
-        )}
-
-        {canDelete && (
-          <button
-            type="button"
-            className="admin-act-btn is-delete"
-            onClick={() => onDelete(m)}
-            title={isMr ? 'हटवा' : 'Delete'}
-          >
-            <TrashIcon size={13} />
-          </button>
-        )}
+          {canDelete && (
+            <button
+              type="button"
+              className="admin-act-btn is-delete"
+              onClick={() => onDelete(m)}
+              title={isMr ? 'हटवा' : 'Delete'}
+            >
+              <TrashIcon size={13} />
+              <span>{isMr ? 'हटवा' : 'Delete'}</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -741,9 +752,6 @@ export default function Hospitals({ defaultTab = '' }) {
 
   // Common Ward Filter
   const { wards, selectedWardId, wardLocked } = useWardFilter();
-
-  // Admin View Mode: default to 'cards' as requested
-  const [adminViewMode, setAdminViewMode] = useState('cards'); // 'cards' | 'table'
 
   // Citizen Ward Scope: 'my-ward' vs 'all-city'
   const [citizenWardScope, setCitizenWardScope] = useState('my-ward');
@@ -1002,6 +1010,7 @@ export default function Hospitals({ defaultTab = '' }) {
       ...m,
       wardId: m.wardId || m.ward?.id || '',
       areaId: m.areaId || m.area?.id || '',
+      emergencyPhone: m.emergencyPhone || '',
       is24x7: Boolean(m.is24x7),
       homeDelivery: Boolean(m.homeDelivery),
       latitude: m.latitude || '',
@@ -1023,6 +1032,7 @@ export default function Hospitals({ defaultTab = '' }) {
         address: medForm.address,
         landmark: medForm.landmark,
         phone: medForm.phone,
+        emergencyPhone: medForm.emergencyPhone || null,
         openingHours: medForm.openingHours,
         is24x7: medForm.is24x7,
         homeDelivery: medForm.homeDelivery,
@@ -1864,29 +1874,6 @@ export default function Hospitals({ defaultTab = '' }) {
                   </button>
                 )}
               </div>
-
-              <div className="exec-toolbar-right" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-                <div className="admin-view-toggle-wrap">
-                  <button
-                    type="button"
-                    className={`admin-view-toggle-btn ${adminViewMode === 'cards' ? 'active' : ''}`}
-                    onClick={() => setAdminViewMode('cards')}
-                    title={isMr ? 'कार्ड व्ह्यू' : 'Cards View'}
-                  >
-                    <span>🗂️</span>
-                    <span>{isMr ? 'कार्ड्स' : 'Cards'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`admin-view-toggle-btn ${adminViewMode === 'table' ? 'active' : ''}`}
-                    onClick={() => setAdminViewMode('table')}
-                    title={isMr ? 'टेबल व्ह्यू' : 'Table View'}
-                  >
-                    <span>📄</span>
-                    <span>{isMr ? 'टेबल' : 'Table'}</span>
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1896,183 +1883,21 @@ export default function Hospitals({ defaultTab = '' }) {
             <Empty>{isMr ? 'कोणतेही रुग्णालय सापडले नाही.' : 'No hospitals found.'}</Empty>
           ) : (
             <>
-              {adminViewMode === 'cards' ? (
-                <div className="admin-health-grid">
-                  {hospRows.map(h => (
-                    <AdminHospitalCard
-                      key={h.id}
-                      h={h}
-                      isMr={isMr}
-                      canEdit={canEditAny}
-                      canDelete={canDeleteAny}
-                      onView={setHospDetail}
-                      onEdit={openEditHospital}
-                      onDelete={removeHospital}
-                      onUpdateLocation={item => openLocationModal(item, 'hospital')}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="panel table-wrap hospitals-table-wrap">
-                  <table className="table hospitals-table">
-                    <thead>
-                      <tr>
-                        <th>{isMr ? 'रुग्णालय / दवाखाना' : 'Hospital / Clinic'}</th>
-                        <th>{isMr ? 'वॉर्ड आणि परिसर' : 'Ward & Area'}</th>
-                        <th>{isMr ? 'संपर्क व आणीबाणी' : 'Contact & Emergency'}</th>
-                        <th>{isMr ? 'पत्ता आणि स्थान' : 'Address & Location'}</th>
-                        <th style={{ textAlign: 'center' }}>{isMr ? 'स्थिती' : 'Status'}</th>
-                        <th style={{ textAlign: 'center' }}>{isMr ? 'कृती' : 'Actions'}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {hospRows.map(h => {
-                        const initials = getInitials(h.name, 'HP');
-                        const wardNo = formatWardNumber(h.ward?.wardNumber);
-                        return (
-                          <tr key={h.id}>
-                            <td data-label="Hospital / Clinic">
-                              <div className="exec-cell-user">
-                                <div
-                                  className="exec-avatar teal"
-                                  onClick={() => setHospDetail(h)}
-                                  style={{ cursor: 'pointer' }}
-                                  title={isMr ? 'तपशील पाहण्यासाठी क्लिक करा' : 'Click to view details'}
-                                >
-                                  {initials}
-                                </div>
-                                <div className="exec-cell-meta">
-                                  <button
-                                    type="button"
-                                    onClick={() => setHospDetail(h)}
-                                    className="exec-cell-name"
-                                  >
-                                    {h.name}
-                                  </button>
-                                  <div className="hospital-cell-tags">
-                                    <span className={`hospital-type-chip type-${String(h.type || '').toLowerCase()}`}>
-                                      {hospitalTypeLabel(h.type, isMr)}
-                                    </span>
-                                    {h.landmark && (
-                                      <span className="muted" style={{ fontSize: '11px' }}>• {h.landmark}</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td data-label="Ward & Area">
-                              {wardNo ? (
-                                <span className="ward-pill-badge">{wardNo}</span>
-                              ) : null}
-                              {h.area?.name && (
-                                <div style={{ fontWeight: 600, fontSize: '12px', color: '#1e293b', marginTop: wardNo ? 3 : 0 }}>
-                                  {h.area.name}
-                                </div>
-                              )}
-                            </td>
-
-                            <td data-label="Contact">
-                              {h.phone ? (
-                                <div>
-                                  <a href={`tel:${h.phone}`} className="hospital-phone-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <PhoneIcon size={12} /> {h.phone}
-                                  </a>
-                                </div>
-                              ) : (
-                                <span className="muted">—</span>
-                              )}
-                              {h.emergencyPhone && (
-                                <div className="hospital-emergency-mini">
-                                  <a href={`tel:${h.emergencyPhone}`} style={{ color: '#dc2626', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <HeartIcon size={11} /> {isMr ? 'आणीबाणी:' : 'Emergency:'} {h.emergencyPhone}
-                                  </a>
-                                </div>
-                              )}
-                            </td>
-
-                            <td data-label="Location">
-                              <div style={{ fontSize: '12.5px', color: '#334155', lineHeight: 1.35, marginBottom: 6 }}>
-                                {h.address || '—'}
-                              </div>
-                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                {hasCoords(h.latitude, h.longitude) && (
-                                  <a
-                                    href={directionsUrl(h.latitude, h.longitude)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="exec-btn-dir"
-                                    onClick={e => e.stopPropagation()}
-                                    title={isMr ? 'गुगल मॅप्सवर दिशा पहा' : 'View directions in Google Maps'}
-                                  >
-                                    <MapPinIcon size={12} />
-                                    <span>{isMr ? 'दिशा' : 'Directions'}</span>
-                                  </a>
-                                )}
-                                {canEditAny && (
-                                  <button
-                                    type="button"
-                                    className={`exec-btn-update-loc ${hasCoords(h.latitude, h.longitude) ? 'is-update' : 'is-set'}`}
-                                    onClick={() => openLocationModal(h, 'hospital')}
-                                    title={isMr ? 'स्थान पिन अपडेट करा' : 'Update GPS Location'}
-                                  >
-                                    <MapPinIcon size={12} />
-                                    <span>{hasCoords(h.latitude, h.longitude) ? (isMr ? 'स्थान अपडेट करा' : 'Update Location') : (isMr ? 'स्थान सेट करा' : 'Set Location')}</span>
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-
-                            <td data-label="Status" style={{ textAlign: 'center' }}>
-                              <span className={`team-badge ${h.status === 'INACTIVE' ? 'gray' : 'green'}`}>
-                                {h.status === 'INACTIVE' ? (isMr ? 'निष्क्रिय' : 'Inactive') : (isMr ? 'सक्रिय' : 'Active')}
-                              </span>
-                            </td>
-
-                            <td data-label="Actions" style={{ textAlign: 'center' }}>
-                              <div className="exec-action-group">
-                                <button
-                                  type="button"
-                                  className="exec-btn-view"
-                                  onClick={() => setHospDetail(h)}
-                                  title={isMr ? 'तपशील पहा' : 'View details'}
-                                >
-                                  <EyeIcon size={13} />
-                                  <span>{isMr ? 'पहा' : 'View'}</span>
-                                </button>
-
-                                {canEditAny && (
-                                  <button
-                                    type="button"
-                                    className="exec-btn-edit"
-                                    onClick={() => openEditHospital(h)}
-                                    title={isMr ? 'संपादित करा' : 'Edit details'}
-                                  >
-                                    <EditIcon size={13} />
-                                    <span>{isMr ? 'संपादित' : 'Edit'}</span>
-                                  </button>
-                                )}
-
-                                {canDeleteAny && (
-                                  <button
-                                    type="button"
-                                    className="exec-btn-delete"
-                                    onClick={() => removeHospital(h)}
-                                    title={isMr ? 'हटवा' : 'Delete'}
-                                  >
-                                    <TrashIcon size={13} />
-                                    <span>{isMr ? 'हटवा' : 'Delete'}</span>
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <div className="admin-health-grid">
+                {hospRows.map(h => (
+                  <AdminHospitalCard
+                    key={h.id}
+                    h={h}
+                    isMr={isMr}
+                    canEdit={canEditAny}
+                    canDelete={canDeleteAny}
+                    onView={setHospDetail}
+                    onEdit={openEditHospital}
+                    onDelete={removeHospital}
+                    onUpdateLocation={item => openLocationModal(item, 'hospital')}
+                  />
+                ))}
+              </div>
               <PaginationBar
                 page={hospPage}
                 pages={Math.max(1, Math.ceil(hospTotal / hospPageSize))}
@@ -2204,25 +2029,7 @@ export default function Hospitals({ defaultTab = '' }) {
                   </select>
                 </div>
 
-                <button
-                  type="button"
-                  className={`exec-filter-chip ${medFilters.is24x7 ? 'active' : ''}`}
-                  onClick={() => setMedFilters(f => ({ ...f, is24x7: !f.is24x7 }))}
-                >
-                  <ClockIcon size={14} />
-                  <span>{medFilters.is24x7 ? '✓ ' : ''}{isMr ? '२४ तास सुरू' : '24x7 Open'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`exec-filter-chip ${medFilters.homeDelivery ? 'active' : ''}`}
-                  onClick={() => setMedFilters(f => ({ ...f, homeDelivery: !f.homeDelivery }))}
-                >
-                  <CheckIcon size={14} />
-                  <span>{medFilters.homeDelivery ? '✓ ' : ''}{isMr ? 'होम डिलिव्हरी' : 'Home Delivery'}</span>
-                </button>
-
-                {(medSearch || medFilters.type || medFilters.areaId || medFilters.is24x7 || medFilters.homeDelivery) && (
+                {(medSearch || medFilters.type || medFilters.areaId) && (
                   <button
                     type="button"
                     className="exec-filter-chip"
@@ -2237,29 +2044,6 @@ export default function Hospitals({ defaultTab = '' }) {
                   </button>
                 )}
               </div>
-
-              <div className="exec-toolbar-right" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-                <div className="admin-view-toggle-wrap">
-                  <button
-                    type="button"
-                    className={`admin-view-toggle-btn ${adminViewMode === 'cards' ? 'active' : ''}`}
-                    onClick={() => setAdminViewMode('cards')}
-                    title={isMr ? 'कार्ड व्ह्यू' : 'Cards View'}
-                  >
-                    <span>🗂️</span>
-                    <span>{isMr ? 'कार्ड्स' : 'Cards'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`admin-view-toggle-btn ${adminViewMode === 'table' ? 'active' : ''}`}
-                    onClick={() => setAdminViewMode('table')}
-                    title={isMr ? 'टेबल व्ह्यू' : 'Table View'}
-                  >
-                    <span>📄</span>
-                    <span>{isMr ? 'टेबल' : 'Table'}</span>
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -2269,191 +2053,21 @@ export default function Hospitals({ defaultTab = '' }) {
             <Empty>{isMr ? 'कोणतेही औषधांचे दुकान सापडले नाही.' : 'No medical stores found.'}</Empty>
           ) : (
             <>
-              {adminViewMode === 'cards' ? (
-                <div className="admin-health-grid">
-                  {medRows.map(m => (
-                    <AdminMedicalCard
-                      key={m.id}
-                      m={m}
-                      isMr={isMr}
-                      canEdit={canEditAny}
-                      canDelete={canDeleteAny}
-                      onView={setMedDetail}
-                      onEdit={openEditMedical}
-                      onDelete={removeMedical}
-                      onUpdateLocation={item => openLocationModal(item, 'medical')}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="panel table-wrap hospitals-table-wrap">
-                  <table className="table hospitals-table">
-                    <thead>
-                      <tr>
-                        <th>{isMr ? 'औषधांचे दुकान' : 'Medical Store'}</th>
-                        <th>{isMr ? 'वॉर्ड आणि परिसर' : 'Ward & Area'}</th>
-                        <th>{isMr ? 'संपर्क व वेळ' : 'Contact & Hours'}</th>
-                        <th>{isMr ? 'पत्ता आणि स्थान' : 'Address & Location'}</th>
-                        <th style={{ textAlign: 'center' }}>{isMr ? 'स्थिती' : 'Status'}</th>
-                        <th style={{ textAlign: 'center' }}>{isMr ? 'कृती' : 'Actions'}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {medRows.map(m => {
-                        const initials = getInitials(m.name, 'MD');
-                        const wardNo = formatWardNumber(m.ward?.wardNumber);
-                        return (
-                          <tr key={m.id}>
-                            <td data-label="Medical Store">
-                              <div className="exec-cell-user">
-                                <div
-                                  className="exec-avatar teal"
-                                  onClick={() => setMedDetail(m)}
-                                  style={{ cursor: 'pointer' }}
-                                  title={isMr ? 'तपशील पाहण्यासाठी क्लिक करा' : 'Click to view details'}
-                                >
-                                  {initials}
-                                </div>
-                                <div className="exec-cell-meta">
-                                  <button
-                                    type="button"
-                                    onClick={() => setMedDetail(m)}
-                                    className="exec-cell-name"
-                                  >
-                                    {m.name}
-                                  </button>
-                                  <div className="hospital-cell-tags">
-                                    <span className={`hospital-type-chip type-${String(m.type || '').toLowerCase()}`}>
-                                      {medicalTypeLabel(m.type, isMr)}
-                                    </span>
-                                    {m.is24x7 && (
-                                      <span style={{ fontSize: '10.5px', background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                                        24x7
-                                      </span>
-                                    )}
-                                    {m.homeDelivery && (
-                                      <span style={{ fontSize: '10.5px', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                                        {isMr ? 'डिलिव्हरी' : 'Delivery'}
-                                      </span>
-                                    )}
-                                    {m.landmark && (
-                                      <span className="muted" style={{ fontSize: '11px' }}>• {m.landmark}</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td data-label="Ward & Area">
-                              {wardNo ? (
-                                <span className="ward-pill-badge">{wardNo}</span>
-                              ) : null}
-                              {m.area?.name && (
-                                <div style={{ fontWeight: 600, fontSize: '12px', color: '#1e293b', marginTop: wardNo ? 3 : 0 }}>
-                                  {m.area.name}
-                                </div>
-                              )}
-                            </td>
-
-                            <td data-label="Contact & Hours">
-                              {m.phone ? (
-                                <div>
-                                  <a href={`tel:${m.phone}`} className="hospital-phone-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <PhoneIcon size={12} /> {m.phone}
-                                  </a>
-                                </div>
-                              ) : (
-                                <span className="muted">—</span>
-                              )}
-                              {m.openingHours && (
-                                <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                  <ClockIcon size={11} /> {m.openingHours}
-                                </div>
-                              )}
-                            </td>
-
-                            <td data-label="Location">
-                              <div style={{ fontSize: '12.5px', color: '#334155', lineHeight: 1.35, marginBottom: 6 }}>
-                                {m.address || '—'}
-                              </div>
-                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                {hasCoords(m.latitude, m.longitude) && (
-                                  <a
-                                    href={directionsUrl(m.latitude, m.longitude)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="exec-btn-dir"
-                                    onClick={e => e.stopPropagation()}
-                                    title={isMr ? 'गुगल मॅप्सवर दिशा पहा' : 'View directions in Google Maps'}
-                                  >
-                                    <MapPinIcon size={12} />
-                                    <span>{isMr ? 'दिशा' : 'Directions'}</span>
-                                  </a>
-                                )}
-                                {canEditAny && (
-                                  <button
-                                    type="button"
-                                    className={`exec-btn-update-loc ${hasCoords(m.latitude, m.longitude) ? 'is-update' : 'is-set'}`}
-                                    onClick={() => openLocationModal(m, 'medical')}
-                                    title={isMr ? 'स्थान पिन अपडेट करा' : 'Update GPS Location'}
-                                  >
-                                    <MapPinIcon size={12} />
-                                    <span>{hasCoords(m.latitude, m.longitude) ? (isMr ? 'स्थान अपडेट करा' : 'Update Location') : (isMr ? 'स्थान सेट करा' : 'Set Location')}</span>
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-
-                            <td data-label="Status" style={{ textAlign: 'center' }}>
-                              <span className={`team-badge ${m.status === 'INACTIVE' ? 'gray' : 'green'}`}>
-                                {m.status === 'INACTIVE' ? (isMr ? 'निष्क्रिय' : 'Inactive') : (isMr ? 'सक्रिय' : 'Active')}
-                              </span>
-                            </td>
-
-                            <td data-label="Actions" style={{ textAlign: 'center' }}>
-                              <div className="exec-action-group">
-                                <button
-                                  type="button"
-                                  className="exec-btn-view"
-                                  onClick={() => setMedDetail(m)}
-                                  title={isMr ? 'तपशील पहा' : 'View details'}
-                                >
-                                  <EyeIcon size={13} />
-                                  <span>{isMr ? 'पहा' : 'View'}</span>
-                                </button>
-
-                                {canEditAny && (
-                                  <button
-                                    type="button"
-                                    className="exec-btn-edit"
-                                    onClick={() => openEditMedical(m)}
-                                    title={isMr ? 'संपादित करा' : 'Edit details'}
-                                  >
-                                    <EditIcon size={13} />
-                                    <span>{isMr ? 'संपादित' : 'Edit'}</span>
-                                  </button>
-                                )}
-
-                                {canDeleteAny && (
-                                  <button
-                                    type="button"
-                                    className="exec-btn-delete"
-                                    onClick={() => removeMedical(m)}
-                                    title={isMr ? 'हटवा' : 'Delete'}
-                                  >
-                                    <TrashIcon size={13} />
-                                    <span>{isMr ? 'हटवा' : 'Delete'}</span>
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <div className="admin-health-grid">
+                {medRows.map(m => (
+                  <AdminMedicalCard
+                    key={m.id}
+                    m={m}
+                    isMr={isMr}
+                    canEdit={canEditAny}
+                    canDelete={canDeleteAny}
+                    onView={setMedDetail}
+                    onEdit={openEditMedical}
+                    onDelete={removeMedical}
+                    onUpdateLocation={item => openLocationModal(item, 'medical')}
+                  />
+                ))}
+              </div>
               <PaginationBar
                 page={medPage}
                 pages={Math.max(1, Math.ceil(medTotal / medPageSize))}
@@ -2698,6 +2312,9 @@ export default function Hospitals({ defaultTab = '' }) {
               <div className="hospital-form-grid">
                 <Field label={isMr ? 'संपर्क फोन' : 'Store contact phone'}>
                   <input inputMode="tel" value={medForm.phone} onChange={e => setMedForm({ ...medForm, phone: e.target.value })} placeholder="0241-XXXXXXX" />
+                </Field>
+                <Field label={isMr ? 'आणीबाणी / रात्रीचा फोन (पर्यायी)' : 'Emergency / Night Phone (Optional)'}>
+                  <input inputMode="tel" value={medForm.emergencyPhone || ''} onChange={e => setMedForm({ ...medForm, emergencyPhone: e.target.value })} placeholder="98XXXXXXXX" />
                 </Field>
                 <Field label={isMr ? 'वेळ' : 'Opening Hours'}>
                   <input value={medForm.openingHours} onChange={e => setMedForm({ ...medForm, openingHours: e.target.value })} placeholder="e.g. 24 Hours Open / 8 AM - 10 PM" />

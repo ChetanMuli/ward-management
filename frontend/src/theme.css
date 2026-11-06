@@ -9276,39 +9276,6 @@ html body .ward-info-card .nagar-info-phone:hover {
   box-shadow: 0 1px 3px rgba(15, 118, 110, 0.25) !important;
 }
 
-/* Admin View Toggle (Cards vs Table) */
-.admin-view-toggle-wrap {
-  display: inline-flex !important;
-  background: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 8px !important;
-  padding: 3px !important;
-  gap: 4px !important;
-}
-.admin-view-toggle-btn {
-  border: none !important;
-  background: transparent !important;
-  padding: 6px 12px !important;
-  border-radius: 6px !important;
-  font-size: 12.5px !important;
-  font-weight: 650 !important;
-  color: #475569 !important;
-  cursor: pointer !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  transition: all 0.15s ease !important;
-}
-.admin-view-toggle-btn:hover {
-  background: #f1f5f9 !important;
-  color: #0f172a !important;
-}
-.admin-view-toggle-btn.active {
-  background: #0f766e !important;
-  color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.25) !important;
-}
-
 /* Admin Health Grid & Cards */
 .admin-health-grid {
   display: grid !important;
@@ -9517,108 +9484,127 @@ html body .ward-info-card .nagar-info-phone:hover {
   border: 1px dashed #fde68a !important;
 }
 
-/* Card Actions Bar */
+/* Card Actions Container: Two Symmetrical Aligned Tiers */
 .admin-card-actions {
   display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
+  flex-direction: column !important;
+  gap: 8px !important;
   border-top: 1px solid #f1f5f9 !important;
-  padding-top: 12px !important;
-  flex-wrap: wrap !important;
+  padding-top: 14px !important;
+  margin-top: auto !important;
+  width: 100% !important;
 }
+
+.admin-card-btn-row {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.admin-card-btn-row.primary-row {
+  display: flex !important;
+}
+
+.admin-card-btn-row.primary-row .admin-act-btn {
+  flex: 1 1 0 !important;
+  height: 38px !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+.admin-card-btn-row.manage-row {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.admin-card-btn-row.manage-row .admin-act-btn {
+  width: 100% !important;
+  height: 34px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
 .admin-act-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 5px !important;
-  padding: 6px 10px !important;
-  border-radius: 6px !important;
-  font-size: 12px !important;
-  font-weight: 650 !important;
+  gap: 6px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
   cursor: pointer !important;
-  border: 1px solid transparent !important;
+  border: 1.5px solid transparent !important;
   text-decoration: none !important;
-  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  transition: all 0.18s ease !important;
 }
+
 .admin-act-btn.is-dir {
   background: #f0fdfa !important;
-  border-color: #ccfbf1 !important;
+  border-color: #99f6e4 !important;
   color: #0f766e !important;
 }
 .admin-act-btn.is-dir:hover {
-  background: #ccfbf1 !important;
-  border-color: #99f6e4 !important;
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(15, 118, 110, 0.2) !important;
 }
+
 .admin-act-btn.is-update-loc {
   background: #f8fafc !important;
   border-color: #cbd5e1 !important;
-  color: #1e293b !important;
-  font-weight: 700 !important;
+  color: #334155 !important;
 }
 .admin-act-btn.is-update-loc.no-pin {
   background: #fffbeb !important;
   border-color: #fde68a !important;
   color: #b45309 !important;
+  font-weight: 700 !important;
 }
 .admin-act-btn.is-update-loc:hover {
   background: #0f766e !important;
   border-color: #0f766e !important;
   color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(15, 118, 110, 0.2) !important;
 }
+
 .admin-act-btn.is-view {
-  background: #f1f5f9 !important;
+  background: #f8fafc !important;
   border-color: #e2e8f0 !important;
-  color: #334155 !important;
+  color: #475569 !important;
 }
 .admin-act-btn.is-view:hover {
   background: #e2e8f0 !important;
   color: #0f172a !important;
 }
+
 .admin-act-btn.is-edit {
-  background: #f0fdfa !important;
-  border-color: #ccfbf1 !important;
-  color: #0f766e !important;
+  background: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+  color: #15803d !important;
 }
 .admin-act-btn.is-edit:hover {
-  background: #0f766e !important;
+  background: #16a34a !important;
+  border-color: #16a34a !important;
   color: #ffffff !important;
-}
-.admin-act-btn.is-delete {
-  background: #ffffff !important;
-  border-color: #fecdd3 !important;
-  color: #e11d48 !important;
-  padding: 6px 8px !important;
-  margin-left: auto !important;
-}
-.admin-act-btn.is-delete:hover {
-  background: #fef2f2 !important;
-  border-color: #fda4af !important;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2) !important;
 }
 
-/* Table View Location Button */
-.exec-btn-update-loc {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-  padding: 3px 8px !important;
-  border-radius: 5px !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  cursor: pointer !important;
-  border: 1px solid #cbd5e1 !important;
-  background: #ffffff !important;
-  color: #334155 !important;
-  transition: all 0.15s ease !important;
+.admin-act-btn.is-delete {
+  background: #fff5f5 !important;
+  border-color: #fecdd3 !important;
+  color: #e11d48 !important;
+  margin-left: 0 !important;
 }
-.exec-btn-update-loc.is-set {
-  background: #fffbeb !important;
-  border-color: #fde68a !important;
-  color: #b45309 !important;
-}
-.exec-btn-update-loc:hover {
-  background: #0f766e !important;
-  border-color: #0f766e !important;
+.admin-act-btn.is-delete:hover {
+  background: #e11d48 !important;
+  border-color: #e11d48 !important;
   color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.2) !important;
 }
 
 /* Location Update Modal */
