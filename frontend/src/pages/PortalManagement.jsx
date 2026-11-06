@@ -1185,90 +1185,38 @@ export default function PortalManagement() {
                   </div>
 
                   {/* Subnav for Banner Studio */}
-                  <div className="banner-studio-subnav" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20, padding: 6, background: '#f1f5f9', borderRadius: 10 }}>
+                  <div className="banner-studio-subnav">
                     <button
                       type="button"
                       className={`banner-subnav-btn ${bannerSubTab === 'HOME' ? 'active' : ''}`}
                       onClick={() => setBannerSubTab('HOME')}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: bannerSubTab === 'HOME' ? '#0f766e' : 'transparent',
-                        color: bannerSubTab === 'HOME' ? '#fff' : '#475569',
-                      }}
                     >
                       <span>🏠</span>
                       <span>{isMr ? 'होम बॅनर' : 'Home Banner'}</span>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#38bdf8' : '#22c55e' }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#38bdf8' : '#22c55e', display: 'inline-block' }} />
                     </button>
                     <button
                       type="button"
                       className={`banner-subnav-btn ${bannerSubTab === 'COMPLAINTS' ? 'active' : ''}`}
                       onClick={() => setBannerSubTab('COMPLAINTS')}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: bannerSubTab === 'COMPLAINTS' ? '#0f766e' : 'transparent',
-                        color: bannerSubTab === 'COMPLAINTS' ? '#fff' : '#475569',
-                      }}
                     >
                       <span>📣</span>
                       <span>{isMr ? 'तक्रार बॅनर' : 'Complaints Banner'}</span>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: portalConfig?.complaintsBannerUrl ? '#22c55e' : '#94a3b8' }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: portalConfig?.complaintsBannerUrl ? '#22c55e' : '#94a3b8', display: 'inline-block' }} />
                     </button>
                     <button
                       type="button"
                       className={`banner-subnav-btn ${bannerSubTab === 'GALLERY' ? 'active' : ''}`}
                       onClick={() => setBannerSubTab('GALLERY')}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: bannerSubTab === 'GALLERY' ? '#0f766e' : 'transparent',
-                        color: bannerSubTab === 'GALLERY' ? '#fff' : '#475569',
-                      }}
                     >
                       <span>🖼️</span>
                       <span>{isMr ? 'गॅलरी बॅनर' : 'Gallery Banner'}</span>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: portalConfig?.galleryBannerUrl ? '#22c55e' : '#94a3b8' }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: portalConfig?.galleryBannerUrl ? '#22c55e' : '#94a3b8', display: 'inline-block' }} />
                     </button>
                     <button
                       type="button"
                       className={`banner-subnav-btn ${bannerSubTab === 'HEADLINES' ? 'active' : ''}`}
                       onClick={() => setBannerSubTab('HEADLINES')}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: bannerSubTab === 'HEADLINES' ? '#0f766e' : 'transparent',
-                        color: bannerSubTab === 'HEADLINES' ? '#fff' : '#475569',
-                      }}
                     >
                       <span>✍️</span>
                       <span>{isMr ? 'स्वागत मथळा व बटणे' : 'Headlines & CTA'}</span>
@@ -1277,19 +1225,6 @@ export default function PortalManagement() {
                       type="button"
                       className={`banner-subnav-btn ${bannerSubTab === 'ALL' ? 'active' : ''}`}
                       onClick={() => setBannerSubTab('ALL')}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: bannerSubTab === 'ALL' ? '#0f766e' : 'transparent',
-                        color: bannerSubTab === 'ALL' ? '#fff' : '#475569',
-                      }}
                     >
                       <span>📑</span>
                       <span>{isMr ? 'सर्व पर्याय' : 'View All'}</span>
@@ -1300,19 +1235,17 @@ export default function PortalManagement() {
                   {(bannerSubTab === 'HOME' || bannerSubTab === 'ALL') && (
                     <div className="form-section-box">
                       <div className="form-section-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <span className="form-section-title">
-                            <span>🏠</span>
-                            <span>{isMr ? 'होम बॅनर (नागरिक डॅशबोर्ड)' : 'Home Banner (Citizen Dashboard)'}</span>
-                          </span>
-                          <span className="form-section-tag" style={{ background: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#e0f2fe' : '#dcfce7', color: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#0284c7' : '#15803d' }}>
-                            {isGenericDefaultHero(portalConfig?.heroBannerUrl) ? (isMr ? '🏛️ महापालिका डिफॉल्ट' : '🏛️ Civic Default') : (isMr ? '✅ सक्रिय कस्टम बॅनर' : '✅ Active Custom Banner')}
-                          </span>
-                        </div>
-                        <small style={{ color: '#64748b', fontSize: 12 }}>
-                          {isMr ? 'आकारमान: 1440 × 600 px (2.4:1 रेशिओ). नागरिक होम पानावर मुख्य बॅनर म्हणून दिसेल.' : 'Recommended: 1440 × 600 px (2.4:1 ratio). Displayed across desktop and mobile citizen home.'}
-                        </small>
+                        <span className="form-section-title">
+                          <span>🏠</span>
+                          <span>{isMr ? 'होम बॅनर (नागरिक डॅशबोर्ड)' : 'Home Banner (Citizen Dashboard)'}</span>
+                        </span>
+                        <span className="form-section-tag" style={{ background: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#e0f2fe' : '#dcfce7', color: isGenericDefaultHero(portalConfig?.heroBannerUrl) ? '#0284c7' : '#15803d' }}>
+                          {isGenericDefaultHero(portalConfig?.heroBannerUrl) ? (isMr ? '🏛️ महापालिका डिफॉल्ट' : '🏛️ Civic Default') : (isMr ? '✅ सक्रिय कस्टम बॅनर' : '✅ Active Custom')}
+                        </span>
                       </div>
+                      <p className="form-section-hint">
+                        {isMr ? 'आकारमान: 1440 × 600 px (2.4:1 रेशिओ). नागरिक होम पानावर मुख्य बॅनर म्हणून दिसेल.' : 'Recommended: 1440 × 600 px (2.4:1 ratio). Displayed across desktop and mobile citizen home.'}
+                      </p>
 
                       <ImageCropField
                         key={`hero-${editorPanelId || 'none'}`}
@@ -1368,19 +1301,18 @@ export default function PortalManagement() {
                   {(bannerSubTab === 'COMPLAINTS' || bannerSubTab === 'ALL') && (
                     <div className="form-section-box">
                       <div className="form-section-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <span className="form-section-title">
-                            <span>📣</span>
-                            <span>{isMr ? 'तक्रार बॅनर (नागरिक तक्रार पान)' : 'Complaints Banner (Citizen Grievance Page)'}</span>
-                          </span>
-                          <span className="form-section-tag" style={{ background: portalConfig?.complaintsBannerUrl ? '#dcfce7' : '#f1f5f9', color: portalConfig?.complaintsBannerUrl ? '#15803d' : '#64748b' }}>
-                            {portalConfig?.complaintsBannerUrl ? (isMr ? '✅ स्वतंत्र बॅनर सेट' : '✅ Custom Banner Active') : (isMr ? 'ℹ️ होम बॅनर वापरला जाईल' : 'ℹ️ Defaulting to Home Banner')}
-                          </span>
-                        </div>
-                        <small style={{ color: '#64748b', fontSize: 12 }}>
-                          {isMr ? 'आकारमान: 1440 × 600 px. नागरिक तक्रार पानावर वरच्या भागात दिसेल.' : 'Recommended: 1440 × 600 px. Displayed at top of citizen grievance page.'}
-                        </small>
+                        <span className="form-section-title">
+                          <span>📣</span>
+                          <span>{isMr ? 'तक्रार बॅनर (नागरिक तक्रार पान)' : 'Complaints Banner (Citizen Grievance Page)'}</span>
+                        </span>
+                        <span className="form-section-tag" style={{ background: portalConfig?.complaintsBannerUrl ? '#dcfce7' : '#f1f5f9', color: portalConfig?.complaintsBannerUrl ? '#15803d' : '#64748b' }}>
+                          {portalConfig?.complaintsBannerUrl ? (isMr ? '✅ स्वतंत्र बॅनर सेट' : '✅ Custom Banner') : (isMr ? 'ℹ️ होम बॅनर वापरला जाईल' : 'ℹ️ Defaulting to Home')}
+                        </span>
                       </div>
+                      <p className="form-section-hint">
+                        {isMr ? 'आकारमान: 1440 × 600 px. नागरिक तक्रार पानावर वरच्या भागात दिसेल.' : 'Recommended: 1440 × 600 px. Displayed at top of citizen grievance page.'}
+                      </p>
+
                       <ImageCropField
                         key={`complaints-${editorPanelId || 'none'}`}
                         label=""
@@ -1407,19 +1339,18 @@ export default function PortalManagement() {
                   {(bannerSubTab === 'GALLERY' || bannerSubTab === 'ALL') && (
                     <div className="form-section-box">
                       <div className="form-section-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <span className="form-section-title">
-                            <span>🖼️</span>
-                            <span>{isMr ? 'गॅलरी बॅनर (नागरिक विकास कामे)' : 'Gallery Banner (Citizen Public Works)'}</span>
-                          </span>
-                          <span className="form-section-tag" style={{ background: portalConfig?.galleryBannerUrl ? '#dcfce7' : '#f1f5f9', color: portalConfig?.galleryBannerUrl ? '#15803d' : '#64748b' }}>
-                            {portalConfig?.galleryBannerUrl ? (isMr ? '✅ स्वतंत्र बॅनर सेट' : '✅ Custom Banner Active') : (isMr ? 'ℹ️ होम बॅनर वापरला जाईल' : 'ℹ️ Defaulting to Home Banner')}
-                          </span>
-                        </div>
-                        <small style={{ color: '#64748b', fontSize: 12 }}>
-                          {isMr ? 'आकारमान: 1440 × 600 px. नागरिक गॅलरी / विकास कामे पानावर वरच्या भागात दिसेल.' : 'Recommended: 1440 × 600 px. Displayed at top of citizen public works gallery.'}
-                        </small>
+                        <span className="form-section-title">
+                          <span>🖼️</span>
+                          <span>{isMr ? 'गॅलरी बॅनर (नागरिक विकास कामे)' : 'Gallery Banner (Citizen Public Works)'}</span>
+                        </span>
+                        <span className="form-section-tag" style={{ background: portalConfig?.galleryBannerUrl ? '#dcfce7' : '#f1f5f9', color: portalConfig?.galleryBannerUrl ? '#15803d' : '#64748b' }}>
+                          {portalConfig?.galleryBannerUrl ? (isMr ? '✅ स्वतंत्र बॅनर सेट' : '✅ Custom Banner') : (isMr ? 'ℹ️ होम बॅनर वापरला जाईल' : 'ℹ️ Defaulting to Home')}
+                        </span>
                       </div>
+                      <p className="form-section-hint">
+                        {isMr ? 'आकारमान: 1440 × 600 px. नागरिक गॅलरी / विकास कामे पानावर वरच्या भागात दिसेल.' : 'Recommended: 1440 × 600 px. Displayed at top of citizen public works gallery.'}
+                      </p>
+
                       <ImageCropField
                         key={`gallery-${editorPanelId || 'none'}`}
                         label=""
@@ -1580,15 +1511,15 @@ export default function PortalManagement() {
                             <small className="field-hint">{isMr ? 'लक्ष्य URL: /gallery' : 'Target URL: /gallery'}</small>
                           </div>
                         </div>
+
+                        <div className="portal-section-save" style={{ marginTop: 14 }}>
+                          <button type="button" className="primary-btn" disabled={saving} onClick={handleSavePortalConfig}>
+                            {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'मथळा व कृती बटणे सेव्ह करा' : 'Save headlines & buttons')}
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
-
-                  <div className="form-actions-footer">
-                    <button type="submit" className="primary-btn portal-save-btn" disabled={saving}>
-                      {saving ? (isMr ? 'सेव्ह होत आहे…' : 'Saving…') : (isMr ? 'बॅनर सेव्ह करा' : 'Save banners')}
-                    </button>
-                  </div>
                 </form>
               </div>
             </div>
