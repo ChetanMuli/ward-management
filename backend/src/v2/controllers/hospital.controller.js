@@ -63,6 +63,12 @@ function canDelete(req) {
 }
 
 function applyWardScope(req, where) {
+  if (req.user.roleName === 'CITIZEN') {
+    if (req.query.wardId) {
+      where.wardId = req.query.wardId;
+    }
+    return;
+  }
   const ids = allowedWardIds(req);
   if (ids !== null) {
     where.wardId = ids.length === 1 ? ids[0] : { [Op.in]: ids.length ? ids : [EMPTY_ID] };
@@ -86,7 +92,13 @@ function scopedWhere(req, { listFilters = true } = {}) {
 
   if (req.query.type) {
     const t = String(req.query.type).toUpperCase();
-    if (TYPES.includes(t)) where.type = t;
+    if (t === 'GOVERNMENT') {
+      where.type = { [Op.in]: ['GOVERNMENT', 'PHC'] };
+    } else if (t === 'PRIVATE') {
+      where.type = { [Op.in]: ['PRIVATE', 'CLINIC'] };
+    } else if (TYPES.includes(t)) {
+      where.type = t;
+    }
   }
   const group = String(req.query.typeGroup || '').toLowerCase();
   if (group === 'gov') where.type = { [Op.in]: ['GOVERNMENT', 'PHC'] };
@@ -98,15 +110,14 @@ function scopedWhere(req, { listFilters = true } = {}) {
   const search = String(req.query.search || '').trim().slice(0, 60).replace(/[%_]/g, '');
   if (search) {
     const like = `%${search}%`;
-    const cityWide = !req.query.wardId && allowedWardIds(req) === null;
-    where[Op.or] = cityWide
-      ? [{ name: { [Op.like]: like } }, { phone: { [Op.like]: `${search}%` } }]
-      : [
-        { name: { [Op.like]: like } },
-        { phone: { [Op.like]: `${search}%` } },
-        { landmark: { [Op.like]: like } },
-        { address: { [Op.like]: like } },
-      ];
+    where[Op.or] = [
+      { name: { [Op.like]: like } },
+      { phone: { [Op.like]: `${search}%` } },
+      { emergencyPhone: { [Op.like]: `${search}%` } },
+      { landmark: { [Op.like]: like } },
+      { address: { [Op.like]: like } },
+      { facilities: { [Op.like]: like } },
+    ];
   }
   return where;
 }

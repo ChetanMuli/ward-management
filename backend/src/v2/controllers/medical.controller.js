@@ -70,6 +70,12 @@ function canDelete(req) {
 }
 
 function applyWardScope(req, where) {
+  if (req.user.roleName === 'CITIZEN') {
+    if (req.query.wardId) {
+      where.wardId = req.query.wardId;
+    }
+    return;
+  }
   const ids = allowedWardIds(req);
   if (ids !== null) {
     where.wardId = ids.length === 1 ? ids[0] : { [Op.in]: ids.length ? ids : [EMPTY_ID] };
@@ -113,6 +119,8 @@ function scopedWhere(req, { listFilters = true } = {}) {
       { phone: { [Op.like]: like } },
       { address: { [Op.like]: like } },
       { landmark: { [Op.like]: like } },
+      { facilities: { [Op.like]: like } },
+      { notes: { [Op.like]: like } },
     ];
   }
   return where;
